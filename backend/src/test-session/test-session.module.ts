@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TestSessionService } from './test-session.service';
 import { TestSessionController } from './test-session.controller';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ExamsModule } from '../exams/exams.module';
 import { UsersModule } from '../users/users.module';
@@ -16,18 +16,22 @@ import { Model } from '../exams/entities/model.entity';
         ExamsModule,
         UsersModule,
         PaymentsModule,
-        ClientsModule.register([
+        ClientsModule.registerAsync([
             {
                 name: 'KAFKA_SERVICE',
-                transport: Transport.KAFKA,
-                options: {
-                    client: {
-                        brokers: ['localhost:9092'],
+                imports: [ConfigModule],
+                useFactory: (configService: ConfigService) => ({
+                    transport: Transport.KAFKA,
+                    options: {
+                        client: {
+                            brokers: configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(','),
+                        },
+                        consumer: {
+                            groupId: configService.get<string>('KAFKA_CONSUMER_GROUP', 'erankup-backend-consumer'),
+                        },
                     },
-                    consumer: {
-                        groupId: 'erankup-backend-consumer',
-                    },
-                },
+                }),
+                inject: [ConfigService],
             },
         ]),
     ],

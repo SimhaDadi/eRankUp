@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual } from 'typeorm';
+import { CacheService } from '../common/cache.service';
 import { User, UserRole } from '../users/user.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { Attempt } from '../exams/entities/attempt.entity';
@@ -17,9 +18,14 @@ export class AnalyticsService {
         private attemptRepository: Repository<Attempt>,
         @InjectRepository(Purchase)
         private purchaseRepository: Repository<Purchase>,
+        private cacheService: CacheService,
     ) { }
 
     async getOverviewStats() {
+        const cacheKey = 'analytics:overview';
+        const cached = await this.cacheService.get<any>(cacheKey);
+        if (cached) return cached;
+
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
@@ -57,15 +63,22 @@ export class AnalyticsService {
             growth: '+15%' // Placeholder
         };
 
-        return {
+        const stats = {
             activeStudents,
             totalExams,
             submissionsToday,
             revenueStats
         };
+
+        await this.cacheService.set(cacheKey, stats, 600);
+        return stats;
     }
 
     async getUserAnalytics() {
+        const cacheKey = 'analytics:users';
+        const cached = await this.cacheService.get<any>(cacheKey);
+        if (cached) return cached;
+
         // User Growth (Last 6 months)
         const months = 6;
         const growthData = [];
@@ -92,16 +105,23 @@ export class AnalyticsService {
         const students = await this.userRepository.count({ where: { role: UserRole.STUDENT } });
         const admins = await this.userRepository.count({ where: { role: UserRole.ADMIN } });
 
-        return {
+        const stats = {
             growth: growthData,
             distribution: [
                 { name: 'Students', value: students },
                 { name: 'Admins', value: admins }
             ]
         };
+
+        await this.cacheService.set(cacheKey, stats, 600);
+        return stats;
     }
 
     async getExamAnalytics() {
+        const cacheKey = 'analytics:exams';
+        const cached = await this.cacheService.get<any>(cacheKey);
+        if (cached) return cached;
+
         // Most Popular Exams (by attempts)
         const popularExams = await this.attemptRepository
             .createQueryBuilder('attempt')
@@ -123,13 +143,20 @@ export class AnalyticsService {
         const totalAttempts = await this.attemptRepository.count();
         const passRate = totalAttempts > 0 ? Math.round((passedAttempts / totalAttempts) * 100) : 0;
 
-        return {
+        const stats = {
             popularExams: popularExams.map(e => ({ name: e.name, value: parseInt(e.attempts) })),
             passRate
         };
+
+        await this.cacheService.set(cacheKey, stats, 600);
+        return stats;
     }
 
     async getRevenueAnalytics() {
+        const cacheKey = 'analytics:revenue';
+        const cached = await this.cacheService.get<any>(cacheKey);
+        if (cached) return cached;
+
         // Revenue Trend (Last 6 months)
         const months = 6;
         const trendData = [];
@@ -161,7 +188,7 @@ export class AnalyticsService {
             take: 5
         });
 
-        return {
+        const stats = {
             trend: trendData,
             recent: recentTransactions.map(t => ({
                 id: t.id,
@@ -171,14 +198,31 @@ export class AnalyticsService {
                 date: t.createdAt
             }))
         };
+
+        await this.cacheService.set(cacheKey, stats, 600);
+        return stats;
     }
-    async getAttemptAnalysis(attemptId: string) {
+    async getAttemptAnalysis(attemptId: string, userId: string) {
         const attempt = await this.attemptRepository.findOne({
-            where: { id: attemptId },
-            relations: ['responses', 'responses.question']
+            where: { id: attemptId, user: { id: userId } },
+            relations: ['responses', 'responses.question', 'model']
         });
 
         if (!attempt) return null;
+
+        // Calculate Rank: Number of people with (higher score) OR (same score AND lower time)
+        // We use QueryBuilder for complex OR conditions with AND
+        const betterCount = await this.attemptRepository.createQueryBuilder('attempt')
+            .where('attempt.modelId = :modelId', { modelId: attempt.model.id })
+            .andWhere(
+                '(attempt.score > :score OR (attempt.score = :score AND attempt.timeTaken < :timeTaken))',
+                { score: attempt.score, timeTaken: attempt.timeTaken }
+            )
+            .getCount();
+
+        const totalParticipants = await this.attemptRepository.count({
+            where: { model: { id: attempt.model.id } }
+        });
 
         const topicStats: Record<string, { correct: number; total: number; time: number }> = {};
 
@@ -206,6 +250,8 @@ export class AnalyticsService {
         });
 
         return {
+            rank: betterCount + 1,
+            totalParticipants,
             topicAnalysis: topicStats,
             strengths: strengths.slice(0, 3),
             weaknesses: weaknesses.slice(0, 3),

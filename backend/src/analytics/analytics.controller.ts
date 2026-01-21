@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Query, Param } from '@nestjs/common';
+import { Controller, Get, UseGuards, Query, Param, Request } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -39,7 +39,7 @@ export class AnalyticsController {
 
     @Get('attempt/:id')
     @UseGuards(AuthGuard('jwt'))
-    async getAttemptAnalysis(@Param('id') id: string) {
-        return this.analyticsService.getAttemptAnalysis(id);
+    async getAttemptAnalysis(@Param('id') id: string, @Request() req: any) {
+        return this.analyticsService.getAttemptAnalysis(id, req.user.userId);
     }
 }

@@ -47,6 +47,8 @@ interface Attempt {
     questionTimings?: Record<string, number>;
     responses?: QuestionResponse[];
     insights?: {
+        rank: number;
+        totalParticipants: number;
         topicAnalysis: Record<string, { correct: number; total: number; time: number }>;
         strengths: string[];
         weaknesses: string[];
@@ -197,11 +199,25 @@ export default function ResultsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-center">
-                    <div className="text-center md:border-r border-gray-100 flex flex-col items-center justify-center h-full">
-                        <div className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-[#00bfa5] mb-2 tracking-tighter">
-                            {Math.round(attempt.score)}%
+                    <div className="text-center md:border-r border-gray-100 flex flex-col items-center justify-center h-full gap-4">
+                        <div>
+                            <div className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-[#00bfa5] mb-2 tracking-tighter">
+                                {Math.round(attempt.score)}%
+                            </div>
+                            <div className="text-slate-400 font-bold uppercase tracking-widest text-xs bg-slate-50 px-3 py-1 rounded-full">Overall Score</div>
                         </div>
-                        <div className="text-slate-400 font-bold uppercase tracking-widest text-xs bg-slate-50 px-3 py-1 rounded-full">Overall Score</div>
+
+                        {attempt.insights?.rank && (
+                            <div className="pt-4 border-t border-gray-100 w-2/3">
+                                <div className="flex items-center justify-center gap-2 text-amber-600 font-bold">
+                                    <Trophy className="w-5 h-5" />
+                                    <span className="text-2xl">Rank #{attempt.insights.rank}</span>
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                    Out of {attempt.insights.totalParticipants} Participants
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 col-span-2 gap-4">

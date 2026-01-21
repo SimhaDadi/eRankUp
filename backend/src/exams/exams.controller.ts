@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put } from '@nestjs/common';
 import { ExamsService } from './exams.service';
+import { ExamsSeederService } from './exams-seeder.service';
 import { ScorerService } from './scorer.service';
 import { PaymentsService } from '../payments/payments.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -13,6 +14,7 @@ export class ExamsController {
         private readonly examsService: ExamsService,
         private readonly scorerService: ScorerService,
         private readonly paymentsService: PaymentsService,
+        private readonly seederService: ExamsSeederService,
     ) { }
 
     @UseGuards(AuthGuard('jwt'))
@@ -34,26 +36,32 @@ export class ExamsController {
         return this.examsService.findLiveExams();
     }
 
-
-
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
     @Get('seed-ssc-2026')
     async seedSSC() {
-        return this.examsService.seedSSC2026();
+        return this.seederService.seedSSC2026();
     }
 
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
     @Get('seed-ssc-2027')
     async seedSSC2027() {
-        return this.examsService.seedSSC2027();
+        return this.seederService.seedSSC2027();
     }
 
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
     @Get('seed-ssc-2028')
     async seedSSC2028() {
-        return this.examsService.seedSSC2028();
+        return this.seederService.seedSSC2028();
     }
 
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
     @Get('seed-2030')
     async seed2030() {
-        return this.examsService.seed2030Exams();
+        return this.seederService.seed2030Exams();
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -68,8 +76,8 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get('models/:id')
-    getModel(@Param('id') id: string) {
-        return this.examsService.findModel(id);
+    getModel(@Param('id') id: string, @Request() req: any) {
+        return this.examsService.findModel(id, req.user.userId);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -81,8 +89,8 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get('attempts/:id')
-    findAttempt(@Param('id') id: string) {
-        return this.scorerService.getAttempt(id);
+    findAttempt(@Param('id') id: string, @Request() req: any) {
+        return this.scorerService.getAttempt(id, req.user.userId);
     }
 
     @UseGuards(AuthGuard('jwt'))

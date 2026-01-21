@@ -1,9 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn, Index } from 'typeorm';
 import { User } from '../../users/user.entity';
 import { Model } from './model.entity';
 import { Response } from './response.entity';
 
 @Entity()
+@Index(['score', 'timeTaken'])
 export class Attempt {
     @PrimaryGeneratedColumn('uuid')
     id: string;
@@ -17,6 +18,7 @@ export class Attempt {
     @OneToMany(() => Response, (response) => response.attempt, { cascade: true })
     responses: Response[];
 
+    @Index()
     @Column('float')
     score: number;
 
@@ -26,6 +28,7 @@ export class Attempt {
     @Column('int')
     correctAnswers: number;
 
+    @Index()
     @Column('int')
     timeTaken: number; // in seconds
 
@@ -41,6 +44,7 @@ export class Attempt {
     @Column('simple-json', { nullable: true })
     questionTimings: Record<string, number>; // DEPRECATED: Use Response.timeSpent instead
 
+    @Index()
     @CreateDateColumn()
     createdAt: Date;
 }

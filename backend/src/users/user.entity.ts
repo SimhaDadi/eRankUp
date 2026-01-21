@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 
 export enum UserRole {
     STUDENT = 'student',
@@ -19,6 +19,7 @@ export class User {
     @Column({ nullable: true })
     fullName: string;
 
+    @Index()
     @Column({
         type: 'enum',
         enum: UserRole,
@@ -29,6 +30,7 @@ export class User {
     @Column({ default: true })
     isActive: boolean;
 
+    @Index()
     @CreateDateColumn()
     createdAt: Date;
 

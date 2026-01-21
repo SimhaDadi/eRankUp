@@ -7,15 +7,11 @@ import { Model } from './entities/model.entity';
 import { Response } from './entities/response.entity';
 import { User } from '../users/user.entity';
 import { DifficultyService } from './difficulty.service';
-import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class ScorerService {
-    private redis: Redis;
-
     constructor(
-        private configService: ConfigService,
         @InjectRepository(Attempt)
         private attemptRepository: Repository<Attempt>,
         @InjectRepository(Question)
@@ -25,12 +21,8 @@ export class ScorerService {
         @InjectRepository(Response)
         private responseRepository: Repository<Response>,
         private difficultyService: DifficultyService,
-    ) {
-        this.redis = new Redis({
-            host: this.configService.get('REDIS_HOST', 'localhost'),
-            port: this.configService.get('REDIS_PORT', 6379),
-        });
-    }
+        private cacheService: CacheService,
+    ) { }
 
     async gradeAndSave(
         user: User,
@@ -153,7 +145,7 @@ export class ScorerService {
             console.log(`[Scorer] Attempt saved successfully. ID: ${savedAttempt.id}`);
 
             // Invalidate leaderboard cache
-            this.redis.del('leaderboard:global').catch(err =>
+            this.cacheService.del('leaderboard:global').catch(err =>
                 console.error('[Scorer] Failed to invalidate leaderboard cache', err)
             );
 
@@ -164,9 +156,9 @@ export class ScorerService {
         }
     }
 
-    async getAttempt(id: string) {
+    async getAttempt(id: string, userId: string) {
         return this.attemptRepository.findOne({
-            where: { id },
+            where: { id, user: { id: userId } },
             relations: ['model', 'model.chapter', 'model.exams', 'responses', 'responses.question'],
         });
     }
@@ -182,10 +174,10 @@ export class ScorerService {
 
     async getGlobalLeaderboard() {
         const cacheKey = 'leaderboard:global';
-        const cached = await this.redis.get(cacheKey);
+        const cached = await this.cacheService.get<any>(cacheKey);
 
         if (cached) {
-            return JSON.parse(cached);
+            return cached;
         }
 
         const leaderboard = await this.attemptRepository.createQueryBuilder('attempt')
@@ -202,7 +194,7 @@ export class ScorerService {
             .getRawMany();
 
         // Cache for 5 minutes
-        await this.redis.set(cacheKey, JSON.stringify(leaderboard), 'EX', 300);
+        await this.cacheService.set(cacheKey, leaderboard, 300);
 
         return leaderboard;
     }

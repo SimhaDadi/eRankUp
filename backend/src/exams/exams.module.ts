@@ -10,7 +10,7 @@ import { Question } from './entities/question.entity';
 import { Attempt } from './entities/attempt.entity';
 import { Response } from './entities/response.entity';
 import { Purchase } from './entities/purchase.entity';
-import { ExamSeederService } from './exam.seeder';
+import { ExamsSeederService } from './exams-seeder.service';
 import { ScorerService } from './scorer.service';
 import { DifficultyService } from './difficulty.service';
 import { PaymentsModule } from '../payments/payments.module';
@@ -21,7 +21,7 @@ import { PaymentsModule } from '../payments/payments.module';
         forwardRef(() => PaymentsModule),
     ],
     controllers: [ExamsController],
-    providers: [ExamsService, ExamSeederService, ScorerService, DifficultyService],
+    providers: [ExamsService, ExamsSeederService, ScorerService, DifficultyService],
     exports: [ExamsService, ScorerService, DifficultyService]
 })
 export class ExamsModule { }

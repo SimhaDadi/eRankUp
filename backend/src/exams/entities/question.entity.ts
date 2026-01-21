@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, Index } from 'typeorm';
 import { Model } from './model.entity';
 import { Subject } from './subject.entity';
 import { Chapter } from './chapter.entity';
@@ -33,9 +33,11 @@ export class Question {
     @ManyToOne(() => Exam, { nullable: true })
     exam: Exam;
 
+    @Index()
     @Column({ nullable: true })
     examId: string;
 
+    @Index()
     @Column('float', { default: 0.5 })
     difficultyWeight: number;
 

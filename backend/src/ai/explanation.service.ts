@@ -93,36 +93,38 @@ export class ExplanationService {
     }
 
     private buildPrompt(question: Question, userAnswer?: string): string {
-        const examContext = question.exam?.title || 'competitive exam';
+        const examContext = question.exam?.title || 'Indian competitive exams (SSC CGL, RRB NTPC, Banking)';
+        const subject = question.subject?.title || 'General Aptitude';
         const correctOption = question.options.find(opt => opt.id === question.correctOptionId);
         const userOption = userAnswer ? question.options.find(opt => opt.id === userAnswer) : null;
 
-        let prompt = `You are an expert tutor for ${examContext} in India.
+        let prompt = `You are an expert tutor for ${examContext} in India. Your objective is precisely explaining solutions to aspirants.
 
-Question: ${question.content}
-
-Options:
+### Question Context
+- **Subject**: ${subject}
+- **Topic**: ${question.topic}${question.chapter ? ` (${question.chapter.title})` : ''}
+- **Question**: ${question.content}
+- **Options**:
 ${question.options.map(opt => `${opt.id}) ${opt.text}`).join('\n')}
-
-Correct Answer: ${question.correctOptionId}) ${correctOption?.text}
+- **Correct Answer**: ${question.correctOptionId}) ${correctOption?.text}
 `;
 
         if (userAnswer && userAnswer !== question.correctOptionId) {
-            prompt += `Student's Answer: ${userAnswer}) ${userOption?.text}\n`;
+            prompt += `- **Student's Selected Option**: ${userAnswer}) ${userOption?.text}\n`;
         }
 
         prompt += `
-Topic: ${question.topic}
-${question.chapter ? `Chapter: ${question.chapter.title}` : ''}
+### Instructions for High-Quality Solution
+1. **Step-by-Step Logic**: Detail the derivation. For Math/Reasoning, use LaTeX. For GK/English, explain the specific rule.
+2. **Option Elimination**: Briefly explain why the other options (distractors) are incorrect, especially if they are commonly confused with the correct one.
+3. **Negative Marking Caution**: Mention if this is a high-risk topic where students should be cautious of guessing (important for SSC/RRB).
+4. **The "Exam Hack"**: Provide a 20-second shortcut or mnemonic (Trick) for the exam hall.
+5. **Hinglish Summary**: End with a 1-sentence conversational summary in Hinglish (e.g., "Dosto, yahan trick ye hai ki...").
 
-Provide a clear, encouraging explanation in simple English (use Hindi terms where helpful for Indian students):
-
-1. **Why the correct answer is right**: Explain the concept clearly
-2. **Common mistake**: ${userAnswer && userAnswer !== question.correctOptionId ? 'Why the student\'s answer is incorrect' : 'What students often get wrong'}
-3. **Key concept**: Brief explanation of the underlying principle
-4. **Memory tip**: A simple trick to remember this
-
-Keep it under 150 words. Be encouraging and educational.`;
+### Constraints
+- **Absolute Accuracy**: No hallucinations. Verify facts before stating.
+- **Student-Centric Tone**: Encouraging, professional, and clear.
+- **Length**: Keep under 200 words.`;
 
         return prompt;
     }

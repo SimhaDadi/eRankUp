@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { Exam } from './entities/exam.entity';
@@ -6,15 +6,12 @@ import { Subject } from './entities/subject.entity';
 import { Chapter } from './entities/chapter.entity';
 import { Model } from './entities/model.entity';
 import { Question } from './entities/question.entity';
-import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import { PaymentsService } from '../payments/payments.service';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class ExamsService {
-    private redis: Redis;
-
     constructor(
-        private configService: ConfigService,
         @InjectRepository(Exam)
         private examsRepository: Repository<Exam>,
         @InjectRepository(Subject)
@@ -25,32 +22,30 @@ export class ExamsService {
         private modelRepository: Repository<Model>,
         @InjectRepository(Question)
         private questionRepository: Repository<Question>,
-    ) {
-        this.redis = new Redis({
-            host: this.configService.get('REDIS_HOST', 'localhost'),
-            port: this.configService.get('REDIS_PORT', 6379),
-        });
-    }
+        @Inject(forwardRef(() => PaymentsService))
+        private paymentsService: PaymentsService,
+        private cacheService: CacheService,
+    ) { }
 
     async findAll() {
         const cacheKey = 'exams:all';
-        const cached = await this.redis.get(cacheKey);
-        if (cached) return JSON.parse(cached);
+        const cached = await this.cacheService.get<Exam[]>(cacheKey);
+        if (cached) return cached;
 
         const exams = await this.examsRepository.find({
             relations: ['models', 'models.chapter', 'models.chapter.subject']
         });
 
-        await this.redis.set(cacheKey, JSON.stringify(exams), 'EX', 3600);
+        await this.cacheService.set(cacheKey, exams, 3600);
         return exams;
     }
 
     async findOne(id: string) {
         const cacheKey = `exam:${id}`;
-        const cached = await this.redis.get(cacheKey);
+        const cached = await this.cacheService.get<any>(cacheKey);
         if (cached) {
             console.log('Cache HIT for', id);
-            return JSON.parse(cached);
+            return cached;
         }
 
         console.log('Cache MISS for', id);
@@ -88,9 +83,7 @@ export class ExamsService {
                 chapters: Array.from(chaptersMap.values())
             };
 
-            // console.log('Transformed:', JSON.stringify(transformedExam));
-
-            await this.redis.set(cacheKey, JSON.stringify(transformedExam), 'EX', 3600);
+            await this.cacheService.set(cacheKey, transformedExam, 3600);
             return transformedExam;
         }
         return exam;
@@ -107,17 +100,33 @@ export class ExamsService {
             .getMany();
     }
 
-    findModel(id: string) {
-        return this.modelRepository.findOne({
+    async findModel(id: string, userId?: string) {
+        const model = await this.modelRepository.findOne({
             where: { id },
             relations: ['chapter', 'chapter.subject', 'questions', 'exams']
         });
+
+        if (!model) return null;
+
+        // Security Check: If it's a premium model, check if user has purchased
+        const isPremium = model.exams?.some(e => e.isPremium);
+        if (isPremium && userId) {
+            const hasPurchased = await this.paymentsService.hasPurchased(userId, model.exams.find(e => e.isPremium)!.id);
+            if (!hasPurchased) {
+                // Return model metadata but NOT questions if not purchased? 
+                // Or just throw error. Usually for test taking, we throw error.
+                throw new Error('This is a premium mock test. Please purchase the exam to access it.');
+            }
+        }
+
+        return model;
     }
 
     private async invalidateCache(examId?: string) {
-        await this.redis.del('exams:all');
+        await this.cacheService.del('exams:all');
+        await this.cacheService.del('question-bank:stats');
         if (examId) {
-            await this.redis.del(`exam:${examId}`);
+            await this.cacheService.del(`exam:${examId}`);
         }
     }
 
@@ -127,24 +136,30 @@ export class ExamsService {
      * Get only global questions (examId = NULL)
      * These questions are available to all exams
      */
-    async getGlobalQuestions(filters?: any) {
-        return this.questionRepository.find({
+    async getGlobalQuestions(filters?: any, page: number = 1, limit: number = 50) {
+        const [questions, total] = await this.questionRepository.findAndCount({
             where: { examId: IsNull(), ...filters },
             relations: ['subject', 'chapter', 'models'],
-            order: { difficultyWeight: 'ASC' }
+            order: { difficultyWeight: 'ASC' },
+            take: limit,
+            skip: (page - 1) * limit
         });
+        return { questions, total, page, limit };
     }
 
     /**
      * Get exam-specific questions
      * These questions are exclusive to a particular exam
      */
-    async getExamSpecificQuestions(examId: string, filters?: any) {
-        return this.questionRepository.find({
+    async getExamSpecificQuestions(examId: string, filters?: any, page: number = 1, limit: number = 50) {
+        const [questions, total] = await this.questionRepository.findAndCount({
             where: { examId, ...filters },
             relations: ['subject', 'chapter', 'models', 'exam'],
-            order: { difficultyWeight: 'ASC' }
+            order: { difficultyWeight: 'ASC' },
+            take: limit,
+            skip: (page - 1) * limit
         });
+        return { questions, total, page, limit };
     }
 
     /**
@@ -152,8 +167,8 @@ export class ExamsService {
      * Used when creating models or selecting questions for an exam
      */
     async getAvailableQuestionsForExam(examId: string, filters?: any) {
-        const globalQuestions = await this.getGlobalQuestions(filters);
-        const examSpecificQuestions = await this.getExamSpecificQuestions(examId, filters);
+        const { questions: globalQuestions } = await this.getGlobalQuestions(filters, 1, 1000); // Fetch more for model selection
+        const { questions: examSpecificQuestions } = await this.getExamSpecificQuestions(examId, filters, 1, 1000);
         return [...globalQuestions, ...examSpecificQuestions];
     }
 
@@ -200,25 +215,42 @@ export class ExamsService {
      * Get question bank statistics for admin dashboard
      */
     async getQuestionBankStats() {
+        const cacheKey = 'question-bank:stats';
+        const cached = await this.cacheService.get<any>(cacheKey);
+        if (cached) return cached;
+
         const totalQuestions = await this.questionRepository.count();
         const globalQuestions = await this.questionRepository.count({ where: { examId: IsNull() } });
         const examSpecificQuestions = totalQuestions - globalQuestions;
 
-        const exams = await this.examsRepository.find();
-        const examStats = await Promise.all(
-            exams.map(async (exam) => ({
+        // Optimized: Single query for all exam counts
+        const questionCounts = await this.questionRepository
+            .createQueryBuilder('question')
+            .select(['question.examId', 'COUNT(*) as count'])
+            .where('question.examId IS NOT NULL')
+            .groupBy('question.examId')
+            .getRawMany();
+
+        const exams = await this.examsRepository.find({ select: ['id', 'title'] });
+
+        const examStats = exams.map(exam => {
+            const stat = questionCounts.find(q => q.question_examId === exam.id);
+            return {
                 examId: exam.id,
                 examTitle: exam.title,
-                specificQuestionCount: await this.questionRepository.count({ where: { examId: exam.id } })
-            }))
-        );
+                specificQuestionCount: parseInt(stat?.count || '0')
+            };
+        });
 
-        return {
+        const stats = {
             total: totalQuestions,
             global: globalQuestions,
             examSpecific: examSpecificQuestions,
             byExam: examStats
         };
+
+        await this.cacheService.set(cacheKey, stats, 3600); // Cache for 1 hour
+        return stats;
     }
 
     // --- Subject Management ---
@@ -411,233 +443,6 @@ export class ExamsService {
         return res;
     }
 
-    // --- Helper for Seeders ---
-    private async getOrCreateSubject(title: string) {
-        let subject = await this.subjectRepository.findOne({ where: { title } });
-        if (!subject) {
-            subject = this.subjectRepository.create({ title, description: `${title} description` });
-            subject = await this.subjectRepository.save(subject);
-        }
-        return subject;
-    }
-
-    private async getOrCreateChapter(subject: Subject, title: string) {
-        let chapter = await this.chapterRepository.create({ title, subject });
-        chapter = await this.chapterRepository.save(chapter);
-        return chapter;
-    }
-
-    async seedSSC2026() {
-        const title = 'SSC CGL 2026';
-        let exam = await this.examsRepository.findOne({ where: { title } });
-        if (exam) return { message: 'Exam already exists', id: exam.id };
-
-        const subject = await this.getOrCreateSubject('General Awareness');
-        const chapter = await this.getOrCreateChapter(subject, 'Geography');
-
-        exam = this.examsRepository.create({
-            title,
-            description: 'Comprehensive tier 1 full mock test for SSC CGL 2026 aspirants.',
-            isPremium: false
-        });
-        exam = await this.examsRepository.save(exam);
-
-        const model = this.modelRepository.create({
-            title: 'SSC CGL 2026 - Mock Test 1',
-            chapter,
-            exams: [exam]
-        });
-        await this.modelRepository.save(model);
-
-        const questionsToCreate = [];
-        for (let i = 1; i <= 100; i++) {
-            questionsToCreate.push({
-                content: `Question ${i}: This is a simulated question for SSC CGL 2026.`,
-                options: [
-                    { id: 'a', text: `Option A for Q${i}` },
-                    { id: 'b', text: `Option B for Q${i}` },
-                    { id: 'c', text: `Option C for Q${i}` },
-                    { id: 'd', text: `Option D for Q${i}` },
-                ],
-                correctOptionId: ['a', 'b', 'c', 'd'][Math.floor(Math.random() * 4)],
-                explanation: `Explanation for Q${i}.`,
-                models: [model],
-                subject,
-                chapter
-            });
-        }
-
-        const questionsEntities = this.questionRepository.create(questionsToCreate);
-        await this.questionRepository.save(questionsEntities);
-        await this.invalidateCache();
-
-        return { message: 'Seeded 100 questions for SSC CGL 2026', examId: exam.id, modelId: model.id };
-    }
-
-    async seedSSC2027() {
-        const title = 'SSC CGL 2027';
-        let exam = await this.examsRepository.findOne({ where: { title } });
-        if (exam) return { message: 'Exam already exists', id: exam.id };
-
-        const subject = await this.getOrCreateSubject('Quantitative Aptitude');
-        const chapter = await this.getOrCreateChapter(subject, 'Algebra');
-
-        exam = this.examsRepository.create({
-            title,
-            description: 'Advanced mock test for upcoming SSC CGL 2027 cycle.',
-            isPremium: false
-        });
-        exam = await this.examsRepository.save(exam);
-
-        const model = this.modelRepository.create({
-            title: 'SSC CGL 2027 - Mock Test 1',
-            chapter,
-            exams: [exam]
-        });
-        await this.modelRepository.save(model);
-
-        const questionsToCreate = [];
-        for (let i = 1; i <= 50; i++) {
-            questionsToCreate.push({
-                content: `2027 Pattern Q${i}: Analyze the logical sequence.`,
-                options: [
-                    { id: 'a', text: `Predictive Option A` },
-                    { id: 'b', text: `Predictive Option B` },
-                    { id: 'c', text: `Predictive Option C` },
-                    { id: 'd', text: `Predictive Option D` },
-                ],
-                correctOptionId: ['a', 'b', 'c', 'd'][Math.floor(Math.random() * 4)],
-                explanation: `Detailed AI-generated explanation for Q${i}.`,
-                topic: i % 2 === 0 ? 'Algebra' : 'Geometry',
-                models: [model],
-                subject,
-                chapter
-            });
-        }
-
-        const questionsEntities = this.questionRepository.create(questionsToCreate);
-        await this.questionRepository.save(questionsEntities);
-        await this.invalidateCache();
-
-        return { message: 'Seeded 50 questions for SSC CGL 2027', examId: exam.id, modelId: model.id };
-    }
-
-    async seedSSC2028() {
-        const title = 'SSC CGL 2028';
-        let exam = await this.examsRepository.findOne({ where: { title } });
-        if (exam) {
-            await this.invalidateCache(exam.id);
-            return { message: 'Exam already exists', id: exam.id };
-        }
-
-        const subject = await this.getOrCreateSubject('English Comprehension');
-        const chapter = await this.getOrCreateChapter(subject, 'Grammar');
-
-        exam = this.examsRepository.create({
-            title,
-            description: 'Futuristic mock test for SSC CGL 2028 aspirants.',
-            isPremium: false
-        });
-        exam = await this.examsRepository.save(exam);
-
-        const model = this.modelRepository.create({
-            title: 'SSC CGL 2028 - Full Mock',
-            chapter,
-            exams: [exam]
-        });
-        await this.modelRepository.save(model);
-
-        const questionsToCreate = [];
-        for (let i = 1; i <= 100; i++) {
-            questionsToCreate.push({
-                content: `2028 Pattern Q${i}: What is the correct answer?`,
-                options: [
-                    { id: 'a', text: `Option A` },
-                    { id: 'b', text: `Option B` },
-                    { id: 'c', text: `Option C` },
-                    { id: 'd', text: `Option D` },
-                ],
-                correctOptionId: ['a', 'b', 'c', 'd'][Math.floor(Math.random() * 4)],
-                explanation: `Explanation for Q${i}.`,
-                models: [model],
-                subject,
-                chapter
-            });
-        }
-
-        const questionsEntities = this.questionRepository.create(questionsToCreate);
-        await this.questionRepository.save(questionsEntities);
-        await this.invalidateCache(exam.id);
-
-        return { message: 'Seeded 100 questions for SSC CGL 2028', examId: exam.id, modelId: model.id };
-    }
-
-    async seed2030Exams() {
-        const examsToSeed = [
-            { title: 'SSC CGL 2030', desc: 'Comprehensive tier 1 full mock test for SSC CGL 2030 aspirants.' },
-            { title: 'SSC CHSL 2030', desc: 'Complete mock test series for SSC CHSL 2030.' },
-            { title: 'SSC CPO 2030', desc: 'Mock test series for SSC CPO 2030 Sub-Inspector exam.' }
-        ];
-
-        const results = [];
-
-        for (const examData of examsToSeed) {
-            let exam = await this.examsRepository.findOne({ where: { title: examData.title } });
-            if (exam) {
-                results.push({ message: `${examData.title} already exists`, id: exam.id });
-                continue;
-            }
-
-            const subject = await this.getOrCreateSubject('Multi-Subject');
-            const chapter = await this.getOrCreateChapter(subject, 'Mock Papers');
-
-            exam = this.examsRepository.create({
-                title: examData.title,
-                description: examData.desc,
-                isPremium: false
-            });
-            exam = await this.examsRepository.save(exam);
-
-            const model = this.modelRepository.create({
-                title: `${examData.title} - Mock Test 1`,
-                chapter,
-                totalQuestions: 100,
-                scheduledAt: new Date(),
-                exams: [exam]
-            });
-            await this.modelRepository.save(model);
-
-            const questionsToCreate = [];
-            for (let i = 1; i <= 100; i++) {
-                let topic = 'General Awareness';
-                if (i > 25) topic = 'Reasoning';
-                if (i > 50) topic = 'Quantitative Aptitude';
-                if (i > 75) topic = 'English Comprehension';
-
-                questionsToCreate.push({
-                    content: `[${examData.title}] Question ${i}: Sample question for ${topic}.`,
-                    options: [
-                        { id: 'a', text: `Option A for Q${i}` },
-                        { id: 'b', text: `Option B for Q${i}` },
-                        { id: 'c', text: `Option C for Q${i}` },
-                        { id: 'd', text: `Option D for Q${i}` },
-                    ],
-                    correctOptionId: ['a', 'b', 'c', 'd'][Math.floor(Math.random() * 4)],
-                    explanation: `Explanation for Q${i}.`,
-                    topic,
-                    models: [model],
-                    subject,
-                    chapter
-                });
-            }
-
-            const questionsEntities = this.questionRepository.create(questionsToCreate);
-            await this.questionRepository.save(questionsEntities);
-
-            results.push({ message: `Seeded 100 questions for ${examData.title}`, examId: exam.id });
-        }
-
-        await this.invalidateCache();
-        return results;
-    }
+    // --- End of Service ---
 }
+
