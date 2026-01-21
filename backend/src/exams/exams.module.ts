@@ -14,14 +14,17 @@ import { ExamsSeederService } from './exams-seeder.service';
 import { ScorerService } from './scorer.service';
 import { DifficultyService } from './difficulty.service';
 import { PaymentsModule } from '../payments/payments.module';
+import { AIModule } from '../ai/ai.module';
+import { QuestionsUploadService } from './services/questions-upload.service';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Exam, Subject, Chapter, Model, Question, Attempt, Response, Purchase]),
         forwardRef(() => PaymentsModule),
+        AIModule,
     ],
     controllers: [ExamsController],
-    providers: [ExamsService, ExamsSeederService, ScorerService, DifficultyService],
+    providers: [ExamsService, ExamsSeederService, ScorerService, DifficultyService, QuestionsUploadService],
     exports: [ExamsService, ScorerService, DifficultyService]
 })
 export class ExamsModule { }

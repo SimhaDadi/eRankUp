@@ -49,22 +49,15 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
     };
 
     const downloadTemplate = () => {
-        const template = [
-            {
-                "content": "What is the capital of France?",
-                "options": ["London", "Berlin", "Paris", "Madrid"],
-                "correctOptionIndex": 2,
-                "difficultyWeight": 0.3,
-                "positiveMarks": 2,
-                "negativeMarks": 0.5,
-                "explanation": "Paris is the capital of France."
-            }
-        ];
-        const blob = new Blob([JSON.stringify(template, null, 2)], { type: "application/json" });
+        const headers = ['content', 'optionA', 'optionB', 'optionC', 'optionD', 'correctOptionId', 'explanation', 'topic', 'difficultyWeight', 'positiveMarks', 'negativeMarks'];
+        const row = ['What is the capital of France?', 'London', 'Berlin', 'Paris', 'Madrid', 'C', 'Paris is the capital.', 'Geography', '0.5', '2', '0.5'];
+        const csvContent = [headers.join(','), row.join(',')].join('\n');
+
+        const blob = new Blob([csvContent], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = "questions_template.json";
+        a.download = "questions_template.csv";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -80,42 +73,22 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
         setError('');
 
         try {
-            let questions = [];
-
-            if (file.type === "application/json") {
-                const text = await file.text();
-                questions = JSON.parse(text);
-            } else {
-                // AI Import Path for PDF/Images
-                const formData = new FormData();
-                formData.append('file', file);
-
-                // Show intermediate status
-                const aiResponse = await api.post('/ai/parse-document', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
-                questions = aiResponse.data;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('modelId', selectedModel);
+            if (selectedExam) {
+                formData.append('examId', selectedExam);
             }
 
-            if (!Array.isArray(questions)) {
-                throw new Error("Parsed data is not an array. Please check the file.");
-            }
-
-            // Basic validation
-            for (const q of questions) {
-                if (!q.content || !q.options || q.options.length < 2) {
-                    throw new Error("Invalid question format detected.");
-                }
-            }
-
-            const payload = { questions };
-            await api.post(`/exams/models/${selectedModel}/questions/bulk`, payload);
+            await api.post('/exams/questions/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
 
             onSuccess();
             onClose();
         } catch (err: any) {
             console.error("Import failed", err);
-            setError(err.message || "Failed to process file.");
+            setError(err.response?.data?.message || err.message || "Failed to process file.");
         } finally {
             setIsSubmitting(false);
         }
@@ -188,11 +161,11 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                     e.preventDefault();
                                     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
                                         const f = e.dataTransfer.files[0];
-                                        if (f.type === "application/json" || f.type.startsWith("image/") || f.type === "application/pdf") {
+                                        if (f.type === "text/csv" || f.type === "application/vnd.ms-excel" || f.type === "application/pdf") {
                                             setFile(f);
                                             setError('');
                                         } else {
-                                            setError("Supported formats: JSON, PDF, Images (PNG/JPG)");
+                                            setError("Supported formats: CSV, PDF");
                                         }
                                     }
                                 }}
@@ -213,7 +186,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                     <div className="text-center">
                                         <Upload className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                                         <div className="text-slate-300 font-bold mb-1">Drag file here</div>
-                                        <div className="text-xs text-slate-500 mb-6">Support: JSON, PDF, Images</div>
+                                        <div className="text-xs text-slate-500 mb-6">Support: CSV, PDF</div>
                                         <button
                                             onClick={() => fileInputRef.current?.click()}
                                             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold border border-slate-700 transition-colors"
@@ -224,7 +197,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                             type="file"
                                             ref={fileInputRef}
                                             hidden
-                                            accept=".json,.pdf,image/*"
+                                            accept=".csv,.pdf,application/vnd.ms-excel"
                                             onChange={handleFileChange}
                                         />
                                     </div>
@@ -240,7 +213,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
 
                             <div className="flex justify-between items-center text-xs text-slate-500">
                                 <button onClick={downloadTemplate} className="flex items-center gap-2 hover:text-blue-400 transition-colors">
-                                    <Download className="w-4 h-4" /> Download JSON Template
+                                    <Download className="w-4 h-4" /> Download CSV Template
                                 </button>
                                 <span>Advanced: AI Import for PDF/Images</span>
                             </div>

@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { ExamsSeederService } from './exams-seeder.service';
 import { ScorerService } from './scorer.service';
+import { QuestionsUploadService } from './services/questions-upload.service';
 import { PaymentsService } from '../payments/payments.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -15,6 +17,7 @@ export class ExamsController {
         private readonly scorerService: ScorerService,
         private readonly paymentsService: PaymentsService,
         private readonly seederService: ExamsSeederService,
+        private readonly uploadService: QuestionsUploadService,
     ) { }
 
     @UseGuards(AuthGuard('jwt'))
@@ -203,6 +206,33 @@ export class ExamsController {
     @Post('chapters/:id/models')
     createModel(@Param('id') chapterId: string, @Body() modelData: any) {
         return this.examsService.createModel(chapterId, modelData);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Post('questions/upload')
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadQuestions(
+        @UploadedFile() file: Express.Multer.File,
+        @Body('modelId') modelId: string,
+        @Body('examId') examId?: string
+    ) {
+        if (!file) {
+            throw new BadRequestException('File is required');
+        }
+        if (!modelId) {
+            throw new BadRequestException('Model ID is required');
+        }
+
+        const parsedQuestions = await this.uploadService.parseExamsFile(file.buffer, file.mimetype);
+
+        // Inject examId into questions if provided (as QuestionsUploadService handles parsing only)
+        const questionsWithContext = parsedQuestions.map(q => ({
+            ...q,
+            examId: examId || undefined
+        }));
+
+        return this.examsService.createQuestionsBulk(modelId, questionsWithContext);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
