@@ -100,24 +100,22 @@ export class ScorerService {
             questionResults.push({ questionId: q.id, isCorrect });
         });
 
-        // Async update of question stats
-        this.difficultyService.bulkUpdateStats(questionResults).catch(err =>
-            console.error('[Scorer] Failed to update question stats', err)
-        );
+        // 2. Update question stats (AWAITED to avoid race conditions/mangling)
+        try {
+            await this.difficultyService.bulkUpdateStats(questionResults);
+        } catch (err) {
+            console.error('[Scorer] Failed to update question stats', err);
+        }
 
         const score = totalPossiblePoints > 0 ? Math.max(0, (earnedPoints / totalPossiblePoints) * 100) : 0;
         const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+        const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
 
-        // 3. Save Attempt (model already fetched above)
-        // The check `if (!model) throw new Error("Model not found when saving attempt");`
-        // is removed to allow `model` to be null/undefined for adaptive sessions.
-        // The `model: model || undefined` handles the relationship gracefully.
-
-        const accuracy = (correctAnswers / totalQuestions) * 100;
-
+        // 3. Save Attempt
+        // We use IDs instead of objects where possible to prevent TypeORM from trying to "update" related entities
         const attempt = this.attemptRepository.create({
-            user,
-            model: (model as any), // Handle null gracefully for TypeORM relationship
+            user: { id: user.id } as User,
+            model: model ? ({ id: model.id } as Model) : undefined,
             score: Math.round(score * 100) / 100,
             totalQuestions,
             correctAnswers,
@@ -125,34 +123,27 @@ export class ScorerService {
             timeTaken,
             userAnswers: userAnswers,
             questionTimings: questionTimings,
-            responses: [] // Will be populated below
+            responses: []
         });
 
         // 4. Create Response Entities (Granular)
-        const responseEntities: Response[] = [];
-
-        questions.forEach(q => {
+        const responseEntities: Response[] = questions.map(q => {
             const selectedOptionId = userAnswers[q.id];
             const isCorrect = selectedOptionId === q.correctOptionId;
             const timeSpent = questionTimings[q.id] || 0;
             const wasReviewed = flags.includes(q.id);
-            const wasSkipped = !selectedOptionId; // If visited but not answered? Simple check for now.
+            const wasSkipped = !selectedOptionId;
 
-            // Only create response if we have data or if it was part of the test
-            // We should probably create records for ALL questions to track skips vs not-visited
-            // For now, let's create for all questions in the model
-
-            const response = this.responseRepository.create({
-                question: q,
-                selectedOptionId: selectedOptionId || '', // Empty string if skipped
-                isCorrect: !!selectedOptionId && isCorrect, // False if skipped
+            return this.responseRepository.create({
+                // attempt: attempt, // Let cascade-save handle the relationship
+                question: { id: q.id } as Question,
+                selectedOptionId: selectedOptionId || '',
+                isCorrect: !!selectedOptionId && isCorrect,
                 timeSpent: timeSpent,
                 wasSkipped: wasSkipped,
                 wasReviewed: wasReviewed,
                 answeredAt: new Date()
             });
-
-            responseEntities.push(response);
         });
 
         attempt.responses = responseEntities;

@@ -42,9 +42,9 @@ export class TestSessionController {
     async submitSession(
         @Request() req: any,
         @Param('testId') testId: string,
-        @Body('timings') timings: Record<string, number>
+        @Body() body: any
     ) {
-        // TODO: In future, this will trigger the Kafka event
-        return this.sessionService.completeSession(req.user.userId, testId, timings);
+        const { timings, answers } = body;
+        return this.sessionService.completeSession(req.user.userId, testId, timings, answers);
     }
 }

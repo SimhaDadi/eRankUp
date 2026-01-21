@@ -1,8 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { BookOpen, ChevronRight, Clock, Star, ArrowLeft, Lock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    BookOpen,
+    ChevronRight,
+    Clock,
+    Star,
+    ArrowLeft,
+    Lock,
+    Globe,
+    Sparkles,
+    Trophy,
+    Layers,
+    Zap,
+    ShieldCheck,
+    Info,
+    Calendar,
+    Target,
+    Compass,
+    Activity
+} from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
 import Script from 'next/script';
@@ -36,6 +54,9 @@ export default function ExamDetailsPage() {
     const router = useRouter();
     const [exam, setExam] = useState<Exam | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [showCouponInput, setShowCouponInput] = useState(false);
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedDiscount, setAppliedDiscount] = useState(0);
 
     useEffect(() => {
         if (params.examId) {
@@ -54,10 +75,6 @@ export default function ExamDetailsPage() {
         }
     };
 
-    const [showCouponInput, setShowCouponInput] = useState(false);
-    const [couponCode, setCouponCode] = useState('');
-    const [appliedDiscount, setAppliedDiscount] = useState(0);
-
     const handlePurchase = async () => {
         if (!exam) return;
         try {
@@ -69,7 +86,6 @@ export default function ExamDetailsPage() {
             const response = await api.post('/payments/create-order', payload);
             const data = response.data;
 
-            // Store discount if applied
             if (data.discountApplied) {
                 setAppliedDiscount(data.discountApplied);
             }
@@ -83,14 +99,14 @@ export default function ExamDetailsPage() {
                 order_id: data.orderId,
                 handler: function (response: any) {
                     alert("Payment Successful! Your access will be activated shortly.");
-                    fetchExam(exam.id); // Refresh to show purchased status
+                    fetchExam(exam.id);
                 },
                 prefill: {
                     name: data.user.name,
                     email: data.user.email,
                 },
                 theme: {
-                    color: "#00bfa5",
+                    color: "#0284c7", // Sky blue
                 },
             };
 
@@ -102,235 +118,279 @@ export default function ExamDetailsPage() {
         }
     };
 
-    const isLive = (scheduledAt?: string) => {
-        if (!scheduledAt) return true;
-        return new Date() >= new Date(scheduledAt);
-    };
-
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-[60vh]">
-                <div className="w-10 h-10 border-4 border-[#00bfa5] border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex flex-col items-center justify-center h-[60vh] bg-[#fbfdff]">
+                <div className="w-10 h-10 border-[2px] border-sky-100 border-t-sky-500 rounded-full animate-spin" />
+                <p className="mt-4 text-sky-400 font-bold uppercase tracking-[0.2em] text-[9px]">Refreshing Flow...</p>
             </div>
-        )
+        );
     }
 
     if (!exam) {
         return (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-slate-500">
-                <p>Exam not found.</p>
-                <Link href="/dashboard/exams" className="text-[#00bfa5] hover:underline mt-2">Back to Test Series</Link>
+            <div className="flex flex-col items-center justify-center h-[60vh] text-center px-6">
+                <Compass className="w-10 h-10 text-sky-200 mb-4" />
+                <h2 className="text-xl font-bold text-slate-800">Series Not Located</h2>
+                <Link
+                    href="/dashboard/exams"
+                    className="mt-6 px-6 py-2.5 bg-sky-600 text-white font-black text-[9px] uppercase tracking-widest rounded-lg shadow-lg shadow-sky-600/10"
+                >
+                    Back to Hub
+                </Link>
             </div>
-        )
+        );
     }
 
     return (
-        <div className="space-y-8 pb-20">
+        <div className="min-h-screen bg-[#fbfdff] pb-24 relative overflow-x-hidden selection:bg-sky-100 selection:text-sky-900">
             <Script src="https://checkout.razorpay.com/v1/checkout.js" />
 
-            {/* Header / Breadcrumb */}
-            <div className="flex items-center gap-4">
-                <button onClick={() => router.back()} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                    <ArrowLeft className="w-5 h-5 text-slate-500" />
-                </button>
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">{exam.title}</h1>
-                    <p className="text-slate-500 text-sm">Detailed Test Series View</p>
-                </div>
+            <div className="fixed inset-0 pointer-events-none opacity-20">
+                <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[40%] bg-sky-100 rounded-full blur-[100px]" />
+                <div className="absolute bottom-[0%] right-[-5%] w-[30%] h-[30%] bg-emerald-50 rounded-full blur-[100px]" />
             </div>
 
-            {/* Hero / Info Card */}
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-                <div className="p-8 flex flex-col md:flex-row justify-between items-start gap-6">
-                    <div className="space-y-4 max-w-2xl">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">{exam.title}</h2>
-                            {exam.isPremium && (
-                                <span className="bg-amber-100 text-amber-600 border border-amber-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1">
-                                    <Star className="w-3 h-3 fill-current" /> Premium
-                                </span>
-                            )}
-                        </div>
-                        <p className="text-slate-600 leading-relaxed text-lg">{exam.description || 'Comprehensive test series designed to help you ace your exams with expert-curated questions and detailed analysis.'}</p>
-
-                        <div className="flex items-center gap-4 pt-2">
-                            <div className="flex items-center gap-2 text-sm font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                                <BookOpen className="w-4 h-4 text-[#00bfa5]" />
-                                {exam.chapters?.reduce((acc, ch) => acc + (ch.models?.length || 0), 0) || 0} Tests
-                            </div>
-                            <div className="flex items-center gap-2 text-sm font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                                <Globe className="w-4 h-4 text-blue-500" />
-                                English, Hindi
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col items-end gap-3 w-full md:w-auto">
-                        {exam.isPremium && !exam.hasPurchased ? (
-                            <>
-                                {/* Coupon Input Section */}
-                                {showCouponInput && (
-                                    <div className="w-full flex gap-2 mb-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Enter coupon code"
-                                            value={couponCode}
-                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#00bfa5] focus:border-transparent"
-                                        />
-                                        <button
-                                            onClick={() => setShowCouponInput(false)}
-                                            className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* Discount Display */}
-                                {appliedDiscount > 0 && (
-                                    <div className="w-full bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-sm font-bold text-green-700">
-                                        🎉 Discount Applied: ₹{appliedDiscount} off!
-                                    </div>
-                                )}
-
-                                <button
-                                    onClick={handlePurchase}
-                                    className="w-full md:w-auto bg-[#00bfa5] hover:bg-[#008f7a] text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-teal-500/20 hover:shadow-teal-500/30 flex items-center justify-center gap-2 transform active:scale-95"
-                                >
-                                    <Lock className="w-4 h-4" />
-                                    Unlock Full Series for ₹{appliedDiscount > 0 ? exam.price - appliedDiscount : exam.price}
-                                </button>
-
-                                {/* Have a coupon link */}
-                                {!showCouponInput && (
-                                    <button
-                                        onClick={() => setShowCouponInput(true)}
-                                        className="text-xs text-[#00bfa5] hover:underline font-medium"
-                                    >
-                                        Have a coupon code?
-                                    </button>
-                                )}
-                            </>
-                        ) : (
-                            <div className="w-full md:w-auto bg-emerald-50 text-emerald-600 px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wider border border-emerald-100 flex items-center justify-center gap-2">
-                                <Star className="w-4 h-4 fill-current" />
-                                {exam.isPremium ? 'Premium Unlocked' : 'Free Access'}
-                            </div>
-                        )}
-                        {exam.isPremium && !exam.hasPurchased && (
-                            <p className="text-xs text-slate-400 font-medium">One-time payment • Lifetime access</p>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Chapters & Tests */}
-            <div className="space-y-6">
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wider">
-                    <BookOpen className="w-5 h-5 text-[#00bfa5]" />
-                    Learning Material & Tests
-                </h3>
-
-                {exam.chapters?.length === 0 && (
-                    <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                        <p className="text-slate-400 font-medium">No chapters available yet.</p>
-                    </div>
-                )}
-
-                {exam.chapters?.map((chapter, idx) => (
-                    <motion.div
-                        key={chapter.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm"
+            <div className="relative z-10 space-y-8">
+                {/* Header - BREEZE */}
+                <div className="flex items-center justify-between py-3 border-b border-sky-50">
+                    <button
+                        onClick={() => router.back()}
+                        className="group flex items-center gap-3 text-slate-400 hover:text-sky-600 transition-all font-black"
                     >
-                        <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                            <h4 className="font-bold text-lg text-slate-900">{chapter.title}</h4>
-                            <span className="text-xs font-bold text-slate-400 bg-white px-2 py-1 rounded border border-gray-200">
-                                {chapter.models?.length || 0} Items
-                            </span>
+                        <div className="w-9 h-9 flex items-center justify-center bg-white rounded-xl border border-sky-50 shadow-sm group-hover:border-sky-200 transition-all">
+                            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                         </div>
+                        <span className="text-[9px] uppercase tracking-[0.3em]">Return</span>
+                    </button>
 
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {chapter.models?.map((model) => (
-                                <div key={model.id}>
-                                    {(!exam.isPremium || exam.hasPurchased) ? (
-                                        <Link
-                                            href={isLive(model.scheduledAt) ? `/dashboard/test/${model.id}` : '#'}
-                                            className={`group flex flex-col p-5 rounded-xl border transition-all relative overflow-hidden h-full ${isLive(model.scheduledAt)
-                                                ? 'border-gray-200 bg-white hover:border-[#00bfa5] hover:shadow-md hover:-translate-y-1 cursor-pointer'
-                                                : 'border-slate-100 bg-slate-50 cursor-not-allowed opacity-70'
-                                                }`}
-                                        >
-                                            <div className="flex justify-between items-start mb-3">
-                                                <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide ${model.difficultyLevel === 'Hard' ? 'bg-red-50 text-red-600' :
-                                                    model.difficultyLevel === 'Medium' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
-                                                    }`}>
-                                                    {model.difficultyLevel}
-                                                </span>
-                                                {model.scheduledAt && !isLive(model.scheduledAt) && (
-                                                    <div className="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded font-bold uppercase flex items-center gap-1">
-                                                        <Clock className="w-3 h-3" /> Scheduled
-                                                    </div>
+                    <div className="hidden md:flex items-center gap-8">
+                        <DetailMetric label="STUDENTS" value="48k+" color="text-sky-600" />
+                        <DetailMetric label="TRUST" value="4.9/5" color="text-emerald-500" />
+                    </div>
+                </div>
+
+                {/* Hero / Info Card - BREEZE RADIANT */}
+                <div className="relative group/hero">
+                    <div className="bg-white border border-sky-50/50 rounded-3xl overflow-hidden shadow-sm relative transition-all group-hover/hero:border-sky-200/50 group-hover/hero:shadow-lg">
+                        {/* Top Lining */}
+                        <div className="absolute top-0 left-12 right-12 h-[2px] bg-gradient-to-r from-transparent via-sky-400 to-emerald-400 to-transparent opacity-60" />
+
+                        <div className="p-8 lg:p-10 flex flex-col xl:flex-row justify-between items-start gap-10 relative overflow-hidden">
+                            <div className="space-y-6 max-w-4xl relative z-10">
+                                <div className="space-y-4">
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <div className="px-3 py-1 bg-sky-50 text-sky-600 text-[9px] font-black rounded-full uppercase tracking-widest border border-sky-100">
+                                            High Fidelity
+                                        </div>
+                                        {exam.isPremium && (
+                                            <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">
+                                                <Star className="w-3 h-3 fill-current" /> Premium
+                                            </div>
+                                        )}
+                                    </div>
+                                    <h2 className="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight leading-none">
+                                        {exam.title}
+                                    </h2>
+                                </div>
+
+                                <p className="text-slate-500 leading-snug text-base lg:text-lg font-medium tracking-tight line-clamp-2 max-w-2xl">
+                                    {exam.description || 'Access high-fidelity test series architected for elite results.'}
+                                </p>
+
+                                <div className="flex flex-wrap items-center gap-8 pt-2">
+                                    <HeroBadge icon={Layers} label="TOTAL" value={`${exam.chapters?.reduce((acc, ch) => acc + (ch.models?.length || 0), 0) || 0} Units`} color="text-sky-500" />
+                                    <HeroBadge icon={Globe} label="LANG" value="English, Hindi" color="text-emerald-500" />
+                                    <HeroBadge icon={Activity} label="STATUS" value="Active" color="text-sky-500" />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-6 w-full xl:w-auto xl:min-w-[300px] relative z-10">
+                                <div className="bg-slate-50 border border-sky-50 rounded-2xl p-8 space-y-6 relative overflow-hidden shadow-inner">
+                                    {exam.isPremium && !exam.hasPurchased ? (
+                                        <>
+                                            <div className="space-y-1">
+                                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">INVESTMENT</div>
+                                                <div className="flex items-end gap-2 text-slate-800">
+                                                    <span className="text-3xl font-black tracking-tighter">₹{appliedDiscount > 0 ? exam.price - appliedDiscount : exam.price}</span>
+                                                    {appliedDiscount > 0 && <span className="text-base text-slate-300 line-through font-bold mb-1">₹{exam.price}</span>}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <button
+                                                    onClick={handlePurchase}
+                                                    className="w-full bg-sky-600 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-sky-600/10 hover:bg-sky-700 active:scale-95 flex items-center justify-center gap-3"
+                                                >
+                                                    <Zap className="w-4 h-4 fill-current" />
+                                                    <span className="uppercase tracking-[0.2em] text-[10px]">Unlock Now</span>
+                                                </button>
+
+                                                {!showCouponInput ? (
+                                                    <button
+                                                        onClick={() => setShowCouponInput(true)}
+                                                        className="w-full text-[9px] text-slate-400 hover:text-sky-600 font-black uppercase tracking-[0.3em] transition-colors"
+                                                    >
+                                                        Apply Coupon
+                                                    </button>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        placeholder="PROMO KEY"
+                                                        value={couponCode}
+                                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                                        className="w-full bg-white border border-sky-100 rounded-xl px-4 py-3 text-[9px] font-black tracking-[0.2em] text-slate-700 outline-none focus:border-sky-300 transition-colors"
+                                                    />
                                                 )}
                                             </div>
-
-                                            <h5 className="font-bold text-slate-800 text-lg leading-tight mb-auto group-hover:text-[#00bfa5] transition-colors">
-                                                {model.title}
-                                            </h5>
-
-                                            {model.scheduledAt && !isLive(model.scheduledAt) ? (
-                                                <div className="mt-4 pt-4 border-t border-dashed border-gray-100 text-xs text-red-500 font-bold">
-                                                    Live: {new Date(model.scheduledAt).toLocaleString()}
-                                                </div>
-                                            ) : (
-                                                <div className="mt-4 pt-4 border-t border-dashed border-gray-100 flex items-center justify-between text-sm font-bold text-[#00bfa5] opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0">
-                                                    <span>Start Test</span>
-                                                    <ChevronRight className="w-4 h-4" />
-                                                </div>
-                                            )}
-                                        </Link>
+                                        </>
                                     ) : (
-                                        <div className="p-5 rounded-xl border border-gray-100 bg-slate-50/50 relative group h-full flex flex-col">
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm rounded-xl">
-                                                <Lock className="w-6 h-6 text-amber-500 mb-2" />
-                                                <span className="text-amber-600 font-bold text-xs uppercase tracking-widest">Premium Locked</span>
+                                        <div className="text-center py-4 space-y-4">
+                                            <div className="w-14 h-14 bg-white border border-emerald-100 rounded-2xl flex items-center justify-center text-emerald-500 mx-auto shadow-sm">
+                                                <ShieldCheck className="w-8 h-8" />
                                             </div>
-                                            <h5 className="font-medium text-slate-400 mb-auto">{model.title}</h5>
-                                            <div className="mt-4 flex items-center gap-2 text-xs text-slate-400 font-bold uppercase tracking-wider">
-                                                <Lock className="w-3 h-3" /> Locked
-                                            </div>
+                                            <h3 className="text-lg font-black text-slate-700 tracking-tight leading-none">Access Granted</h3>
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                            </div>
                         </div>
-                    </motion.div>
-                ))}
+                    </div>
+                </div>
+
+                {/* Chapters & Tests - BREEZE GRID */}
+                <div className="space-y-8">
+                    <div className="flex items-center justify-between px-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-1.5 h-7 bg-emerald-500 rounded-full" />
+                            <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase tracking-wider">
+                                Units & Modules
+                            </h3>
+                        </div>
+                    </div>
+
+                    <div className="space-y-10">
+                        {exam.chapters?.map((chapter, idx) => (
+                            <motion.div
+                                key={chapter.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.05 }}
+                                className="space-y-5"
+                            >
+                                <div className="flex items-center justify-between px-6">
+                                    <h4 className="font-bold text-base text-slate-700 tracking-tight">{chapter.title}</h4>
+                                    <div className="px-3 py-1 bg-sky-50 border border-sky-100/50 rounded-lg text-[9px] font-black text-sky-600 uppercase tracking-widest">
+                                        {chapter.models?.length || 0} Units
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {chapter.models?.map((model, mIdx) => (
+                                        <TestUnit key={model.id} model={model} isUnlocked={!exam.isPremium || !!exam.hasPurchased} index={mIdx} />
+                                    ))}
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
     );
 }
 
-function Globe(props: any) {
+function TestUnit({ model, isUnlocked, index }: { model: Model, isUnlocked: boolean, index: number }) {
+    const isReady = (scheduledAt?: string) => {
+        if (!scheduledAt) return true;
+        return new Date() >= new Date(scheduledAt);
+    };
+
+    const ready = isReady(model.scheduledAt);
+    const accentColor = index % 2 === 0 ? "bg-sky-600" : "bg-emerald-500";
+    const lightColor = index % 2 === 0 ? "bg-sky-50" : "bg-emerald-50";
+
+    if (!isUnlocked) {
+        return (
+            <div className="group p-6 bg-white border border-slate-100 rounded-2xl relative overflow-hidden h-full flex flex-col shadow-sm">
+                {/* Midnight Silk Lining */}
+                <div className="absolute inset-x-0 bottom-0 h-[1.5px] bg-slate-900/10" />
+
+                <div className="absolute inset-0 bg-slate-50 opacity-40" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/95 backdrop-blur-sm rounded-2xl">
+                    <Lock className="w-5 h-5 text-slate-400 mb-2" />
+                    <span className="text-slate-400 font-bold text-[9px] uppercase tracking-widest">Locked</span>
+                </div>
+                <div className="flex justify-between items-start mb-4">
+                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg">{model.difficultyLevel}</span>
+                </div>
+                <h5 className="font-bold text-slate-300 text-lg leading-tight mb-auto">{model.title}</h5>
+            </div>
+        );
+    }
+
     return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <Link
+            href={ready ? `/dashboard/test/${model.id}` : '#'}
+            className={`group p-6 bg-white border border-slate-100 rounded-2xl relative overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-md hover:border-sky-100/50 hover:-translate-y-1 ${!ready ? 'cursor-not-allowed opacity-60' : ''}`}
         >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="2" x2="22" y1="12" y2="12" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        </svg>
-    )
+            {/* Midnight Silk Lining - Architecture Detail */}
+            <div className="absolute inset-x-0 bottom-0 h-[1.5px] bg-slate-900/5 group-hover:bg-sky-600/20 transition-colors" />
+
+            {/* Breeze Top Lining */}
+            <div className={`absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent ${index % 2 === 0 ? 'via-sky-400/20' : 'via-emerald-400/20'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
+            <div className="flex justify-between items-start mb-6">
+                <span className={`text-[9px] font-bold px-3 py-1 rounded-lg uppercase tracking-widest border ${model.difficultyLevel === 'Hard' ? 'bg-red-50 text-red-600 border-red-100' :
+                    model.difficultyLevel === 'Medium' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                        'bg-emerald-50 text-emerald-600 border-emerald-100'
+                    }`}>
+                    {model.difficultyLevel}
+                </span>
+                {!ready && (
+                    <div className="text-[8px] bg-sky-50 text-sky-600 px-2 py-1 rounded-lg font-black uppercase border border-sky-100">
+                        Soon
+                    </div>
+                )}
+            </div>
+
+            <h5 className="font-black text-slate-700 text-lg leading-tight mb-auto group-hover:text-sky-600 transition-colors">
+                {model.title}
+            </h5>
+
+            <div className="mt-8 pt-4 border-t border-sky-50 flex items-center justify-between">
+                {ready ? (
+                    <>
+                        <span className="text-[10px] font-black text-sky-600/70 uppercase tracking-[0.2em]">Start Unit</span>
+                        <div className={`w-9 h-9 ${accentColor} text-white rounded-xl flex items-center justify-center transform group-hover:translate-x-1 transition-all shadow-sm`}>
+                            <ChevronRight className="w-5 h-5" />
+                        </div>
+                    </>
+                ) : (
+                    <span className="text-[9px] text-sky-400 font-bold uppercase tracking-[0.1em]">{new Date(model.scheduledAt!).toLocaleDateString()}</span>
+                )}
+            </div>
+        </Link>
+    );
+}
+
+function DetailMetric({ label, value, color }: { label: string, value: string, color: string }) {
+    return (
+        <div className="flex flex-col items-center">
+            <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] mb-1">{label}</span>
+            <span className={`${color} font-black text-xl tracking-tighter leading-none`}>{value}</span>
+        </div>
+    );
+}
+
+function HeroBadge({ icon: Icon, label, value, color }: { icon: any, label: string, value: string, color: string }) {
+    return (
+        <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 bg-white rounded-xl flex items-center justify-center border border-sky-50 shadow-sm ${color}`}>
+                <Icon className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{label}</span>
+                <span className="text-sm font-black text-slate-700 tracking-tight leading-none">{value}</span>
+            </div>
+        </div>
+    );
 }

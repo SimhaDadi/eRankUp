@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ClientKafka } from '@nestjs/microservices';
@@ -143,7 +143,7 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         return data ? JSON.parse(data) : null;
     }
 
-    async completeSession(userId: string, testId: string, timings: Record<string, number> = {}) {
+    async completeSession(userId: string, testId: string, timings: Record<string, number> = {}, answers?: Record<string, string>) {
         console.log(`[TestSession] Completing session. User: ${userId}, Test: ${testId}`);
         const key = this.getSessionKey(userId, testId);
         const sessionData = await this.redis.get(key);
@@ -159,6 +159,7 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
 
         // 1. Grade and Persist to Postgres
         try {
+            console.log(`[TestSession] Fetching user ${userId}`);
             const user = await this.usersService.findOneById(userId);
             if (!user) {
                 console.error(`[TestSession] User not found: ${userId}`);
@@ -166,40 +167,57 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             }
 
             let modelTitle = 'Adaptive AI Practice';
+            console.log(`[TestSession] Checking model for ${testId}`);
 
             if (!testId.startsWith('adaptive')) {
                 const model = await this.modelRepository.findOne({
                     where: { id: testId }
                 });
-                if (model) modelTitle = model.title;
+                if (model) {
+                    modelTitle = model.title;
+                    console.log(`[TestSession] Model identified: ${modelTitle}`);
+                }
             }
 
+            const finalAnswers = answers || session.answers;
+            console.log(`[TestSession] Final answers for scoring: ${Object.keys(finalAnswers).length}`);
+
+            console.log(`[TestSession] Calling ScorerService.gradeAndSave...`);
             const attempt = await this.scorerService.gradeAndSave(
                 user,
                 testId,
-                session.answers,
+                finalAnswers,
                 session.startTime,
                 timings,
                 session.flags
             );
 
-            console.log(`[TestSession] Grading complete. Attempt ID: ${attempt.id}`);
+            console.log(`[TestSession] ScorerService returned Attempt ID: ${attempt.id}`);
 
             // 2. Persist state in Redis
             // Mark as completed in Redis so they can't resume
             await this.redis.set(key, JSON.stringify(session), 'EX', 60 * 60 * 24);
 
-            // 3. Publish to Kafka
-            this.kafkaClient.emit('test_submission', {
-                ...session,
-                attemptId: attempt.id,
-                submittedAt: Date.now()
-            });
+            // 3. Publish to Kafka (Resilient & Non-blocking)
+            try {
+                console.log(`[TestSession] Emitting to Kafka...`);
+                this.kafkaClient.emit('test_submission', {
+                    ...session,
+                    attemptId: attempt.id,
+                    submittedAt: Date.now()
+                }).subscribe({
+                    next: () => console.log('[TestSession] Kafka emission successful'),
+                    error: (err) => console.error('[TestSession] Kafka emission error:', err)
+                });
+                console.log(`[TestSession] Kafka emit triggered.`);
+            } catch (kafkaErr) {
+                console.error('[TestSession] Kafka sync error:', kafkaErr);
+            }
 
             return { ...session, attemptId: attempt.id };
-        } catch (err) {
+        } catch (err: any) {
             console.error(`[TestSession] Error during grading/saving:`, err);
-            throw err;
+            throw new InternalServerErrorException(err.message || 'Error during grading/saving');
         }
     }
 }

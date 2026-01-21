@@ -23,6 +23,7 @@ export default function TestPage() {
     const [flags, setFlags] = useState<string[]>([]);
     const [visited, setVisited] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [timeLeft, setTimeLeft] = useState(60 * 60); // 60 minutes default
 
     // Sections Logic
@@ -142,6 +143,12 @@ export default function TestPage() {
         // TODO: Sync API call in background
     };
 
+    const handlePrevious = () => {
+        if (currentQuestionIndex > 0) {
+            setCurrentQuestionIndex(currentQuestionIndex - 1);
+        }
+    };
+
     const handleMarkForReview = () => {
         const questionId = questions[currentQuestionIndex].id;
         if (!flags.includes(questionId)) {
@@ -157,15 +164,23 @@ export default function TestPage() {
     };
 
     const submitTest = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+
         try {
-            const response = await api.post(`/test-session/${params.id}/submit`, {
+            const payload = {
                 timings: questionTimeLog,
                 answers // Send final answers
-            });
+            };
+
+            const response = await api.post(`/test-session/${params.id}/submit`, payload);
             const { attemptId } = response.data;
             router.push(`/dashboard/results/${attemptId}`);
-        } catch (error) {
-            console.error("Failed to submit", error);
+        } catch (error: any) {
+            console.error("Failed to submit test:", error);
+            const errorMessage = error.response?.data?.message || error.message || "Unknown error occurred";
+            alert(`Failed to submit test: ${errorMessage}`);
+            setIsSubmitting(false);
         }
     };
 
@@ -295,6 +310,16 @@ export default function TestPage() {
                     <div className="h-16 border-t bg-white flex items-center justify-between px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 shrink-0">
                         <div className="flex gap-3">
                             <button
+                                onClick={handlePrevious}
+                                disabled={currentQuestionIndex === 0}
+                                className={`px-4 py-2 rounded-lg border font-bold transition-colors text-sm flex items-center gap-2
+                                    ${currentQuestionIndex === 0
+                                        ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
+                                        : 'bg-white border-gray-300 text-slate-600 hover:bg-gray-100'}`}
+                            >
+                                <ChevronLeft className="w-4 h-4" /> Previous
+                            </button>
+                            <button
                                 onClick={handleClearResponse}
                                 className="px-4 py-2 rounded-lg border border-gray-300 text-slate-600 font-bold hover:bg-gray-100 transition-colors text-sm"
                             >
@@ -387,30 +412,79 @@ export default function TestPage() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-gray-200"
                         >
-                            <div className="p-6 text-center">
+                            <div className="p-8">
                                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <CheckCircle className="w-6 h-6 text-blue-600" />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Submit Test?</h3>
-                                <p className="text-slate-500 mb-6">
-                                    You have answered <span className="font-bold text-slate-800">{Object.keys(answers).length}</span> out of <span className="font-bold text-slate-800">{questions.length}</span> questions.
-                                    Are you sure you want to finish?
-                                </p>
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Submit your test</h3>
+                                <div className="mt-6 mb-8 overflow-hidden rounded-xl border border-gray-200">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-[#00bfa5] text-white text-[11px] uppercase tracking-wider">
+                                            <tr>
+                                                <th className="px-4 py-3 font-bold border-r border-teal-400/30">Section</th>
+                                                <th className="px-4 py-3 font-bold border-r border-teal-400/30 text-center">No. of questions</th>
+                                                <th className="px-4 py-3 font-bold border-r border-teal-400/30 text-center">Answered</th>
+                                                <th className="px-4 py-3 font-bold border-r border-teal-400/30 text-center">Not Answered</th>
+                                                <th className="px-4 py-3 font-bold border-r border-teal-400/30 text-center">Marked for Review</th>
+                                                <th className="px-4 py-3 font-bold text-center">Not Visited</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 italic">
+                                            {sections.map(section => {
+                                                const indices = section.indices;
+                                                const total = indices.length;
+                                                const answered = indices.filter(idx => !!answers[questions[idx].id]).length;
+                                                const flagged = indices.filter(idx => flags.includes(questions[idx].id)).length;
+                                                const visitedCount = indices.filter(idx => visited.includes(questions[idx].id)).length;
+                                                const notAnswered = visitedCount - answered;
+                                                const notVisited = total - visitedCount;
 
-                                <div className="grid grid-cols-2 gap-4">
+                                                return (
+                                                    <tr key={section.name} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-4 py-4 font-medium text-slate-700 border-r border-gray-100">{section.name}</td>
+                                                        <td className="px-4 py-4 text-center border-r border-gray-100">{total}</td>
+                                                        <td className="px-4 py-4 text-center border-r border-gray-100">{answered}</td>
+                                                        <td className="px-4 py-4 text-center border-r border-gray-100 text-red-500 font-bold">{notAnswered}</td>
+                                                        <td className="px-4 py-4 text-center border-r border-gray-100 text-purple-600 font-bold">{flagged}</td>
+                                                        <td className="px-4 py-4 text-center">{notVisited}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                        <tfoot className="bg-slate-50 font-bold">
+                                            <tr className="border-t border-gray-200">
+                                                <td className="px-4 py-3 text-slate-900 border-r border-gray-200">Overall Summary</td>
+                                                <td className="px-4 py-3 text-center border-r border-gray-200">{questions.length}</td>
+                                                <td className="px-4 py-3 text-center border-r border-gray-200">{Object.keys(answers).length}</td>
+                                                <td className="px-4 py-3 text-center border-r border-gray-200">{visited.length - Object.keys(answers).length}</td>
+                                                <td className="px-4 py-3 text-center border-r border-gray-200">{flags.length}</td>
+                                                <td className="px-4 py-3 text-center">{questions.length - visited.length}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
                                     <button
                                         onClick={() => setShowSubmitModal(false)}
-                                        className="py-3 rounded-xl border border-gray-200 font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                                        disabled={isSubmitting}
+                                        className="px-8 py-2.5 rounded-lg bg-[#00bfa5] text-white font-bold hover:bg-[#00a891] transition-all shadow-md shadow-teal-500/10 text-sm whitespace-nowrap disabled:opacity-50"
                                     >
-                                        Resume Test
+                                        Close
                                     </button>
                                     <button
                                         onClick={submitTest}
-                                        className="py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
+                                        disabled={isSubmitting}
+                                        className="px-8 py-2.5 rounded-lg bg-[#00bfa5] text-white font-bold hover:bg-[#00a891] transition-all shadow-md shadow-teal-500/10 text-sm whitespace-nowrap disabled:opacity-50 flex items-center gap-2"
                                     >
-                                        Yes, Submit
+                                        {isSubmitting ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                Submitting...
+                                            </>
+                                        ) : "Submit"}
                                     </button>
                                 </div>
                             </div>

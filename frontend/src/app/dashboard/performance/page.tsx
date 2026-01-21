@@ -231,37 +231,44 @@ export default function PerformancePage() {
                     </div>
                     <div className="divide-y divide-gray-50">
                         {trendData.slice().reverse().slice(0, 5).map((item, idx) => (
-                            <Link
-                                href={item.id ? `/dashboard/results/${item.id}` : '#'}
+                            <div
                                 key={idx}
-                                className="block"
+                                className="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors group relative border-b border-gray-50 last:border-0"
                             >
-                                <motion.div
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: idx * 0.1 }}
-                                    className="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors group cursor-pointer"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${item.score >= 80 ? 'bg-emerald-100 text-emerald-600' :
-                                            item.score >= 60 ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
-                                            }`}>
-                                            {item.score}
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-slate-900 text-sm group-hover:text-[#00bfa5] transition-colors">Test Assessment</div>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{item.date}</div>
-                                        </div>
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${item.score >= 80 ? 'bg-emerald-100 text-emerald-600' :
+                                        item.score >= 60 ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
+                                        }`}>
+                                        {item.score}
                                     </div>
-                                    <div className="text-right">
+                                    <div>
+                                        <div className="font-bold text-slate-900 text-sm">Test Assessment</div>
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{item.date}</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <div className="text-right mr-4 hidden sm:block">
                                         <div className="text-sm font-bold text-slate-700">{item.accuracy}% Acc.</div>
                                         <div className="text-[10px] font-bold text-slate-400">{item.time} min</div>
                                     </div>
-                                    <div className="hidden group-hover:block absolute right-5 text-slate-300">
-                                        <ChevronRight className="w-5 h-5" />
+
+                                    <div className="flex gap-2">
+                                        <Link
+                                            href={`/dashboard/solutions/${item.id}`}
+                                            className="px-4 py-2 bg-white border border-[#00bfa5] text-[#00bfa5] text-xs font-bold rounded-xl hover:bg-[#00bfa5] hover:text-white transition-all shadow-sm"
+                                        >
+                                            Solution
+                                        </Link>
+                                        <Link
+                                            href={`/dashboard/results/${item.id}`}
+                                            className="px-4 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:border-slate-900 hover:text-slate-900 transition-all shadow-sm"
+                                        >
+                                            Analysis
+                                        </Link>
                                     </div>
-                                </motion.div>
-                            </Link>
+                                </div>
+                            </div>
                         ))}
                     </div>
                 </div>

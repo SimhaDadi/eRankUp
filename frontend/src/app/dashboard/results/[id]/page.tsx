@@ -12,11 +12,30 @@ import {
     ArrowLeft,
     CheckCircle2,
     XCircle,
-    Zap
+    Zap,
+    Eye
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
 import TopperComparison from '@/components/dashboard/TopperComparison';
+import MathRenderer from '@/components/MathRenderer';
+
+interface QuestionResponse {
+    id: string;
+    selectedOptionId: string;
+    isCorrect: boolean;
+    timeSpent: number;
+    wasSkipped: boolean;
+    wasReviewed: boolean;
+    question: {
+        id: string;
+        content: string;
+        options: { id: string; text: string }[];
+        correctOptionId: string;
+        explanation: string;
+        topic: string;
+    };
+}
 
 interface Attempt {
     id: string;
@@ -25,8 +44,8 @@ interface Attempt {
     correctAnswers: number;
     timeTaken: number;
     userAnswers: Record<string, string>;
-    questionTimings?: Record<string, number>; // New field
-    responses?: any[];
+    questionTimings?: Record<string, number>;
+    responses?: QuestionResponse[];
     insights?: {
         topicAnalysis: Record<string, { correct: number; total: number; time: number }>;
         strengths: string[];
@@ -302,8 +321,122 @@ export default function ResultsPage() {
                 </div>
             )}
 
+            {/* Question-wise Detailed Review */}
+            {attempt.responses && attempt.responses.length > 0 && (
+                <div className="mt-12 space-y-8">
+                    <div className="flex items-center gap-3">
+                        <div className="h-8 w-1 bg-blue-600 rounded-full"></div>
+                        <h2 className="text-2xl font-bold text-slate-900">Detailed Question Review</h2>
+                    </div>
+
+                    {/* Grouping by Topic (Exam-wise) */}
+                    {Object.entries(
+                        attempt.responses.reduce((acc, resp) => {
+                            const topic = resp.question.topic || 'General';
+                            if (!acc[topic]) acc[topic] = [];
+                            acc[topic].push(resp);
+                            return acc;
+                        }, {} as Record<string, QuestionResponse[]>)
+                    ).map(([topic, topicResponses]) => (
+                        <div key={topic} className="space-y-6">
+                            <h3 className="text-lg font-bold text-slate-700 bg-slate-100 px-4 py-2 rounded-xl sticky top-4 z-10 shadow-sm border border-slate-200">
+                                {topic}
+                            </h3>
+
+                            <div className="space-y-6">
+                                {topicResponses.map((resp, qIdx) => (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        key={resp.id}
+                                        className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                                    >
+                                        <div className="p-6">
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="bg-slate-100 text-slate-600 font-bold px-3 py-1 rounded-lg text-sm">
+                                                        Q. {attempt.responses?.indexOf(resp)! + 1}
+                                                    </span>
+                                                    {resp.isCorrect ? (
+                                                        <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
+                                                            <CheckCircle2 className="w-3 h-3" /> Correct
+                                                        </span>
+                                                    ) : resp.wasSkipped ? (
+                                                        <span className="bg-amber-50 text-amber-600 text-xs font-bold px-2.5 py-1 rounded-full border border-amber-100 flex items-center gap-1">
+                                                            <AlertCircle className="w-3 h-3" /> Skipped
+                                                        </span>
+                                                    ) : (
+                                                        <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full border border-red-100 flex items-center gap-1">
+                                                            <XCircle className="w-3 h-3" /> Incorrect
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                                    Time Spent: {resp.timeSpent}s
+                                                </div>
+                                            </div>
+
+                                            <div className="text-lg text-slate-800 font-medium mb-8 leading-relaxed">
+                                                <MathRenderer content={resp.question.content} />
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {resp.question.options.map((option) => {
+                                                    const isUserChoice = resp.selectedOptionId === option.id;
+                                                    const isCorrect = resp.question.correctOptionId === option.id;
+
+                                                    let variant = "bg-white border-gray-100";
+                                                    if (isCorrect) variant = "bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500";
+                                                    else if (isUserChoice && !isCorrect) variant = "bg-red-50 border-red-500 ring-1 ring-red-500";
+
+                                                    return (
+                                                        <div
+                                                            key={option.id}
+                                                            className={`p-4 rounded-2xl border-2 transition-all flex items-start gap-3 ${variant}`}
+                                                        >
+                                                            <div className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center font-bold text-xs
+                                                                ${isCorrect ? 'bg-emerald-500 text-white' :
+                                                                    isUserChoice ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-500'}`}
+                                                            >
+                                                                {option.id}
+                                                            </div>
+                                                            <div className="text-sm font-medium pt-0.5">
+                                                                <MathRenderer content={option.text} />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Explanation */}
+                                            {resp.question.explanation && (
+                                                <div className="mt-8 bg-blue-50/50 rounded-2xl p-6 border border-blue-100">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <Zap className="w-4 h-4 text-blue-600" />
+                                                        <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Solution Explanation</span>
+                                                    </div>
+                                                    <div className="text-blue-900 text-sm leading-relaxed font-medium">
+                                                        <MathRenderer content={resp.question.explanation} />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* Actions */}
             <div className="flex gap-4 pt-4">
+                <button
+                    onClick={() => router.push(`/dashboard/solutions/${params.id}`)}
+                    className="flex-1 bg-[#00bfa5] hover:bg-[#00a690] text-white font-bold py-4 rounded-2xl shadow-lg shadow-[#00bfa5]/20 transition-all flex items-center justify-center gap-2"
+                >
+                    <Eye className="w-5 h-5" /> View Solutions
+                </button>
                 <button
                     onClick={() => router.push(`/dashboard/test/${params.id}`)}
                     className="flex-1 bg-white hover:bg-gray-50 text-slate-900 border border-gray-200 font-bold py-4 rounded-2xl shadow-sm hover:shadow-md transition-all"
