@@ -1,0 +1,35 @@
+
+Running 1 test using 1 worker
+
+[1A[2K[1/1] [chromium] › tests\e2e-verification.spec.ts:6:9 › E2E Verification: Admin Exam Creation -> User Attempt › Full E2E Flow
+[1A[2K[chromium] › tests\e2e-verification.spec.ts:6:9 › E2E Verification: Admin Exam Creation -> User Attempt › Full E2E Flow
+--- Phase 1: Starting Admin Workflow ---
+
+[1A[2K  1) [chromium] › tests\e2e-verification.spec.ts:6:9 › E2E Verification: Admin Exam Creation -> User Attempt › Full E2E Flow 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('.group\\/model').filter({ hasText: 'E2E Test Set 1' }).getByText('1 Qs')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('.group\\/model').filter({ hasText: 'E2E Test Set 1' }).getByText('1 Qs')[22m
+
+
+      112 |
+      113 |         const modelCardReloaded = page.locator('.group\\/model', { hasText: modelTitle });
+    > 114 |         await expect(modelCardReloaded.getByText('1 Qs')).toBeVisible();
+          |                                                           ^
+      115 |
+      116 |         // 6. Publish Exam (It's created active by default in wizard logic usually, but let's check)
+      117 |         // Current UI doesn't have an explicit Publish button on Details page, 
+        at C:\Users\dadim\OneDrive\Desktop\eRankUp\frontend\tests\e2e-verification.spec.ts:114:59
+
+    Error Context: test-results\e2e-verification-E2E-Verif-2a56d--User-Attempt-Full-E2E-Flow-chromium\error-context.md
+
+
+[1A[2K  1 failed
+    [chromium] › tests\e2e-verification.spec.ts:6:9 › E2E Verification: Admin Exam Creation -> User Attempt › Full E2E Flow 

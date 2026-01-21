@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.next/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+coverage/
+.idea
+.vscode
+postgres_data/
+mongo_data/

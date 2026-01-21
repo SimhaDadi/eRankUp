@@ -1,0 +1,11 @@
+pyspark
+mlflow
+torch
+numpy
+pandas
+scikit-learn
+kafka-python
+fastapi
+uvicorn
+psycopg2-binary
+python-dotenv

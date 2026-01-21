@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass-panel {
+    @apply bg-white/60 backdrop-blur-xl border border-gray-100 shadow-xl;
+  }
+
+  .nebula-card {
+    @apply bg-white border border-gray-100 shadow-lg shadow-gray-200/50 rounded-3xl;
+  }
+
+  .nebula-glow {
+    @apply shadow-lg shadow-teal-500/20;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#00bfa5] to-blue-600 font-bold;
+  }
+}

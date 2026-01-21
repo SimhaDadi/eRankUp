@@ -1,0 +1,144 @@
+import 'package:flutter/material.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'package:provider/provider.dart';
+import '../services/api_service.dart';
+
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key});
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  late io.Socket socket;
+  final TextEditingController _messageController = TextEditingController();
+  final List<Map<String, dynamic>> _messages = [];
+  final ScrollController _scrollController = ScrollController();
+  String? _myUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSocket();
+  }
+
+  void _initSocket() async {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    final token = await apiService.getToken();
+    final userId = await apiService.getUserId();
+
+    setState(() {
+      _myUserId = userId;
+    });
+
+    socket = io.io('http://10.0.2.2:3001', io.OptionBuilder()
+      .setTransports(['websocket'])
+      .setQuery({'token': token})
+      .build());
+
+    socket.onConnect((_) {
+      debugPrint('Connected to chat server');
+    });
+
+    socket.on('receiveMessage', (data) {
+      if (mounted) {
+        setState(() {
+          _messages.add(data);
+        });
+        _scrollToBottom();
+      }
+    });
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _sendMessage() {
+    if (_messageController.text.isNotEmpty) {
+      socket.emit('sendMessage', {'message': _messageController.text});
+      _messageController.clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    socket.disconnect();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Live Support')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final msg = _messages[index];
+                bool isMe = msg['userId'] == _myUserId;
+                
+                return Align(
+                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isMe ? const Color(0xFF2563EB) : const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(16).copyWith(
+                        bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(16),
+                        bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(0),
+                      ),
+                    ),
+                    child: Text(msg['message'] ?? '', style: const TextStyle(color: Colors.white)),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: 'Type a message...',
+                      filled: true,
+                      fillColor: const Color(0xFF1E293B),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: _sendMessage,
+                  icon: const Icon(Icons.send),
+                  style: IconButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
