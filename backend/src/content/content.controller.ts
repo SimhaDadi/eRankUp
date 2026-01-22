@@ -1,4 +1,4 @@
-import { Controller, Post, Get, UseInterceptors, UploadedFile, Res, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseInterceptors, UploadedFile, Res, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { ContentService } from './content.service';
@@ -45,6 +45,20 @@ export class ContentController {
             res.send(csvData);
         } catch (error) {
             throw new HttpException('Failed to export questions', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Post('duplicates')
+    async checkDuplicates(@Body() body: { questions: string[] }) {
+        if (!body.questions || !Array.isArray(body.questions)) {
+            throw new HttpException('Questions array is required', HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            const result = await this.contentService.checkForDuplicates(body.questions);
+            return result;
+        } catch (error) {
+            throw new HttpException('Failed to check duplicates', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

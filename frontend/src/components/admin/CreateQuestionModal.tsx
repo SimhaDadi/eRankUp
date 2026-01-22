@@ -114,7 +114,8 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
                     difficultyWeight: questionData.difficultyWeight,
                     positiveMarks: questionData.positiveMarks,
                     negativeMarks: questionData.negativeMarks,
-                    explanation: questionData.explanation
+                    explanation: questionData.explanation,
+                    exams: selectedExam ? [{ id: selectedExam }] : []
                 }]
             };
 

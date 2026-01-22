@@ -19,6 +19,10 @@ import api from '@/lib/api';
 import Link from 'next/link';
 import TopperComparison from '@/components/dashboard/TopperComparison';
 import MathRenderer from '@/components/MathRenderer';
+import { ExplanationCard } from '@/components/ExplanationCard';
+import { PercentileCard } from '@/components/PercentileCard';
+import { WeaknessPatterns, MistakePattern } from '@/components/WeaknessPatterns';
+import { PercentileChart } from '@/components/PercentileChart';
 
 interface QuestionResponse {
     id: string;
@@ -35,6 +39,17 @@ interface QuestionResponse {
         explanation: string;
         topic: string;
     };
+}
+
+interface PercentileData {
+    percentile: number;
+    rank: number;
+    totalStudents: number;
+    userScore: number;
+    averageScore: number;
+    medianScore: number;
+    distribution: number[];
+    performanceTier: 'top' | 'above_average' | 'average' | 'below_average';
 }
 
 interface Attempt {
@@ -54,8 +69,11 @@ interface Attempt {
         weaknesses: string[];
         recommendation: string;
     };
+    percentileData?: PercentileData;
+    patterns?: MistakePattern[];
     createdAt: string;
     model: {
+        id: string;
         title: string;
         chapter: {
             title: string;
@@ -106,15 +124,23 @@ export default function ResultsPage() {
 
         const fetchResults = async () => {
             try {
-                const [attemptRes, analysisRes] = await Promise.allSettled([
+                const [attemptRes, analysisRes, percentileRes, patternsRes] = await Promise.allSettled([
                     api.get(`/exams/attempts/${params.id}`),
-                    api.get(`/analytics/attempt/${params.id}`)
+                    api.get(`/analytics/attempt/${params.id}`),
+                    api.get(`/analytics/percentile/exam/${params.id}`),
+                    api.get(`/analytics/patterns`)
                 ]);
 
                 if (attemptRes.status === 'fulfilled') {
                     const data = attemptRes.value.data;
                     if (analysisRes.status === 'fulfilled') {
                         data.insights = analysisRes.value.data;
+                    }
+                    if (percentileRes.status === 'fulfilled') {
+                        data.percentileData = percentileRes.value.data;
+                    }
+                    if (patternsRes.status === 'fulfilled') {
+                        data.patterns = patternsRes.value.data;
                     }
                     setAttempt(data);
                 }
@@ -337,6 +363,56 @@ export default function ResultsPage() {
                 </div>
             )}
 
+            {/* Percentile Ranking */}
+            {attempt?.percentileData && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mt-8"
+                >
+                    <PercentileCard
+                        percentile={attempt.percentileData.percentile}
+                        rank={attempt.percentileData.rank}
+                        totalStudents={attempt.percentileData.totalStudents}
+                        userScore={attempt.percentileData.userScore}
+                        averageScore={attempt.percentileData.averageScore}
+                        medianScore={attempt.percentileData.medianScore}
+                        distribution={attempt.percentileData.distribution}
+                        performanceTier={attempt.percentileData.performanceTier}
+                    />
+                </motion.div>
+            )}
+
+            {/* Score Distribution Chart */}
+            {attempt?.percentileData && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-8"
+                >
+                    <PercentileChart
+                        distribution={attempt.percentileData.distribution}
+                        userScore={attempt.percentileData.userScore}
+                        averageScore={attempt.percentileData.averageScore}
+                        medianScore={attempt.percentileData.medianScore}
+                    />
+                </motion.div>
+            )}
+
+            {/* Weakness Patterns */}
+            {attempt?.patterns && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="mt-8"
+                >
+                    <WeaknessPatterns patterns={attempt.patterns} />
+                </motion.div>
+            )}
+
             {/* Question-wise Detailed Review */}
             {attempt.responses && attempt.responses.length > 0 && (
                 <div className="mt-12 space-y-8">
@@ -424,16 +500,13 @@ export default function ResultsPage() {
                                                 })}
                                             </div>
 
-                                            {/* Explanation */}
+                                            {/* AI-Generated Explanation */}
                                             {resp.question.explanation && (
-                                                <div className="mt-8 bg-blue-50/50 rounded-2xl p-6 border border-blue-100">
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <Zap className="w-4 h-4 text-blue-600" />
-                                                        <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Solution Explanation</span>
-                                                    </div>
-                                                    <div className="text-blue-900 text-sm leading-relaxed font-medium">
-                                                        <MathRenderer content={resp.question.explanation} />
-                                                    </div>
+                                                <div className="mt-8">
+                                                    <ExplanationCard
+                                                        explanation={resp.question.explanation}
+                                                        questionId={resp.question.id}
+                                                    />
                                                 </div>
                                             )}
                                         </div>

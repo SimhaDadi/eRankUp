@@ -8,6 +8,8 @@ import { Response } from './entities/response.entity';
 import { User } from '../users/user.entity';
 import { DifficultyService } from './difficulty.service';
 import { CacheService } from '../common/cache.service';
+import { GamificationService } from '../gamification/gamification.service';
+import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
 
 @Injectable()
 export class ScorerService {
@@ -22,6 +24,8 @@ export class ScorerService {
         private responseRepository: Repository<Response>,
         private difficultyService: DifficultyService,
         private cacheService: CacheService,
+        private gamificationService: GamificationService,
+        private adaptiveLearningService: AdaptiveLearningService,
     ) { }
 
     async gradeAndSave(
@@ -148,6 +152,48 @@ export class ScorerService {
             this.cacheService.del('leaderboard:global').catch(err =>
                 console.error('[Scorer] Failed to invalidate leaderboard cache', err)
             );
+
+            // === GAMIFICATION INTEGRATION ===
+            try {
+                // Award XP for completing test
+                const baseXP = 50; // Base XP for completing a test
+                const correctXP = correctAnswers * 10; // 10 XP per correct answer
+                const perfectBonus = (correctAnswers === totalQuestions) ? 100 : 0; // Bonus for perfect score
+                const totalXP = baseXP + correctXP + perfectBonus;
+
+                const levelUpResult = await this.gamificationService.awardXP(
+                    user.id,
+                    totalXP,
+                    `Completed test: ${correctAnswers}/${totalQuestions} correct`
+                );
+
+                // Update streak
+                await this.gamificationService.updateStreak(user.id);
+
+                // Update badge criteria tracking
+                const profile = await this.gamificationService.getOrCreateProfile(user.id);
+                profile.testsCompleted += 1;
+                profile.correctAnswers += correctAnswers;
+                await this.gamificationService['gamificationRepo'].save(profile);
+
+                // Add level-up info to attempt for frontend
+                (savedAttempt as any).levelUp = levelUpResult;
+
+                console.log(`[Scorer] Awarded ${totalXP} XP to user ${user.id}`);
+            } catch (gamificationErr) {
+                console.error('[Scorer] Failed to award gamification rewards', gamificationErr);
+                // Don't fail the attempt if gamification fails
+            }
+
+            // === ADAPTIVE LEARNING INTEGRATION ===
+            try {
+                // Update topic mastery based on responses
+                await this.adaptiveLearningService.updateTopicMastery(user.id, responseEntities);
+                console.log(`[Scorer] Updated topic mastery for user ${user.id}`);
+            } catch (adaptiveErr) {
+                console.error('[Scorer] Failed to update topic mastery', adaptiveErr);
+                // Don't fail the attempt if adaptive learning fails
+            }
 
             return savedAttempt;
         } catch (dbErr) {

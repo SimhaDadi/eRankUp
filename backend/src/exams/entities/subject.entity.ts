@@ -1,12 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Chapter } from './chapter.entity';
+import { Exam } from './exam.entity';
 
 @Entity()
 export class Subject {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ unique: true })
+    @Column()
     title: string;
 
     @Column({ nullable: true })
@@ -14,6 +15,9 @@ export class Subject {
 
     @Column({ nullable: true })
     icon: string; // Icon name from lucide/react
+
+    @ManyToOne(() => Exam, (exam) => exam.subjects)
+    exam: Exam;
 
     @OneToMany(() => Chapter, (chapter) => chapter.subject)
     chapters: Chapter[];

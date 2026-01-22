@@ -5,6 +5,8 @@ import { SystemHealthController } from './system-health.controller';
 import { SystemHealthService } from './system-health.service';
 import { FinanceController } from './finance.controller';
 import { FinanceService } from './finance.service';
+import { MediaController } from './media.controller';
+import { MediaService } from './media.service';
 import { Purchase } from '../exams/entities/purchase.entity';
 
 @Module({
@@ -12,8 +14,8 @@ import { Purchase } from '../exams/entities/purchase.entity';
         TypeOrmModule.forFeature([Purchase]),
         ConfigModule
     ],
-    controllers: [SystemHealthController, FinanceController],
-    providers: [SystemHealthService, FinanceService],
-    exports: [SystemHealthService, FinanceService]
+    controllers: [SystemHealthController, FinanceController, MediaController],
+    providers: [SystemHealthService, FinanceService, MediaService],
+    exports: [SystemHealthService, FinanceService, MediaService]
 })
 export class AdminModule { }

@@ -1,300 +1,515 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, ChevronRight, ChevronDown, BookOpen, FolderOpen, FileText, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-    Plus,
-    Search,
-    ChevronRight,
-    Folder,
-    Book,
-    MoreVertical,
-    Edit,
-    Trash2,
-    Grid,
-    Binary,
-    Globe,
-    Cpu,
-    BookOpen,
-    Layers
-} from 'lucide-react';
-import Link from 'next/link';
 import api from '@/lib/api';
-import CreateSubjectModal from '@/components/admin/CreateSubjectModal';
-import CreateChapterModal from '@/components/admin/CreateChapterModal';
-import EditSubjectModal from '@/components/admin/EditSubjectModal';
-import EditChapterModal from '@/components/admin/EditChapterModal';
 
-interface Chapter {
+interface Exam {
     id: string;
     title: string;
-    description: string;
+    description?: string;
+    subjects?: Subject[];
 }
 
 interface Subject {
     id: string;
     title: string;
-    description: string;
-    icon: string;
-    chapters: Chapter[];
+    examId: string;
+    chapters?: Chapter[];
 }
 
-export default function HierarchyManager() {
-    const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [activeSubject, setActiveSubject] = useState<string | null>(null);
+interface Model {
+    id: string;
+    title: string;
+    totalQuestions: number;
+    chapterId: string;
+}
+
+interface Chapter {
+    id: string;
+    title: string;
+    subjectId: string;
+    questionCount?: number;
+    models?: Model[];
+}
+
+export default function HierarchyPage() {
+    const [exams, setExams] = useState<Exam[]>([]);
+    const [expandedExams, setExpandedExams] = useState<Set<string>>(new Set());
+    const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
+    const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
+    const [loading, setLoading] = useState(false);
+    const [showExamModal, setShowExamModal] = useState(false);
+    const [showSubjectModal, setShowSubjectModal] = useState(false);
+    const [showChapterModal, setShowChapterModal] = useState(false);
+    const [showModelModal, setShowModelModal] = useState(false);
+    const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+    const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+    const [editMode, setEditMode] = useState(false);
+
+    const [examForm, setExamForm] = useState({ title: '', description: '' });
+    const [subjectForm, setSubjectForm] = useState({ title: '', examId: '' });
+    const [chapterForm, setChapterForm] = useState({ title: '', subjectId: '' });
+    const [modelForm, setModelForm] = useState({ title: '', chapterId: '' });
 
     useEffect(() => {
-        const fetchSubjects = async () => {
-            try {
-                const response = await api.get('/exams/subjects/all');
-                setSubjects(response.data);
-                if (response.data.length > 0) setActiveSubject(response.data[0].id);
-            } catch (error) {
-                console.error("Failed to fetch subjects", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchSubjects();
+        fetchHierarchy();
     }, []);
 
-    const selectedSubject = subjects.find(s => s.id === activeSubject);
-
-    const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
-    const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
-
-    // Edit States
-    const [isEditSubjectModalOpen, setIsEditSubjectModalOpen] = useState(false);
-    const [isEditChapterModalOpen, setIsEditChapterModalOpen] = useState(false);
-    const [editingChapter, setEditingChapter] = useState<any>(null);
-
-    const handleDeleteSubject = async (id: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!confirm("Are you sure you want to delete this subject? All chapters and questions within it will be hidden.")) return;
-
+    const fetchHierarchy = async () => {
+        setLoading(true);
         try {
-            await api.delete(`/exams/subjects/${id}`);
-            window.location.reload();
-        } catch (err) {
-            alert("Failed to delete subject");
+            const response = await api.get('/exams/hierarchy');
+            setExams(response.data);
+        } catch (error) {
+            console.error('Error fetching hierarchy:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleDeleteChapter = async (subjectId: string, chapterId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!confirm("Delete this chapter?")) return;
+    const toggleExam = (examId: string) => {
+        const newExpanded = new Set(expandedExams);
+        if (newExpanded.has(examId)) {
+            newExpanded.delete(examId);
+        } else {
+            newExpanded.add(examId);
+        }
+        setExpandedExams(newExpanded);
+    };
 
+    const toggleSubject = (subjectId: string) => {
+        const newExpanded = new Set(expandedSubjects);
+        if (newExpanded.has(subjectId)) {
+            newExpanded.delete(subjectId);
+        } else {
+            newExpanded.add(subjectId);
+        }
+        setExpandedSubjects(newExpanded);
+    };
+
+    const toggleChapter = (chapterId: string) => {
+        const newExpanded = new Set(expandedChapters);
+        if (newExpanded.has(chapterId)) {
+            newExpanded.delete(chapterId);
+        } else {
+            newExpanded.add(chapterId);
+        }
+        setExpandedChapters(newExpanded);
+    };
+
+    const handleCreateExam = async () => {
         try {
-            await api.delete(`/exams/subjects/${subjectId}/chapters/${chapterId}`);
-            window.location.reload();
-        } catch (err) {
-            alert("Failed to delete chapter");
+            await api.post('/exams', examForm);
+            setShowExamModal(false);
+            setExamForm({ title: '', description: '' });
+            fetchHierarchy();
+            alert('Exam created successfully!');
+        } catch (error) {
+            console.error('Error creating exam:', error);
+            alert('Failed to create exam');
         }
     };
 
-    if (isLoading) return (
-        // ...
-        <div className="flex items-center justify-center p-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
-        </div>
-    );
+    const handleCreateSubject = async () => {
+        try {
+            await api.post('/subjects', subjectForm);
+            setShowSubjectModal(false);
+            setSubjectForm({ title: '', examId: '' });
+            fetchHierarchy();
+            alert('Subject created successfully!');
+        } catch (error) {
+            console.error('Error creating subject:', error);
+            alert('Failed to create subject');
+        }
+    };
+
+    const handleCreateChapter = async () => {
+        try {
+            await api.post('/chapters', chapterForm);
+            setShowChapterModal(false);
+            setChapterForm({ title: '', subjectId: '' });
+            fetchHierarchy();
+            alert('Chapter created successfully!');
+        } catch (error) {
+            console.error('Error creating chapter:', error);
+            alert('Failed to create chapter');
+        }
+    };
+
+    const handleCreateModel = async () => {
+        try {
+            await api.post(`/exams/chapters/${modelForm.chapterId}/models`, modelForm);
+            setShowModelModal(false);
+            setModelForm({ title: '', chapterId: '' });
+            fetchHierarchy();
+            alert('Model created successfully!');
+        } catch (error) {
+            console.error('Error creating model:', error);
+            alert('Failed to create model');
+        }
+    };
 
     return (
-        <div className="space-y-8 pb-20">
-            <header className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                        Content Hierarchy
-                    </h1>
-                    <p className="text-slate-400 font-medium">Manage Subjects, Chapters and Model Test structure.</p>
-                </div>
-                <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    onClick={() => setIsSubjectModalOpen(true)}
-                    className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all border border-cyan-400/20"
-                >
-                    <Plus className="w-4 h-4" /> New Subject
-                </motion.button>
-            </header>
-
-            <CreateSubjectModal isOpen={isSubjectModalOpen} onClose={() => setIsSubjectModalOpen(false)} onSuccess={() => window.location.reload()} />
-
-            {selectedSubject && (
-                <EditSubjectModal
-                    isOpen={isEditSubjectModalOpen}
-                    onClose={() => setIsEditSubjectModalOpen(false)}
-                    onSuccess={() => window.location.reload()}
-                    subject={selectedSubject}
-                />
-            )}
-
-            {activeSubject && (
-                <>
-                    <CreateChapterModal
-                        isOpen={isChapterModalOpen}
-                        onClose={() => setIsChapterModalOpen(false)}
-                        onSuccess={() => window.location.reload()}
-                        subjectId={activeSubject}
-                    />
-                    <EditChapterModal
-                        isOpen={isEditChapterModalOpen}
-                        onClose={() => setIsEditChapterModalOpen(false)}
-                        onSuccess={() => window.location.reload()}
-                        subjectId={activeSubject}
-                        chapter={editingChapter}
-                    />
-                </>
-            )}
-
-            <div className="grid grid-cols-12 gap-8">
-                {/* Subjects List */}
-                <div className="col-span-12 lg:col-span-4 space-y-4">
-                    <h2 className="text-xs font-black text-slate-500 uppercase tracking-widest px-2">Subjects</h2>
-                    <div className="space-y-2">
-                        {subjects.map((subject) => (
-                            <motion.button
-                                key={subject.id}
-                                onClick={() => setActiveSubject(subject.id)}
-                                whileHover={{ x: 4 }}
-                                className={`w-full flex items-center gap-4 p-5 rounded-3xl border transition-all text-left group relative ${activeSubject === subject.id
-                                    ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-xl shadow-cyan-500/5'
-                                    : 'bg-slate-900/40 border-slate-800/50 text-slate-400 hover:bg-slate-800/50 hover:border-slate-700'
-                                    }`}
-                            >
-                                <div className={`p-3 rounded-2xl transition-colors ${activeSubject === subject.id ? 'bg-cyan-500/20' : 'bg-slate-800'}`}>
-                                    <Grid className="w-5 h-5" />
-                                </div>
-                                <div className="flex-1">
-                                    <div className={`font-black tracking-tight ${activeSubject === subject.id ? 'text-white' : 'group-hover:text-slate-200'}`}>
-                                        {subject.title}
-                                    </div>
-                                    <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest mt-0.5">
-                                        {subject.chapters?.length || 0} Chapters
-                                    </div>
-                                </div>
-
-                                {activeSubject !== subject.id && (
-                                    <button
-                                        onClick={(e) => handleDeleteSubject(subject.id, e)}
-                                        className="opacity-0 group-hover:opacity-100 p-2 hover:text-rose-500 transition-all"
-                                        title="Delete Subject"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                )}
-
-                                <ChevronRight className={`w-4 h-4 transition-transform ${activeSubject === subject.id ? 'rotate-90 text-cyan-500' : 'opacity-20'}`} />
-                            </motion.button>
-                        ))}
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-8">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 className="text-4xl font-black text-gray-900 mb-2">Content Hierarchy</h1>
+                        <p className="text-gray-600">Manage exams, subjects, and chapters structure</p>
                     </div>
+                    <button
+                        onClick={() => {
+                            setEditMode(false);
+                            setExamForm({ title: '', description: '' });
+                            setShowExamModal(true);
+                        }}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-lg"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Add Exam
+                    </button>
                 </div>
 
-                {/* Chapters List */}
-                <div className="col-span-12 lg:col-span-8">
-                    {activeSubject ? (
-                        <div className="space-y-6">
-                            {/* ... Header Card ... */}
-                            <div className="p-8 bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] backdrop-blur-xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-8 opacity-5">
-                                    <Grid className="w-32 h-32" />
-                                </div>
-                                <div className="relative z-10 flex justify-between items-start">
-                                    <div>
-                                        <h3 className="text-2xl font-black text-white">{selectedSubject?.title}</h3>
-                                        <p className="text-slate-400 mt-2 max-w-lg font-medium">{selectedSubject?.description}</p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => setIsEditSubjectModalOpen(true)}
-                                            className="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700/50 transition-all text-slate-400 hover:text-white"
-                                            title="Edit Subject"
-                                        >
-                                            <Edit className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={(e) => selectedSubject && handleDeleteSubject(selectedSubject.id, e)}
-                                            className="p-3 bg-rose-500/10 hover:bg-rose-500/20 rounded-2xl border border-rose-500/20 transition-all text-rose-500"
-                                            title="Delete Subject"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-between items-center px-2">
-                                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Chapters</h4>
-                                <button
-                                    onClick={() => setIsChapterModalOpen(true)}
-                                    className="text-xs font-black text-cyan-500 hover:text-cyan-400 uppercase tracking-wide flex items-center gap-1 transition-colors"
-                                >
-                                    <Plus className="w-3 h-3" /> Add Chapter
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {selectedSubject?.chapters?.map((chapter) => (
-                                    <motion.div
-                                        key={chapter.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="p-6 bg-slate-900/40 border border-slate-800/50 rounded-3xl hover:border-slate-700 transition-all group relative"
-                                    >
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="p-3 bg-slate-800 rounded-2xl group-hover:bg-cyan-500/10 transition-colors group-hover:text-cyan-500">
-                                                <Folder className="w-5 h-5" />
-                                            </div>
-                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingChapter(chapter);
-                                                        setIsEditChapterModalOpen(true);
-                                                    }}
-                                                    className="p-1 hover:text-white"
-                                                    title="Edit Chapter"
-                                                >
-                                                    <Edit className="w-4 h-4 text-slate-500 hover:text-cyan-400" />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => activeSubject && handleDeleteChapter(activeSubject, chapter.id, e)}
-                                                    className="p-1 hover:text-rose-500"
-                                                    title="Delete Chapter"
-                                                >
-                                                    <Trash2 className="w-4 h-4 text-slate-500" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <h5 className="font-bold text-lg text-slate-100 group-hover:text-white transition-colors">{chapter.title}</h5>
-                                        <p className="text-sm text-slate-500 mt-1 line-clamp-2">{chapter.description}</p>
-
-                                        <div className="mt-6 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className="px-2 py-0.5 bg-slate-800 rounded-md text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                                                    12 Models
-                                                </div>
-                                                <div className="px-2 py-0.5 bg-slate-800 rounded-md text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                                                    452 Qs
-                                                </div>
-                                            </div>
-                                            <Link
-                                                href={`/admin/question-bank?chapterId=${chapter.id}`}
-                                                className="text-[10px] font-black text-cyan-500 uppercase tracking-widest hover:underline"
-                                            >
-                                                Manage
-                                            </Link>
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </div>
+                {/* Hierarchy Tree */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    {loading ? (
+                        <div className="text-center py-12">
+                            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                            <p className="text-gray-500">Loading hierarchy...</p>
+                        </div>
+                    ) : exams.length === 0 ? (
+                        <div className="text-center py-12">
+                            <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">No exams yet</h3>
+                            <p className="text-gray-500 mb-4">Create your first exam to get started</p>
+                            <button
+                                onClick={() => setShowExamModal(true)}
+                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+                            >
+                                Add First Exam
+                            </button>
                         </div>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center p-20 bg-slate-900/20 border border-dashed border-slate-800 rounded-[2.5rem]">
-                            <Layers className="w-16 h-16 text-slate-700 mb-4" />
-                            <p className="text-slate-500 font-medium">Select a subject to manage its chapters.</p>
+                        <div className="space-y-2">
+                            {exams.map((exam) => (
+                                <div key={exam.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                                    {/* Exam Level */}
+                                    <div className="flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 transition-colors">
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <button
+                                                onClick={() => toggleExam(exam.id)}
+                                                className="text-gray-600 hover:text-gray-900"
+                                            >
+                                                {expandedExams.has(exam.id) ? (
+                                                    <ChevronDown className="w-5 h-5" />
+                                                ) : (
+                                                    <ChevronRight className="w-5 h-5" />
+                                                )}
+                                            </button>
+                                            <BookOpen className="w-5 h-5 text-blue-600" />
+                                            <div>
+                                                <h3 className="font-bold text-gray-900">{exam.title}</h3>
+                                                {exam.description && (
+                                                    <p className="text-sm text-gray-500">{exam.description}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setSubjectForm({ title: '', examId: exam.id });
+                                                    setShowSubjectModal(true);
+                                                }}
+                                                className="px-3 py-1 text-sm bg-white hover:bg-gray-50 text-blue-600 border border-blue-200 rounded font-medium"
+                                            >
+                                                Add Subject
+                                            </button>
+                                            <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-white rounded">
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-white rounded">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Subjects */}
+                                    {expandedExams.has(exam.id) && exam.subjects && (
+                                        <div className="pl-8 bg-gray-50">
+                                            {exam.subjects.map((subject) => (
+                                                <div key={subject.id} className="border-l-2 border-gray-300">
+                                                    {/* Subject Level */}
+                                                    <div className="flex items-center justify-between p-3 hover:bg-gray-100 transition-colors">
+                                                        <div className="flex items-center gap-3 flex-1">
+                                                            <button
+                                                                onClick={() => toggleSubject(subject.id)}
+                                                                className="text-gray-600 hover:text-gray-900"
+                                                            >
+                                                                {expandedSubjects.has(subject.id) ? (
+                                                                    <ChevronDown className="w-4 h-4" />
+                                                                ) : (
+                                                                    <ChevronRight className="w-4 h-4" />
+                                                                )}
+                                                            </button>
+                                                            <FolderOpen className="w-4 h-4 text-emerald-600" />
+                                                            <span className="font-semibold text-gray-800">{subject.title}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setChapterForm({ title: '', subjectId: subject.id });
+                                                                    setShowChapterModal(true);
+                                                                }}
+                                                                className="px-3 py-1 text-sm bg-white hover:bg-gray-50 text-emerald-600 border border-emerald-200 rounded font-medium"
+                                                            >
+                                                                Add Chapter
+                                                            </button>
+                                                            <button className="p-1.5 text-gray-600 hover:text-emerald-600 hover:bg-white rounded">
+                                                                <Edit className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-white rounded">
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Chapters */}
+                                                    {expandedSubjects.has(subject.id) && subject.chapters && (
+                                                        <div className="pl-8 bg-white">
+                                                            {subject.chapters.map((chapter) => (
+                                                                <div key={chapter.id} className="border-l-2 border-gray-200">
+                                                                    <div className="flex items-center justify-between p-2 hover:bg-gray-50 transition-colors">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <button
+                                                                                onClick={() => toggleChapter(chapter.id)}
+                                                                                className="text-gray-600 hover:text-gray-900"
+                                                                            >
+                                                                                {expandedChapters.has(chapter.id) ? (
+                                                                                    <ChevronDown className="w-4 h-4" />
+                                                                                ) : (
+                                                                                    <ChevronRight className="w-4 h-4" />
+                                                                                )}
+                                                                            </button>
+                                                                            <FileText className="w-4 h-4 text-purple-600" />
+                                                                            <span className="text-gray-700">{chapter.title}</span>
+                                                                            {chapter.questionCount !== undefined && (
+                                                                                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                                                                                    {chapter.questionCount} questions
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setModelForm({ title: '', chapterId: chapter.id });
+                                                                                    setShowModelModal(true);
+                                                                                }}
+                                                                                className="px-2 py-1 text-xs bg-white hover:bg-gray-50 text-purple-600 border border-purple-200 rounded font-medium"
+                                                                            >
+                                                                                Add Model
+                                                                            </button>
+                                                                            <button className="p-1.5 text-gray-600 hover:text-purple-600 hover:bg-gray-100 rounded">
+                                                                                <Edit className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                            <button className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded">
+                                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Models List */}
+                                                                    {expandedChapters.has(chapter.id) && chapter.models && (
+                                                                        <div className="pl-8 bg-white pb-2">
+                                                                            {chapter.models.map((model) => (
+                                                                                <div key={model.id} className="flex items-center justify-between p-2 pl-4 border-l border-gray-100 hover:bg-gray-50 text-sm">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                                                                                        <span className="text-gray-600">{model.title}</span>
+                                                                                        <span className="text-xs text-gray-400">({model.totalQuestions || 0} qs)</span>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-1">
+                                                                                        <button className="p-1 text-gray-400 hover:text-blue-600">
+                                                                                            <Edit className="w-3 h-3" />
+                                                                                        </button>
+                                                                                        <button className="p-1 text-gray-400 hover:text-red-600">
+                                                                                            <Trash2 className="w-3 h-3" />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                            {chapter.models.length === 0 && (
+                                                                                <div className="pl-4 py-2 text-xs text-gray-400 italic">No models yet</div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
+
+                {/* Exam Modal */}
+                {showExamModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                                {editMode ? 'Edit Exam' : 'Add New Exam'}
+                            </h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Exam Name *</label>
+                                    <input
+                                        type="text"
+                                        value={examForm.title}
+                                        onChange={(e) => setExamForm({ ...examForm, title: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                        placeholder="e.g., SSC CGL 2024"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                                    <textarea
+                                        value={examForm.description}
+                                        onChange={(e) => setExamForm({ ...examForm, description: e.target.value })}
+                                        rows={3}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                        placeholder="Brief description of the exam"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={handleCreateExam}
+                                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+                                >
+                                    {editMode ? 'Update' : 'Create'} Exam
+                                </button>
+                                <button
+                                    onClick={() => setShowExamModal(false)}
+                                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Subject Modal */}
+                {showSubjectModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Add New Subject</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Subject Name *</label>
+                                    <input
+                                        type="text"
+                                        value={subjectForm.title}
+                                        onChange={(e) => setSubjectForm({ ...subjectForm, title: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-900"
+                                        placeholder="e.g., Mathematics"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={handleCreateSubject}
+                                    className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium"
+                                >
+                                    Create Subject
+                                </button>
+                                <button
+                                    onClick={() => setShowSubjectModal(false)}
+                                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Chapter Modal */}
+                {showChapterModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Add New Chapter</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Chapter Name *</label>
+                                    <input
+                                        type="text"
+                                        value={chapterForm.title}
+                                        onChange={(e) => setChapterForm({ ...chapterForm, title: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                                        placeholder="e.g., Algebra"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={handleCreateChapter}
+                                    className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium"
+                                >
+                                    Create Chapter
+                                </button>
+                                <button
+                                    onClick={() => setShowChapterModal(false)}
+                                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Model Modal */}
+                {showModelModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Add New Model</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Model Title *</label>
+                                    <input
+                                        type="text"
+                                        value={modelForm.title}
+                                        onChange={(e) => setModelForm({ ...modelForm, title: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
+                                        placeholder="e.g., Practice Set 1"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={handleCreateModel}
+                                    className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium"
+                                >
+                                    Create Model
+                                </button>
+                                <button
+                                    onClick={() => setShowModelModal(false)}
+                                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

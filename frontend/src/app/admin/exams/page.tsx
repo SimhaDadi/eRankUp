@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { Database } from 'lucide-react'; // Import Database icon for Bank
 
 interface Exam {
     id: string;
@@ -23,6 +24,7 @@ interface Exam {
     isActive: boolean;
     createdAt: string;
     chapters: any[];
+    type: 'real_exam' | 'question_bank';
 }
 
 export default function AdminExamsPage() {
@@ -128,8 +130,12 @@ export default function AdminExamsPage() {
                             className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-slate-700 transition-all group"
                         >
                             <div className="flex justify-between items-start mb-4">
-                                <div className="w-12 h-12 bg-blue-600/10 rounded-xl flex items-center justify-center">
-                                    <BookOpen className="w-6 h-6 text-blue-500" />
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${exam.type === 'question_bank' ? 'bg-purple-600/10' : 'bg-blue-600/10'}`}>
+                                    {exam.type === 'question_bank' ? (
+                                        <Database className="w-6 h-6 text-purple-500" />
+                                    ) : (
+                                        <BookOpen className="w-6 h-6 text-blue-500" />
+                                    )}
                                 </div>
                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
@@ -144,7 +150,14 @@ export default function AdminExamsPage() {
                                 </div>
                             </div>
 
-                            <h3 className="text-xl font-bold mb-2">{exam.title}</h3>
+                            <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                                {exam.title}
+                                {exam.type === 'question_bank' && (
+                                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                        BANK
+                                    </span>
+                                )}
+                            </h3>
                             <p className="text-slate-400 text-sm line-clamp-2 mb-6">
                                 {exam.description || 'No description provided for this examination.'}
                             </p>

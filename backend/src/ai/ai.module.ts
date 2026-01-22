@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AIService } from './ai.service';
 import { AIController } from './ai.controller';
+import { ExplanationController } from './explanation.controller';
 import { MigrationService } from './migration.service';
 import { ExplanationService } from './explanation.service';
 import { Question } from '../exams/entities/question.entity';
@@ -15,7 +16,7 @@ import { QuestionExplanation } from './entities/question-explanation.entity';
     imports: [
         TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, QuestionExplanation])
     ],
-    controllers: [AIController],
+    controllers: [AIController, ExplanationController],
     providers: [AIService, MigrationService, ExplanationService],
     exports: [AIService, MigrationService, ExplanationService]
 })

@@ -2,6 +2,9 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ExamsService } from './exams.service';
 import { ExamsController } from './exams.controller';
+import { SubjectsController } from './subjects.controller';
+import { ChaptersController } from './chapters.controller';
+import { QuestionsController } from './questions.controller';
 import { Exam } from './entities/exam.entity';
 import { Subject } from './entities/subject.entity';
 import { Chapter } from './entities/chapter.entity';
@@ -16,14 +19,18 @@ import { DifficultyService } from './difficulty.service';
 import { PaymentsModule } from '../payments/payments.module';
 import { AIModule } from '../ai/ai.module';
 import { QuestionsUploadService } from './services/questions-upload.service';
+import { GamificationModule } from '../gamification/gamification.module';
+import { AdaptiveLearningModule } from '../adaptive-learning/adaptive-learning.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Exam, Subject, Chapter, Model, Question, Attempt, Response, Purchase]),
         forwardRef(() => PaymentsModule),
         AIModule,
+        GamificationModule,
+        AdaptiveLearningModule,
     ],
-    controllers: [ExamsController],
+    controllers: [ExamsController, SubjectsController, ChaptersController, QuestionsController],
     providers: [ExamsService, ExamsSeederService, ScorerService, DifficultyService, QuestionsUploadService],
     exports: [ExamsService, ScorerService, DifficultyService]
 })

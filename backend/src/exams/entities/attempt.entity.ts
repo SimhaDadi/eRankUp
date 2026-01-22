@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn, Index } from 'typeorm';
 import { User } from '../../users/user.entity';
 import { Model } from './model.entity';
+import { Exam } from './exam.entity';
 import { Response } from './response.entity';
 
 @Entity()
@@ -14,6 +15,13 @@ export class Attempt {
 
     @ManyToOne(() => Model)
     model: Model;
+
+    @ManyToOne(() => Exam, { nullable: true })
+    exam: Exam;
+
+    @Index()
+    @Column({ nullable: true })
+    examId: string;
 
     @OneToMany(() => Response, (response) => response.attempt, { cascade: true })
     responses: Response[];

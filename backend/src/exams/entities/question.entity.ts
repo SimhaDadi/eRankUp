@@ -30,12 +30,19 @@ export class Question {
     @ManyToOne(() => Chapter, { nullable: true })
     chapter: Chapter;
 
+    @Index()
+    @Column({ nullable: true })
+    chapterId: string;
+
     @ManyToOne(() => Exam, { nullable: true })
     exam: Exam;
 
     @Index()
     @Column({ nullable: true })
     examId: string;
+
+    @ManyToMany(() => Exam, (exam) => exam.questions)
+    exams: Exam[];
 
     @Index()
     @Column('float', { default: 0.5 })

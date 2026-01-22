@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Question } from '../exams/entities/question.entity';
@@ -35,7 +36,122 @@ export class AIService {
         private subjectRepository: Repository<Subject>,
         @InjectRepository(Chapter)
         private chapterRepository: Repository<Chapter>,
+        private configService: ConfigService,
     ) { }
+
+    /**
+     * Generate text using Gemini AI API
+     */
+    async generateText(prompt: string): Promise<string> {
+        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+
+        if (!apiKey) {
+            throw new Error('GEMINI_API_KEY not configured');
+        }
+
+        try {
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Gemini API error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.candidates[0]?.content?.parts[0]?.text || 'No response generated';
+        } catch (error) {
+            console.error('[AIService] Gemini API error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Generate detailed explanation for a question using AI
+     */
+    async generateQuestionExplanation(question: Question): Promise<string> {
+        const optionsText = question.options
+            .map((opt: any) => `${opt.id}. ${opt.text}`)
+            .join('\n');
+
+        const correctOption = question.options.find((opt: any) => opt.id === question.correctOptionId);
+
+        const prompt = `You are an expert tutor. Generate a clear, concise explanation for this multiple-choice question.
+
+Question: ${question.content}
+
+Options:
+${optionsText}
+
+Correct Answer: ${question.correctOptionId} - ${correctOption?.text || 'N/A'}
+
+Provide a structured explanation with these sections:
+
+1. **Why it's correct**: Explain why option ${question.correctOptionId} is the right answer (2-3 sentences)
+
+2. **Why others are wrong**: Briefly explain why each incorrect option is wrong (1 sentence per option)
+
+3. **Key concept**: State the main concept being tested (1 sentence)
+
+4. **Common mistake**: Mention a common error students make on this type of question (1 sentence)
+
+Keep the explanation student-friendly, encouraging, and under 200 words total.`;
+
+        try {
+            const explanation = await this.generateText(prompt);
+            return explanation;
+        } catch (error) {
+            console.error('[AIService] Failed to generate explanation:', error);
+            return 'Explanation generation failed. Please try again later.';
+        }
+    }
+
+    /**
+     * Batch generate explanations for multiple questions
+     */
+    async batchGenerateExplanations(
+        questions: Question[],
+        onProgress?: (current: number, total: number) => void
+    ): Promise<{ success: number; failed: number; errors: string[] }> {
+        let success = 0;
+        let failed = 0;
+        const errors: string[] = [];
+
+        for (let i = 0; i < questions.length; i++) {
+            const question = questions[i];
+
+            try {
+                const explanation = await this.generateQuestionExplanation(question);
+                question.explanation = explanation;
+                await this.questionRepository.save(question);
+                success++;
+
+                if (onProgress) {
+                    onProgress(i + 1, questions.length);
+                }
+
+                // Rate limiting: wait 1 second between requests
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch (error) {
+                failed++;
+                errors.push(`Question ${question.id}: ${error.message}`);
+                console.error(`[AIService] Failed to generate explanation for question ${question.id}:`, error);
+            }
+        }
+
+        return { success, failed, errors };
+    }
 
     /**
      * Smart Question Selector - Recommends personalized questions for a user
@@ -404,6 +520,62 @@ export class AIService {
         } catch (error) {
             console.error("AI Parsing Failed:", error);
             throw new Error("Failed to parse document. Ensure it is a clear image or PDF of questions.");
+        }
+    }
+
+    /**
+     * Parse questions from OCR-extracted text using AI
+     */
+    async parseQuestionsFromText(text: string): Promise<any[]> {
+        const prompt = `You are an expert at parsing exam questions from text.
+Analyze the following text extracted from a question paper and convert it into a structured JSON format.
+
+Text:
+${text}
+
+Extract all questions and format them as a JSON array with this structure:
+[
+  {
+    "questionText": "the question text",
+    "options": ["option1", "option2", "option3", "option4"],
+    "correctAnswer": 0,
+    "topic": "detected topic",
+    "difficulty": "easy",
+    "explanation": "brief explanation if available"
+  }
+]
+
+Rules:
+- Extract ONLY the questions, not instructions or headers
+- Identify options even if labeled as A), B), C), D) or 1), 2), 3), 4)
+- Determine the correct answer if marked in the text (use index 0-3)
+- Infer topic from question content
+- Estimate difficulty based on complexity (easy/medium/hard)
+- Return ONLY valid JSON array, no markdown or explanations
+
+JSON:`;
+
+        try {
+            const response = await this.generateText(prompt);
+
+            // Clean the response to extract JSON
+            let jsonText = response.trim();
+
+            // Remove markdown code blocks if present
+            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+            // Parse JSON
+            const questions = JSON.parse(jsonText);
+
+            // Validate structure
+            if (!Array.isArray(questions)) {
+                throw new Error('Response is not an array');
+            }
+
+            return questions;
+        } catch (error) {
+            console.error('[AIService] Question parsing error:', error);
+            throw new Error('Failed to parse questions from text');
         }
     }
 }

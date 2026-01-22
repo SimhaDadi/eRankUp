@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
@@ -37,7 +38,7 @@ const adminNavSections = [
         items: [
             { icon: BookOpen, label: 'Manage Exams', href: '/admin/exams' },
             { icon: Calendar, label: 'Live Exams', href: '/admin/live-exams' },
-            { icon: Plus, label: 'Standard Question Bank', href: '/admin/question-bank' },
+            { icon: Plus, label: 'Question Management', href: '/admin/questions' },
             { icon: Layers, label: 'Hierarchy & Subjects', href: '/admin/hierarchy' },
             { icon: FileText, label: 'Previous Year Papers', href: '/admin/pyp' },
         ]
@@ -48,7 +49,6 @@ const adminNavSections = [
             { icon: Sparkles, label: 'AI Explanations', href: '/admin/ai-explanations' },
             { icon: TrendingUp, label: 'Analytics Dashboard', href: '/admin/analytics' },
             { icon: Users, label: 'Student Monitoring', href: '/admin/students' },
-            { icon: FileText, label: 'Content Management', href: '/admin/content' },
             { icon: Banknote, label: 'Finance & Payments', href: '/admin/finance' },
             { icon: AlertTriangle, label: 'Quality Control', href: '/admin/quality-control' },
         ]
@@ -71,6 +71,7 @@ export default function AdminLayout({
 }) {
     const { user, isLoading, logout } = useAuthStore();
     const router = useRouter();
+    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
     const handleLogout = () => {
         logout();
@@ -118,25 +119,48 @@ export default function AdminLayout({
                             <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#0c111d]"></span>
                         </motion.button>
 
-                        <div className="flex items-center gap-3 pl-6 border-l border-slate-800">
+                        <div className="flex items-center gap-3 pl-6 border-l border-slate-800 relative">
                             <div className="text-right">
                                 <div className="text-sm font-bold text-slate-200">{user?.fullName || 'Admin User'}</div>
                                 <div className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">{user?.role || 'Administrator'}</div>
                             </div>
-                            <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-cyan-500/20">
+                            <button
+                                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                                className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all"
+                            >
                                 {user?.fullName?.charAt(0) || 'A'}
-                            </div>
-                        </div>
+                            </button>
 
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/20 transition-all ml-2"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            <span className="text-sm font-medium">Logout</span>
-                        </motion.button>
+                            {/* Profile Dropdown */}
+                            {isProfileDropdownOpen && (
+                                <div className="absolute top-14 right-0 w-56 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-50">
+                                    <div className="p-4 border-b border-slate-800">
+                                        <div className="text-sm font-bold text-slate-200">{user?.fullName || 'Admin User'}</div>
+                                        <div className="text-xs text-slate-400 mt-1">{user?.email}</div>
+                                    </div>
+                                    <div className="py-2">
+                                        <Link
+                                            href="/admin/settings"
+                                            className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                                            onClick={() => setIsProfileDropdownOpen(false)}
+                                        >
+                                            <Settings className="w-4 h-4" />
+                                            <span className="text-sm font-medium">Settings</span>
+                                        </Link>
+                                        <button
+                                            onClick={() => {
+                                                setIsProfileDropdownOpen(false);
+                                                handleLogout();
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                        >
+                                            <LogOut className="w-4 h-4" />
+                                            <span className="text-sm font-medium">Logout</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </header>
 

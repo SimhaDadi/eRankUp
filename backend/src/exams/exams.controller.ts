@@ -67,6 +67,13 @@ export class ExamsController {
         return this.seederService.seed2030Exams();
     }
 
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Get('hierarchy')
+    async getHierarchy() {
+        return this.examsService.getFullHierarchy();
+    }
+
     @UseGuards(AuthGuard('jwt'))
     @Get(':id')
     async findOne(@Param('id') id: string, @Request() req: any) {
@@ -226,10 +233,10 @@ export class ExamsController {
 
         const parsedQuestions = await this.uploadService.parseExamsFile(file.buffer, file.mimetype);
 
-        // Inject examId into questions if provided (as QuestionsUploadService handles parsing only)
+        // Inject exams into questions if provided
         const questionsWithContext = parsedQuestions.map(q => ({
             ...q,
-            examId: examId || undefined
+            exams: examId ? [{ id: examId }] : []
         }));
 
         return this.examsService.createQuestionsBulk(modelId, questionsWithContext);

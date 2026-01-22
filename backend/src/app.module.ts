@@ -13,6 +13,9 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { AIModule } from './ai/ai.module';
 import { AdminModule } from './admin/admin.module';
 import { CommonModule } from './common/common.module';
+import { GamificationModule } from './gamification/gamification.module';
+import { AdaptiveLearningModule } from './adaptive-learning/adaptive-learning.module';
+import { AIChatModule } from './ai-chat/ai-chat.module';
 
 @Module({
     imports: [
@@ -41,6 +44,9 @@ import { CommonModule } from './common/common.module';
         AnalyticsModule,
         AIModule,
         AdminModule,
+        GamificationModule,
+        AdaptiveLearningModule,
+        AIChatModule,
     ],
     controllers: [AppController],
     providers: [AppService],

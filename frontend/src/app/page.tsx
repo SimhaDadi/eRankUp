@@ -39,6 +39,18 @@ import { useState } from 'react';
 
 export default function Home() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isExamsDropdownOpen, setIsExamsDropdownOpen] = useState(false);
+
+    const examCategories = [
+        { name: 'SSC CGL', href: '/dashboard/exams', students: '15k+' },
+        { name: 'SSC CHSL', href: '/dashboard/exams', students: '12k+' },
+        { name: 'RRB NTPC', href: '/dashboard/exams', students: '20k+' },
+        { name: 'RRB Group D', href: '/dashboard/exams', students: '18k+' },
+        { name: 'SBI PO', href: '/dashboard/exams', students: '10k+' },
+        { name: 'IBPS PO', href: '/dashboard/exams', students: '9k+' },
+        { name: 'IBPS Clerk', href: '/dashboard/exams', students: '11k+' },
+        { name: 'UPSC CSE', href: '/dashboard/exams', students: '8k+' },
+    ];
 
     return (
         <div className="min-h-screen bg-white font-sans text-slate-900">
@@ -65,23 +77,53 @@ export default function Home() {
 
                             {/* Desktop Menu Items */}
                             <div className="hidden xl:flex items-center gap-6 text-[14px] font-medium text-slate-700">
-                                <div className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
+                                {/* Exams Dropdown */}
+                                <div
+                                    className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[72px]"
+                                    onMouseEnter={() => setIsExamsDropdownOpen(true)}
+                                    onMouseLeave={() => setIsExamsDropdownOpen(false)}
+                                >
                                     <span>Exams</span>
                                     <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-[#00bfa5] transition-colors" />
+
+                                    {/* Dropdown Menu */}
+                                    {isExamsDropdownOpen && (
+                                        <div className="absolute top-[72px] left-0 w-[280px] bg-white shadow-2xl rounded-lg border border-gray-100 py-2 z-50">
+                                            <div className="px-4 py-2 border-b border-gray-100">
+                                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Popular Exams</h3>
+                                            </div>
+                                            {examCategories.map((exam, index) => (
+                                                <Link
+                                                    key={index}
+                                                    href={exam.href}
+                                                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors group/item"
+                                                >
+                                                    <span className="text-sm font-semibold text-gray-700 group-hover/item:text-[#00bfa5]">{exam.name}</span>
+                                                    <span className="text-xs text-gray-400 font-medium">{exam.students} students</span>
+                                                </Link>
+                                            ))}
+                                            <div className="border-t border-gray-100 mt-2 pt-2 px-4">
+                                                <Link href="/dashboard/exams" className="flex items-center gap-2 text-sm font-bold text-[#00bfa5] hover:gap-3 transition-all py-2">
+                                                    View All Exams <ChevronRight className="w-4 h-4" />
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
+
+                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
                                     <span>SuperCoaching</span>
                                     <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] px-1.5 py-0.5 rounded ml-1 font-bold">New</span>
-                                </div>
-                                <div className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
+                                </Link>
+                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
                                     <span>Test Series</span>
-                                </div>
-                                <div className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
+                                </Link>
+                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
                                     <span>Skill Academy</span>
-                                </div>
-                                <div className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
+                                </Link>
+                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
                                     <span>Pass</span>
-                                </div>
+                                </Link>
                                 <div className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
                                     <span>More</span>
                                     <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-[#00bfa5] transition-colors" />

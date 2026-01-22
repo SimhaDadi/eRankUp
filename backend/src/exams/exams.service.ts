@@ -152,13 +152,21 @@ export class ExamsService {
      * These questions are exclusive to a particular exam
      */
     async getExamSpecificQuestions(examId: string, filters?: any, page: number = 1, limit: number = 50) {
-        const [questions, total] = await this.questionRepository.findAndCount({
-            where: { examId, ...filters },
-            relations: ['subject', 'chapter', 'models', 'exam'],
-            order: { difficultyWeight: 'ASC' },
-            take: limit,
-            skip: (page - 1) * limit
-        });
+        // Updated to use Many-to-Many logic: Join on questions.exams
+        const query = this.questionRepository.createQueryBuilder('question')
+            .leftJoinAndSelect('question.subject', 'subject')
+            .leftJoinAndSelect('question.chapter', 'chapter')
+            .leftJoinAndSelect('question.models', 'models')
+            .leftJoinAndSelect('question.exams', 'exams')
+            .where('exams.id = :examId', { examId })
+            .orderBy('question.difficultyWeight', 'ASC')
+            .take(limit)
+            .skip((page - 1) * limit);
+
+        if (filters && filters.subjectId) query.andWhere('subject.id = :subjectId', { subjectId: filters.subjectId });
+        if (filters.chapterId) query.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
+
+        const [questions, total] = await query.getManyAndCount();
         return { questions, total, page, limit };
     }
 
@@ -179,19 +187,19 @@ export class ExamsService {
     async validateQuestionForModel(questionId: string, modelId: string): Promise<boolean> {
         const question = await this.questionRepository.findOne({
             where: { id: questionId },
-            relations: ['exam']
+            relations: ['exams']
         });
 
         if (!question) {
             throw new BadRequestException('Question not found');
         }
 
-        // Global questions can be used anywhere
-        if (!question.examId) {
+        // Global questions (no exams linked) can be used anywhere
+        if (!question.exams || question.exams.length === 0) {
             return true;
         }
 
-        // For exam-specific questions, verify the model belongs to that exam
+        // For exam-specific questions, verify the model belongs to one of those exams
         const model = await this.modelRepository.findOne({
             where: { id: modelId },
             relations: ['exams']
@@ -201,10 +209,16 @@ export class ExamsService {
             throw new BadRequestException('Model not found');
         }
 
-        const belongsToExam = model.exams.some(exam => exam.id === question.examId);
-        if (!belongsToExam) {
+        // Check intersection: Does the model belong to ANY exam that the question belongs to?
+        const belongsToCommonExam = model.exams.some(
+            modelExam => question.exams.some(qExam => qExam.id === modelExam.id)
+        );
+
+        if (!belongsToCommonExam) {
+            // Get titles for helpful error message
+            const qExamTitles = question.exams.map(e => e.title).join(', ');
             throw new BadRequestException(
-                `Question is specific to "${question.exam?.title || 'another exam'}" and cannot be used in this model`
+                `Question is specific to "${qExamTitles}" and cannot be used in this model`
             );
         }
 
@@ -220,21 +234,29 @@ export class ExamsService {
         if (cached) return cached;
 
         const totalQuestions = await this.questionRepository.count();
-        const globalQuestions = await this.questionRepository.count({ where: { examId: IsNull() } });
+
+        // Count questions with NO exams (Global)
+        // This requires a left join and checking for null on the right side
+        const globalQuestions = await this.questionRepository
+            .createQueryBuilder('question')
+            .leftJoin('question.exams', 'exams')
+            .where('exams.id IS NULL')
+            .getCount();
+
         const examSpecificQuestions = totalQuestions - globalQuestions;
 
-        // Optimized: Single query for all exam counts
-        const questionCounts = await this.questionRepository
-            .createQueryBuilder('question')
-            .select(['question.examId', 'COUNT(*) as count'])
-            .where('question.examId IS NOT NULL')
-            .groupBy('question.examId')
-            .getRawMany();
+        // Optimized: Count questions per exam via junction table
+        const questionCounts = await this.questionRepository.manager
+            .query(`
+                SELECT "examId", COUNT("questionId") as count 
+                FROM "exam_questions_question" 
+                GROUP BY "examId"
+            `);
 
         const exams = await this.examsRepository.find({ select: ['id', 'title'] });
 
         const examStats = exams.map(exam => {
-            const stat = questionCounts.find(q => q.question_examId === exam.id);
+            const stat = questionCounts.find((q: any) => q.examId === exam.id);
             return {
                 examId: exam.id,
                 examTitle: exam.title,
@@ -288,7 +310,17 @@ export class ExamsService {
 
     // --- Exam Management ---
     async create(createExamDto: any) {
-        const exam = this.examsRepository.create(createExamDto);
+        // Map 'name' to 'title' if title is missing (backward compatibility/frontend mismatch fix)
+        const examData = {
+            ...createExamDto,
+            title: createExamDto.title || createExamDto.name,
+        };
+
+        if (!examData.title) {
+            throw new BadRequestException('Exam title is required');
+        }
+
+        const exam = this.examsRepository.create(examData);
         const saved = await this.examsRepository.save(exam);
         await this.invalidateCache();
         return saved;
@@ -402,13 +434,15 @@ export class ExamsService {
         const questionsToCreate = questionsData.map(data => {
             const { id, ...rest } = data;
 
-            // Validate examId if provided
-            if (rest.examId) {
-                const belongsToExam = model.exams?.some(exam => exam.id === rest.examId);
-                if (!belongsToExam) {
-                    throw new BadRequestException(
-                        `Question with examId ${rest.examId} cannot be added to this model`
-                    );
+            // Validate exams if provided as IDs in rest.exams (via junction)
+            if (rest.exams && rest.exams.length > 0) {
+                for (const examData of rest.exams) {
+                    const belongsToExam = model.exams?.some(exam => exam.id === examData.id);
+                    if (!belongsToExam) {
+                        throw new BadRequestException(
+                            `Question with exam ID ${examData.id} cannot be added to this model`
+                        );
+                    }
                 }
             }
 
@@ -417,7 +451,7 @@ export class ExamsService {
                 models: [model],
                 subject: model.chapter?.subject,
                 chapter: model.chapter,
-                examId: rest.examId || null // Explicitly set to null for global questions
+                exams: rest.exams || []
             };
         });
         const questionsEntities = this.questionRepository.create(questionsToCreate);
@@ -437,12 +471,84 @@ export class ExamsService {
         return savedQuestions;
     }
 
+    /**
+     * Get full hierarchy: Exams -> Subjects -> Chapters with question counts
+     */
+    async getFullHierarchy() {
+        const exams = await this.examsRepository.find({
+            relations: ['subjects', 'subjects.chapters'],
+            order: { title: 'ASC' }
+        });
+
+        // Get question counts for each chapter
+        const enrichedExams = await Promise.all(
+            exams.map(async (exam) => ({
+                id: exam.id,
+                name: exam.title,
+                description: exam.description,
+                subjects: await Promise.all(
+                    (exam.subjects || []).map(async (subject) => ({
+                        id: subject.id,
+                        name: subject.title,
+                        examId: exam.id,
+                        chapters: await Promise.all(
+                            (subject.chapters || []).map(async (chapter) => {
+                                const chapterWithModels = await this.chapterRepository.findOne({
+                                    where: { id: chapter.id },
+                                    relations: ['models']
+                                });
+                                const questionCount = await this.questionRepository.count({
+                                    where: { chapter: { id: chapter.id } }
+                                });
+                                return {
+                                    id: chapter.id,
+                                    name: chapter.title,
+                                    subjectId: subject.id,
+                                    questionCount,
+                                    models: (chapterWithModels?.models || []).map(model => ({
+                                        id: model.id,
+                                        name: model.title,
+                                        totalQuestions: model.totalQuestions,
+                                        chapterId: chapter.id,
+                                        examIds: model.exams?.map(e => e.id) || []
+                                    }))
+                                };
+                            })
+                        )
+                    }))
+                )
+            }))
+        );
+
+        return enrichedExams;
+    }
+
+    async createExam(examData: { name: string; description?: string }) {
+        const exam = this.examsRepository.create({
+            title: examData.name,
+            description: examData.description
+        });
+        const saved = await this.examsRepository.save(exam);
+        await this.cacheService.del('exams:all');
+        return saved;
+    }
+
+    async updateExam(id: string, examData: { name?: string; description?: string }) {
+        await this.examsRepository.update(id, {
+            ...(examData.name && { title: examData.name }),
+            ...(examData.description && { description: examData.description })
+        });
+        await this.cacheService.del('exams:all');
+        await this.cacheService.del(`exam:${id}`);
+        return this.findOne(id);
+    }
+
     async deleteExam(id: string) {
-        const res = await this.examsRepository.delete(id);
-        await this.invalidateCache(id);
-        return res;
+        await this.examsRepository.delete(id);
+        await this.cacheService.del('exams:all');
+        await this.cacheService.del(`exam:${id}`);
+        return { message: 'Exam deleted successfully' };
     }
 
     // --- End of Service ---
 }
-

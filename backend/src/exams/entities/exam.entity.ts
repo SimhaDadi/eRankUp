@@ -1,10 +1,24 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Model } from './model.entity';
+import { Subject } from './subject.entity';
+import { Question } from './question.entity';
+
+export enum ExamType {
+    REAL_EXAM = 'real_exam',
+    QUESTION_BANK = 'question_bank'
+}
 
 @Entity()
 export class Exam {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    @Column({
+        type: 'enum',
+        enum: ExamType,
+        default: ExamType.REAL_EXAM
+    })
+    type: ExamType;
 
     @Column()
     title: string;
@@ -32,6 +46,13 @@ export class Exam {
 
     @Column({ type: 'timestamp', nullable: true })
     endTime: Date;
+
+    @OneToMany(() => Subject, (subject) => subject.exam, { cascade: true })
+    subjects: Subject[];
+
+    @ManyToMany(() => Question, (question) => question.exams)
+    @JoinTable({ name: 'exam_questions_question' })
+    questions: Question[];
 
     @ManyToMany(() => Model, (model) => model.exams)
     @JoinTable({ name: 'exam_models' })

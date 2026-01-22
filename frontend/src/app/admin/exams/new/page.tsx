@@ -24,7 +24,8 @@ export default function NewExamPage() {
         description: '',
         isActive: true,
         defaultPositiveMarks: 1.0,
-        defaultNegativeMarks: 0.25
+        defaultNegativeMarks: 0.25,
+        type: 'real_exam' // Default to real exam
     });
 
     const [chapters, setChapters] = useState<any[]>([]);
@@ -111,6 +112,41 @@ export default function NewExamPage() {
                                     className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 focus:ring-2 focus:ring-blue-500/50 outline-none"
                                 />
                             </div>
+
+                            {/* Exam Type Selector */}
+                            <div>
+                                <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Type</label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        onClick={() => setExamData({ ...examData, type: 'real_exam' })}
+                                        className={`p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${examData.type === 'real_exam'
+                                            ? 'bg-blue-600/10 border-blue-600 text-blue-400'
+                                            : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+                                            }`}
+                                    >
+                                        <BookOpen className="w-5 h-5" />
+                                        <div className="text-left">
+                                            <div className="font-bold">Real Exam</div>
+                                            <div className="text-xs opacity-70">For students to attempt</div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setExamData({ ...examData, type: 'question_bank' })}
+                                        className={`p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${examData.type === 'question_bank'
+                                            ? 'bg-purple-600/10 border-purple-600 text-purple-400'
+                                            : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+                                            }`}
+                                    >
+                                        <Layout className="w-5 h-5" />
+                                        <div className="text-left">
+                                            <div className="font-bold">Question Bank</div>
+                                            <div className="text-xs opacity-70">Repository for questions</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
 
                             <div>
                                 <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Description</label>
@@ -252,6 +288,12 @@ export default function NewExamPage() {
                                         <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" /> {ch.title}
                                     </div>
                                 ))}
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center text-xs text-slate-500">
+                                <span className="uppercase tracking-widest font-bold">Type</span>
+                                <span className={`font-bold px-2 py-1 rounded ${examData.type === 'question_bank' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                    {examData.type === 'question_bank' ? 'Question Bank' : 'Real Exam'}
+                                </span>
                             </div>
                         </div>
 
