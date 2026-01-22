@@ -52,7 +52,7 @@ export default function SettingsPage() {
             const res = await api.patch('/users/profile', formData);
             if (res.data) {
                 // Update local store user object (merge active fields)
-                if (setUser && res.data) {
+                if (res.data) {
                     // We might need to refresh the full user object or just update name
                     // The auth store might expect specific fields, so let's just update what we can.
                     // Assuming setUser takes a full User object or Partial.

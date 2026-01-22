@@ -170,8 +170,8 @@ export default function AIExplanationsPage() {
                 <button
                     onClick={() => setFilter('all')}
                     className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${filter === 'all'
-                            ? 'bg-cyan-500 text-white'
-                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+                        ? 'bg-cyan-500 text-white'
+                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
                         }`}
                 >
                     All ({stats?.total || 0})
@@ -179,8 +179,8 @@ export default function AIExplanationsPage() {
                 <button
                     onClick={() => setFilter('verified')}
                     className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${filter === 'verified'
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
                         }`}
                 >
                     Verified ({stats?.verified || 0})
@@ -188,8 +188,8 @@ export default function AIExplanationsPage() {
                 <button
                     onClick={() => setFilter('unverified')}
                     className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${filter === 'unverified'
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
                         }`}
                 >
                     Unverified ({stats?.unverified || 0})
@@ -327,7 +327,7 @@ export default function AIExplanationsPage() {
 }
 
 function StatCard({ icon, label, value, color }: any) {
-    const colorClasses = {
+    const colorClasses: { [key: string]: string } = {
         cyan: 'bg-cyan-500/10 shadow-cyan-500/5',
         emerald: 'bg-emerald-500/10 shadow-emerald-500/5',
         amber: 'bg-amber-500/10 shadow-amber-500/5',

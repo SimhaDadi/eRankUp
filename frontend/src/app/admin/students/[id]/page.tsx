@@ -195,7 +195,7 @@ export default function StudentDetailPage() {
                                         </td>
                                         <td className="p-4 text-center">
                                             <span className={`font-bold ${attempt.score >= 70 ? 'text-emerald-400' :
-                                                    attempt.score >= 40 ? 'text-white' : 'text-red-400'
+                                                attempt.score >= 40 ? 'text-white' : 'text-red-400'
                                                 }`}>
                                                 {Math.round(attempt.score)}%
                                             </span>
@@ -227,7 +227,7 @@ export default function StudentDetailPage() {
 }
 
 function StatCard({ title, value, icon, color }: any) {
-    const colorClasses = {
+    const colorClasses: { [key: string]: string } = {
         blue: 'bg-blue-500/10 text-blue-500',
         emerald: 'bg-emerald-500/10 text-emerald-500',
         purple: 'bg-purple-500/10 text-purple-500',

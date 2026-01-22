@@ -132,13 +132,13 @@ test.describe('Complete E2E Flow: Admin to Student Analytics', () => {
             await page.selectOption('select:near(:text("Correct Answer"))', '1'); // Option 2 (4)
 
             // Select hierarchy
-            await page.selectOption('select:near(:text("Exam"))', { label: /SSC CGL 2024 Test/ });
+            await page.selectOption('select:near(:text("Exam"))', { label: 'SSC CGL 2024 Test' });
             await page.waitForTimeout(500); // Wait for subjects to load
 
-            await page.selectOption('select:near(:text("Subject"))', { label: /Mathematics/ });
+            await page.selectOption('select:near(:text("Subject"))', { label: 'Mathematics' });
             await page.waitForTimeout(500); // Wait for chapters to load
 
-            await page.selectOption('select:near(:text("Chapter"))', { label: /Algebra/ });
+            await page.selectOption('select:near(:text("Chapter"))', { label: 'Algebra' });
 
             // Fill topic and difficulty
             await page.fill('input[placeholder*="topic"]', 'Basic Arithmetic');

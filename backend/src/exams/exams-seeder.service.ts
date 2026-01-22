@@ -254,6 +254,7 @@ export class ExamsSeederService implements OnApplicationBootstrap {
                 correctOptionId: ['a', 'b', 'c', 'd'][Math.floor(Math.random() * 4)],
                 explanation: `Explanation for Q${i}.`,
                 models: [model],
+                exams: [exam],
                 subject,
                 chapter
             });
@@ -321,6 +322,7 @@ export class ExamsSeederService implements OnApplicationBootstrap {
                     explanation: `Explanation for Q${i}.`,
                     topic,
                     models: [model],
+                    exams: [exam],
                     subject,
                     chapter
                 });

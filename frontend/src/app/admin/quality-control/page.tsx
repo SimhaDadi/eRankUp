@@ -146,7 +146,7 @@ export default function QualityControlPage() {
                                 >
                                     <div className="flex justify-between items-start mb-2">
                                         <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${flag.reason === 'wrong_answer' ? 'bg-red-500/20 text-red-400' :
-                                                flag.reason === 'typo' ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-700 text-slate-300'
+                                            flag.reason === 'typo' ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-700 text-slate-300'
                                             }`}>
                                             {flag.reason.replace('_', ' ')}
                                         </span>
@@ -249,7 +249,7 @@ export default function QualityControlPage() {
 }
 
 function StatCard({ title, value, icon, color }: any) {
-    const colorClasses = {
+    const colorClasses: { [key: string]: string } = {
         emerald: 'bg-emerald-500/10 text-emerald-500',
         blue: 'bg-blue-500/10 text-blue-500',
         amber: 'bg-amber-500/10 text-amber-500',

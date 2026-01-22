@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Free Exam Flow', () => {
-    let authToken;
-    let userEmail;
-    let examId;
+    let authToken: string;
+    let userEmail: string;
+    let examId: string;
 
     test.beforeEach(async ({ request }) => {
         // 1. Create unique user

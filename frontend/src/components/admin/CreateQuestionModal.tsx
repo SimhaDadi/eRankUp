@@ -14,6 +14,7 @@ interface CreateQuestionModalProps {
 export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSelectedExamId, preSelectedModelId }: CreateQuestionModalProps) {
     const [exams, setExams] = useState<any[]>([]);
     const [selectedExam, setSelectedExam] = useState(preSelectedExamId || '');
+    const [extraExams, setExtraExams] = useState<string[]>([]);
     const [selectedChapter, setSelectedChapter] = useState('');
     const [selectedModel, setSelectedModel] = useState(preSelectedModelId || '');
 
@@ -115,7 +116,7 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
                     positiveMarks: questionData.positiveMarks,
                     negativeMarks: questionData.negativeMarks,
                     explanation: questionData.explanation,
-                    exams: selectedExam ? [{ id: selectedExam }] : []
+                    exams: [selectedExam, ...extraExams].filter(id => !!id).map(id => ({ id }))
                 }]
             };
 
@@ -157,10 +158,33 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
                                         value={selectedExam}
                                         onChange={e => setSelectedExam(e.target.value)}
                                     >
-                                        <option value="">Select Exam</option>
+                                        <option value="">Primary Exam</option>
                                         {exams.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
                                     </select>
                                 </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Also Add to Exams</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {exams.filter(e => e.id !== selectedExam).map(e => (
+                                            <button
+                                                key={e.id}
+                                                onClick={() => {
+                                                    setExtraExams(prev =>
+                                                        prev.includes(e.id) ? prev.filter(id => id !== e.id) : [...prev, e.id]
+                                                    );
+                                                }}
+                                                className={`px-2 py-1 rounded-md text-[10px] uppercase font-bold border transition-all ${extraExams.includes(e.id)
+                                                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                                                    : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+                                                    }`}
+                                            >
+                                                {e.title}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Chapter</label>
                                     <select
@@ -185,17 +209,6 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
                                         {models.map((m: any) => <option key={m.id} value={m.id}>{m.title}</option>)}
                                     </select>
                                 </div>
-                            </div>
-
-                            {/* Question Content */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Question Text</label>
-                                <textarea
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm text-white focus:border-blue-500 outline-none min-h-[100px]"
-                                    placeholder="Enter the question content here..."
-                                    value={questionData.content}
-                                    onChange={e => setQuestionData({ ...questionData, content: e.target.value })}
-                                />
                             </div>
 
                             {/* Options */}

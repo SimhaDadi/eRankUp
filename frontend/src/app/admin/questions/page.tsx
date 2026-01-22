@@ -137,7 +137,7 @@ function QuestionListTab() {
             if (searchQuery) params.topic = searchQuery;
             if (selectedDifficulty !== 'all') params.difficulty = selectedDifficulty;
 
-            const response = await api.get('/questions', { params });
+            const response = await api.get('/questions/global', { params });
             setQuestions(response.data);
         } catch (error) {
             console.error("Failed to load questions", error);
@@ -193,8 +193,31 @@ function QuestionListTab() {
                                             </div>
                                         </div>
                                         <div className="flex gap-2">
-                                            <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"><Edit className="w-4 h-4" /></button>
-                                            <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                                            <button
+                                                onClick={() => {
+                                                    // Implementation for edit would go here
+                                                    // For now just alert or switch tab with pre-fill
+                                                    alert('Edit functionality activated for: ' + q.id);
+                                                }}
+                                                className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (confirm('Are you sure you want to delete this question?')) {
+                                                        try {
+                                                            await api.delete(`/questions/${q.id}`);
+                                                            fetchQuestions();
+                                                        } catch (e) {
+                                                            alert('Failed to delete question');
+                                                        }
+                                                    }
+                                                }}
+                                                className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-red-400"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -229,7 +252,7 @@ function AddQuestionTab() {
         correctAnswer: 0,
         topic: '',
         difficulty: 'medium',
-        examId: '',
+        examIds: [] as string[],
         subjectId: '',
         chapterId: '',
         explanation: ''
@@ -314,7 +337,7 @@ function AddQuestionTab() {
                 topic: formData.topic,
                 difficulty: formData.difficulty,
                 subjectId: formData.subjectId,
-                exams: [formData.examId],
+                exams: formData.examIds.map(id => ({ id })),
                 chapterId: formData.chapterId,
                 explanation: formData.explanation
             };
@@ -332,7 +355,7 @@ function AddQuestionTab() {
                 topic: '',
                 difficulty: 'medium',
                 subjectId: '',
-                examId: '',
+                examIds: [],
                 chapterId: '',
                 explanation: ''
             });
@@ -417,78 +440,99 @@ function AddQuestionTab() {
                     </div>
 
                     {/* Hierarchy Selectors */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-6">
+                        {/* Exam Selection (Multi-select) */}
                         <div>
-                            <label className="block text-sm font-semibold text-slate-300 mb-2">Exam *</label>
-                            <select
-                                required
-                                value={selectedExamId}
-                                onChange={(e) => {
-                                    setSelectedExamId(e.target.value);
-                                    setFormData({ ...formData, examId: e.target.value, subjectId: '', chapterId: '' });
-                                    setSelectedSubjectId('');
-                                }}
-                                disabled={loadingExams}
-                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
-                                style={{ backgroundColor: '#020617', color: 'white' }}
-                            >
-                                {loadingExams ? (
-                                    <option style={{ backgroundColor: '#020617', color: 'white' }} value="">Loading...</option>
-                                ) : (
-                                    <>
-                                        <option style={{ backgroundColor: '#020617', color: 'white' }} value="">Select Exam or Question Bank</option>
+                            <label className="block text-sm font-semibold text-slate-300 mb-3">
+                                Connect to Exams * <span className="text-xs font-normal text-slate-500">(Select all that apply)</span>
+                            </label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 bg-slate-950 p-4 border border-slate-800 rounded-2xl max-h-48 overflow-y-auto">
+                                {exams.map(exam => (
+                                    <label key={exam.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-900 cursor-pointer border border-transparent hover:border-slate-800 transition-all">
+                                        <input
+                                            type="checkbox"
+                                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-blue-500/20 focus:ring-offset-0"
+                                            checked={formData.examIds.includes(exam.id)}
+                                            onChange={(e) => {
+                                                const newIds = e.target.checked
+                                                    ? [...formData.examIds, exam.id]
+                                                    : formData.examIds.filter(id => id !== exam.id);
+                                                setFormData({ ...formData, examIds: newIds });
 
-                                        <optgroup label="Question Banks" style={{ backgroundColor: '#020617', color: '#a855f7' }}>
-                                            {exams.filter(e => e.type === 'question_bank').map(exam => (
-                                                <option style={{ backgroundColor: '#020617', color: 'white' }} key={exam.id} value={exam.id}>{exam.title}</option>
-                                            ))}
-                                        </optgroup>
-
-                                        <optgroup label="Real Exams" style={{ backgroundColor: '#020617', color: '#3b82f6' }}>
-                                            {exams.filter(e => e.type !== 'question_bank').map(exam => (
-                                                <option style={{ backgroundColor: '#020617', color: 'white' }} key={exam.id} value={exam.id}>{exam.title}</option>
-                                            ))}
-                                        </optgroup>
-                                    </>
-                                )}
-                            </select>
+                                                // Set the first exam as the 'context' for subjects/chapters if none selected
+                                                if (newIds.length > 0 && !selectedExamId) {
+                                                    setSelectedExamId(newIds[0]);
+                                                }
+                                            }}
+                                        />
+                                        <span className="text-xs font-medium text-slate-300 truncate">{exam.title}</span>
+                                    </label>
+                                ))}
+                            </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-300 mb-2">Subject *</label>
-                            <select
-                                required
-                                value={selectedSubjectId}
-                                onChange={(e) => {
-                                    setSelectedSubjectId(e.target.value);
-                                    setFormData({ ...formData, subjectId: e.target.value, chapterId: '' });
-                                }}
-                                disabled={!selectedExamId || loadingSubjects}
-                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
-                                style={{ backgroundColor: '#020617', color: 'white' }}
-                            >
-                                <option style={{ backgroundColor: '#020617', color: 'white' }} value="">{loadingSubjects ? 'Loading...' : 'Select Subject'}</option>
-                                {subjects.map(subject => (
-                                    <option style={{ backgroundColor: '#020617', color: 'white' }} key={subject.id} value={subject.id}>{subject.title}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {/* Hierarchy Context (for Subject/Chapter selection) */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-300 mb-2">Hierarchy Context (Exam Pool) *</label>
+                                <select
+                                    required
+                                    value={selectedExamId}
+                                    onChange={(e) => {
+                                        setSelectedExamId(e.target.value);
+                                        setFormData({ ...formData, subjectId: '', chapterId: '' });
+                                        setSelectedSubjectId('');
+                                    }}
+                                    disabled={loadingExams}
+                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                    style={{ backgroundColor: '#020617', color: 'white' }}
+                                >
+                                    <option style={{ backgroundColor: '#020617', color: 'white' }} value="">Select Exam for Pool</option>
+                                    {exams.filter(e => formData.examIds.includes(e.id)).map(exam => (
+                                        <option style={{ backgroundColor: '#020617', color: 'white' }} key={exam.id} value={exam.id}>{exam.title}</option>
+                                    ))}
+                                    {formData.examIds.length === 0 && exams.map(exam => (
+                                        <option style={{ backgroundColor: '#020617', color: 'white' }} key={exam.id} value={exam.id}>{exam.title}</option>
+                                    ))}
+                                </select>
+                            </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-300 mb-2">Chapter *</label>
-                            <select
-                                required
-                                value={formData.chapterId}
-                                onChange={(e) => setFormData({ ...formData, chapterId: e.target.value })}
-                                disabled={!selectedSubjectId || loadingChapters}
-                                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
-                                style={{ backgroundColor: '#020617', color: 'white' }}
-                            >
-                                <option style={{ backgroundColor: '#020617', color: 'white' }} value="">{loadingChapters ? 'Loading...' : 'Select Chapter'}</option>
-                                {chapters.map(chapter => (
-                                    <option style={{ backgroundColor: '#020617', color: 'white' }} key={chapter.id} value={chapter.id}>{chapter.title}</option>
-                                ))}
-                            </select>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-300 mb-2">Subject *</label>
+                                <select
+                                    required
+                                    value={selectedSubjectId}
+                                    onChange={(e) => {
+                                        setSelectedSubjectId(e.target.value);
+                                        setFormData({ ...formData, subjectId: e.target.value, chapterId: '' });
+                                    }}
+                                    disabled={!selectedExamId || loadingSubjects}
+                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                    style={{ backgroundColor: '#020617', color: 'white' }}
+                                >
+                                    <option style={{ backgroundColor: '#020617', color: 'white' }} value="">{loadingSubjects ? 'Loading...' : 'Select Subject'}</option>
+                                    {subjects.map(subject => (
+                                        <option style={{ backgroundColor: '#020617', color: 'white' }} key={subject.id} value={subject.id}>{subject.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-300 mb-2">Chapter *</label>
+                                <select
+                                    required
+                                    value={formData.chapterId}
+                                    onChange={(e) => setFormData({ ...formData, chapterId: e.target.value })}
+                                    disabled={!selectedSubjectId || loadingChapters}
+                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                    style={{ backgroundColor: '#020617', color: 'white' }}
+                                >
+                                    <option style={{ backgroundColor: '#020617', color: 'white' }} value="">{loadingChapters ? 'Loading...' : 'Select Chapter'}</option>
+                                    {chapters.map(chapter => (
+                                        <option style={{ backgroundColor: '#020617', color: 'white' }} key={chapter.id} value={chapter.id}>{chapter.title}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </div>
 

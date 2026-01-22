@@ -170,8 +170,8 @@ export class ExamsService {
             .take(limit)
             .skip((page - 1) * limit);
 
-        if (filters && filters.subjectId) query.andWhere('subject.id = :subjectId', { subjectId: filters.subjectId });
-        if (filters.chapterId) query.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
+        if (filters?.subjectId) query.andWhere('subject.id = :subjectId', { subjectId: filters.subjectId });
+        if (filters?.chapterId) query.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
 
         const [questions, total] = await query.getManyAndCount();
         return { questions, total, page, limit };

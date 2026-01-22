@@ -70,7 +70,7 @@ export default function AIChatInterface() {
         }
     };
 
-    const useSuggestion = (suggestion: string) => {
+    const handleUseSuggestion = (suggestion: string) => {
         setInput(suggestion);
         inputRef.current?.focus();
     };
@@ -116,7 +116,7 @@ export default function AIChatInterface() {
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.1 }}
-                                        onClick={() => useSuggestion(suggestion)}
+                                        onClick={() => handleUseSuggestion(suggestion)}
                                         className="bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-purple-500 text-white p-4 rounded-xl text-left transition-all group"
                                     >
                                         <div className="flex items-start gap-3">
@@ -143,8 +143,8 @@ export default function AIChatInterface() {
                             >
                                 <div
                                     className={`max-w-[80%] p-5 rounded-2xl shadow-lg ${msg.role === 'user'
-                                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                                            : 'bg-slate-800/80 text-slate-100 border border-slate-700'
+                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                                        : 'bg-slate-800/80 text-slate-100 border border-slate-700'
                                         }`}
                                 >
                                     {msg.role === 'assistant' && (

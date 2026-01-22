@@ -238,7 +238,7 @@ export default function AnalyticsPage() {
 
 function StatCard({ title, value, change, icon, color }: any) {
     const isPositive = change?.startsWith('+');
-    const colorClasses = {
+    const colorClasses: { [key: string]: string } = {
         blue: 'bg-blue-500/10 text-blue-500',
         emerald: 'bg-emerald-500/10 text-emerald-500',
         purple: 'bg-purple-500/10 text-purple-500',
