@@ -31,7 +31,8 @@ export class ExplanationController {
     @Roles(UserRole.ADMIN)
     async generateExplanation(
         @Param('questionId') questionId: string,
-        @Body('userAnswer') userAnswer?: string
+        @Body('userAnswer') userAnswer?: string,
+        @Body('examId') examId?: string
     ) {
         try {
             // Check if AI service is initialized
@@ -44,7 +45,8 @@ export class ExplanationController {
 
             const explanation = await this.explanationService.generateExplanation(
                 questionId,
-                userAnswer
+                userAnswer,
+                examId
             );
 
             return {
@@ -114,9 +116,12 @@ export class ExplanationController {
      * Public - returns cached explanation if available
      */
     @Get(':questionId')
-    async getExplanation(@Param('questionId') questionId: string) {
+    async getExplanation(
+        @Param('questionId') questionId: string,
+        @Query('examId') examId?: string
+    ) {
         try {
-            const explanation = await this.explanationService.generateExplanation(questionId);
+            const explanation = await this.explanationService.generateExplanation(questionId, undefined, examId);
 
             return {
                 questionId,

@@ -137,13 +137,20 @@ export class ExamsService {
      * These questions are available to all exams
      */
     async getGlobalQuestions(filters?: any, page: number = 1, limit: number = 50) {
-        const [questions, total] = await this.questionRepository.findAndCount({
-            where: { examId: IsNull(), ...filters },
-            relations: ['subject', 'chapter', 'models'],
-            order: { difficultyWeight: 'ASC' },
-            take: limit,
-            skip: (page - 1) * limit
-        });
+        const query = this.questionRepository.createQueryBuilder('question')
+            .leftJoin('question.exams', 'exams')
+            .where('exams.id IS NULL') // Global questions have no exam links
+            .leftJoinAndSelect('question.subject', 'subject')
+            .leftJoinAndSelect('question.chapter', 'chapter')
+            .leftJoinAndSelect('question.models', 'models')
+            .orderBy('question.difficultyWeight', 'ASC')
+            .take(limit)
+            .skip((page - 1) * limit);
+
+        if (filters?.subjectId) query.andWhere('subject.id = :subjectId', { subjectId: filters.subjectId });
+        if (filters?.chapterId) query.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
+
+        const [questions, total] = await query.getManyAndCount();
         return { questions, total, page, limit };
     }
 
@@ -404,7 +411,7 @@ export class ExamsService {
             subject: model?.chapter?.subject,
             chapter: model?.chapter,
             models: [model],
-            examId: data.examId || null // Explicitly set to null for global questions
+            exams: data.examId ? [{ id: data.examId }] : [] // Use exams array instead of examId column
         };
 
         const question = this.questionRepository.create(questionData);

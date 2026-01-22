@@ -67,18 +67,18 @@ export class QuestionsController {
         try {
             const { questionText, options, correctAnswer, topic, difficulty, subjectId, examId, chapterId, explanation } = questionData;
 
-            // Validate required fields
-            if (!questionText || !options || correctAnswer === undefined || !topic || !subjectId || !examId || !chapterId) {
-                throw new HttpException('Missing required fields (questionText, options, correctAnswer, topic, subjectId, examId, chapterId)', HttpStatus.BAD_REQUEST);
+            // Validate required fields (examId is now optional for global questions)
+            if (!questionText || !options || correctAnswer === undefined || !topic || !subjectId || !chapterId) {
+                throw new HttpException('Missing required fields (questionText, options, correctAnswer, topic, subjectId, chapterId)', HttpStatus.BAD_REQUEST);
             }
 
             // Find subject, chapter, and exam
             const subject = await this.subjectRepository.findOne({ where: { id: subjectId } });
             const chapter = await this.chapterRepository.findOne({ where: { id: chapterId } });
-            const exam = await this.examRepository.findOne({ where: { id: examId } });
+            const exam = examId ? await this.examRepository.findOne({ where: { id: examId } }) : null;
 
-            if (!subject || !chapter || !exam) {
-                throw new HttpException('Subject, Chapter, or Exam not found', HttpStatus.NOT_FOUND);
+            if (!subject || !chapter || (examId && !exam)) {
+                throw new HttpException('Subject, Chapter, or specified Exam not found', HttpStatus.NOT_FOUND);
             }
 
             // Map options array to the format expected by Question entity
@@ -99,7 +99,7 @@ export class QuestionsController {
                 subject: subject,
                 chapter: chapter,
                 chapterId: chapterId,
-                exams: [exam] // Now an array
+                exams: exam ? [exam] : [] // Now an array, can be empty for global questions
             });
 
             const saved = await this.questionRepository.save(question);
@@ -196,23 +196,22 @@ export class QuestionsController {
                 });
 
                 try {
-                    // Validate hierarchy IDs are present
                     const examId = row['examid'];
                     const subjectId = row['subjectid'];
                     const chapterId = row['chapterid'];
 
-                    if (!examId || !subjectId || !chapterId) {
-                        errors.push(`Line ${i + 1}: Missing hierarchy IDs (examId, subjectId, chapterId required)`);
+                    if (!subjectId || !chapterId) {
+                        errors.push(`Line ${i + 1}: Missing hierarchy IDs (subjectId and chapterId required)`);
                         continue;
                     }
 
                     // Fetch hierarchy entities
-                    const exam = await this.examRepository.findOne({ where: { id: examId } });
+                    const exam = examId ? await this.examRepository.findOne({ where: { id: examId } }) : null;
                     const subject = await this.subjectRepository.findOne({ where: { id: subjectId } });
                     const chapter = await this.chapterRepository.findOne({ where: { id: chapterId } });
 
-                    if (!exam || !subject || !chapter) {
-                        errors.push(`Line ${i + 1}: Invalid hierarchy IDs - exam, subject, or chapter not found`);
+                    if (!subject || !chapter || (examId && !exam)) {
+                        errors.push(`Line ${i + 1}: Invalid hierarchy IDs - subject, chapter, or specified exam not found`);
                         continue;
                     }
 
@@ -232,7 +231,7 @@ export class QuestionsController {
                         positiveMarks: parseFloat(row['positivemarks']) || 1.0,
                         negativeMarks: parseFloat(row['negativemarks']) || 0.25,
                         difficultyWeight: row['difficulty'] === 'easy' ? 0.3 : row['difficulty'] === 'hard' ? 0.7 : 0.5,
-                        exams: [exam], // Now an array
+                        exams: exam ? [exam] : [], // Now an array, can be empty for global questions
                         subject: subject,
                         chapter: chapter,
                         chapterId: chapterId

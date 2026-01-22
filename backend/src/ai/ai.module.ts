@@ -11,10 +11,11 @@ import { Response } from '../exams/entities/response.entity';
 import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
+import { Exam } from '../exams/entities/exam.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, QuestionExplanation])
+        TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, QuestionExplanation, Exam])
     ],
     controllers: [AIController, ExplanationController],
     providers: [AIService, MigrationService, ExplanationService],

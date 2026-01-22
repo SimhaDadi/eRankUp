@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Question } from '../exams/entities/question.entity';
+import { Exam } from '../exams/entities/exam.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
 import { ConfigService } from '@nestjs/config';
 
@@ -18,6 +19,8 @@ export class ExplanationService {
         private questionRepository: Repository<Question>,
         @InjectRepository(QuestionExplanation)
         private explanationRepository: Repository<QuestionExplanation>,
+        @InjectRepository(Exam)
+        private examRepository: Repository<Exam>,
     ) {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
 
@@ -35,11 +38,12 @@ export class ExplanationService {
 
     async generateExplanation(
         questionId: string,
-        userAnswer?: string
+        userAnswer?: string,
+        contextExamId?: string
     ): Promise<string> {
-        // 1. Check cache first
+        // 1. Check cache first (Context-aware search)
         const cached = await this.explanationRepository.findOne({
-            where: { questionId }
+            where: { questionId, contextExamId: contextExamId || null }
         });
 
         if (cached) {
@@ -54,7 +58,7 @@ export class ExplanationService {
         // 2. Fetch question
         const question = await this.questionRepository.findOne({
             where: { id: questionId },
-            relations: ['subject', 'chapter', 'exam']
+            relations: ['subject', 'chapter', 'exams']
         });
 
         if (!question) {
@@ -67,14 +71,22 @@ export class ExplanationService {
         }
 
         try {
-            // 4. Generate with AI
-            const prompt = this.buildPrompt(question, userAnswer);
+            // 4. Resolve Context Exam (for prompt title)
+            let contextExamTitle = '';
+            if (contextExamId) {
+                const exam = await this.examRepository.findOne({ where: { id: contextExamId } });
+                contextExamTitle = exam?.title || '';
+            }
+
+            // 5. Generate with AI
+            const prompt = this.buildPrompt(question, userAnswer, contextExamTitle);
             const result = await this.model.generateContent(prompt);
             const explanation = result.response.text();
 
-            // 5. Cache the explanation
+            // 6. Cache the explanation
             const newExplanation = this.explanationRepository.create({
                 questionId,
+                contextExamId: contextExamId || null,
                 aiExplanation: explanation,
                 viewCount: 1
             });
@@ -92,8 +104,8 @@ export class ExplanationService {
         return `The correct answer is ${question.correctOptionId}) ${correctOption?.text}. ${question.explanation || 'Please review this topic in your study materials.'}`;
     }
 
-    private buildPrompt(question: Question, userAnswer?: string): string {
-        const examContext = question.exam?.title || 'Indian competitive exams (SSC CGL, RRB NTPC, Banking)';
+    private buildPrompt(question: Question, userAnswer?: string, contextExamTitle?: string): string {
+        const examContext = contextExamTitle || question.exam?.title || question.exams?.[0]?.title || 'Indian competitive exams (SSC CGL, RRB NTPC, Banking)';
         const subject = question.subject?.title || 'General Aptitude';
         const correctOption = question.options.find(opt => opt.id === question.correctOptionId);
         const userOption = userAnswer ? question.options.find(opt => opt.id === userAnswer) : null;

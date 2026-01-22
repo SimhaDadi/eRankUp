@@ -8,11 +8,12 @@ import { parseFile, parseQuestionsFromText } from '@/lib/parser';
 
 interface BulkImportProps {
     modelId: string;
+    examId?: string;
     onSuccess: () => void;
     onClose: () => void;
 }
 
-export default function BulkImport({ modelId, onSuccess, onClose }: BulkImportProps) {
+export default function BulkImport({ modelId, examId, onSuccess, onClose }: BulkImportProps) {
     const [file, setFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -78,9 +79,14 @@ export default function BulkImport({ modelId, onSuccess, onClose }: BulkImportPr
         setError(null);
 
         try {
-            await api.post(`/exams/models/${modelId}/questions/bulk`, {
-                questions: preview
-            });
+            const payload = {
+                questions: examId ? preview.map(q => ({
+                    ...q,
+                    exams: [{ id: examId }]
+                })) : preview
+            };
+
+            await api.post(`/exams/models/${modelId}/questions/bulk`, payload);
             onSuccess();
             onClose();
         } catch (err: any) {

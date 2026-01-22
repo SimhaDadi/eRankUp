@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, UpdateDateColumn, Index, JoinColumn } from 'typeorm';
 import { Question } from '../../exams/entities/question.entity';
+import { Exam } from '../../exams/entities/exam.entity';
 
 @Entity()
 export class QuestionExplanation {
@@ -11,7 +12,16 @@ export class QuestionExplanation {
     question: Question;
 
     @Column()
+    @Index()
     questionId: string;
+
+    @ManyToOne(() => Exam, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'contextExamId' })
+    contextExam: Exam;
+
+    @Column({ nullable: true })
+    @Index()
+    contextExamId: string;
 
     @Column('text')
     aiExplanation: string;

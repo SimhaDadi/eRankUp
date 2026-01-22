@@ -243,6 +243,7 @@ export default function ExamDetailPage() {
             {isBulkImportOpen && selectedModelId && (
                 <BulkImport
                     modelId={selectedModelId}
+                    examId={exam.id}
                     onClose={() => setIsBulkImportOpen(false)}
                     onSuccess={() => {
                         setIsBulkImportOpen(false);
