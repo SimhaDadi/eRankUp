@@ -118,10 +118,19 @@ export default function TestPage() {
 
                     // Start Test Session
                     try {
-                        await api.post('/test-session/start', { testId: params.id });
-                        console.log('Session started successfully');
+                        const sessionRes = await api.post('/test-session/start', { testId: params.id });
+                        const session = sessionRes.data;
+                        if (session) {
+                            console.log('Session loaded/started:', session);
+                            if (session.answers) setAnswers(session.answers);
+                            if (session.timings) setQuestionTimeLog(session.timings);
+                            if (session.flags) setFlags(session.flags);
+                            // Set current index to last answered or first
+                            const lastAnsweringIdx = loadedQuestions.findIndex(q => !session.answers[q.id]);
+                            if (lastAnsweringIdx !== -1) setCurrentQuestionIndex(lastAnsweringIdx);
+                        }
                     } catch (e) {
-                        console.error('Failed to start session:', e);
+                        console.error('Failed to start/load session:', e);
                     }
                 }
             } catch (err) {
@@ -134,12 +143,19 @@ export default function TestPage() {
     }, [params.id]);
 
     useEffect(() => {
-        if (!questions.length) return;
+        if (!questions.length || isSubmitting) return;
         const timer = setInterval(() => {
+            const currentQId = questions[currentQuestionIndex]?.id;
+            if (currentQId) {
+                setQuestionTimeLog(prev => ({
+                    ...prev,
+                    [currentQId]: (prev[currentQId] || 0) + 1
+                }));
+            }
             setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
         }, 1000);
         return () => clearInterval(timer);
-    }, [questions]);
+    }, [questions, currentQuestionIndex, isSubmitting]);
 
     const handleOptionSelect = (optionId: string) => {
         const questionId = questions[currentQuestionIndex].id;
@@ -151,31 +167,53 @@ export default function TestPage() {
         const newAnswers = { ...answers };
         delete newAnswers[questionId];
         setAnswers(newAnswers);
+        syncProgress(newAnswers, questionTimeLog);
     };
 
+    const syncProgress = async (currentAnswers: any, currentTimings: any) => {
+        try {
+            await api.post(`/test-session/${params.id}/sync`, {
+                answers: currentAnswers,
+                timings: currentTimings
+            });
+        } catch (error) {
+            console.error('Failed to sync progress:', error);
+        }
+    };
+
+    // Periodic Auto-Sync (Every 30s)
+    useEffect(() => {
+        if (!questions.length || isSubmitting) return;
+        const syncInterval = setInterval(() => {
+            syncProgress(answers, questionTimeLog);
+        }, 30000); // 30 seconds
+        return () => clearInterval(syncInterval);
+    }, [answers, questionTimeLog, questions, isSubmitting]);
+
     const handleSaveAndNext = () => {
-        // Answer is already saved in state via handleOptionSelect selection
-        // Just move next
+        // Incrementally sync before moving
+        syncProgress(answers, questionTimeLog);
+
         if (currentQuestionIndex < questions.length - 1) {
             const nextIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(nextIndex);
-            if (nextIndex === questions.length - 1) {
-                alert("You have reached the last question");
-            }
         }
-        // TODO: Sync API call in background
     };
 
     const handlePrevious = () => {
         if (currentQuestionIndex > 0) {
+            syncProgress(answers, questionTimeLog);
             setCurrentQuestionIndex(currentQuestionIndex - 1);
         }
     };
 
-    const handleMarkForReview = () => {
+    const handleMarkForReview = async () => {
         const questionId = questions[currentQuestionIndex].id;
         if (!flags.includes(questionId)) {
-            setFlags(prev => [...prev, questionId]);
+            const newFlags = [...flags, questionId];
+            setFlags(newFlags);
+            // Toggle flag on backend
+            try { await api.post(`/test-session/${params.id}/flag`, { questionId }); } catch (e) { }
         }
         handleSaveAndNext();
     };

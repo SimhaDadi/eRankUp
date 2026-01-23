@@ -14,6 +14,7 @@ export interface TestSession {
     testId: string; // Model ID
     startTime: number;
     answers: Record<string, string>; // questionId -> optionId
+    timings: Record<string, number>; // questionId -> seconds spent
     flags: string[]; // array of questionId
     status: 'IN_PROGRESS' | 'COMPLETED';
 }
@@ -65,6 +66,7 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
                 testId,
                 startTime: Date.now(),
                 answers: {},
+                timings: {},
                 flags: [],
                 status: 'IN_PROGRESS',
             };
@@ -87,6 +89,7 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             testId,
             startTime: Date.now(),
             answers: {},
+            timings: {},
             flags: [],
             status: 'IN_PROGRESS',
         };
@@ -112,6 +115,27 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         session.answers[questionId] = answerId;
 
         await this.redis.set(key, JSON.stringify(session), 'KEEPTTL'); // Keep existing expiration
+        return session;
+    }
+
+    async syncProgress(userId: string, testId: string, answers: Record<string, string>, timings: Record<string, number>) {
+        const key = this.getSessionKey(userId, testId);
+        const sessionData = await this.redis.get(key);
+
+        if (!sessionData) {
+            throw new Error('Session not found');
+        }
+
+        const session: TestSession = JSON.parse(sessionData);
+        if (session.status === 'COMPLETED') {
+            throw new Error('Test already submitted');
+        }
+
+        // Merge progress
+        session.answers = { ...session.answers, ...answers };
+        session.timings = { ...session.timings, ...timings };
+
+        await this.redis.set(key, JSON.stringify(session), 'KEEPTTL');
         return session;
     }
 

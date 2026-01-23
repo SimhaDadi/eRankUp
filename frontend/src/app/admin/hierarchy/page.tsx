@@ -123,14 +123,21 @@ export default function HierarchyPage() {
 
     const handleCreateExam = async () => {
         try {
-            await api.post('/exams', examForm);
+            if (editMode && selectedExam) {
+                await api.put(`/exams/${selectedExam.id}`, examForm);
+                alert('Question Bank updated successfully!');
+            } else {
+                await api.post('/exams', { ...examForm, type: 'question_bank' });
+                alert('Question Bank created successfully!');
+            }
             setShowExamModal(false);
             setExamForm({ title: '', description: '' });
+            setEditMode(false);
+            setSelectedExam(null);
             fetchHierarchy();
-            alert('Exam created successfully!');
         } catch (error) {
-            console.error('Error creating exam:', error);
-            alert('Failed to create exam');
+            console.error('Error saving question bank:', error);
+            alert('Failed to save question bank');
         }
     };
 
@@ -180,7 +187,7 @@ export default function HierarchyPage() {
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-4xl font-black text-gray-900 mb-2">Content Hierarchy</h1>
-                        <p className="text-gray-600">Manage exams, subjects, and chapters structure</p>
+                        <p className="text-gray-600">Manage structure: Question Banks &gt; Subjects &gt; Chapters</p>
                     </div>
                     <button
                         onClick={() => {
@@ -191,7 +198,7 @@ export default function HierarchyPage() {
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-lg"
                     >
                         <Plus className="w-5 h-5" />
-                        Add Exam
+                        Add Question Bank
                     </button>
                 </div>
 
@@ -205,13 +212,13 @@ export default function HierarchyPage() {
                     ) : exams.length === 0 ? (
                         <div className="text-center py-12">
                             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">No exams yet</h3>
-                            <p className="text-gray-500 mb-4">Create your first exam to get started</p>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">No Question Banks yet</h3>
+                            <p className="text-gray-500 mb-4">Create your first Question Bank to get started</p>
                             <button
                                 onClick={() => setShowExamModal(true)}
                                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
                             >
-                                Add First Exam
+                                Add Question Bank
                             </button>
                         </div>
                     ) : (

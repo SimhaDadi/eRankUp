@@ -73,9 +73,13 @@ export default function AdminExamsPage() {
         }
     };
 
-    const filteredExams = exams.filter(exam =>
-        exam.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const [filterType, setFilterType] = useState<'all' | 'real_exam' | 'question_bank'>('real_exam');
+
+    const filteredExams = exams.filter(exam => {
+        const matchesSearch = exam.title.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesType = filterType === 'all' || exam.type === filterType;
+        return matchesSearch && matchesType;
+    });
 
     return (
         <div className="space-y-8">
@@ -85,11 +89,35 @@ export default function AdminExamsPage() {
                     <h1 className="text-3xl font-bold">Manage Exams</h1>
                     <p className="text-slate-400">Create, edit, and organize your platform content hierarchy.</p>
                 </div>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20"
+                    >
+                        <Plus className="w-5 h-5" /> Create New Exam
+                    </button>
+                </div>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex gap-2 border-b border-slate-800 pb-1">
                 <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 self-start transition-all shadow-lg shadow-blue-500/20"
+                    onClick={() => setFilterType('all')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${filterType === 'all' ? 'bg-slate-800 text-white border-b-2 border-blue-500' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                 >
-                    <Plus className="w-5 h-5" /> Create New Exam
+                    All Content
+                </button>
+                <button
+                    onClick={() => setFilterType('real_exam')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${filterType === 'real_exam' ? 'bg-slate-800 text-blue-400 border-b-2 border-blue-500' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                >
+                    Real Exams
+                </button>
+                <button
+                    onClick={() => setFilterType('question_bank')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${filterType === 'question_bank' ? 'bg-slate-800 text-purple-400 border-b-2 border-purple-500' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                >
+                    Question Banks
                 </button>
             </div>
 
@@ -157,9 +185,9 @@ export default function AdminExamsPage() {
                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                         onClick={() => handleTogglePublish(exam.id, exam.isPublished)}
-                                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${exam.isPublished
-                                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                            : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
+                                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${exam.isPublished
+                                            ? 'bg-green-600 text-white hover:bg-green-700 shadow-green-500/20'
+                                            : 'bg-yellow-500 text-slate-900 hover:bg-yellow-400 shadow-yellow-500/20'
                                             }`}
                                     >
                                         {exam.isPublished ? 'Published' : 'Draft'}

@@ -55,8 +55,8 @@ test.describe('Complete E2E Flow: Admin to Student Analytics', () => {
         });
 
         await test.step('Create Exam', async () => {
-            // Click Add Exam button
-            await page.click('button:has-text("Add Exam")');
+            // Click Add Question Bank button
+            await page.click('button:has-text("Add Question Bank")');
 
             // Fill exam form
             await page.fill('input[placeholder*="SSC CGL"]', 'SSC CGL 2024 Test');

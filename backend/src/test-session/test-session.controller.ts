@@ -29,6 +29,15 @@ export class TestSessionController {
         return this.sessionService.saveAnswer(req.user.userId, testId, body.questionId, body.answerId);
     }
 
+    @Post(':testId/sync')
+    async syncProgress(
+        @Request() req: any,
+        @Param('testId') testId: string,
+        @Body() body: { answers: Record<string, string>; timings: Record<string, number> }
+    ) {
+        return this.sessionService.syncProgress(req.user.userId, testId, body.answers, body.timings);
+    }
+
     @Post(':testId/flag')
     async toggleFlag(
         @Request() req: any,

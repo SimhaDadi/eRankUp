@@ -19,7 +19,6 @@ import api from '@/lib/api';
 import Link from 'next/link';
 import TopperComparison from '@/components/dashboard/TopperComparison';
 import MathRenderer from '@/components/MathRenderer';
-import { ExplanationCard } from '@/components/ExplanationCard';
 import { PercentileCard } from '@/components/PercentileCard';
 import { WeaknessPatterns, MistakePattern } from '@/components/WeaknessPatterns';
 import { PercentileChart } from '@/components/PercentileChart';
@@ -508,15 +507,7 @@ export default function ResultsPage() {
                                                 })}
                                             </div>
 
-                                            {/* AI-Generated Explanation */}
-                                            {resp.question.explanation && (
-                                                <div className="mt-8">
-                                                    <ExplanationCard
-                                                        explanation={resp.question.explanation}
-                                                        questionId={resp.question.id}
-                                                    />
-                                                </div>
-                                            )}
+
                                         </div>
                                     </motion.div>
                                 ))}

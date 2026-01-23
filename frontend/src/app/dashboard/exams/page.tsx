@@ -34,7 +34,9 @@ export default function ExamsPage() {
 
     const fetchExams = async () => {
         try {
-            const response = await api.get('/exams');
+            const response = await api.get('/exams', {
+                params: { type: 'real_exam' }
+            });
             console.log('[DEBUG] Exams data received:', response.data);
             setExams(response.data);
         } catch (error) {
