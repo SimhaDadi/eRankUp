@@ -18,7 +18,7 @@ interface WeaknessPatternsProps {
 }
 
 export function WeaknessPatterns({ patterns }: WeaknessPatternsProps) {
-    if (!patterns || patterns.length === 0) {
+    if (!patterns || !Array.isArray(patterns) || patterns.length === 0) {
         return (
             <motion.div
                 initial={{ opacity: 0, y: 10 }}

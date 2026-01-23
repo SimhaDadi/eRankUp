@@ -61,7 +61,24 @@ export default function HierarchyPage() {
         setLoading(true);
         try {
             const response = await api.get('/exams/hierarchy');
-            setExams(response.data);
+            // Transform backend response (name) to frontend format (title)
+            const transformedData = response.data.map((exam: any) => ({
+                ...exam,
+                title: exam.name || exam.title,
+                subjects: exam.subjects?.map((subject: any) => ({
+                    ...subject,
+                    title: subject.name || subject.title,
+                    chapters: subject.chapters?.map((chapter: any) => ({
+                        ...chapter,
+                        title: chapter.name || chapter.title,
+                        models: chapter.models?.map((model: any) => ({
+                            ...model,
+                            title: model.name || model.title
+                        }))
+                    }))
+                }))
+            }));
+            setExams(transformedData);
         } catch (error) {
             console.error('Error fetching hierarchy:', error);
         } finally {
@@ -114,7 +131,7 @@ export default function HierarchyPage() {
 
     const handleCreateSubject = async () => {
         try {
-            await api.post('/subjects', subjectForm);
+            await api.post('/subjects', { name: subjectForm.title, examId: subjectForm.examId });
             setShowSubjectModal(false);
             setSubjectForm({ title: '', examId: '' });
             fetchHierarchy();
@@ -127,7 +144,7 @@ export default function HierarchyPage() {
 
     const handleCreateChapter = async () => {
         try {
-            await api.post('/chapters', chapterForm);
+            await api.post('/chapters', { name: chapterForm.title, subjectId: chapterForm.subjectId });
             setShowChapterModal(false);
             setChapterForm({ title: '', subjectId: '' });
             fetchHierarchy();
@@ -140,7 +157,7 @@ export default function HierarchyPage() {
 
     const handleCreateModel = async () => {
         try {
-            await api.post(`/exams/chapters/${modelForm.chapterId}/models`, modelForm);
+            await api.post(`/exams/chapters/${modelForm.chapterId}/models`, { title: modelForm.title });
             setShowModelModal(false);
             setModelForm({ title: '', chapterId: '' });
             fetchHierarchy();

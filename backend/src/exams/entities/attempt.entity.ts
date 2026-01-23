@@ -13,7 +13,7 @@ export class Attempt {
     @ManyToOne(() => User)
     user: User;
 
-    @ManyToOne(() => Model)
+    @ManyToOne(() => Model, { nullable: true })
     model: Model;
 
     @ManyToOne(() => Exam, { nullable: true })

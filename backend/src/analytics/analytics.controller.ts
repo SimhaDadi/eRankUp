@@ -22,6 +22,13 @@ export class AnalyticsController {
         return this.analyticsService.getOverviewStats();
     }
 
+    @Get('students')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async getStudentList(@Query('page') page: number, @Query('limit') limit: number, @Query('search') search: string) {
+        return this.analyticsService.getStudentList(page, limit, search);
+    }
+
     @Get('users')
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)

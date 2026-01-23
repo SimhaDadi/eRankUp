@@ -205,24 +205,39 @@ export class AnalyticsService {
     async getAttemptAnalysis(attemptId: string, userId: string) {
         const attempt = await this.attemptRepository.findOne({
             where: { id: attemptId, user: { id: userId } },
-            relations: ['responses', 'responses.question', 'model']
+            relations: ['responses', 'responses.question', 'model', 'exam']
         });
 
         if (!attempt) return null;
 
-        // Calculate Rank: Number of people with (higher score) OR (same score AND lower time)
-        // We use QueryBuilder for complex OR conditions with AND
-        const betterCount = await this.attemptRepository.createQueryBuilder('attempt')
-            .where('attempt.modelId = :modelId', { modelId: attempt.model.id })
-            .andWhere(
-                '(attempt.score > :score OR (attempt.score = :score AND attempt.timeTaken < :timeTaken))',
-                { score: attempt.score, timeTaken: attempt.timeTaken }
-            )
-            .getCount();
+        let betterCount = 0;
+        let totalParticipants = 0;
 
-        const totalParticipants = await this.attemptRepository.count({
-            where: { model: { id: attempt.model.id } }
-        });
+        if (attempt.model) {
+            betterCount = await this.attemptRepository.createQueryBuilder('attempt')
+                .where('attempt.modelId = :modelId', { modelId: attempt.model.id })
+                .andWhere(
+                    '(attempt.score > :score OR (attempt.score = :score AND attempt.timeTaken < :timeTaken))',
+                    { score: attempt.score, timeTaken: attempt.timeTaken }
+                )
+                .getCount();
+
+            totalParticipants = await this.attemptRepository.count({
+                where: { model: { id: attempt.model.id } }
+            });
+        } else if (attempt.exam) {
+            betterCount = await this.attemptRepository.createQueryBuilder('attempt')
+                .where('attempt.examId = :examId', { examId: attempt.exam.id })
+                .andWhere(
+                    '(attempt.score > :score OR (attempt.score = :score AND attempt.timeTaken < :timeTaken))',
+                    { score: attempt.score, timeTaken: attempt.timeTaken }
+                )
+                .getCount();
+
+            totalParticipants = await this.attemptRepository.count({
+                where: { exam: { id: attempt.exam.id } }
+            });
+        }
 
         const topicStats: Record<string, { correct: number; total: number; time: number }> = {};
 
@@ -258,6 +273,48 @@ export class AnalyticsService {
             recommendation: weaknesses.length > 0
                 ? `Focus on reviewing concepts in ${weaknesses.join(', ')} to improve your score.`
                 : `Great job! Maintain your performance in ${strengths.join(', ')} and try more difficult problems.`
+        };
+    }
+
+    async getStudentList(page: number = 1, limit: number = 10, search: string = '') {
+        const queryBuilder = this.userRepository.createQueryBuilder('user')
+            .where('user.role = :role', { role: UserRole.STUDENT });
+
+        if (search) {
+            queryBuilder.andWhere('(user.email ILIKE :search OR user.fullName ILIKE :search)', { search: `%${search}%` });
+        }
+
+        const skip = (page - 1) * limit;
+        const [users, total] = await queryBuilder
+            .skip(skip)
+            .take(limit)
+            .orderBy('user.createdAt', 'DESC')
+            .getManyAndCount();
+
+        // Enrich with stats
+        const students = await Promise.all(users.map(async (user) => {
+            const stats = await this.attemptRepository
+                .createQueryBuilder('attempt')
+                .select('COUNT(attempt.id)', 'totalAttempts')
+                .addSelect('AVG(attempt.accuracy)', 'averageScore')
+                .where('attempt.userId = :userId', { userId: user.id })
+                .getRawOne();
+
+            return {
+                id: user.id,
+                fullName: user.fullName,
+                email: user.email,
+                createdAt: user.createdAt,
+                totalAttempts: parseInt(stats.totalAttempts) || 0,
+                averageScore: Math.round(parseFloat(stats.averageScore) || 0)
+            };
+        }));
+
+        return {
+            students,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit)
         };
     }
 }

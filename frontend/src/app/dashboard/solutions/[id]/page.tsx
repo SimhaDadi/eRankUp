@@ -55,7 +55,10 @@ interface Attempt {
     correctAnswers: number;
     timeTaken: number;
     responses: QuestionResponse[];
-    model: {
+    model?: {
+        title: string;
+    };
+    exam?: {
         title: string;
     };
 }
@@ -148,7 +151,7 @@ export default function SolutionPage() {
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-slate-900 font-extrabold text-lg tracking-tight truncate max-w-[200px] md:max-w-none">
-                                {attempt.model.title}
+                                {attempt.model?.title || attempt.exam?.title || 'Assessment Solution'}
                             </h1>
                             <div className="px-2.5 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-lg border border-indigo-100 uppercase tracking-widest">Quantum Engine</div>
                         </div>
@@ -171,7 +174,7 @@ export default function SolutionPage() {
                         Full Analysis
                     </button>
                 </div>
-            </header>
+            </header >
 
             <div className="flex flex-1 overflow-hidden relative z-10 lg:p-6 lg:gap-8 lg:max-w-[1900px] mx-auto w-full">
                 {/* Main Content: Question & Options */}
@@ -474,7 +477,7 @@ export default function SolutionPage() {
                     </div>
                 </aside>
             </div>
-        </div>
+        </div >
     );
 }
 

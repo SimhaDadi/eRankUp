@@ -58,10 +58,10 @@ export default function AIExplanationsPage() {
         setLoading(true);
         try {
             const [explanationsRes, statsRes] = await Promise.all([
-                api.get('/ai/explanations', {
+                api.get('/explanations', {
                     params: filter !== 'all' ? { verified: filter === 'verified' } : {}
                 }),
-                api.get('/ai/explanations/stats')
+                api.get('/explanations/admin/stats')
             ]);
 
             setExplanations(explanationsRes.data.explanations);
@@ -75,7 +75,7 @@ export default function AIExplanationsPage() {
 
     const handleApprove = async (id: string, editedText?: string) => {
         try {
-            await api.post(`/ai/explanations/${id}/approve`, {
+            await api.post(`/explanations/${id}/approve`, {
                 editedText: editedText || undefined
             });
             setEditingId(null);
@@ -89,8 +89,9 @@ export default function AIExplanationsPage() {
         if (!confirm('Are you sure you want to reject and delete this explanation?')) return;
 
         try {
-            await api.post(`/ai/explanations/${id}/reject`, {
-                reason: 'Quality control'
+            // Backend expects DELETE with body
+            await api.delete(`/explanations/${id}/reject`, {
+                data: { reason: 'Quality control' }
             });
             fetchData();
         } catch (error) {
@@ -100,7 +101,7 @@ export default function AIExplanationsPage() {
 
     const handleUpdate = async (id: string) => {
         try {
-            await api.put(`/ai/explanations/${id}`, {
+            await api.put(`/explanations/${id}`, {
                 text: editText
             });
             setEditingId(null);
@@ -236,7 +237,7 @@ export default function AIExplanationsPage() {
                             {/* AI Explanation */}
                             <div className="mb-4">
                                 <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
-                                    {editingId === explanation.id ? 'Edit Explanation' : 'AI Generated Explanation'}
+                                    {editingId === explanation.id ? 'Edit Explanation' : 'Explanation'}
                                 </h4>
                                 {editingId === explanation.id ? (
                                     <textarea

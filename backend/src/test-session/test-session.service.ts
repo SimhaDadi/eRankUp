@@ -220,4 +220,21 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             throw new InternalServerErrorException(err.message || 'Error during grading/saving');
         }
     }
+
+    async getUserActiveTestIds(userId: string): Promise<string[]> {
+        const pattern = `session:${userId}:*`;
+        const keys = await this.redis.keys(pattern);
+        const activeTestIds: string[] = [];
+
+        for (const key of keys) {
+            const data = await this.redis.get(key);
+            if (data) {
+                const session: TestSession = JSON.parse(data);
+                if (session.status === 'IN_PROGRESS') {
+                    activeTestIds.push(session.testId);
+                }
+            }
+        }
+        return activeTestIds;
+    }
 }

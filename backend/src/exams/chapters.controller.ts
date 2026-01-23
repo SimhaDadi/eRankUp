@@ -8,7 +8,7 @@ import { Repository } from 'typeorm';
 import { Chapter } from './entities/chapter.entity';
 
 @Controller('chapters')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class ChaptersController {
     constructor(
         @InjectRepository(Chapter)

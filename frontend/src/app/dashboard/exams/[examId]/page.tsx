@@ -12,6 +12,7 @@ import {
     Globe,
     Sparkles,
     Trophy,
+    CheckCircle2,
     Layers,
     Zap,
     ShieldCheck,
@@ -34,6 +35,7 @@ interface Exam {
     price: number;
     hasPurchased?: boolean;
     chapters: Chapter[];
+    questions?: any[];
 }
 
 interface Chapter {
@@ -57,12 +59,23 @@ export default function ExamDetailsPage() {
     const [showCouponInput, setShowCouponInput] = useState(false);
     const [couponCode, setCouponCode] = useState('');
     const [appliedDiscount, setAppliedDiscount] = useState(0);
+    const [attempts, setAttempts] = useState<any[]>([]);
 
     useEffect(() => {
         if (params.examId) {
             fetchExam(params.examId as string);
+            fetchAttempts(params.examId as string);
         }
     }, [params.examId]);
+
+    const fetchAttempts = async (id: string) => {
+        try {
+            const response = await api.get(`/exams/${id}/my-attempts`);
+            setAttempts(response.data);
+        } catch (error) {
+            console.error('Failed to fetch attempts', error);
+        }
+    };
 
     const fetchExam = async (id: string) => {
         try {
@@ -199,7 +212,13 @@ export default function ExamDetailsPage() {
                                 </p>
 
                                 <div className="flex flex-wrap items-center gap-8 pt-2">
-                                    <HeroBadge icon={Layers} label="TOTAL" value={`${exam.chapters?.reduce((acc, ch) => acc + (ch.models?.length || 0), 0) || 0} Units`} color="text-sky-500" />
+                                    {(() => {
+                                        const totalUnits = exam.chapters?.reduce((acc, ch) => acc + (ch.models?.length || 0), 0) || 0;
+                                        if (totalUnits > 0) {
+                                            return <HeroBadge icon={Layers} label="TOTAL" value={`${totalUnits} Units`} color="text-sky-500" />;
+                                        }
+                                        return <HeroBadge icon={Layers} label="CONTENT" value="Full Length" color="text-sky-500" />;
+                                    })()}
                                     <HeroBadge icon={Globe} label="LANG" value="English, Hindi" color="text-emerald-500" />
                                     <HeroBadge icon={Activity} label="STATUS" value="Active" color="text-sky-500" />
                                 </div>
@@ -260,14 +279,16 @@ export default function ExamDetailsPage() {
 
                 {/* Chapters & Tests - BREEZE GRID */}
                 <div className="space-y-8">
-                    <div className="flex items-center justify-between px-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-1.5 h-7 bg-emerald-500 rounded-full" />
-                            <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase tracking-wider">
-                                Units & Modules
-                            </h3>
+                    {exam.chapters && exam.chapters.length > 0 && (
+                        <div className="flex items-center justify-between px-6">
+                            <div className="flex items-center gap-4">
+                                <div className="w-1.5 h-7 bg-emerald-500 rounded-full" />
+                                <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase tracking-wider">
+                                    Units & Modules
+                                </h3>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <div className="space-y-10">
                         {exam.chapters?.map((chapter, idx) => (
@@ -292,6 +313,50 @@ export default function ExamDetailsPage() {
                                 </div>
                             </motion.div>
                         ))}
+
+                        {(!exam.chapters || exam.chapters.length === 0) && exam.questions && exam.questions.length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="p-8 bg-white border border-emerald-100/50 rounded-2xl shadow-lg shadow-emerald-500/5 relative overflow-hidden group"
+                            >
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full opacity-50 transition-transform group-hover:scale-110" />
+
+                                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                                    <div className="space-y-3">
+                                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${attempts.length > 0 ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'} border`}>
+                                            {attempts.length > 0 ? <CheckCircle2 className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+                                            <span className="text-[9px] font-black uppercase tracking-widest">{attempts.length > 0 ? 'Completed' : 'Practice Mode'}</span>
+                                        </div>
+                                        <h3 className="text-2xl font-black text-slate-800 tracking-tight">{attempts.length > 0 ? 'View Your Analysis' : 'Ready to Start?'}</h3>
+                                        <p className="text-slate-500 font-medium max-w-lg">
+                                            {attempts.length > 0
+                                                ? `You have attempted this exam ${attempts.length} times. View your performance analysis.`
+                                                : `This exam contains ${exam.questions.length} questions ready for practice. Access is fully granted. Best of luck!`}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        {attempts.length > 0 && (
+                                            <Link
+                                                href={`/dashboard/results/${attempts[0].id}`}
+                                                className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-[0.2em] text-xs rounded-xl shadow-lg shadow-indigo-500/20 transition-all hover:shadow-xl hover:-translate-y-1 flex items-center gap-3"
+                                            >
+                                                View Result
+                                                <Trophy className="w-4 h-4" />
+                                            </Link>
+                                        )}
+                                        <Link
+                                            href={`/dashboard/test/${exam.id}`}
+                                            className={`px-8 py-4 ${attempts.length > 0 ? 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20'} font-black uppercase tracking-[0.2em] text-xs rounded-xl shadow-lg transition-all hover:shadow-xl hover:-translate-y-1 flex items-center gap-3`}
+                                        >
+                                            {attempts.length > 0 ? 'Retake Exam' : 'Start Practice'}
+                                            <ChevronRight className="w-4 h-4" />
+                                        </Link>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
                     </div>
                 </div>
             </div>

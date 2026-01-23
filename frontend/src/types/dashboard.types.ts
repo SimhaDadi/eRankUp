@@ -12,5 +12,11 @@ export interface RecentAttempt {
     createdAt: string;
     model: {
         title: string;
+        chapter?: {
+            title: string;
+        };
+    };
+    exam?: {
+        title: string;
     };
 }

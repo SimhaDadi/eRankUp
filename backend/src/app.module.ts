@@ -32,7 +32,7 @@ import { AIChatModule } from './ai-chat/ai-chat.module';
                 password: config.get<string>('DB_PASSWORD', 'password'),
                 database: config.get<string>('DB_NAME', 'erankup_db'),
                 entities: [__dirname + '/**/*.entity{.ts,.js}'],
-                synchronize: config.get<string>('NODE_ENV') !== 'production',
+                synchronize: false,
             }),
         }),
         AuthModule,

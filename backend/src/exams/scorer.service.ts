@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Attempt } from './entities/attempt.entity';
 import { Question } from './entities/question.entity';
 import { Model } from './entities/model.entity';
+import { Exam } from './entities/exam.entity';
 import { Response } from './entities/response.entity';
 import { User } from '../users/user.entity';
 import { DifficultyService } from './difficulty.service';
@@ -12,7 +13,7 @@ import { GamificationService } from '../gamification/gamification.service';
 import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
 
 @Injectable()
-export class ScorerService {
+export class ScorerService implements OnModuleInit {
     constructor(
         @InjectRepository(Attempt)
         private attemptRepository: Repository<Attempt>,
@@ -20,6 +21,8 @@ export class ScorerService {
         private questionRepository: Repository<Question>,
         @InjectRepository(Model)
         private modelRepository: Repository<Model>,
+        @InjectRepository(Exam)
+        private examRepository: Repository<Exam>,
         @InjectRepository(Response)
         private responseRepository: Repository<Response>,
         private difficultyService: DifficultyService,
@@ -30,19 +33,20 @@ export class ScorerService {
 
     async gradeAndSave(
         user: User,
-        modelId: string,
+        modelId: string, // Can be Model ID or Exam ID
         userAnswers: Record<string, string>,
         startTime: number,
         questionTimings: Record<string, number> = {},
         flags: string[] = [],
     ): Promise<Attempt> {
-        console.log(`[Scorer] Grading attempt for User: ${user.id}, Model: ${modelId}`);
+        console.log(`[Scorer] Grading attempt for User: ${user.id}, ID: ${modelId}`);
 
-        // 1. Fetch questions/model
+        // 1. Fetch questions/model/exam
         let questions: Question[] = [];
         let examPos = 1.0;
         let examNeg = 0.25;
         let model: Model | null = null;
+        let exam: Exam | null = null;
 
         if (modelId.startsWith('adaptive')) {
             // Fetch questions individually for adaptive sessions
@@ -54,20 +58,41 @@ export class ScorerService {
                 relations: ['subject', 'chapter']
             });
         } else {
+            // Try fetching as Model first
             model = await this.modelRepository.findOne({
                 where: { id: modelId },
                 relations: ['questions', 'exams']
             });
 
-            if (!model || !model.questions || model.questions.length === 0) {
-                console.error(`[Scorer] No questions found for model ${modelId}`);
-                throw new Error('No questions found for this model');
-            }
+            if (model) {
+                if (!model.questions || model.questions.length === 0) {
+                    console.error(`[Scorer] No questions found for model ${modelId}`);
+                    throw new Error('No questions found for this model');
+                }
+                questions = model.questions;
+                const targetExam = model.exams?.[0];
+                examPos = targetExam?.defaultPositiveMarks || 1.0;
+                examNeg = targetExam?.defaultNegativeMarks || 0.25;
+            } else {
+                // Try fetching as Exam
+                exam = await this.examRepository.findOne({
+                    where: { id: modelId },
+                    relations: ['questions']
+                });
 
-            questions = model.questions;
-            const targetExam = model.exams?.[0];
-            examPos = targetExam?.defaultPositiveMarks || 1.0;
-            examNeg = targetExam?.defaultNegativeMarks || 0.25;
+                if (exam) {
+                    if (!exam.questions || exam.questions.length === 0) {
+                        console.error(`[Scorer] No questions found for exam ${modelId}`);
+                        throw new Error('No questions found for this exam');
+                    }
+                    questions = exam.questions;
+                    examPos = exam.defaultPositiveMarks || 1.0;
+                    examNeg = exam.defaultNegativeMarks || 0.25;
+                } else {
+                    console.error(`[Scorer] No Model or Exam found with ID ${modelId}`);
+                    throw new Error('Test not found');
+                }
+            }
         }
 
         const totalQuestions = questions.length;
@@ -109,9 +134,11 @@ export class ScorerService {
 
         // 3. Save Attempt
         // We use IDs instead of objects where possible to prevent TypeORM from trying to "update" related entities
+        // Ensure user ID is valid UUID
         const attempt = this.attemptRepository.create({
             user: { id: user.id } as User,
             model: model ? ({ id: model.id } as Model) : undefined,
+            exam: exam ? ({ id: exam.id } as Exam) : undefined,
             score: Math.round(score * 100) / 100,
             totalQuestions,
             correctAnswers,
@@ -205,7 +232,7 @@ export class ScorerService {
     async getAttempt(id: string, userId: string) {
         return this.attemptRepository.findOne({
             where: { id, user: { id: userId } },
-            relations: ['model', 'model.chapter', 'model.exams', 'responses', 'responses.question'],
+            relations: ['model', 'model.chapter', 'model.exams', 'exam', 'responses', 'responses.question'],
         });
     }
 
@@ -214,7 +241,18 @@ export class ScorerService {
             where: { user: { id: userId } },
             order: { createdAt: 'DESC' },
             take: 10,
-            relations: ['model'],
+            relations: ['model', 'exam', 'model.chapter'],
+        });
+    }
+
+    async getAttemptsForExam(examId: string, userId: string) {
+        return this.attemptRepository.find({
+            where: [
+                { user: { id: userId }, exam: { id: examId } },
+                { user: { id: userId }, model: { exams: { id: examId } } }
+            ],
+            order: { createdAt: 'DESC' },
+            relations: ['model', 'exam']
         });
     }
 
@@ -302,6 +340,7 @@ export class ScorerService {
                 } else {
                     break;
                 }
+
             }
         }
 
@@ -312,5 +351,82 @@ export class ScorerService {
             accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0,
             streak,
         };
+    }
+    async getUserExamStats(userId: string) {
+        const attempts = await this.attemptRepository.find({
+            where: { user: { id: userId } },
+            relations: ['model', 'model.exams', 'exam'],
+            order: { createdAt: 'DESC' }
+        });
+
+        console.log(`[Stats] Found ${attempts.length} attempts for user ${userId}`);
+
+        const stats: Record<string, { count: number; latestScore: number; bestScore: number; attemptedModelIds: string[] }> = {};
+
+        for (const attempt of attempts) {
+            const examId = attempt.exam?.id || attempt.model?.exams?.[0]?.id;
+
+            if (!examId) continue;
+
+            if (!stats[examId]) {
+                stats[examId] = { count: 0, latestScore: attempt.score, bestScore: 0, attemptedModelIds: [] };
+            }
+            stats[examId].count++;
+            stats[examId].bestScore = Math.max(stats[examId].bestScore, attempt.score);
+
+            if (attempt.model?.id) {
+                if (!stats[examId].attemptedModelIds.includes(attempt.model.id)) {
+                    stats[examId].attemptedModelIds.push(attempt.model.id);
+                }
+            } else if (attempt.exam?.id) {
+                // Direct exam attempt. Treat the exam itself as a "model" for progress tracking
+                if (!stats[examId].attemptedModelIds.includes(attempt.exam.id)) {
+                    stats[examId].attemptedModelIds.push(attempt.exam.id);
+                }
+            }
+        }
+
+        console.log(`[Stats] Generated stats for exams:`, Object.keys(stats));
+        return stats;
+    }
+
+    async repairAttemptConnections() {
+        console.log('[Repair] Starting attempt connection repair...');
+        const attempts = await this.attemptRepository.find({
+            relations: ['model', 'model.exams', 'exam'],
+            where: [
+                { exam: { id: null } as any }, // Attempts with no exam
+            ]
+        });
+
+        let fixed = 0;
+        for (const attempt of attempts) {
+            // Case 1: Has Model, but no Exam relation. Link to Model's first exam.
+            if (!attempt.exam && attempt.model && attempt.model.exams && attempt.model.exams.length > 0) {
+                attempt.exam = attempt.model.exams[0];
+                await this.attemptRepository.save(attempt);
+                fixed++;
+                console.log(`[Repair] Linked Attempt ${attempt.id} to Exam ${attempt.exam.id} via Model ${attempt.model.id}`);
+            }
+        }
+        console.log(`[Repair] Finished. Fixed ${fixed} attempts.`);
+        return { fixed, totalScanned: attempts.length };
+    }
+
+    async onModuleInit() {
+        console.log('[Scorer] Module Init - Running diagnostics...');
+
+        // Wait 5 seconds to ensure Redis and DB are warm/initialized
+        setTimeout(async () => {
+            try {
+                // Clear exams cache to ensure fresh data after code updates
+                await this.cacheService.del('exams:all');
+                console.log('[Scorer] Cleared exams:all cache');
+
+                await this.repairAttemptConnections();
+            } catch (e) {
+                console.error('[Scorer] Initialization/Repair failed', e);
+            }
+        }, 5000);
     }
 }

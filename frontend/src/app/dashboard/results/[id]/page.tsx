@@ -72,7 +72,7 @@ interface Attempt {
     percentileData?: PercentileData;
     patterns?: MistakePattern[];
     createdAt: string;
-    model: {
+    model?: {
         id: string;
         title: string;
         chapter: {
@@ -81,6 +81,9 @@ interface Attempt {
         exams: {
             title: string;
         }[];
+    };
+    exam?: {
+        title: string;
     };
 }
 
@@ -140,7 +143,7 @@ export default function ResultsPage() {
                         data.percentileData = percentileRes.value.data;
                     }
                     if (patternsRes.status === 'fulfilled') {
-                        data.patterns = patternsRes.value.data;
+                        data.patterns = patternsRes.value.data.patterns || [];
                     }
                     setAttempt(data);
                 }
@@ -206,7 +209,12 @@ export default function ResultsPage() {
                         <ArrowLeft className="w-4 h-4" /> Back to My Exams
                     </button>
                     <h1 className="text-3xl font-bold text-slate-900">Test Results</h1>
-                    <p className="text-slate-500 mt-1 font-medium">{attempt.model.exams?.[0]?.title} • {attempt.model.title}</p>
+                    <p className="text-slate-500 mt-1 font-medium">
+                        {attempt.model
+                            ? `${attempt.model.exams?.[0]?.title} • ${attempt.model.title}`
+                            : attempt.exam?.title || 'Practice Exam'
+                        }
+                    </p>
                 </div>
                 <div className="text-right">
                     <div className="text-xs text-slate-400 uppercase font-bold tracking-widest">Completed On</div>

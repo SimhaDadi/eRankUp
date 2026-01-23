@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { ExamsSeederService } from './exams-seeder.service';
@@ -8,6 +8,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { TestSessionService } from '../test-session/test-session.service';
 import { UserRole } from '@erankup/shared';
 import { CreateExamDto, UpdateExamDto, CreateSubjectDto, UpdateSubjectDto, CreateChapterDto, UpdateChapterDto, CreateModelDto, BulkCreateQuestionsDto } from '@erankup/shared';
 
@@ -17,6 +18,8 @@ export class ExamsController {
         private readonly examsService: ExamsService,
         private readonly scorerService: ScorerService,
         private readonly paymentsService: PaymentsService,
+        @Inject(forwardRef(() => TestSessionService))
+        private readonly testSessionService: TestSessionService,
         private readonly seederService: ExamsSeederService,
         private readonly uploadService: QuestionsUploadService,
     ) { }
@@ -27,10 +30,31 @@ export class ExamsController {
         const exams = await this.examsService.findAll();
         const userId = req.user.userId;
 
+        const attemptStats = await this.scorerService.getUserExamStats(userId);
+        const activeTestIds = await this.testSessionService.getUserActiveTestIds(userId);
+
         for (const exam of exams) {
             if (exam.isPremium) {
                 (exam as any).hasPurchased = await this.paymentsService.hasPurchased(userId, exam.id);
             }
+
+            // Attach cached attempts and calculate progress
+            if (attemptStats[exam.id]) {
+                (exam as any).attempts = attemptStats[exam.id];
+            }
+
+            // Check if any model in this exam OR the exam itself is currently active
+            const examModelIds = exam.models?.map(m => m.id) || [];
+            const allRelevantIds = [...examModelIds, exam.id];
+            (exam as any).activeSession = activeTestIds.find(id => allRelevantIds.includes(id)) || null;
+
+            // Calculate total models for progress. 
+            // If it's a REAL_EXAM but has no models, we treat it as 1 unit of progress if it has questions.
+            let totalModels = examModelIds.length;
+            if (totalModels === 0 && (exam as any).type === 'real_exam') {
+                totalModels = 1;
+            }
+            (exam as any).totalModels = totalModels;
         }
         return exams;
     }
@@ -98,10 +122,23 @@ export class ExamsController {
         return this.examsService.create(createExamDto);
     }
 
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Put(':id')
+    update(@Param('id') id: string, @Body() updateExamDto: UpdateExamDto) {
+        return this.examsService.updateExam(id, updateExamDto);
+    }
+
     @UseGuards(AuthGuard('jwt'))
     @Get('attempts/:id')
     findAttempt(@Param('id') id: string, @Request() req: any) {
         return this.scorerService.getAttempt(id, req.user.userId);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get(':examId/my-attempts')
+    findMyAttempts(@Param('examId') examId: string, @Request() req: any) {
+        return this.scorerService.getAttemptsForExam(examId, req.user.userId);
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -241,6 +278,42 @@ export class ExamsController {
         }));
 
         return this.examsService.createQuestionsBulk(modelId, questionsWithContext);
+    }
+
+    // --- Question Bank Browser Endpoints ---
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Get('question-bank/models')
+    async getQuestionBankModels() {
+        return this.examsService.getQuestionBankModels();
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Get('question-bank/models/:modelId/questions')
+    async getModelQuestions(@Param('modelId') modelId: string) {
+        return this.examsService.getModelQuestions(modelId);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Post(':examId/link-questions')
+    async linkQuestionsToExam(
+        @Param('examId') examId: string,
+        @Body() dto: { questionIds: string[] }
+    ) {
+        return this.examsService.linkQuestionsToExam(examId, dto.questionIds);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Delete(':examId/unlink-questions')
+    async unlinkQuestionsFromExam(
+        @Param('examId') examId: string,
+        @Body() dto: { questionIds: string[] }
+    ) {
+        return this.examsService.unlinkQuestionsFromExam(examId, dto.questionIds);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)

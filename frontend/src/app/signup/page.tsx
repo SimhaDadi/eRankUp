@@ -28,7 +28,8 @@ export default function Signup() {
         }
 
         try {
-            await signup(formData);
+            const { confirmPassword, ...dataToSend } = formData;
+            await signup(dataToSend);
             router.push('/login');
         } catch (err) {
             // Error handled in store

@@ -83,15 +83,38 @@ export default function TestPage() {
                     // Session is already started by the start-adaptive-session endpoint in backend
                 } else {
                     // Standard exam model loading
-                    const response = await api.get(`/exams/models/${params.id}`);
-                    const model = response.data;
+                    let loadedQuestions: Question[] = [];
 
-                    if (!model || !model.questions || model.questions.length === 0) {
+                    // Try fetching as Model first
+                    try {
+                        const response = await api.get(`/exams/models/${params.id}`);
+                        const model = response.data;
+                        if (model && model.questions && model.questions.length > 0) {
+                            loadedQuestions = model.questions;
+                        }
+                    } catch (err) {
+                        console.warn('Failed to fetch as model, trying as exam...', err);
+                    }
+
+                    // If not found, try fetching as Exam
+                    if (loadedQuestions.length === 0) {
+                        try {
+                            const response = await api.get(`/exams/${params.id}`);
+                            const exam = response.data;
+                            if (exam && exam.questions && exam.questions.length > 0) {
+                                loadedQuestions = exam.questions;
+                            }
+                        } catch (err) {
+                            console.error('Failed to fetch as exam', err);
+                        }
+                    }
+
+                    if (loadedQuestions.length === 0) {
                         setIsLoading(false);
                         return;
                     }
 
-                    setQuestions(model.questions);
+                    setQuestions(loadedQuestions);
 
                     // Start Test Session
                     try {

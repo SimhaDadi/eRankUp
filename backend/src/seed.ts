@@ -7,7 +7,7 @@ import { Question } from './exams/entities/question.entity';
 import { Attempt } from './exams/entities/attempt.entity';
 import { Response } from './exams/entities/response.entity';
 import { Purchase } from './exams/entities/purchase.entity';
-import { User } from './users/user.entity';
+import { User, UserRole } from './users/user.entity';
 
 async function seed() {
     const dataSource = new DataSource({
@@ -97,12 +97,41 @@ async function seed() {
                     ],
                     correctOptionId: '2',
                     topic: topic,
-                    model: model,
+                    models: [model],
                     difficultyWeight: Math.random() // Initialize with random difficulty
                 });
             }
             await questionRepo.save(bulkQuestions);
         }
+    }
+
+
+    // 2. Create Admin User
+    const userRepo = dataSource.getRepository(User);
+    const adminEmail = 'admin@erankup.com';
+    let adminUser = await userRepo.findOne({ where: { email: adminEmail } });
+    // dynamic import bcrypt to avoid issues if it's not top-level
+    const bcrypt = require('bcrypt');
+    const hashedPassword = await bcrypt.hash('adminpassword', 10);
+
+    if (!adminUser) {
+        // Create new
+        adminUser = userRepo.create({
+            email: adminEmail,
+            password: hashedPassword,
+            fullName: 'System Admin',
+            role: UserRole.ADMIN,
+            isActive: true
+        });
+        await userRepo.save(adminUser);
+        console.log('SUCCESS: Admin user created: admin@erankup.com / adminpassword');
+    } else {
+        // Update existing to ensure password is correct
+        adminUser.password = hashedPassword;
+        adminUser.role = UserRole.ADMIN;
+        adminUser.isActive = true;
+        await userRepo.save(adminUser);
+        console.log('SUCCESS: Admin user updated: admin@erankup.com / adminpassword');
     }
 
     console.log('------------------------------------------');

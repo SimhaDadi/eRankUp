@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TestSessionService } from './test-session.service';
 import { TestSessionController } from './test-session.controller';
@@ -13,7 +13,7 @@ import { Model } from '../exams/entities/model.entity';
     imports: [
         TypeOrmModule.forFeature([Model]),
         ConfigModule,
-        ExamsModule,
+        forwardRef(() => ExamsModule),
         UsersModule,
         PaymentsModule,
         ClientsModule.registerAsync([

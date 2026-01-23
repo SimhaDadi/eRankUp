@@ -16,6 +16,8 @@ import {
 import api from '@/lib/api';
 import Link from 'next/link';
 import { Database } from 'lucide-react'; // Import Database icon for Bank
+import { CreateExamModal } from '@/components/admin/CreateExamModal';
+import { useRouter } from 'next/navigation';
 
 interface Exam {
     id: string;
@@ -31,6 +33,8 @@ export default function AdminExamsPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const router = useRouter();
 
     const fetchExams = async () => {
         try {
@@ -70,12 +74,12 @@ export default function AdminExamsPage() {
                     <h1 className="text-3xl font-bold">Manage Exams</h1>
                     <p className="text-slate-400">Create, edit, and organize your platform content hierarchy.</p>
                 </div>
-                <Link
-                    href="/admin/exams/new"
+                <button
+                    onClick={() => setIsCreateModalOpen(true)}
                     className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 self-start transition-all shadow-lg shadow-blue-500/20"
                 >
                     <Plus className="w-5 h-5" /> Create New Exam
-                </Link>
+                </button>
             </div>
 
             {/* Stats Quick View */}
@@ -197,6 +201,14 @@ export default function AdminExamsPage() {
                     </div>
                 )}
             </div>
+            {/* Create Exam Modal */}
+            <CreateExamModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSuccess={(examId) => {
+                    router.push(`/admin/exams/${examId}`);
+                }}
+            />
         </div>
     );
 }

@@ -7,49 +7,39 @@ import {
     ChevronLeft,
     Plus,
     BookOpen,
-    Layers,
-    Target,
-    HelpCircle,
-    Upload,
     Trash2,
     Edit,
-    ChevronDown,
-    ChevronUp,
-    Grid,
     CheckCircle2,
-    AlertTriangle
+    AlertTriangle,
+    Library,
+    Hash,
+    MoreVertical,
+    X,
+    Loader2
 } from 'lucide-react';
 import api from '@/lib/api';
-import BulkImport from '@/components/admin/BulkImport';
-import CreateModelModal from '@/components/admin/CreateModelModal';
-import CreateQuestionModal from '@/components/admin/CreateQuestionModal';
+import { QuestionBankBrowser } from '@/components/admin/QuestionBankBrowser';
+import { EditExamModal } from '@/components/admin/EditExamModal';
 
 interface Question {
     id: string;
     content: string;
-}
-
-interface Chapter {
-    id: string;
-    title: string;
-    subject?: { title: string };
-}
-
-interface Model {
-    id: string;
-    title: string;
-    chapter: Chapter;
-    questions?: Question[];
-    totalQuestions: number;
+    type: string;
+    options?: any[];
+    correctOptionId?: string;
+    topic?: string;
+    subtopic?: string;
+    difficultyWeight?: number;
 }
 
 interface Exam {
     id: string;
     title: string;
     description: string;
-    models: Model[];
+    questions?: Question[];
     defaultPositiveMarks: number;
     defaultNegativeMarks: number;
+    type: 'real_exam' | 'question_bank';
 }
 
 export default function ExamDetailPage() {
@@ -57,11 +47,9 @@ export default function ExamDetailPage() {
     const router = useRouter();
     const [exam, setExam] = useState<Exam | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
-    const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
-    const [isCreateModelOpen, setIsCreateModelOpen] = useState(false);
-    const [isCreateQuestionOpen, setIsCreateQuestionOpen] = useState(false);
-    const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+    const [showQuestionBrowser, setShowQuestionBrowser] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [removingQuestionId, setRemovingQuestionId] = useState<string | null>(null);
 
     const fetchExamDetails = async () => {
         try {
@@ -69,6 +57,7 @@ export default function ExamDetailPage() {
             setExam(response.data);
         } catch (error) {
             console.error("Failed to fetch exam details", error);
+            // Handle 404
         } finally {
             setIsLoading(false);
         }
@@ -78,202 +67,229 @@ export default function ExamDetailPage() {
         fetchExamDetails();
     }, [params.id]);
 
-    const handleBulkImport = (modelId: string) => {
-        setSelectedModelId(modelId);
-        setIsBulkImportOpen(true);
+    const handleRemoveQuestion = async (questionId: string) => {
+        if (!exam) return;
+        if (!confirm('Are you sure you want to remove this question from the exam?')) return;
+
+        setRemovingQuestionId(questionId);
+        try {
+            await api.delete(`/exams/${exam.id}/unlink-questions`, {
+                data: { questionIds: [questionId] }
+            });
+            // Optimistic update
+            setExam(prev => prev ? ({
+                ...prev,
+                questions: prev.questions?.filter(q => q.id !== questionId)
+            }) : null);
+        } catch (error) {
+            console.error('Failed to unlink question', error);
+            alert('Failed to remove question. Please try again.');
+        } finally {
+            setRemovingQuestionId(null);
+        }
     };
 
-    // Group models by Subject/Chapter
-    const groupedModels = exam?.models.reduce((acc, model) => {
-        const key = model.chapter?.id || 'unassigned';
-        if (!acc[key]) acc[key] = { chapter: model.chapter, models: [] };
-        acc[key].models.push(model);
-        return acc;
-    }, {} as Record<string, { chapter: Chapter, models: Model[] }>);
+    const handleDeleteExam = async () => {
+        if (!confirm('Are you sure you want to delete this exam? This action cannot be undone.')) return;
+        try {
+            await api.delete(`/exams/${params.id}`);
+            router.push('/admin/exams');
+        } catch (error) {
+            console.error('Failed to delete exam', error);
+            alert('Failed to delete exam');
+        }
+    };
 
-    if (isLoading) return <div className="p-12 text-center text-slate-500 font-bold animate-pulse">Synchronizing Exam Data...</div>;
-    if (!exam) return <div className="p-12 text-center text-rose-400 font-black">404: Exam Node Not Found.</div>;
+    if (isLoading) return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+        </div>
+    );
+
+    if (!exam) return <div className="p-12 text-center text-rose-400 font-bold">Exam not found</div>;
 
     return (
-        <div className="space-y-8 pb-10">
+        <div className="space-y-8 pb-20">
+            {/* Navigation */}
             <button
-                onClick={() => router.back()}
-                className="flex items-center gap-2 text-slate-500 hover:text-cyan-400 transition-all font-bold group"
+                onClick={() => router.push('/admin/exams')}
+                className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
             >
-                <div className="p-1.5 bg-slate-900 border border-slate-800 rounded-lg group-hover:border-cyan-500/50">
-                    <ChevronLeft className="w-4 h-4" />
-                </div>
+                <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                 Back to Exams
             </button>
 
             {/* Header Card */}
-            <div className="flex flex-col md:flex-row justify-between items-start gap-6 bg-slate-900/40 backdrop-blur-xl border border-slate-800/50 p-10 rounded-[2.5rem] shadow-2xl shadow-black/20 overflow-hidden relative">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 opacity-50"></div>
-                <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="p-4 bg-gradient-to-br from-cyan-500/10 to-blue-600/10 rounded-2xl border border-cyan-500/20 shadow-inner shadow-cyan-500/5">
-                            <BookOpen className="w-8 h-8 text-cyan-500" />
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 opacity-50"></div>
+                <div className="flex flex-col md:flex-row justify-between items-start gap-6 relative z-10">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-4 mb-3">
+                            <h1 className="text-3xl font-bold text-white">{exam.title}</h1>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${exam.type === 'question_bank'
+                                    ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                }`}>
+                                {exam.type === 'question_bank' ? 'QUESTION BANK' : 'REAL EXAM'}
+                            </span>
                         </div>
-                        <div>
-                            <h1 className="text-4xl font-black text-white tracking-tight">{exam.title}</h1>
-                            <div className="text-[10px] font-black text-cyan-500 uppercase tracking-[0.2em] mt-1">Exam Configuration Payload</div>
-                        </div>
-                    </div>
-                    <p className="text-slate-400 max-w-2xl font-medium leading-relaxed">{exam.description || 'No description provided for this exam bundle.'}</p>
-                    <div className="flex gap-4 mt-8">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-tighter shadow-lg shadow-emerald-500/5">
-                            <CheckCircle2 className="w-3 h-3" /> Correct: +{exam.defaultPositiveMarks || 1}
-                        </div>
-                        <div className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[10px] font-black uppercase tracking-tighter shadow-lg shadow-rose-500/5">
-                            <AlertTriangle className="w-3 h-3" /> Incorrect: -{exam.defaultNegativeMarks || 0.25}
-                        </div>
-                    </div>
-                </div>
-                <div className="flex gap-3 relative z-10">
-                    <button className="p-4 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 rounded-2xl transition-all group backdrop-blur-md">
-                        <Edit className="w-5 h-5 text-slate-400 group-hover:text-white" />
-                    </button>
-                    <button className="p-4 bg-rose-500/10 hover:bg-rose-500/20 rounded-2xl transition-all border border-rose-500/20 group backdrop-blur-md">
-                        <Trash2 className="w-5 h-5 text-rose-500" />
-                    </button>
-                </div>
-            </div>
+                        <p className="text-slate-400 max-w-2xl text-lg leading-relaxed mb-6">
+                            {exam.description || 'No description provided.'}
+                        </p>
 
-            {/* Test Models Grouped by Hierarchy */}
-            <div className="space-y-6">
-                <div className="flex justify-between items-center px-4">
-                    <h2 className="text-2xl font-black text-white flex items-center gap-3">
-                        <div className="p-2 bg-purple-500/10 rounded-lg">
-                            <Layers className="w-6 h-6 text-purple-400" />
+                        <div className="flex flex-wrap gap-4">
+                            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg border border-slate-700">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                <span className="text-sm font-medium text-slate-300">
+                                    Correct: <span className="text-emerald-400 font-bold">+{exam.defaultPositiveMarks}</span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg border border-slate-700">
+                                <AlertTriangle className="w-4 h-4 text-rose-400" />
+                                <span className="text-sm font-medium text-slate-300">
+                                    Incorrect: <span className="text-rose-400 font-bold">-{exam.defaultNegativeMarks}</span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg border border-slate-700">
+                                <BookOpen className="w-4 h-4 text-blue-400" />
+                                <span className="text-sm font-medium text-slate-300">
+                                    Questions: <span className="text-blue-400 font-bold">{exam.questions?.length || 0}</span>
+                                </span>
+                            </div>
                         </div>
-                        Mock Tests & Content
-                    </h2>
-                    <div className="flex gap-4">
-                        <button className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700/50">
-                            <Grid className="w-4 h-4" /> Link Existing Model
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setShowEditModal(true)}
+                            className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-colors border border-slate-700"
+                            title="Edit Exam Details"
+                        >
+                            <Edit className="w-5 h-5" />
                         </button>
                         <button
-                            onClick={() => setIsCreateModelOpen(true)}
-                            className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-cyan-600/20 border border-cyan-500/20">
-                            <Plus className="w-4 h-4" /> Create New Test
+                            onClick={handleDeleteExam}
+                            className="p-3 bg-slate-800 hover:bg-rose-500/10 text-slate-300 hover:text-rose-500 rounded-xl transition-colors border border-slate-700 hover:border-rose-500/30"
+                            title="Delete Exam"
+                        >
+                            <Trash2 className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
-
-                <div className="grid gap-6">
-                    {groupedModels && Object.values(groupedModels).map((group) => (
-                        <div key={group.chapter?.id || 'none'} className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-[2rem] overflow-hidden group">
-                            <div
-                                onClick={() => setExpandedGroup(expandedGroup === group.chapter?.id ? null : group.chapter?.id)}
-                                className={`p-8 flex justify-between items-center cursor-pointer transition-all ${expandedGroup === group.chapter?.id ? 'bg-slate-800/30' : 'hover:bg-slate-800/20'}`}
-                            >
-                                <div className="flex items-center gap-6">
-                                    <div className={`p-3 rounded-2xl transition-all duration-300 ${expandedGroup === group.chapter?.id ? 'bg-purple-500/20 shadow-lg shadow-purple-500/10' : 'bg-slate-800 group-hover:bg-purple-500/10'}`}>
-                                        <Layers className={`w-6 h-6 ${expandedGroup === group.chapter?.id ? 'text-purple-400' : 'text-slate-500 group-hover:text-purple-400'}`} />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-xl font-black text-slate-100">{group.chapter?.title || 'General / Uncategorized'}</span>
-                                            <span className="text-xs font-bold text-slate-600 uppercase tracking-widest bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-700/50">
-                                                {group.chapter?.subject?.title || 'All Subjects'}
-                                            </span>
-                                        </div>
-                                        <div className="text-[10px] font-black uppercase text-slate-500 tracking-widest mt-1">
-                                            {group.models.length} Model Sets Linked
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className={`p-3 rounded-xl transition-colors ${expandedGroup === group.chapter?.id ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-600 group-hover:text-slate-400'}`}>
-                                    {expandedGroup === group.chapter?.id ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
-                                </div>
-                            </div>
-
-                            <AnimatePresence>
-                                {expandedGroup === group.chapter?.id && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.3, ease: 'circOut' }}
-                                        className="border-t border-slate-800/50 bg-[#0c111d]/50"
-                                    >
-                                        <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                            {group.models.map((model) => (
-                                                <div key={model.id} className="bg-slate-900/50 border border-slate-800/50 p-6 rounded-3xl flex justify-between items-center hover:border-cyan-500/30 transition-all hover:bg-cyan-500/[0.02] group/model shadow-sm">
-                                                    <div className="flex items-center gap-5">
-                                                        <div className="bg-cyan-500/10 p-3 rounded-2xl border border-cyan-500/20 group-hover/model:scale-110 transition-transform">
-                                                            <Target className="w-5 h-5 text-cyan-400" />
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-bold text-slate-100 group-hover/model:text-white transition-colors">{model.title}</div>
-                                                            <div className="flex items-center gap-2 mt-1">
-                                                                <div className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{model.totalQuestions || 0} Qs</div>
-                                                                <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-                                                                <div className="text-[10px] font-black uppercase text-cyan-500/60 tracking-widest transition-colors group-hover/model:text-cyan-400">Mock Test Payload</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-2 opacity-0 group-hover/model:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handleBulkImport(model.id); }}
-                                                            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                                                        >
-                                                            <Upload className="w-3.5 h-3.5" /> Import
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setSelectedModelId(model.id); setIsCreateQuestionOpen(true); }}
-                                                            className="flex items-center gap-2 px-4 py-2.5 bg-cyan-600/10 hover:bg-cyan-600/20 border border-cyan-500/20 text-cyan-400 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-                                                            <Plus className="w-3.5 h-3.5" /> Add Q
-                                                        </button>
-                                                        <button className="p-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700/50 rounded-xl transition-colors">
-                                                            <Edit className="w-4 h-4 text-slate-400" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    ))}
-                </div>
             </div>
 
-            {isBulkImportOpen && selectedModelId && (
-                <BulkImport
-                    modelId={selectedModelId}
+            {/* Questions Section */}
+            <div>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                        <Library className="w-6 h-6 text-blue-500" />
+                        Linked Questions
+                    </h2>
+
+                    <button
+                        onClick={() => setShowQuestionBrowser(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 flex items-center gap-2 transition-all"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Browse Question Bank
+                    </button>
+                </div>
+
+                {!exam.questions || exam.questions.length === 0 ? (
+                    <div className="bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl p-16 text-center">
+                        <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <BookOpen className="w-10 h-10 text-slate-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">No questions linked yet</h3>
+                        <p className="text-slate-400 mb-8 max-w-md mx-auto">
+                            Browse the global question bank to find and link questions to this exam.
+                        </p>
+                        <button
+                            onClick={() => setShowQuestionBrowser(true)}
+                            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold transition-colors border border-slate-700"
+                        >
+                            Browse Questions
+                        </button>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <AnimatePresence>
+                            {exam.questions.map((question, index) => (
+                                <motion.div
+                                    key={question.id}
+                                    layout
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.98 }}
+                                    className="bg-slate-900 border border-slate-800 rounded-2xl p-6 group hover:border-slate-700 transition-colors"
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center text-sm font-bold text-slate-400">
+                                            Q{index + 1}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div
+                                                className="prose prose-invert max-w-none text-slate-300 mb-4"
+                                                dangerouslySetInnerHTML={{ __html: question.content }}
+                                            />
+
+                                            <div className="flex flex-wrap gap-2">
+                                                {question.topic && (
+                                                    <span className="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-slate-400 border border-slate-700">
+                                                        Topic: {question.topic}
+                                                    </span>
+                                                )}
+                                                {question.difficultyWeight && (
+                                                    <span className="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-slate-400 border border-slate-700">
+                                                        Difficulty: {question.difficultyWeight}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="ml-4">
+                                            <button
+                                                onClick={() => handleRemoveQuestion(question.id)}
+                                                disabled={removingQuestionId === question.id}
+                                                className="p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                                title="Remove from exam"
+                                            >
+                                                {removingQuestionId === question.id ? (
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                ) : (
+                                                    <X className="w-5 h-5" />
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+                )}
+            </div>
+
+            {/* Question Browser Modal */}
+            {showQuestionBrowser && (
+                <QuestionBankBrowser
                     examId={exam.id}
-                    onClose={() => setIsBulkImportOpen(false)}
-                    onSuccess={() => {
-                        setIsBulkImportOpen(false);
+                    onClose={() => setShowQuestionBrowser(false)}
+                    onQuestionsLinked={() => {
                         fetchExamDetails();
+                        setShowQuestionBrowser(false);
                     }}
                 />
             )}
 
-            {exam && (
-                <CreateModelModal
-                    isOpen={isCreateModelOpen}
-                    onClose={() => setIsCreateModelOpen(false)}
-                    examId={exam.id}
-                    onSuccess={() => {
-                        fetchExamDetails();
-                    }}
-                />
-            )}
-
-            {isCreateQuestionOpen && exam && (
-                <CreateQuestionModal
-                    isOpen={isCreateQuestionOpen}
-                    onClose={() => setIsCreateQuestionOpen(false)}
-                    preSelectedExamId={exam.id}
-                    preSelectedModelId={selectedModelId || undefined}
-                    onSuccess={() => {
-                        fetchExamDetails();
-                    }}
-                />
-            )}
+            {/* Edit Exam Modal */}
+            <EditExamModal
+                isOpen={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                exam={exam}
+                onSuccess={() => {
+                    fetchExamDetails();
+                    setShowEditModal(false);
+                }}
+            />
         </div>
     );
 }

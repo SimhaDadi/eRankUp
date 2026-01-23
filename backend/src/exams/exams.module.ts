@@ -21,11 +21,13 @@ import { AIModule } from '../ai/ai.module';
 import { QuestionsUploadService } from './services/questions-upload.service';
 import { GamificationModule } from '../gamification/gamification.module';
 import { AdaptiveLearningModule } from '../adaptive-learning/adaptive-learning.module';
+import { TestSessionModule } from '../test-session/test-session.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Exam, Subject, Chapter, Model, Question, Attempt, Response, Purchase]),
         forwardRef(() => PaymentsModule),
+        forwardRef(() => TestSessionModule),
         AIModule,
         GamificationModule,
         AdaptiveLearningModule,

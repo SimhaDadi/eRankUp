@@ -60,7 +60,7 @@ export function ExplanationCard({ explanation, questionId, questionText, correct
                     <div className="p-2 bg-blue-500/20 rounded-lg">
                         <Lightbulb className="w-5 h-5 text-blue-400" />
                     </div>
-                    <h3 className="text-lg font-bold text-white">AI Explanation</h3>
+                    <h3 className="text-lg font-bold text-white">Solution</h3>
                 </div>
 
                 {/* Feedback Buttons */}
@@ -69,8 +69,8 @@ export function ExplanationCard({ explanation, questionId, questionText, correct
                         onClick={() => handleFeedback(true)}
                         disabled={submittingFeedback || feedback !== null}
                         className={`p-2 rounded-lg transition-all ${feedback === 'helpful'
-                                ? 'bg-emerald-500/20 text-emerald-400'
-                                : 'bg-slate-800/50 text-slate-400 hover:bg-emerald-500/10 hover:text-emerald-400'
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : 'bg-slate-800/50 text-slate-400 hover:bg-emerald-500/10 hover:text-emerald-400'
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                         title="Helpful"
                     >
@@ -80,8 +80,8 @@ export function ExplanationCard({ explanation, questionId, questionText, correct
                         onClick={() => handleFeedback(false)}
                         disabled={submittingFeedback || feedback !== null}
                         className={`p-2 rounded-lg transition-all ${feedback === 'not_helpful'
-                                ? 'bg-red-500/20 text-red-400'
-                                : 'bg-slate-800/50 text-slate-400 hover:bg-red-500/10 hover:text-red-400'
+                            ? 'bg-red-500/20 text-red-400'
+                            : 'bg-slate-800/50 text-slate-400 hover:bg-red-500/10 hover:text-red-400'
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                         title="Not Helpful"
                     >

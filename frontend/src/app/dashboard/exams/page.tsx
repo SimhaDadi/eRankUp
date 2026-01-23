@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Search, Sparkles, Trophy, Users, Globe, ChevronRight, Bookmark, Rocket, BookOpen } from 'lucide-react';
+import { Zap, Search, Sparkles, Trophy, Users, Globe, ChevronRight, Bookmark, Rocket, BookOpen, CheckCircle2 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
 
@@ -13,6 +13,14 @@ interface Exam {
     isPremium: boolean;
     price: number;
     chapters?: any[];
+    attempts?: {
+        count: number;
+        latestScore: number;
+        bestScore: number;
+        attemptedModelIds: string[];
+    };
+    activeSession?: string | null;
+    totalModels?: number;
 }
 
 export default function ExamsPage() {
@@ -27,6 +35,7 @@ export default function ExamsPage() {
     const fetchExams = async () => {
         try {
             const response = await api.get('/exams');
+            console.log('[DEBUG] Exams data received:', response.data);
             setExams(response.data);
         } catch (error) {
             console.error('Failed to fetch exams', error);
@@ -136,6 +145,12 @@ function ExamCard({ exam, index }: { exam: Exam, index: number }) {
     ];
     const { accent, bg, border, light, icon, glow } = themes[index % themes.length];
 
+    const attemptsCount = exam.attempts?.count || 0;
+    const isCompleted = exam.totalModels && exam.attempts && exam.attempts.attemptedModelIds.length >= exam.totalModels;
+    const isInProgress = !!exam.activeSession;
+    const progressCount = exam.attempts?.attemptedModelIds.length || 0;
+    const totalCount = exam.totalModels || 0;
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -157,11 +172,25 @@ function ExamCard({ exam, index }: { exam: Exam, index: number }) {
                         <BookOpen className={`w-5 h-5 ${icon}`} />
                     </div>
 
-                    {exam.isPremium && (
-                        <div className={`flex items-center gap-1 bg-amber-50 text-amber-600 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-amber-100`}>
-                            Premium
-                        </div>
-                    )}
+                    <div className="flex flex-col gap-2 items-end h-16 justify-start">
+                        {exam.isPremium && (
+                            <div className={`flex items-center gap-1 bg-amber-50 text-amber-600 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-amber-100`}>
+                                Premium
+                            </div>
+                        )}
+                        {isInProgress && (
+                            <div className="flex items-center gap-1.5 bg-sky-500 text-white px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-sky-500/20 animate-pulse border border-sky-400">
+                                <Rocket className="w-3.5 h-3.5" />
+                                Resume
+                            </div>
+                        )}
+                        {!isInProgress && exam.attempts && exam.attempts.count > 0 && (
+                            <div className={`flex items-center gap-1.5 bg-emerald-100/80 text-emerald-700 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-200 shadow-sm shadow-emerald-100/50 backdrop-blur-sm`}>
+                                <Trophy className="w-3.5 h-3.5" />
+                                {Math.round(exam.attempts.bestScore)}% Best
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="space-y-2 mb-6">
@@ -169,10 +198,19 @@ function ExamCard({ exam, index }: { exam: Exam, index: number }) {
                         {exam.title}
                     </h3>
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5">
-                            <Users className="w-3 h-3 text-slate-300" />
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">12.4k Enrolled</span>
-                        </div>
+                        {totalCount > 0 ? (
+                            <div className={`flex items-center gap-1.5 ${isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'} px-2 py-0.5 rounded-lg border border-slate-100`}>
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">
+                                    {progressCount}/{totalCount} Completed
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1.5">
+                                <Users className="w-3 h-3 text-slate-300" />
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">12.4k Enrolled</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -183,10 +221,10 @@ function ExamCard({ exam, index }: { exam: Exam, index: number }) {
                 {/* Actions */}
                 <div className="flex items-center gap-3 mt-auto">
                     <Link
-                        href={`/dashboard/exams/${exam.id}`}
-                        className={`flex-1 bg-sky-600 text-white text-[10px] font-black py-3 rounded-xl transition-all hover:bg-sky-700 active:scale-95 text-center uppercase tracking-[0.2em]`}
+                        href={isInProgress ? `/dashboard/test/${exam.activeSession}` : `/dashboard/exams/${exam.id}`}
+                        className={`flex-1 ${isInProgress ? 'bg-emerald-500 shadow-emerald-500/20' : isCompleted ? 'bg-emerald-600' : 'bg-sky-600'} text-white text-[10px] font-black py-3 rounded-xl transition-all hover:opacity-90 active:scale-95 text-center uppercase tracking-[0.2em] shadow-lg`}
                     >
-                        Enter Series
+                        {isInProgress ? 'Continue Test' : isCompleted ? 'View Results' : 'Enter Series'}
                     </Link>
                     <button className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-sky-500 transition-all border border-slate-100">
                         <Bookmark className="w-4 h-4" />

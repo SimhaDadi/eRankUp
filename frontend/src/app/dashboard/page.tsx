@@ -223,7 +223,7 @@ export default function DashboardPage() {
                                                     </div>
                                                     <div>
                                                         <div className="font-extrabold text-[15px] text-slate-900 group-hover:text-[#00bfa5] transition-colors uppercase tracking-tight mb-0.5">
-                                                            {attempt.model?.title || 'Practice Module'}
+                                                            {attempt.exam?.title || attempt.model?.title || 'Practice Module'}
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">

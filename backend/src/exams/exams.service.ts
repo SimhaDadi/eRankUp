@@ -1,17 +1,19 @@
-import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
-import { Exam } from './entities/exam.entity';
+import { Exam, ExamType } from './entities/exam.entity';
 import { Subject } from './entities/subject.entity';
 import { Chapter } from './entities/chapter.entity';
 import { Model } from './entities/model.entity';
 import { Question } from './entities/question.entity';
 import { PaymentsService } from '../payments/payments.service';
 import { CacheService } from '../common/cache.service';
-import { CreateExamDto, CreateSubjectDto, CreateChapterDto, CreateModelDto } from '@erankup/shared';
+import { CreateExamDto } from './dto/create-exam.dto';
+import { UpdateExamDto } from './dto/update-exam.dto';
+import { CreateSubjectDto, CreateChapterDto, CreateModelDto } from '@erankup/shared';
 
 @Injectable()
-export class ExamsService {
+export class ExamsService implements OnApplicationBootstrap {
     constructor(
         @InjectRepository(Exam)
         private examsRepository: Repository<Exam>,
@@ -52,7 +54,7 @@ export class ExamsService {
         console.log('Cache MISS for', id);
         const exam = await this.examsRepository.findOne({
             where: { id },
-            relations: ['models', 'models.chapter', 'models.chapter.subject']
+            relations: ['models', 'models.chapter', 'models.chapter.subject', 'questions']
         });
 
         if (exam) {
@@ -130,6 +132,14 @@ export class ExamsService {
             await this.cacheService.del(`exam:${examId}`);
         }
     }
+
+    async updateExam(id: string, updateExamDto: UpdateExamDto) {
+        await this.examsRepository.update(id, updateExamDto);
+        await this.invalidateCache(id);
+        return this.findOne(id);
+    }
+
+
 
     // --- Hybrid Question Bank Methods ---
 
@@ -238,8 +248,8 @@ export class ExamsService {
      */
     async getQuestionBankStats() {
         const cacheKey = 'question-bank:stats';
-        const cached = await this.cacheService.get<any>(cacheKey);
-        if (cached) return cached;
+        // const cached = await this.cacheService.get<any>(cacheKey);
+        // if (cached) return cached;
 
         const totalQuestions = await this.questionRepository.count();
 
@@ -480,6 +490,40 @@ export class ExamsService {
         return savedQuestions;
     }
 
+    async onApplicationBootstrap() {
+        // Repair orphaned questions (created via faulty seed script)
+        const orphanedQuestions = await this.questionRepository
+            .createQueryBuilder('question')
+            .leftJoinAndSelect('question.models', 'models')
+            .leftJoinAndSelect('question.chapter', 'chapter')
+            .leftJoinAndSelect('chapter.models', 'chapterModels') // Join models of the chapter
+            .where('models.id IS NULL')
+            .andWhere('question.chapterId IS NOT NULL')
+            .getMany();
+
+        if (orphanedQuestions.length > 0) {
+            console.log(`[REPAIR] Found ${orphanedQuestions.length} orphaned questions. Attempting to link to models...`);
+            let fixedCount = 0;
+
+            for (const question of orphanedQuestions) {
+                if (question.chapter && question.chapter.models && question.chapter.models.length > 0) {
+                    // Start heuristically: Link to the first model in the chapter
+                    // Ideally questions belong to specific models, but if lost, this is the best recovery
+                    question.models = [question.chapter.models[0]];
+                    await this.questionRepository.save(question);
+                    fixedCount++;
+                }
+            }
+            console.log(`[REPAIR] Successfully linked ${fixedCount} questions to models.`);
+
+            // Invalidate cache
+            await this.cacheService.del('question-bank:stats');
+            await this.cacheService.del('exams:all');
+        } else {
+            console.log('[REPAIR] No orphaned questions found.');
+        }
+    }
+
     /**
      * Get full hierarchy: Exams -> Subjects -> Chapters with question counts
      */
@@ -500,8 +544,6 @@ export class ExamsService {
         });
 
         // 2. Fetch all question counts grouped by chapter in one aggregate query
-        // "exam_questions_question" might not be relevant if we just want questions per chapter 
-        // regardless of model/exam. Assuming question.chapterId is the link.
         const questionCounts = await this.questionRepository
             .createQueryBuilder('question')
             .select('question.chapterId', 'chapterId')
@@ -509,9 +551,21 @@ export class ExamsService {
             .groupBy('question.chapterId')
             .getRawMany();
 
-        // Convert counts to a Map for O(1) lookup
+        // Fetch question counts grouped by model (via junction table)
+        const modelQuestionCounts = await this.questionRepository
+            .createQueryBuilder('question')
+            .innerJoin('question.models', 'model')
+            .select('model.id', 'modelId')
+            .addSelect('COUNT(question.id)', 'count')
+            .groupBy('model.id')
+            .getRawMany();
+
+        // Convert counts to Maps for O(1) lookup
         const countsMap = new Map<string, number>();
         questionCounts.forEach(q => countsMap.set(q.chapterId, parseInt(q.count || '0')));
+
+        const modelCountsMap = new Map<string, number>();
+        modelQuestionCounts.forEach(m => modelCountsMap.set(m.modelId, parseInt(m.count || '0')));
 
         // 3. Transform data in memory
         return exams.map(exam => ({
@@ -530,7 +584,7 @@ export class ExamsService {
                     models: (chapter.models || []).map(model => ({
                         id: model.id,
                         name: model.title,
-                        totalQuestions: model.totalQuestions,
+                        totalQuestions: modelCountsMap.get(model.id) || 0,
                         chapterId: chapter.id,
                         examIds: model.exams?.map(e => e.id) || []
                     }))
@@ -544,6 +598,117 @@ export class ExamsService {
         await this.cacheService.del('exams:all');
         await this.cacheService.del(`exam:${id}`);
         return { message: 'Exam deleted successfully' };
+    }
+
+    // --- Question Bank Browser Methods ---
+
+    async getQuestionBankModels() {
+        // Get all exams that have models (effectively acting as banks)
+        const questionBanks = await this.examsRepository.find({
+            relations: ['subjects', 'subjects.chapters', 'subjects.chapters.models']
+        });
+
+        // Flatten to model list with hierarchy context
+        const models = [];
+        for (const bank of questionBanks) {
+            for (const subject of bank.subjects || []) {
+                for (const chapter of subject.chapters || []) {
+                    for (const model of chapter.models || []) {
+                        models.push({
+                            id: model.id,
+                            title: model.title,
+                            totalQuestions: model.totalQuestions,
+                            hierarchy: `${bank.title} → ${subject.title} → ${chapter.title}`,
+                            bankId: bank.id,
+                            subjectId: subject.id,
+                            chapterId: chapter.id
+                        });
+                    }
+                }
+            }
+        }
+
+        return models;
+    }
+
+    async getModelQuestions(modelId: string) {
+        // Find questions linked to this model via the model_questions junction table
+        const model = await this.modelRepository.findOne({
+            where: { id: modelId },
+            relations: ['questions']
+        });
+
+        if (!model) {
+            throw new BadRequestException('Model not found');
+        }
+
+        return model.questions.map(q => ({
+            id: q.id,
+            content: q.content,
+            topic: q.topic,
+            correctOptionId: q.correctOptionId,
+            options: q.options,
+            difficultyWeight: q.difficultyWeight
+        }));
+    }
+
+    async linkQuestionsToExam(examId: string, questionIds: string[]) {
+        const exam = await this.examsRepository.findOne({
+            where: { id: examId },
+            relations: ['questions']
+        });
+
+        if (!exam) {
+            throw new BadRequestException('Exam not found');
+        }
+
+        const questions = await this.questionRepository.findByIds(questionIds);
+
+        if (questions.length !== questionIds.length) {
+            throw new BadRequestException('Some questions not found');
+        }
+
+        // Add to existing questions (union to avoid duplicates)
+        const existingIds = new Set(exam.questions?.map(q => q.id) || []);
+        const newQuestions = questions.filter(q => !existingIds.has(q.id));
+
+        exam.questions = [...(exam.questions || []), ...newQuestions];
+
+        await this.examsRepository.save(exam);
+
+        // Invalidate cache
+        await this.invalidateCache(examId);
+
+        return {
+            linked: newQuestions.length,
+            total: exam.questions.length,
+            skipped: questionIds.length - newQuestions.length
+        };
+    }
+
+    async unlinkQuestionsFromExam(examId: string, questionIds: string[]) {
+        const exam = await this.examsRepository.findOne({
+            where: { id: examId },
+            relations: ['questions']
+        });
+
+        if (!exam) {
+            throw new BadRequestException('Exam not found');
+        }
+
+        const beforeCount = exam.questions?.length || 0;
+        exam.questions = (exam.questions || []).filter(q => !questionIds.includes(q.id));
+        const afterCount = exam.questions.length;
+
+        await this.examsRepository.save(exam);
+
+        // Invalidate cache
+        await this.invalidateCache(examId);
+
+        return {
+            unlinked: beforeCount - afterCount,
+            remaining: afterCount
+        };
     }
 
     // --- End of Service ---
