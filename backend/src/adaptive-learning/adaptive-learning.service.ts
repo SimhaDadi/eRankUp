@@ -191,6 +191,32 @@ export class AdaptiveLearningService {
         });
     }
 
+    async getComparisonStats(userId: string) {
+        // 1. Get user's mastery
+        const userMastery = await this.masteryRepo.find({
+            where: { userId },
+        });
+
+        // 2. Get global "Topper" mastery (Max score per topic)
+        const topperStats = await this.masteryRepo.createQueryBuilder('mastery')
+            .select('mastery.topic', 'topic')
+            .addSelect('MAX(mastery.masteryScore)', 'topperScore')
+            .groupBy('mastery.topic')
+            .getRawMany();
+
+        // 3. Merge and format for frontend (map to 0-100 scale)
+        return userMastery.map(m => {
+            const topper = topperStats.find(t => t.topic === m.topic);
+            const tScore = topper ? parseFloat(topper.topperScore) : m.masteryScore;
+
+            return {
+                topic: m.topic,
+                yourScore: Math.round(m.masteryScore * 100),
+                topperScore: Math.round(Math.max(m.masteryScore, tScore) * 100)
+            };
+        });
+    }
+
     async generateLearningPath(userId: string): Promise<LearningPath> {
         const weakAreas = await this.getWeakAreas(userId, 10);
         const strongAreas = await this.masteryRepo.find({

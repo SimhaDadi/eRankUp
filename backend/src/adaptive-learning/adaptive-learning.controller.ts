@@ -10,8 +10,7 @@ export class AdaptiveLearningController {
     @Get('mastery')
     async getMastery(@Request() req: any) {
         const userId = req.user.userId;
-        // Return all mastery data for user
-        return { message: 'Mastery data endpoint - implement full query' };
+        return this.adaptiveService.getComparisonStats(userId);
     }
 
     @Get('weak-areas')

@@ -31,27 +31,25 @@ import { motion } from 'framer-motion';
 export default function PerformancePage() {
     const [trendData, setTrendData] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
+    const [topperStats, setTopperStats] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const mockTopperStats = [
-        { topic: 'Algebra', yourScore: 85, topperScore: 92 },
-        { topic: 'Geometry', yourScore: 65, topperScore: 88 },
-        { topic: 'Trigonometry', yourScore: 78, topperScore: 85 },
-        { topic: 'Calculus', yourScore: 92, topperScore: 95 },
-    ];
+
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [trendRes, statsRes] = await Promise.all([
+                const [trendRes, statsRes, topperRes] = await Promise.all([
                     api.get('/exams/performance/trend'),
-                    api.get('/exams/user/stats')
+                    api.get('/exams/user/stats'),
+                    api.get('/adaptive/mastery')
                 ]);
 
                 if (trendRes.data) {
                     const formatted = trendRes.data.map((item: any) => ({
-                        id: item.id, // Ensure ID is mapped
+                        id: item.id,
                         date: new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                        title: item.exam?.title || item.model?.title || 'Practice Module',
                         score: item.score,
                         accuracy: item.accuracy,
                         time: Math.round(item.timeTaken / 60)
@@ -60,6 +58,7 @@ export default function PerformancePage() {
                 }
 
                 setStats(statsRes.data);
+                setTopperStats(topperRes.data);
             } catch (error) {
                 console.error("Failed to fetch performance data", error);
             } finally {
@@ -219,7 +218,7 @@ export default function PerformancePage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                    <TopperComparison stats={mockTopperStats} />
+                    <TopperComparison stats={topperStats} />
                 </div>
 
                 {/* Activity Log */}
@@ -242,7 +241,7 @@ export default function PerformancePage() {
                                         {item.score}
                                     </div>
                                     <div>
-                                        <div className="font-bold text-slate-900 text-sm">Test Assessment</div>
+                                        <div className="font-bold text-slate-900 text-sm truncate max-w-[200px]">{item.title}</div>
                                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{item.date}</div>
                                     </div>
                                 </div>

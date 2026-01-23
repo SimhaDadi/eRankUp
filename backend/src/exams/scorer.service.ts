@@ -287,7 +287,7 @@ export class ScorerService implements OnModuleInit {
         return this.attemptRepository.find({
             where: { user: { id: userId } },
             order: { createdAt: 'ASC' },
-            relations: ['model']
+            relations: ['model', 'exam']
         });
     }
 
