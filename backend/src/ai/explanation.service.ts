@@ -6,6 +6,7 @@ import { Question } from '../exams/entities/question.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
 import { ConfigService } from '@nestjs/config';
+import { SystemHealthService } from '../admin/system-health.service';
 
 @Injectable()
 export class ExplanationService {
@@ -15,6 +16,7 @@ export class ExplanationService {
 
     constructor(
         private configService: ConfigService,
+        private systemHealthService: SystemHealthService,
         @InjectRepository(Question)
         private questionRepository: Repository<Question>,
         @InjectRepository(QuestionExplanation)
@@ -82,6 +84,9 @@ export class ExplanationService {
             const prompt = this.buildPrompt(question, userAnswer, contextExamTitle);
             const result = await this.model.generateContent(prompt);
             const explanation = result.response.text();
+
+            // Track successful API call
+            this.systemHealthService.trackAPICall('gemini');
 
             // 6. Cache the explanation
             const newExplanation = this.explanationRepository.create({

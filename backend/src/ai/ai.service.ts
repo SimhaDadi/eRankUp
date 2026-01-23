@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SystemHealthService } from '../admin/system-health.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Question } from '../exams/entities/question.entity';
@@ -37,6 +38,7 @@ export class AIService {
         @InjectRepository(Chapter)
         private chapterRepository: Repository<Chapter>,
         private configService: ConfigService,
+        private systemHealthService: SystemHealthService,
     ) { }
 
     /**
@@ -518,6 +520,10 @@ Keep the explanation student-friendly, encouraging, and under 200 words total.`;
             const startTime = Date.now();
             const result = await model.generateContent([prompt, imagePart]);
             const response = await result.response;
+
+            // Track successful API call
+            this.systemHealthService.trackAPICall('gemini');
+
             const duration = (Date.now() - startTime) / 1000;
             console.log(`[AIService] Gemini API request completed in ${duration}s`);
             const text = response.text();

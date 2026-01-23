@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AIService } from './ai.service';
 import { AIController } from './ai.controller';
@@ -12,10 +12,12 @@ import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
 import { Exam } from '../exams/entities/exam.entity';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, QuestionExplanation, Exam])
+        TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, QuestionExplanation, Exam]),
+        forwardRef(() => AdminModule)
     ],
     controllers: [AIController, ExplanationController],
     providers: [AIService, MigrationService, ExplanationService],
