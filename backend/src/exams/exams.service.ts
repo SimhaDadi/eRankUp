@@ -11,6 +11,7 @@ import { CacheService } from '../common/cache.service';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 import { CreateSubjectDto, CreateChapterDto, CreateModelDto } from '@erankup/shared';
+import { ExplanationService } from '../ai/explanation.service';
 
 @Injectable()
 export class ExamsService implements OnApplicationBootstrap {
@@ -28,6 +29,7 @@ export class ExamsService implements OnApplicationBootstrap {
         @Inject(forwardRef(() => PaymentsService))
         private paymentsService: PaymentsService,
         private cacheService: CacheService,
+        private explanationService: ExplanationService,
     ) { }
 
     async findAll(options: { includeUnpublished?: boolean; type?: string } = {}) {
@@ -136,7 +138,20 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     private async invalidateCache(examId?: string) {
-        await this.cacheService.del('exams:all');
+        // Clear all list variations
+        const keys = [
+            'exams:all:all',
+            'exams:all:real_exam',
+            'exams:all:question_bank',
+            'exams:all:admin:all',
+            'exams:all:admin:real_exam',
+            'exams:all:admin:question_bank'
+        ];
+
+        for (const key of keys) {
+            await this.cacheService.del(key);
+        }
+
         await this.cacheService.del('question-bank:stats');
         if (examId) {
             await this.cacheService.del(`exam:${examId}`);
@@ -606,6 +621,13 @@ export class ExamsService implements OnApplicationBootstrap {
         await this.modelRepository.save(model);
 
         await this.invalidateCache();
+
+        // Background: Generate AI Explanations for new questions
+        const questionIds = savedQuestions.map(q => q.id);
+        this.explanationService.generateBulkExplanations(questionIds).catch(err => {
+            console.error('[ExamsService] Background AI explanation generation failed:', err);
+        });
+
         return savedQuestions;
     }
 

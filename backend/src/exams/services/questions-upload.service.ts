@@ -93,7 +93,8 @@ export class QuestionsUploadService {
             }));
         } catch (error) {
             console.error('AI Parse Error:', error);
-            throw new BadRequestException('Failed to parse file via AI Service.');
+            // Pass through the specific error message from AIService
+            throw new BadRequestException(error.message || 'Failed to parse file via AI Service.');
         }
     }
 

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-    timeout: 60000,
+    timeout: 300000, // 5 minutes for AI parsing tasks
     headers: {
         'Content-Type': 'application/json',
     },

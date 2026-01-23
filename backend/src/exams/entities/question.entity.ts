@@ -30,14 +30,12 @@ export class Question {
     @ManyToOne(() => Chapter, { nullable: true })
     chapter: Chapter;
 
-    @Index()
     @Column({ nullable: true })
     chapterId: string;
 
     @ManyToOne(() => Exam, { nullable: true })
     exam: Exam;
 
-    @Index()
     @Column({ nullable: true })
     examId: string;
 

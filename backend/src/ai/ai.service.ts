@@ -472,10 +472,16 @@ Keep the explanation student-friendly, encouraging, and under 200 words total.`;
      * AI Document Parser - Extracts questions from PDF/Image using Computer Vision
      */
     async parseDocument(file: any): Promise<any[]> {
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        if (!apiKey || apiKey === 'dummy_key_for_test' || apiKey.length < 20) {
+            throw new Error("AI Parsing Configuration Error: Missing or invalid GEMINI_API_KEY. Please set a valid Google Gemini API key in the backend environment.");
+        }
+
         try {
             const { GoogleGenerativeAI } = require("@google/generative-ai");
-            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
             const prompt = `
                 You are an expert OCR and Question Extraction AI.
@@ -488,16 +494,16 @@ Keep the explanation student-friendly, encouraging, and under 200 words total.`;
                 4. Extract the explanation if provided, otherwise leave empty.
                 5. Return the result strictly as a JSON Data Array. Do not include markdown formatting like \`\`\`json.
 
-                Output Format:
+                Output Format: JSON Array ONLY. NO Markdown.
                 [
                     {
-                        "content": "Question text here...",
-                        "options": ["Option A", "Option B", "Option C", "Option D"],
-                        "correctOptionIndex": 0, // 0 for A, 1 for B, etc.
-                        "difficultyWeight": 0.5, // Estimate: 0.2 (easy) to 0.9 (hard)
-                        "positiveMarks": 2, // Standard marking
-                        "negativeMarks": 0.5, // Standard negative marking
-                        "explanation": "Explanation text..."
+                        "content": "Question text",
+                        "options": ["A", "B", "C", "D"],
+                        "correctOptionIndex": 0,
+                        "difficultyWeight": 0.5,
+                        "positiveMarks": 2,
+                        "negativeMarks": 0.5,
+                        "explanation": "Brief explanation"
                     }
                 ]
             `;
@@ -509,8 +515,11 @@ Keep the explanation student-friendly, encouraging, and under 200 words total.`;
                 },
             };
 
+            const startTime = Date.now();
             const result = await model.generateContent([prompt, imagePart]);
             const response = await result.response;
+            const duration = (Date.now() - startTime) / 1000;
+            console.log(`[AIService] Gemini API request completed in ${duration}s`);
             const text = response.text();
 
             // Clean up markdown if present
@@ -519,7 +528,16 @@ Keep the explanation student-friendly, encouraging, and under 200 words total.`;
             return JSON.parse(jsonStr);
         } catch (error) {
             console.error("AI Parsing Failed:", error);
-            throw new Error("Failed to parse document. Ensure it is a clear image or PDF of questions.");
+            if (error.message?.includes("API_KEY_INVALID") || error.message?.includes("API key not valid")) {
+                throw new Error("AI Parsing Authentication Failed: The provided GEMINI_API_KEY is invalid. Please check your Google AI Studio credentials.");
+            }
+            if (error.message?.includes("404") || error.message?.includes("not found")) {
+                throw new Error(`AI Model Error (404): The Gemini model 'gemini-flash-latest' was not found or is not supported. Error details: ${error.message}`);
+            }
+            if (error.message?.includes("429") || error.message?.includes("Quota")) {
+                throw new Error(`AI Quota Exceeded (429): Your API key has run out of quota or is hitting rate limits. Please check your Google AI Studio billing/plan. Error details: ${error.message}`);
+            }
+            throw new Error(error.message || "Failed to parse document. Ensure it is a clear image or PDF of questions.");
         }
     }
 

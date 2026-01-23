@@ -31,6 +31,7 @@ async function seed() {
     const questionRepo = dataSource.getRepository(Question);
 
     // 1. Ensure SSC CGL Exam exists
+    // 1. Ensure SSC CGL Exam exists
     let sscExam = await examRepo.findOne({ where: { title: 'SSC CGL 2024 (Full Prep)' } });
     if (!sscExam) {
         sscExam = examRepo.create({
@@ -38,8 +39,23 @@ async function seed() {
             description: 'Comprehensive preparation set with 100 questions.',
             isPremium: false,
             price: 0,
+            type: 'real_exam' as any // Force cast to avoid circular dependency import issues if enum not available
         });
         await examRepo.save(sscExam);
+    }
+
+    // 1b. Ensure Global Question Bank exists (for Hierarchy Page)
+    let globalBank = await examRepo.findOne({ where: { title: 'Global Question Bank' } });
+    if (!globalBank) {
+        globalBank = examRepo.create({
+            title: 'Global Question Bank',
+            description: 'Master repository for all subjects and topics.',
+            isPremium: false,
+            price: 0,
+            isPublished: true,
+            type: 'question_bank' as any
+        });
+        await examRepo.save(globalBank);
     }
 
     const chapterData = [
@@ -78,7 +94,7 @@ async function seed() {
             title: `${chInfo.title} Mastery Set`,
             chapter: chapter,
             totalQuestions: chInfo.topics.length * chInfo.questionsPerTopic,
-            exams: [sscExam] // Link model to exam
+            exams: [sscExam, globalBank] // Link model to BOTH Real Exam and Question Bank
         });
         await modelRepo.save(model);
 
@@ -132,6 +148,23 @@ async function seed() {
         adminUser.isActive = true;
         await userRepo.save(adminUser);
         console.log('SUCCESS: Admin user updated: admin@erankup.com / adminpassword');
+    }
+
+    // 3. Create Student User (for E2E testing)
+    const studentEmail = 'student@test.com';
+    let studentUser = await userRepo.findOne({ where: { email: studentEmail } });
+    const hashedStudentPassword = await bcrypt.hash('student123', 10);
+
+    if (!studentUser) {
+        studentUser = userRepo.create({
+            email: studentEmail,
+            password: hashedStudentPassword,
+            fullName: 'Test Student',
+            role: UserRole.STUDENT,
+            isActive: true
+        });
+        await userRepo.save(studentUser);
+        console.log('SUCCESS: Student user created: student@test.com / student123');
     }
 
     console.log('------------------------------------------');

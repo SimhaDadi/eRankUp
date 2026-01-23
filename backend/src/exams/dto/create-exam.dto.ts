@@ -42,6 +42,10 @@ export class CreateExamDto {
     @IsOptional()
     @Type(() => Number)
     defaultNegativeMarks?: number;
+
+    @IsBoolean()
+    @IsOptional()
+    isPublished?: boolean;
 }
 
 export class UpdateExamDto {
@@ -49,6 +53,7 @@ export class UpdateExamDto {
     @IsOptional()
     title?: string;
 
-    // ... potentially map other fields as optional, or use PartialType if installed
-    // For now, I'll keep it simple or minimal.
+    @IsBoolean()
+    @IsOptional()
+    isPublished?: boolean;
 }

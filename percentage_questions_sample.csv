@@ -1,0 +1,6 @@
+content,optionA,optionB,optionC,optionD,correctOptionId,explanation,topic,difficultyWeight,positiveMarks,negativeMarks
+"What is 20% of 500?",50,100,150,200,B,"20% of 500 = (20/100) * 500 = 100",Percentage,0.3,2.0,0.5
+"If A is 50% more than B, then B is what percent less than A?",50%,33.33%,25%,20%,B,"Let B = 100. Then A = 150. Difference = 50. Percent less = (50/150) * 100 = 33.33%",Percentage,0.6,2.0,0.5
+"A number is increased by 10% and then decreased by 10%. What is the net change?",No change,1% increase,1% decrease,10% decrease,C,"Net change = x - y - (xy/100). 10 - 10 - (100/100) = -1%. So 1% decrease.",Percentage,0.5,2.0,0.5
+"In an election between two candidates, one got 55% of the total valid votes and won by 2000 votes. What was the total number of valid votes?",10000,15000,20000,25000,C,"Winner got 55%, Loser got 45%. Difference = 10%. 10% of Total = 2000. Total = 20000.",Percentage,0.6,2.0,0.5
+"Price of sugar increases by 20%. By how much percent should consumption be reduced to keep expenditure same?",16.66%,20%,25%,15%,A,"Reduction = (r / (100+r)) * 100. (20/120)*100 = 100/6 = 16.66%",Percentage,0.5,2.0,0.5
