@@ -32,6 +32,9 @@ export class Exam {
     @Column({ default: false })
     isPremium: boolean;
 
+    @Column({ default: false })
+    isPublished: boolean;
+
     @Column('float', { default: 0 })
     price: number;
 

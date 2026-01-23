@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsNumber, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ExamType } from '../entities/exam.entity';
 
@@ -24,4 +24,8 @@ export class UpdateExamDto {
     @IsOptional()
     @Type(() => Number)
     defaultNegativeMarks?: number;
+
+    @IsBoolean()
+    @IsOptional()
+    isPublished?: boolean;
 }

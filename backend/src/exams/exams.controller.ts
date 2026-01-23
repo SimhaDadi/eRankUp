@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { ExamsSeederService } from './exams-seeder.service';
@@ -26,8 +26,13 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get()
-    async findAll(@Request() req: any) {
-        const exams = await this.examsService.findAll();
+    @Get()
+    async findAll(@Request() req: any, @Query('type') type?: string) {
+        const isAdmin = req.user.role === 'admin';
+        const exams = await this.examsService.findAll({
+            includeUnpublished: isAdmin,
+            type
+        });
         const userId = req.user.userId;
 
         const attemptStats = await this.scorerService.getUserExamStats(userId);
@@ -38,7 +43,14 @@ export class ExamsController {
                 (exam as any).hasPurchased = await this.paymentsService.hasPurchased(userId, exam.id);
             }
 
-            // Attach cached attempts and calculate progress
+            // Calculate aggregated stats
+            const questionCount = exam.models?.reduce((acc, m) => acc + (m.totalQuestions || 0), 0) || 0;
+            (exam as any).questionCount = questionCount;
+
+            const uniqueChapters = new Set(exam.models?.map(m => m.chapter?.id).filter(id => !!id));
+            (exam as any).chapters = Array.from(uniqueChapters).map(id => ({ id })); // Mock for length count
+
+            // Attached cached attempts and calculate progress
             if (attemptStats[exam.id]) {
                 (exam as any).attempts = attemptStats[exam.id];
             }
@@ -95,14 +107,16 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Get('hierarchy')
-    async getHierarchy() {
-        return this.examsService.getFullHierarchy();
+    async getHierarchy(@Request() req: any) {
+        const type = req.query.type;
+        return this.examsService.getFullHierarchy(type);
     }
 
     @UseGuards(AuthGuard('jwt'))
     @Get(':id')
     async findOne(@Param('id') id: string, @Request() req: any) {
-        const exam = await this.examsService.findOne(id);
+        const isAdmin = req.user.role === 'admin';
+        const exam = await this.examsService.findOne(id, isAdmin);
         if (exam && exam.isPremium) {
             (exam as any).hasPurchased = await this.paymentsService.hasPurchased(req.user.userId, exam.id);
         }
@@ -127,6 +141,43 @@ export class ExamsController {
     @Put(':id')
     update(@Param('id') id: string, @Body() updateExamDto: UpdateExamDto) {
         return this.examsService.updateExam(id, updateExamDto);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Put(':id/publish')
+    async togglePublish(@Param('id') id: string, @Body('isPublished') isPublished: boolean) {
+        return this.examsService.updateExam(id, { isPublished });
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Post('models/:modelId/bulk-upload')
+    @UseInterceptors(FileInterceptor('file'))
+    async bulkUploadToModel(
+        @Param('modelId') modelId: string,
+        @UploadedFile() file: Express.Multer.File
+    ) {
+        if (!file) throw new BadRequestException('No file uploaded');
+
+        const parsedQuestions = await this.uploadService.parseExamsFile(file.buffer, file.mimetype);
+
+        const questionsData = parsedQuestions.map(q => ({
+            content: q.content,
+            options: q.options,
+            correctOptionId: q.correctOptionId,
+            explanation: q.explanation,
+            topic: q.topic,
+            difficultyWeight: q.difficultyWeight || 0.5,
+            positiveMarks: q.positiveMarks,
+            negativeMarks: q.negativeMarks
+        }));
+
+        const result = await this.examsService.createQuestionsBulk(modelId, questionsData);
+        return {
+            uploaded: result.length,
+            message: `Successfully uploaded ${result.length} questions`
+        };
     }
 
     @UseGuards(AuthGuard('jwt'))

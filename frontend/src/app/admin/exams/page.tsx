@@ -24,9 +24,11 @@ interface Exam {
     title: string;
     description: string;
     isActive: boolean;
+    isPublished: boolean;
     createdAt: string;
     chapters: any[];
     type: 'real_exam' | 'question_bank';
+    questionCount?: number;
 }
 
 export default function AdminExamsPage() {
@@ -59,6 +61,15 @@ export default function AdminExamsPage() {
             } catch (error) {
                 alert('Failed to delete exam');
             }
+        }
+    };
+
+    const handleTogglePublish = async (id: string, currentStatus: boolean) => {
+        try {
+            await api.put(`/exams/${id}/publish`, { isPublished: !currentStatus });
+            setExams(exams.map(e => e.id === id ? { ...e, isPublished: !currentStatus } : e));
+        } catch (error) {
+            alert('Failed to update publish status');
         }
     };
 
@@ -105,7 +116,9 @@ export default function AdminExamsPage() {
                         <HelpCircle className="w-5 h-5" />
                         <span className="font-bold text-sm uppercase tracking-wider">Total Questions</span>
                     </div>
-                    <div className="text-3xl font-bold">1.2k+</div>
+                    <div className="text-3xl font-bold">
+                        {exams.reduce((acc, exam) => acc + (exam.questionCount || 0), 0)}
+                    </div>
                 </div>
             </div>
 
@@ -142,6 +155,15 @@ export default function AdminExamsPage() {
                                     )}
                                 </div>
                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={() => handleTogglePublish(exam.id, exam.isPublished)}
+                                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${exam.isPublished
+                                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                            : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
+                                            }`}
+                                    >
+                                        {exam.isPublished ? 'Published' : 'Draft'}
+                                    </button>
                                     <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
                                         <Edit className="w-4 h-4" />
                                     </button>

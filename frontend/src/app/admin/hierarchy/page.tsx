@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, ChevronRight, ChevronDown, BookOpen, FolderOpen, FileText, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronRight, ChevronDown, BookOpen, FolderOpen, FileText, Search, Upload } from 'lucide-react';
+import UploadModelModal from '@/components/admin/UploadModelModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 
@@ -53,6 +54,10 @@ export default function HierarchyPage() {
     const [chapterForm, setChapterForm] = useState({ title: '', subjectId: '' });
     const [modelForm, setModelForm] = useState({ title: '', chapterId: '' });
 
+    // Upload Modal State
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [uploadModelData, setUploadModelData] = useState<{ id: string, title: string } | null>(null);
+
     useEffect(() => {
         fetchHierarchy();
     }, []);
@@ -60,7 +65,7 @@ export default function HierarchyPage() {
     const fetchHierarchy = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/exams/hierarchy');
+            const response = await api.get('/exams/hierarchy?type=question_bank');
             // Transform backend response (name) to frontend format (title)
             const transformedData = response.data.map((exam: any) => ({
                 ...exam,
@@ -348,6 +353,16 @@ export default function HierarchyPage() {
                                                                                         <span className="text-xs text-gray-400">({model.totalQuestions || 0} qs)</span>
                                                                                     </div>
                                                                                     <div className="flex items-center gap-1">
+                                                                                        <button
+                                                                                            onClick={() => {
+                                                                                                setUploadModelData({ id: model.id, title: model.title });
+                                                                                                setShowUploadModal(true);
+                                                                                            }}
+                                                                                            className="p-1 text-gray-400 hover:text-emerald-600"
+                                                                                            title="Bulk Upload Questions"
+                                                                                        >
+                                                                                            <Upload className="w-3 h-3" />
+                                                                                        </button>
                                                                                         <button className="p-1 text-gray-400 hover:text-blue-600">
                                                                                             <Edit className="w-3 h-3" />
                                                                                         </button>
@@ -526,6 +541,18 @@ export default function HierarchyPage() {
                             </div>
                         </div>
                     </div>
+                )}
+                {showUploadModal && uploadModelData && (
+                    <UploadModelModal
+                        isOpen={showUploadModal}
+                        onClose={() => setShowUploadModal(false)}
+                        onSuccess={() => {
+                            fetchHierarchy(); // Refresh counts
+                            // setShowUploadModal(false); // Handled by onClose
+                        }}
+                        modelId={uploadModelData.id}
+                        modelTitle={uploadModelData.title}
+                    />
                 )}
             </div>
         </div>

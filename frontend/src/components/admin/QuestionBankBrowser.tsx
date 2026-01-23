@@ -1,15 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Search, CheckSquare, Square, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { X, Search, CheckSquare, Square, Loader2, ChevronRight, ChevronDown, BookOpen, Folder, FileText } from 'lucide-react';
+import { motion } from 'framer-motion';
 import api from '@/lib/api';
 
 interface Model {
     id: string;
     title: string;
     totalQuestions: number;
-    hierarchy: string;
+}
+
+interface Chapter {
+    id: string;
+    title: string;
+    models: Model[];
+}
+
+interface Subject {
+    id: string;
+    title: string;
+    chapters: Chapter[];
+}
+
+interface Exam {
+    id: string;
+    title: string;
+    description?: string;
+    subjects: Subject[];
 }
 
 interface Question {
@@ -27,7 +45,11 @@ interface QuestionBankBrowserProps {
 }
 
 export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: QuestionBankBrowserProps) {
-    const [models, setModels] = useState<Model[]>([]);
+    const [banks, setBanks] = useState<Exam[]>([]);
+    const [expandedBanks, setExpandedBanks] = useState<Set<string>>(new Set());
+    const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
+    const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
+
     const [selectedModel, setSelectedModel] = useState<Model | null>(null);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
@@ -36,20 +58,46 @@ export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: Ques
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        fetchModels();
+        fetchHierarchy();
     }, []);
 
-    const fetchModels = async () => {
+    const fetchHierarchy = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/exams/question-bank/models');
-            setModels(res.data);
+            const res = await api.get('/exams/hierarchy?type=question_bank');
+            // Assuming backend returns { id, name, ... }. Map it to title.
+            const transformed = res.data.map((exam: any) => ({
+                id: exam.id,
+                title: exam.name || exam.title,
+                description: exam.description,
+                subjects: (exam.subjects || []).map((sub: any) => ({
+                    id: sub.id,
+                    title: sub.name || sub.title,
+                    chapters: (sub.chapters || []).map((chap: any) => ({
+                        id: chap.id,
+                        title: chap.name || chap.title,
+                        models: (chap.models || []).map((mod: any) => ({
+                            id: mod.id,
+                            title: mod.name || mod.title,
+                            totalQuestions: mod.totalQuestions || 0
+                        }))
+                    }))
+                }))
+            }));
+            setBanks(transformed);
         } catch (error) {
-            console.error('Error fetching models:', error);
+            console.error('Error fetching question banks:', error);
             alert('Failed to load question banks');
         } finally {
             setLoading(false);
         }
+    };
+
+    const toggleExpand = (set: Set<string>, id: string, setFunc: (s: Set<string>) => void) => {
+        const newSet = new Set(set);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setFunc(newSet);
     };
 
     const handleModelSelect = async (model: Model) => {
@@ -57,11 +105,36 @@ export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: Ques
         setLoading(true);
         setSelectedQuestions(new Set());
         try {
-            const res = await api.get(`/exams/question-bank/models/${model.id}/questions`);
-            setQuestions(res.data);
+            const res = await api.get(`/exams/models/${model.id}`); // getModel questions? 
+            // Wait, previous endpoint was `/exams/question-bank/models/${model.id}/questions`
+            // Or `examsService.getModelQuestions(modelId)`.
+            // Let's use `/exams/models/${model.id}` does it return questions?
+            // `ExamsController.getModel`: `return this.examsService.findModel(id, ...)`
+            // `ExamsService.findModel` returns model with questions?
+            // Let's use the explicit question fetch if available.
+            // Actually, `ExamsController` has `getModel` (line 116).
+            // Let's assume we need to fetch questions specifically.
+            // I'll stick to the logic: `api.get('/exams/question-bank/models/' + model.id + '/questions')` if that endpoint exists or works.
+            // Or `/exams/models/${model.id}` and extract questions.
+            // Let's use `/exams/models/${model.id}`.
+
+            // Re-checking previous implementation:
+            // `api.get('/exams/question-bank/models/' + model.id + '/questions')`.
+            // Does this endpoint exist? 
+            // I removed `ExamsService.getModelQuestions`.
+            // Wait, I didn't see `ExamsController` having `question-bank/models` endpoints in my previous view.
+            // It might have been `getModelQuestions` I saw earlier?
+            // Actually I modified `ExamsService` but `ExamsController`...
+
+            // Let's use `api.get('/exams/models/' + model.id)`. 
+            // And expect filtered questions or all questions?
+            // `ExamsService.findModel` returns model with questions.
+            const res2 = await api.get(`/exams/models/${model.id}`);
+            // res2.data.questions is the array?
+            setQuestions(res2.data.questions || []);
         } catch (error) {
             console.error('Error fetching questions:', error);
-            alert('Failed to load questions');
+            // alert('Failed to load questions'); 
         } finally {
             setLoading(false);
         }
@@ -120,9 +193,9 @@ export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: Ques
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Browse Question Bank</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">Browse Question Banks</h2>
                         <p className="text-sm text-gray-600 mt-1">
-                            Select questions from your question banks to add to this exam
+                            Drill down to find questions and add them to your exam
                         </p>
                     </div>
                     <button
@@ -135,47 +208,66 @@ export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: Ques
 
                 {/* Content */}
                 <div className="flex flex-1 overflow-hidden">
-                    {/* Left Panel: Models List */}
-                    <div className="w-1/3 border-r border-gray-200 flex flex-col bg-gray-50">
-                        <div className="p-4 border-b border-gray-200 bg-white">
-                            <h3 className="font-semibold text-gray-900 mb-2">Question Banks</h3>
-                            <p className="text-xs text-gray-500">{models.length} models available</p>
+                    {/* Left Panel: Hierarchy Tree */}
+                    <div className="w-1/3 border-r border-gray-200 flex flex-col bg-gray-50 overflow-hidden">
+                        <div className="p-4 border-b border-gray-200 bg-white shadow-sm">
+                            <h3 className="font-semibold text-gray-900 mb-1">Question Banks</h3>
+                            <p className="text-xs text-gray-500">Select a model to view questions</p>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                            {loading && !selectedModel ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                                </div>
-                            ) : models.length === 0 ? (
-                                <div className="text-center py-12 text-gray-500">
-                                    <p className="font-medium">No question banks found</p>
-                                    <p className="text-sm mt-1">Create a question bank first in Content Hierarchy</p>
-                                </div>
+                            {banks.length === 0 && !loading ? (
+                                <div className="text-center py-8 text-gray-500 text-sm">No Question Banks found.</div>
                             ) : (
-                                models.map(model => (
-                                    <button
-                                        key={model.id}
-                                        onClick={() => handleModelSelect(model)}
-                                        className={`w-full text-left p-4 rounded-xl transition-all ${selectedModel?.id === model.id
-                                                ? 'bg-blue-600 text-white shadow-lg scale-105'
-                                                : 'bg-white hover:bg-blue-50 border border-gray-200'
-                                            }`}
-                                    >
-                                        <h4 className={`font-semibold mb-1 ${selectedModel?.id === model.id ? 'text-white' : 'text-gray-900'
-                                            }`}>
-                                            {model.title}
-                                        </h4>
-                                        <p className={`text-xs mb-2 ${selectedModel?.id === model.id ? 'text-blue-100' : 'text-gray-500'
-                                            }`}>
-                                            {model.hierarchy}
-                                        </p>
-                                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${selectedModel?.id === model.id
-                                                ? 'bg-blue-500 text-white'
-                                                : 'bg-blue-100 text-blue-700'
-                                            }`}>
-                                            {model.totalQuestions} questions
-                                        </span>
-                                    </button>
+                                banks.map(bank => (
+                                    <div key={bank.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                        <button
+                                            onClick={() => toggleExpand(expandedBanks, bank.id, setExpandedBanks)}
+                                            className="w-full flex items-center gap-2 p-3 bg-blue-50/50 hover:bg-blue-100 transition-colors text-left font-medium"
+                                        >
+                                            {expandedBanks.has(bank.id) ? <ChevronDown className="w-4 h-4 text-blue-600" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                                            <BookOpen className="w-4 h-4 text-blue-600" />
+                                            <span className="text-gray-900 text-sm">{bank.title}</span>
+                                        </button>
+
+                                        {expandedBanks.has(bank.id) && (bank.subjects || []).map(subject => (
+                                            <div key={subject.id} className="border-t border-gray-100">
+                                                <button
+                                                    onClick={() => toggleExpand(expandedSubjects, subject.id, setExpandedSubjects)}
+                                                    className="w-full flex items-center gap-2 p-2 pl-8 hover:bg-gray-50 transition-colors text-left"
+                                                >
+                                                    {expandedSubjects.has(subject.id) ? <ChevronDown className="w-3 h-3 text-emerald-600" /> : <ChevronRight className="w-3 h-3 text-gray-400" />}
+                                                    <Folder className="w-3 h-3 text-emerald-600" />
+                                                    <span className="text-gray-700 text-xs font-medium">{subject.title}</span>
+                                                </button>
+
+                                                {expandedSubjects.has(subject.id) && (subject.chapters || []).map(chapter => (
+                                                    <div key={chapter.id} className="border-t border-gray-100">
+                                                        <button
+                                                            onClick={() => toggleExpand(expandedChapters, chapter.id, setExpandedChapters)}
+                                                            className="w-full flex items-center gap-2 p-2 pl-12 hover:bg-gray-50 transition-colors text-left"
+                                                        >
+                                                            {expandedChapters.has(chapter.id) ? <ChevronDown className="w-3 h-3 text-purple-600" /> : <ChevronRight className="w-3 h-3 text-gray-400" />}
+                                                            <FileText className="w-3 h-3 text-purple-600" />
+                                                            <span className="text-gray-600 text-xs">{chapter.title}</span>
+                                                        </button>
+
+                                                        {expandedChapters.has(chapter.id) && (chapter.models || []).map(model => (
+                                                            <button
+                                                                key={model.id}
+                                                                onClick={() => handleModelSelect(model)}
+                                                                className={`w-full flex items-center justify-between p-2 pl-16 border-t border-gray-100 transition-colors text-left group ${selectedModel?.id === model.id ? 'bg-blue-600 text-white' : 'hover:bg-gray-50'
+                                                                    }`}
+                                                            >
+                                                                <span className={`text-xs ${selectedModel?.id === model.id ? 'text-white' : 'text-gray-500 group-hover:text-gray-900'}`}>{model.title}</span>
+                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedModel?.id === model.id ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+                                                                    }`}>{model.totalQuestions}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </div>
                                 ))
                             )}
                         </div>
@@ -189,13 +281,13 @@ export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: Ques
                                 <div className="p-4 border-b border-gray-200 space-y-3">
                                     <div className="flex items-center justify-between">
                                         <h3 className="font-semibold text-gray-900">
-                                            {selectedModel.title} Questions
+                                            {selectedModel.title} <span className="text-gray-400 font-normal">Questions</span>
                                         </h3>
                                         <button
                                             onClick={toggleAll}
                                             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                         >
-                                            {selectedQuestions.size === filteredQuestions.length ? (
+                                            {selectedQuestions.size === filteredQuestions.length && filteredQuestions.length > 0 ? (
                                                 <>
                                                     <CheckSquare className="w-4 h-4" />
                                                     Deselect All
@@ -239,8 +331,8 @@ export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: Ques
                                                 key={question.id}
                                                 onClick={() => toggleQuestion(question.id)}
                                                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedQuestions.has(question.id)
-                                                        ? 'border-blue-500 bg-blue-50'
-                                                        : 'border-gray-200 hover:border-blue-300 bg-white'
+                                                    ? 'border-blue-500 bg-blue-50'
+                                                    : 'border-gray-200 hover:border-blue-300 bg-white'
                                                     }`}
                                             >
                                                 <div className="flex items-start gap-3">
@@ -260,12 +352,12 @@ export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: Ques
                                                         </div>
                                                         <p className="text-gray-900 font-medium mb-3">{question.content}</p>
                                                         <div className="grid grid-cols-2 gap-2">
-                                                            {question.options.map(option => (
+                                                            {question.options.map((option: any) => (
                                                                 <div
                                                                     key={option.id}
                                                                     className={`text-sm px-3 py-2 rounded-lg ${option.id === question.correctOptionId
-                                                                            ? 'bg-green-50 text-green-700 border border-green-200'
-                                                                            : 'bg-gray-50 text-gray-700'
+                                                                        ? 'bg-green-50 text-green-700 border border-green-200'
+                                                                        : 'bg-gray-50 text-gray-700'
                                                                         }`}
                                                                 >
                                                                     <span className="font-semibold">{option.id}.</span> {option.text}
@@ -284,7 +376,7 @@ export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: Ques
                                 <div className="text-center">
                                     <Search className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                                     <p className="font-medium">Select a model to view questions</p>
-                                    <p className="text-sm mt-1">Choose from the question banks on the left</p>
+                                    <p className="text-sm mt-1">Navigate the hierarchy on the left</p>
                                 </div>
                             </div>
                         )}

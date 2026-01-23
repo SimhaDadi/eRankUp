@@ -30,12 +30,22 @@ export class ExamsService implements OnApplicationBootstrap {
         private cacheService: CacheService,
     ) { }
 
-    async findAll() {
-        const cacheKey = 'exams:all';
+    async findAll(options: { includeUnpublished?: boolean; type?: string } = {}) {
+        const { includeUnpublished = false, type } = options;
+        const cacheKey = includeUnpublished ? `exams:all:admin:${type || 'all'}` : `exams:all:${type || 'all'}`;
         const cached = await this.cacheService.get<Exam[]>(cacheKey);
         if (cached) return cached;
 
+        const where: any = {};
+        if (!includeUnpublished) {
+            where.isPublished = true;
+        }
+        if (type) {
+            where.type = type;
+        }
+
         const exams = await this.examsRepository.find({
+            where,
             relations: ['models', 'models.chapter', 'models.chapter.subject']
         });
 
@@ -43,7 +53,7 @@ export class ExamsService implements OnApplicationBootstrap {
         return exams;
     }
 
-    async findOne(id: string) {
+    async findOne(id: string, includeUnpublished: boolean = false) {
         const cacheKey = `exam:${id}`;
         const cached = await this.cacheService.get<any>(cacheKey);
         if (cached) {
@@ -53,7 +63,7 @@ export class ExamsService implements OnApplicationBootstrap {
 
         console.log('Cache MISS for', id);
         const exam = await this.examsRepository.findOne({
-            where: { id },
+            where: includeUnpublished ? { id } : { id, isPublished: true },
             relations: ['models', 'models.chapter', 'models.chapter.subject', 'questions']
         });
 
@@ -446,49 +456,7 @@ export class ExamsService implements OnApplicationBootstrap {
         return question;
     }
 
-    async createQuestionsBulk(modelId: string, questionsData: any[]) {
-        const model = await this.modelRepository.findOne({ where: { id: modelId }, relations: ['chapter', 'chapter.subject', 'exams'] });
-        if (!model) throw new Error('Model not found');
 
-        const questionsToCreate = questionsData.map(data => {
-            const { id, ...rest } = data;
-
-            // Validate exams if provided as IDs in rest.exams (via junction)
-            if (rest.exams && rest.exams.length > 0) {
-                for (const examData of rest.exams) {
-                    const belongsToExam = model.exams?.some(exam => exam.id === examData.id);
-                    if (!belongsToExam) {
-                        throw new BadRequestException(
-                            `Question with exam ID ${examData.id} cannot be added to this model`
-                        );
-                    }
-                }
-            }
-
-            return {
-                ...rest,
-                models: [model],
-                subject: model.chapter?.subject,
-                chapter: model.chapter,
-                exams: rest.exams || []
-            };
-        });
-        const questionsEntities = this.questionRepository.create(questionsToCreate);
-        const savedQuestions = await this.questionRepository.save(questionsEntities);
-
-        // Update Model Question Count
-        await this.modelRepository.increment({ id: modelId }, 'totalQuestions', savedQuestions.length);
-
-        // Invalidate Cache for all linked exams
-        if (model.exams) {
-            console.log(`[DEBUG] Bulk created ${savedQuestions.length} questions. Invalidating cache for ${model.exams.length} exams.`);
-            for (const exam of model.exams) {
-                await this.invalidateCache(exam.id);
-            }
-        }
-
-        return savedQuestions;
-    }
 
     async onApplicationBootstrap() {
         // Repair orphaned questions (created via faulty seed script)
@@ -531,9 +499,10 @@ export class ExamsService implements OnApplicationBootstrap {
      * Get full hierarchy: Exams -> Subjects -> Chapters with question counts
      * Optimized to avoid N+1 queries.
      */
-    async getFullHierarchy() {
+    async getFullHierarchy(type?: ExamType) {
         // 1. Fetch entire hierarchy in one query
         const exams = await this.examsRepository.find({
+            where: type ? { type } : {},
             relations: [
                 'subjects',
                 'subjects.chapters',
@@ -601,6 +570,44 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     // --- Question Bank Browser Methods ---
+
+    async createQuestionsBulk(modelId: string, questionsData: any[]) {
+        const model = await this.modelRepository.findOne({
+            where: { id: modelId },
+            relations: ['chapter', 'chapter.subject']
+        });
+
+        if (!model) throw new BadRequestException('Model not found');
+
+        const questions: Question[] = [];
+
+        for (const data of questionsData) {
+            const [question] = this.questionRepository.create([{
+                ...data,
+                subject: model.chapter?.subject,
+                chapter: model.chapter,
+                models: [model],
+                positiveMarks: data.positiveMarks || 1.0,
+                negativeMarks: data.negativeMarks || 0.25,
+            }]);
+            questions.push(question);
+        }
+
+        const savedQuestions = await this.questionRepository.save(questions);
+
+        // Update model question count
+        const count = await this.questionRepository
+            .createQueryBuilder('question')
+            .leftJoin('question.models', 'model')
+            .where('model.id = :modelId', { modelId })
+            .getCount();
+
+        model.totalQuestions = count;
+        await this.modelRepository.save(model);
+
+        await this.invalidateCache();
+        return savedQuestions;
+    }
 
     async getQuestionBankModels() {
         // Get all exams that have models (effectively acting as banks)
