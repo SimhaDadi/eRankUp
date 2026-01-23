@@ -187,8 +187,15 @@ export class GamificationService {
         if (badge.criteria.streak && profile.currentStreak >= badge.criteria.streak) {
             return true;
         }
-        // Additional criteria (testsCompleted, correctAnswers, etc.) would require
-        // querying the Attempt entity - implement in integration phase
+
+        // Additional criteria
+        if ((badge.criteria as any).testsCompleted && (profile as any).testsCompleted >= (badge.criteria as any).testsCompleted) {
+            return true;
+        }
+        if ((badge.criteria as any).correctAnswers && (profile as any).correctAnswers >= (badge.criteria as any).correctAnswers) {
+            return true;
+        }
+
         return false;
     }
 

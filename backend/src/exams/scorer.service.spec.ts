@@ -8,6 +8,8 @@ import { Response } from './entities/response.entity';
 import { DifficultyService } from './difficulty.service';
 import { CacheService } from '../common/cache.service';
 import { User } from '../users/user.entity';
+import { GamificationService } from '../gamification/gamification.service';
+import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
 
 describe('ScorerService', () => {
     let service: ScorerService;
@@ -15,6 +17,7 @@ describe('ScorerService', () => {
     const mockAttemptRepository = {
         save: jest.fn().mockImplementation(a => Promise.resolve({ id: 'attempt-id', ...a })),
         findOne: jest.fn(),
+        create: jest.fn().mockImplementation(d => d),
     };
 
     const mockQuestionRepository = {
@@ -45,8 +48,27 @@ describe('ScorerService', () => {
                 { provide: getRepositoryToken(Question), useValue: mockQuestionRepository },
                 { provide: getRepositoryToken(Model), useValue: mockModelRepository },
                 { provide: getRepositoryToken(Response), useValue: mockResponseRepository },
-                { provide: DifficultyService, useValue: mockDifficultyService },
+                {
+                    provide: DifficultyService,
+                    useValue: {
+                        bulkUpdateStats: jest.fn(),
+                    }
+                },
                 { provide: CacheService, useValue: mockCacheService },
+                {
+                    provide: GamificationService,
+                    useValue: {
+                        awardXP: jest.fn(),
+                        updateStreak: jest.fn(),
+                        getOrCreateProfile: jest.fn().mockResolvedValue({ testsCompleted: 0, correctAnswers: 0 }),
+                    }
+                },
+                {
+                    provide: AdaptiveLearningService,
+                    useValue: {
+                        updateTopicMastery: jest.fn(),
+                    }
+                }
             ],
         }).compile();
 
@@ -72,7 +94,7 @@ describe('ScorerService', () => {
             const userAnswers = { 'q1': '1', 'q2': '2' };
             const result = await service.gradeAndSave(user, modelId, userAnswers, Date.now() - 1000);
 
-            expect(result.score).toBe(4);
+            expect(result.score).toBe(100);
             expect(result.correctAnswers).toBe(2);
             expect(result.accuracy).toBe(100);
         });
@@ -91,7 +113,9 @@ describe('ScorerService', () => {
             const result = await service.gradeAndSave(user, 'm1', userAnswers, Date.now() - 1000);
 
             // 2 (correct) - 0.5 (wrong) = 1.5
-            expect(result.score).toBe(1.5);
+            // Total possible: 4
+            // Percentage: (1.5 / 4) * 100 = 37.5
+            expect(result.score).toBe(37.5);
             expect(result.correctAnswers).toBe(1);
             expect(result.accuracy).toBe(50);
         });

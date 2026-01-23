@@ -3,8 +3,7 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import { LoginCredentialsDto, SignupDto } from '@erankup/shared';
 
 @Injectable()
 export class AuthService {
@@ -13,7 +12,7 @@ export class AuthService {
         private jwtService: JwtService,
     ) { }
 
-    async register(registerDto: RegisterDto) {
+    async register(registerDto: SignupDto) {
         const existingUser = await this.usersService.findOneByEmail(registerDto.email);
         if (existingUser) {
             throw new ConflictException('Email already in use');
@@ -31,6 +30,7 @@ export class AuthService {
     }
 
     async seedAdmin() {
+        // ... (keep existing implementation, assuming it doesn't need DTO argument change)
         const email = 'admin@erankup.com';
         const existingUser = await this.usersService.findOneByEmail(email);
         const hashedPassword = await bcrypt.hash('adminpassword', 10);
@@ -52,7 +52,7 @@ export class AuthService {
         });
     }
 
-    async login(loginDto: LoginDto) {
+    async login(loginDto: LoginCredentialsDto) {
         const user = await this.usersService.findOneByEmailWithPassword(loginDto.email);
 
         if (!user) {

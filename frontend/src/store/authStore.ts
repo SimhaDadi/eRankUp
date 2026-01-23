@@ -1,25 +1,6 @@
 import { create } from 'zustand';
 import api from '../lib/api';
-
-interface User {
-    id: string;
-    email: string;
-    fullName: string;
-    role: string;
-}
-
-interface AuthState {
-    user: User | null;
-    token: string | null;
-    isLoading: boolean;
-    error: string | null;
-
-    // Actions
-    login: (credentials: any) => Promise<void>;
-    signup: (data: any) => Promise<void>;
-    logout: () => void;
-    setUser: (user: User | null) => void;
-}
+import { User, AuthState } from '../types/auth.types';
 
 export const useAuthStore = create<AuthState>((set) => ({
     user: typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || 'null') : null,
@@ -67,3 +48,4 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     setUser: (user) => set({ user }),
 }));
+

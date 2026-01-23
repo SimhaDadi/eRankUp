@@ -17,22 +17,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
 
-interface Stats {
-    totalAttempts: number;
-    averageScore: number;
-    totalTimeTaken: number;
-    accuracy: number;
-    streak: number;
-}
-
-interface RecentAttempt {
-    id: string;
-    score: number;
-    createdAt: string;
-    model: {
-        title: string;
-    };
-}
+import { Stats, RecentAttempt } from '@/types/dashboard.types';
 
 export default function DashboardPage() {
     const { user } = useAuthStore();

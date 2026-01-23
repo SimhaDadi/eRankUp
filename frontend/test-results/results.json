@@ -1,0 +1,155 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\dadim\\OneDrive\\Desktop\\eRankUp\\frontend\\playwright.config.ts",
+    "rootDir": "C:/Users/dadim/OneDrive/Desktop/eRankUp/frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/Users/dadim/OneDrive/Desktop/eRankUp/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/dadim/OneDrive/Desktop/eRankUp/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.57.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "complete-flow.spec.ts",
+      "file": "complete-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Complete E2E Flow: Admin to Student Analytics",
+          "file": "complete-flow.spec.ts",
+          "line": 25,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Full Flow: Hierarchy → Questions → Exam → Attempt → Analytics",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 0,
+                      "error": {
+                        "message": "Error: Backend server is not running. Please start it first.",
+                        "stack": "Error: Backend server is not running. Please start it first.\n    at C:\\Users\\dadim\\OneDrive\\Desktop\\eRankUp\\frontend\\tests\\e2e\\complete-flow.spec.ts:31:19",
+                        "location": {
+                          "file": "C:\\Users\\dadim\\OneDrive\\Desktop\\eRankUp\\frontend\\tests\\e2e\\complete-flow.spec.ts",
+                          "column": 19,
+                          "line": 31
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 29 |\u001b[39m         \u001b[36mconst\u001b[39m response \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${API_URL}/health`\u001b[39m)\u001b[33m.\u001b[39m\u001b[36mcatch\u001b[39m(() \u001b[33m=>\u001b[39m \u001b[36mnull\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m         \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mresponse) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 31 |\u001b[39m             \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'Backend server is not running. Please start it first.'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                   \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 32 |\u001b[39m         }\n \u001b[90m 33 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 34 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\dadim\\OneDrive\\Desktop\\eRankUp\\frontend\\tests\\e2e\\complete-flow.spec.ts",
+                            "column": 19,
+                            "line": 31
+                          },
+                          "message": "Error: Backend server is not running. Please start it first.\n\n\u001b[0m \u001b[90m 29 |\u001b[39m         \u001b[36mconst\u001b[39m response \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${API_URL}/health`\u001b[39m)\u001b[33m.\u001b[39m\u001b[36mcatch\u001b[39m(() \u001b[33m=>\u001b[39m \u001b[36mnull\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m         \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mresponse) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 31 |\u001b[39m             \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'Backend server is not running. Please start it first.'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                   \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 32 |\u001b[39m         }\n \u001b[90m 33 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 34 |\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\dadim\\OneDrive\\Desktop\\eRankUp\\frontend\\tests\\e2e\\complete-flow.spec.ts:31:19\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-23T01:52:34.887Z",
+                      "annotations": [],
+                      "attachments": [],
+                      "errorLocation": {
+                        "file": "C:\\Users\\dadim\\OneDrive\\Desktop\\eRankUp\\frontend\\tests\\e2e\\complete-flow.spec.ts",
+                        "column": 19,
+                        "line": 31
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "e19be929e4468375478a-249ec91349435786f16e",
+              "file": "complete-flow.spec.ts",
+              "line": 35,
+              "column": 9
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-01-23T01:52:19.210Z",
+    "duration": 16010.884,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

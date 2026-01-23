@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, Index } from 'typeorm';
 import { Attempt } from './attempt.entity';
 import { Question } from './question.entity';
 
@@ -7,9 +7,11 @@ export class Response {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
+    @Index()
     @ManyToOne(() => Attempt, (attempt) => attempt.responses)
     attempt: Attempt;
 
+    @Index()
     @ManyToOne(() => Question)
     question: Question;
 

@@ -27,7 +27,8 @@
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^2.1.0",
     "tesseract.js": "^7.0.0",
-    "zustand": "^5.0.10"
+    "zustand": "^5.0.10",
+    "@erankup/shared": "*"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

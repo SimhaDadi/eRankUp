@@ -1,0 +1,72 @@
+FAIL src/gamification/gamification.service.spec.ts
+  GamificationService
+    awardXP
+      × should award XP and calculate correct level (11 ms)
+      × should not level up if XP threshold not reached (3 ms)
+    updateStreak
+      √ should increment streak if practiced today (1 ms)
+      √ should reset streak if missed a day (2 ms)
+    checkBadges
+      × should award "First Steps" badge after first test (1 ms)
+      √ should not award duplicate badges (1 ms)
+    getLeaderboard
+      √ should return top 100 users sorted by XP (1 ms)
+
+  ● GamificationService › awardXP › should award XP and calculate correct level
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"level": 2, "totalXp": 300}
+    Received: {"badges": [], "currentStreak": 0, "id": "1", "lastActivityDate": 2026-01-23T02:33:45.477Z, "level": 3, "longestStreak": 0, "totalXp": 300, "userId": "test-user-id"}
+
+    Number of calls: 1
+
+    [0m [90m 90 |[39m             expect(result[33m.[39mnewLevel)[33m.[39mtoBe([35m3[39m)[33m;[39m
+     [90m 91 |[39m             expect(result[33m.[39mleveledUp)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 92 |[39m             expect(mockUserGamificationRepo[33m.[39msave)[33m.[39mtoHaveBeenCalledWith(
+     [90m    |[39m                                                   [31m[1m^[22m[39m
+     [90m 93 |[39m                 expect[33m.[39mobjectContaining({
+     [90m 94 |[39m                     totalXp[33m:[39m [35m300[39m[33m,[39m
+     [90m 95 |[39m                     level[33m:[39m [35m2[39m[33m,[39m[0m
+
+      at Object.<anonymous> (gamification/gamification.service.spec.ts:92:51)
+
+  ● GamificationService › awardXP › should not level up if XP threshold not reached
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: undefined
+
+    [0m [90m 122 |[39m             [36mconst[39m result [33m=[39m [36mawait[39m service[33m.[39mawardXP(userId[33m,[39m xpToAward[33m,[39m [32m'Test reward'[39m)[33m;[39m
+     [90m 123 |[39m
+    [31m[1m>[22m[39m[90m 124 |[39m             expect(result[33m.[39mnewLevel)[33m.[39mtoBe([35m2[39m)[33m;[39m
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 125 |[39m             expect(result[33m.[39mleveledUp)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 126 |[39m         })[33m;[39m
+     [90m 127 |[39m     })[33m;[39m[0m
+
+      at Object.<anonymous> (gamification/gamification.service.spec.ts:124:37)
+
+  ● GamificationService › checkBadges › should award "First Steps" badge after first test
+
+    expect(received).toContainEqual(expected) // deep equality
+
+    Expected value: ObjectContaining {"id": "first_steps", "name": "First Steps"}
+    Received array: []
+
+    [0m [90m 212 |[39m             [36mconst[39m newBadges [33m=[39m [36mawait[39m service[33m.[39mcheckBadges(mockProfile [36mas[39m any)[33m;[39m
+     [90m 213 |[39m
+    [31m[1m>[22m[39m[90m 214 |[39m             expect(newBadges)[33m.[39mtoContainEqual(
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 215 |[39m                 expect[33m.[39mobjectContaining({
+     [90m 216 |[39m                     id[33m:[39m [32m'first_steps'[39m[33m,[39m
+     [90m 217 |[39m                     name[33m:[39m [32m'First Steps'[39m[33m,[39m[0m
+
+      at Object.<anonymous> (gamification/gamification.service.spec.ts:214:31)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 4 passed, 7 total
+Snapshots:   0 total
+Time:        3.301 s, estimated 4 s
+Ran all test suites matching /src\\gamification\\gamification.service.spec.ts/i.

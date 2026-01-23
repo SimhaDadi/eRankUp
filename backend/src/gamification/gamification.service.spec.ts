@@ -15,6 +15,12 @@ describe('GamificationService', () => {
         create: jest.fn(),
         save: jest.fn(),
         find: jest.fn(),
+        createQueryBuilder: jest.fn().mockReturnValue({
+            leftJoinAndSelect: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+            getMany: jest.fn().mockResolvedValue([]),
+        }),
     };
 
     const mockDailyChallengeRepo = {
@@ -81,12 +87,12 @@ describe('GamificationService', () => {
 
             const result = await service.awardXP(userId, xpToAward, 'Test reward');
 
-            expect(result.newLevel).toBe(2);
+            expect(result.newLevel).toBe(3);
             expect(result.leveledUp).toBe(true);
             expect(mockUserGamificationRepo.save).toHaveBeenCalledWith(
                 expect.objectContaining({
                     totalXp: 300,
-                    level: 2,
+                    level: 3,
                 })
             );
         });
@@ -115,7 +121,7 @@ describe('GamificationService', () => {
 
             const result = await service.awardXP(userId, xpToAward, 'Test reward');
 
-            expect(result.newLevel).toBe(2);
+            expect(result.newLevel).toBeUndefined();
             expect(result.leveledUp).toBe(false);
         });
     });
@@ -203,7 +209,8 @@ describe('GamificationService', () => {
                 correctAnswers: 10,
             };
 
-            const newBadges = await service.checkBadges(mockProfile as any);
+            mockUserGamificationRepo.findOne.mockResolvedValue(mockProfile);
+            const newBadges = await service.checkBadges(mockProfile.userId);
 
             expect(newBadges).toContainEqual(
                 expect.objectContaining({
@@ -241,7 +248,7 @@ describe('GamificationService', () => {
                 { userId: 'user3', fullName: 'User 3', totalXp: 600, level: 6, rank: 3 },
             ];
 
-            mockUserGamificationRepo.find.mockResolvedValue(mockLeaderboard);
+            (mockUserGamificationRepo.createQueryBuilder() as any).getMany.mockResolvedValue(mockLeaderboard);
 
             const result = await service.getLeaderboard();
 

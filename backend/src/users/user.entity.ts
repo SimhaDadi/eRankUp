@@ -1,9 +1,8 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 
-export enum UserRole {
-    STUDENT = 'student',
-    ADMIN = 'admin',
-}
+import { UserRole } from '@erankup/shared';
+
+export { UserRole };
 
 @Entity()
 export class User {

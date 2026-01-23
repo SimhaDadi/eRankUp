@@ -8,6 +8,7 @@ import { Model } from './entities/model.entity';
 import { Question } from './entities/question.entity';
 import { PaymentsService } from '../payments/payments.service';
 import { CacheService } from '../common/cache.service';
+import { CreateExamDto, CreateSubjectDto, CreateChapterDto, CreateModelDto } from '@erankup/shared';
 
 @Injectable()
 export class ExamsService {
@@ -316,11 +317,12 @@ export class ExamsService {
     }
 
     // --- Exam Management ---
-    async create(createExamDto: any) {
+    async create(createExamDto: CreateExamDto) {
         // Map 'name' to 'title' if title is missing (backward compatibility/frontend mismatch fix)
+        // DTO ensures title is present, but let's keep logic safe
         const examData = {
             ...createExamDto,
-            title: createExamDto.title || createExamDto.name,
+            title: createExamDto.title,
         };
 
         if (!examData.title) {
@@ -481,73 +483,60 @@ export class ExamsService {
     /**
      * Get full hierarchy: Exams -> Subjects -> Chapters with question counts
      */
+    /**
+     * Get full hierarchy: Exams -> Subjects -> Chapters with question counts
+     * Optimized to avoid N+1 queries.
+     */
     async getFullHierarchy() {
+        // 1. Fetch entire hierarchy in one query
         const exams = await this.examsRepository.find({
-            relations: ['subjects', 'subjects.chapters'],
+            relations: [
+                'subjects',
+                'subjects.chapters',
+                'subjects.chapters.models',
+                'subjects.chapters.models.exams' // Needed for examIds mapping
+            ],
             order: { title: 'ASC' }
         });
 
-        // Get question counts for each chapter
-        const enrichedExams = await Promise.all(
-            exams.map(async (exam) => ({
-                id: exam.id,
-                name: exam.title,
-                description: exam.description,
-                subjects: await Promise.all(
-                    (exam.subjects || []).map(async (subject) => ({
-                        id: subject.id,
-                        name: subject.title,
-                        examId: exam.id,
-                        chapters: await Promise.all(
-                            (subject.chapters || []).map(async (chapter) => {
-                                const chapterWithModels = await this.chapterRepository.findOne({
-                                    where: { id: chapter.id },
-                                    relations: ['models']
-                                });
-                                const questionCount = await this.questionRepository.count({
-                                    where: { chapter: { id: chapter.id } }
-                                });
-                                return {
-                                    id: chapter.id,
-                                    name: chapter.title,
-                                    subjectId: subject.id,
-                                    questionCount,
-                                    models: (chapterWithModels?.models || []).map(model => ({
-                                        id: model.id,
-                                        name: model.title,
-                                        totalQuestions: model.totalQuestions,
-                                        chapterId: chapter.id,
-                                        examIds: model.exams?.map(e => e.id) || []
-                                    }))
-                                };
-                            })
-                        )
+        // 2. Fetch all question counts grouped by chapter in one aggregate query
+        // "exam_questions_question" might not be relevant if we just want questions per chapter 
+        // regardless of model/exam. Assuming question.chapterId is the link.
+        const questionCounts = await this.questionRepository
+            .createQueryBuilder('question')
+            .select('question.chapterId', 'chapterId')
+            .addSelect('COUNT(question.id)', 'count')
+            .groupBy('question.chapterId')
+            .getRawMany();
+
+        // Convert counts to a Map for O(1) lookup
+        const countsMap = new Map<string, number>();
+        questionCounts.forEach(q => countsMap.set(q.chapterId, parseInt(q.count || '0')));
+
+        // 3. Transform data in memory
+        return exams.map(exam => ({
+            id: exam.id,
+            name: exam.title,
+            description: exam.description,
+            subjects: (exam.subjects || []).map(subject => ({
+                id: subject.id,
+                name: subject.title,
+                examId: exam.id,
+                chapters: (subject.chapters || []).map(chapter => ({
+                    id: chapter.id,
+                    name: chapter.title,
+                    subjectId: subject.id,
+                    questionCount: countsMap.get(chapter.id) || 0,
+                    models: (chapter.models || []).map(model => ({
+                        id: model.id,
+                        name: model.title,
+                        totalQuestions: model.totalQuestions,
+                        chapterId: chapter.id,
+                        examIds: model.exams?.map(e => e.id) || []
                     }))
-                )
+                }))
             }))
-        );
-
-        return enrichedExams;
-    }
-
-    async createExam(examData: { name: string; description?: string }) {
-        const exam = this.examsRepository.create({
-            title: examData.name,
-            description: examData.description
-        });
-        const saved = await this.examsRepository.save(exam);
-        await this.cacheService.del('exams:all');
-        return saved;
-    }
-
-    async updateExam(id: string, examData: { name?: string; description?: string }) {
-        await this.examsRepository.update(id, {
-            ...(examData.name && { title: examData.name }),
-            ...(examData.description && { description: examData.description })
-        });
-        await this.cacheService.del('exams:all');
-        await this.cacheService.del(`exam:${id}`);
-        return this.findOne(id);
+        }));
     }
 
     async deleteExam(id: string) {

@@ -1,0 +1,52 @@
+  console.log
+    [Scorer] Grading attempt for User: user-1, Model: model-1
+
+      at ScorerService.gradeAndSave (exams/scorer.service.ts:39:17)
+
+  console.log
+    [Scorer] Grading attempt for User: user-1, Model: m1
+
+      at ScorerService.gradeAndSave (exams/scorer.service.ts:39:17)
+
+FAIL src/exams/scorer.service.spec.ts
+  ScorerService
+    √ should be defined (9 ms)
+    gradeAndSave
+      × should correctly calculate score for a perfect attempt (17 ms)
+      × should correctly calculate score with negative marking (2 ms)
+
+  ● ScorerService › gradeAndSave › should correctly calculate score for a perfect attempt
+
+    TypeError: this.attemptRepository.create is not a function
+
+    [0m [90m 110 |[39m         [90m// 3. Save Attempt[39m
+     [90m 111 |[39m         [90m// We use IDs instead of objects where possible to prevent TypeORM from trying to "update" related entities[39m
+    [31m[1m>[22m[39m[90m 112 |[39m         [36mconst[39m attempt [33m=[39m [36mthis[39m[33m.[39mattemptRepository[33m.[39mcreate({
+     [90m     |[39m                                                [31m[1m^[22m[39m
+     [90m 113 |[39m             user[33m:[39m { id[33m:[39m user[33m.[39mid } [36mas[39m [33mUser[39m[33m,[39m
+     [90m 114 |[39m             model[33m:[39m model [33m?[39m ({ id[33m:[39m model[33m.[39mid } [36mas[39m [33mModel[39m) [33m:[39m undefined[33m,[39m
+     [90m 115 |[39m             score[33m:[39m [33mMath[39m[33m.[39mround(score [33m*[39m [35m100[39m) [33m/[39m [35m100[39m[33m,[39m[0m
+
+      at ScorerService.gradeAndSave (exams/scorer.service.ts:112:48)
+      at Object.<anonymous> (exams/scorer.service.spec.ts:94:28)
+
+  ● ScorerService › gradeAndSave › should correctly calculate score with negative marking
+
+    TypeError: this.attemptRepository.create is not a function
+
+    [0m [90m 110 |[39m         [90m// 3. Save Attempt[39m
+     [90m 111 |[39m         [90m// We use IDs instead of objects where possible to prevent TypeORM from trying to "update" related entities[39m
+    [31m[1m>[22m[39m[90m 112 |[39m         [36mconst[39m attempt [33m=[39m [36mthis[39m[33m.[39mattemptRepository[33m.[39mcreate({
+     [90m     |[39m                                                [31m[1m^[22m[39m
+     [90m 113 |[39m             user[33m:[39m { id[33m:[39m user[33m.[39mid } [36mas[39m [33mUser[39m[33m,[39m
+     [90m 114 |[39m             model[33m:[39m model [33m?[39m ({ id[33m:[39m model[33m.[39mid } [36mas[39m [33mModel[39m) [33m:[39m undefined[33m,[39m
+     [90m 115 |[39m             score[33m:[39m [33mMath[39m[33m.[39mround(score [33m*[39m [35m100[39m) [33m/[39m [35m100[39m[33m,[39m[0m
+
+      at ScorerService.gradeAndSave (exams/scorer.service.ts:112:48)
+      at Object.<anonymous> (exams/scorer.service.spec.ts:112:28)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 1 passed, 3 total
+Snapshots:   0 total
+Time:        3.51 s, estimated 4 s
+Ran all test suites matching /src\\exams\\scorer.service.spec.ts/i.

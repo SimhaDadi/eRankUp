@@ -1,0 +1,17 @@
+{
+    "name": "@erankup/shared",
+    "version": "0.0.1",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "class-transformer": "^0.5.1",
+        "class-validator": "^0.14.3",
+        "reflect-metadata": "^0.1.13"
+    },
+    "devDependencies": {
+        "typescript": "^5.1.3"
+    }
+}

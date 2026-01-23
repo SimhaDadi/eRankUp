@@ -19,10 +19,14 @@ export class AdaptiveLearningService {
         private responseRepo: Repository<Response>,
     ) { }
 
-    async calculateMasteryScore(userId: string, topic: string): Promise<number> {
-        const mastery = await this.masteryRepo.findOne({
-            where: { userId, topic },
-        });
+    async calculateMasteryScore(userId: string, topic: string, existingMastery?: UserTopicMastery): Promise<number> {
+        let mastery = existingMastery;
+
+        if (!mastery) {
+            mastery = await this.masteryRepo.findOne({
+                where: { userId, topic },
+            });
+        }
 
         if (!mastery || mastery.totalAttempts === 0) {
             return 0;
@@ -87,7 +91,7 @@ export class AdaptiveLearningService {
             mastery.totalAttempts += stats.total;
             mastery.correctAttempts += stats.correct;
             mastery.lastPracticedAt = new Date();
-            mastery.masteryScore = await this.calculateMasteryScore(userId, topic);
+            mastery.masteryScore = await this.calculateMasteryScore(userId, topic, mastery);
 
             await this.masteryRepo.save(mastery);
         }

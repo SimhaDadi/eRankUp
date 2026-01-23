@@ -8,7 +8,8 @@ import { PaymentsService } from '../payments/payments.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../users/user.entity';
+import { UserRole } from '@erankup/shared';
+import { CreateExamDto, UpdateExamDto, CreateSubjectDto, UpdateSubjectDto, CreateChapterDto, UpdateChapterDto, CreateModelDto, BulkCreateQuestionsDto } from '@erankup/shared';
 
 @Controller('exams')
 export class ExamsController {
@@ -93,7 +94,7 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Post()
-    create(@Body() createExamDto: any) {
+    create(@Body() createExamDto: CreateExamDto) {
         return this.examsService.create(createExamDto);
     }
 
@@ -169,21 +170,21 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Post('subjects')
-    createSubject(@Body() subjectData: any) {
+    createSubject(@Body() subjectData: CreateSubjectDto) {
         return this.examsService.createSubject(subjectData);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Post('subjects/:id/chapters')
-    createChapter(@Param('id') subjectId: string, @Body() chapterData: any) {
+    createChapter(@Param('id') subjectId: string, @Body() chapterData: CreateChapterDto) {
         return this.examsService.createChapter(subjectId, chapterData);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Put('subjects/:id')
-    updateSubject(@Param('id') id: string, @Body() data: any) {
+    updateSubject(@Param('id') id: string, @Body() data: UpdateSubjectDto) {
         return this.examsService.updateSubject(id, data);
     }
 
@@ -197,7 +198,7 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Put('subjects/:subjectId/chapters/:chapterId')
-    updateChapter(@Param('subjectId') subjectId: string, @Param('chapterId') chapterId: string, @Body() data: any) {
+    updateChapter(@Param('subjectId') subjectId: string, @Param('chapterId') chapterId: string, @Body() data: UpdateChapterDto) {
         return this.examsService.updateChapter(subjectId, chapterId, data);
     }
 
@@ -211,7 +212,7 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Post('chapters/:id/models')
-    createModel(@Param('id') chapterId: string, @Body() modelData: any) {
+    createModel(@Param('id') chapterId: string, @Body() modelData: CreateModelDto) {
         return this.examsService.createModel(chapterId, modelData);
     }
 
@@ -245,8 +246,8 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Post('models/:id/questions/bulk')
-    createQuestionsBulk(@Param('id') modelId: string, @Body('questions') questions: any[]) {
-        return this.examsService.createQuestionsBulk(modelId, questions);
+    createQuestionsBulk(@Param('id') modelId: string, @Body() dto: BulkCreateQuestionsDto) {
+        return this.examsService.createQuestionsBulk(modelId, dto.questions);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)

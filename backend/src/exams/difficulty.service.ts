@@ -28,9 +28,33 @@ export class DifficultyService {
     }
 
     async bulkUpdateStats(results: { questionId: string; isCorrect: boolean }[]) {
-        // For large scale, we should use a more efficient query or batching
+        const stats = new Map<string, { total: number; correct: number }>();
+
+        // Aggregate locally first
         for (const res of results) {
-            await this.updateQuestionStats(res.questionId, res.isCorrect);
+            const current = stats.get(res.questionId) || { total: 0, correct: 0 };
+            current.total++;
+            if (res.isCorrect) current.correct++;
+            stats.set(res.questionId, current);
         }
+
+        // Apply updates
+        const promises = Array.from(stats.entries()).map(async ([questionId, update]) => {
+            const question = await this.questionRepository.findOneBy({ id: questionId });
+            if (!question) return;
+
+            question.totalAttempts += update.total;
+            question.correctCount += update.correct;
+
+            // Recalculate difficulty
+            if (question.totalAttempts > 0) {
+                const successRate = question.correctCount / question.totalAttempts;
+                question.difficultyWeight = 1.0 - successRate;
+            }
+
+            return this.questionRepository.save(question);
+        });
+
+        await Promise.all(promises);
     }
 }
