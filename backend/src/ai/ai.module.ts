@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { AIService } from './ai.service';
 import { AIController } from './ai.controller';
 import { ExplanationController } from './explanation.controller';
@@ -17,7 +18,8 @@ import { AdminModule } from '../admin/admin.module';
 @Module({
     imports: [
         TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, QuestionExplanation, Exam]),
-        forwardRef(() => AdminModule)
+        forwardRef(() => AdminModule),
+        ConfigModule
     ],
     controllers: [AIController, ExplanationController],
     providers: [AIService, MigrationService, ExplanationService],

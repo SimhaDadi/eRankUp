@@ -115,11 +115,11 @@ export class ExplanationService {
         const correctOption = question.options.find(opt => opt.id === question.correctOptionId);
         const userOption = userAnswer ? question.options.find(opt => opt.id === userAnswer) : null;
 
-        let prompt = `You are an expert tutor for ${examContext} in India. Your objective is precisely explaining solutions to aspirants.
+        let prompt = `You are a Senior Faculty Mentor for ${examContext}. Your goal is to explain this solution with absolute clarity and authority, like a top-tier professor.
 
-### Question Context
+### Context
 - **Subject**: ${subject}
-- **Topic**: ${question.topic}${question.chapter ? ` (${question.chapter.title})` : ''}
+- **Topic**: ${question.topic}${question.chapter ? ` - ${question.chapter.title}` : ''}
 - **Question**: ${question.content}
 - **Options**:
 ${question.options.map(opt => `${opt.id}) ${opt.text}`).join('\n')}
@@ -127,42 +127,81 @@ ${question.options.map(opt => `${opt.id}) ${opt.text}`).join('\n')}
 `;
 
         if (userAnswer && userAnswer !== question.correctOptionId) {
-            prompt += `- **Student's Selected Option**: ${userAnswer}) ${userOption?.text}\n`;
+            prompt += `- **Student's Wrong Choice**: ${userAnswer}) ${userOption?.text}\n`;
         }
 
         prompt += `
-### Instructions for High-Quality Solution
-1. **Step-by-Step Logic**: Detail the derivation. For Math/Reasoning, use LaTeX. For GK/English, explain the specific rule.
-2. **Option Elimination**: Briefly explain why the other options (distractors) are incorrect, especially if they are commonly confused with the correct one.
-3. **Negative Marking Caution**: Mention if this is a high-risk topic where students should be cautious of guessing (important for SSC/RRB).
-4. **The "Exam Hack"**: Provide a 20-second shortcut or mnemonic (Trick) for the exam hall.
-5. **Hinglish Summary**: End with a 1-sentence conversational summary in Hinglish (e.g., "Dosto, yahan trick ye hai ki...").
+### Instructions for the Explanation
+Write a concise, high-impact explanation using the following Markdown structure strictly:
 
-### Constraints
-- **Absolute Accuracy**: No hallucinations. Verify facts before stating.
-- **Student-Centric Tone**: Encouraging, professional, and clear.
-- **Length**: Keep under 200 words.`;
+**1. The Core Concept** 💡
+- In one sharp sentence, identify the underlying principle or formula tested here.
+
+**2. Strategic Solution** 🚀
+- Explain the logic clearly.
+- If it's Math/Physics, use clear LaTeX formatting (e.g., $E = mc^2$).
+- Avoid clutter—get straight to the right answer.
+- Step-by-step derivation ONLY if complex calculation is needed.
+
+**3. Why Options are Incorrect** (Optional, only if crucial)
+- Briefly mention why the most common distractor is wrong (don't list all if obvious).
+
+**4. Pro Tip / Shortcut** 🔥
+- Provide a "Ranker's Hack": A mnemonic, shortcut formula, or logic check to solve this in under 30 seconds.
+
+### Tone & Style Guide
+- **Professional & Direct**: No fluff. No "Hello student" or "Let's solve this".
+- **Visual Clarity**: Use bolding (**text**) for key terms/numbers.
+- **Experience**: Sound like an expert who knows *exactly* where students make mistakes.
+- **No Hinglish**: Standard, high-quality English only.`;
+
+        return prompt;
 
         return prompt;
     }
 
     async generateBulkExplanations(questionIds: string[]): Promise<Map<string, string>> {
         const explanations = new Map<string, string>();
+        console.log(`[ExplanationService] Starting bulk generation for ${questionIds.length} questions`);
 
-        for (const questionId of questionIds) {
+        for (const [index, questionId] of questionIds.entries()) {
             try {
                 const explanation = await this.generateExplanation(questionId);
                 explanations.set(questionId, explanation);
+                console.log(`[ExplanationService] Generated ${index + 1}/${questionIds.length}: ${questionId}`);
 
                 // Free tier: 15 RPM = 4 seconds between requests
-                await new Promise(resolve => setTimeout(resolve, 4000));
+                if (index < questionIds.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 4000));
+                }
             } catch (error) {
-                console.error(`Failed to generate explanation for ${questionId}:`, error);
+                console.error(`[ExplanationService] Failed to generate explanation for ${questionId}:`, error);
             }
         }
 
+        console.log('[ExplanationService] Bulk generation completed');
         return explanations;
     }
+
+    async generateMissingExplanations(limit: number = 50): Promise<number> {
+        // Find questions that DO NOT have an explanation in QuestionExplanation table
+        const qb = this.questionRepository.createQueryBuilder('question')
+            .leftJoin(QuestionExplanation, 'qe', 'qe.questionId = question.id')
+            .where('qe.id IS NULL')
+            .take(limit);
+
+        const questions = await qb.getMany();
+        console.log(`[ExplanationService] Found ${questions.length} questions missing explanations`);
+
+        if (questions.length > 0) {
+            this.generateBulkExplanations(questions.map(q => q.id)).catch(err =>
+                console.error('[ExplanationService] Background generation error:', err)
+            );
+        }
+
+        return questions.length;
+    }
+
 
     async listExplanations(filters: {
         verified?: boolean;

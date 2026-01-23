@@ -63,6 +63,40 @@ export class ExplanationController {
     }
 
     /**
+     * Generate missing explanations for questions
+     * Admin only - backfill utility
+     */
+    @Post('generate-missing')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async generateMissingExplanations(
+        @Body('limit') limit?: number
+    ) {
+        try {
+            // Check if AI service is initialized
+            if (!this.explanationService['isInitialized']) {
+                throw new HttpException(
+                    'AI service not configured. Please set GEMINI_API_KEY environment variable. Get your free API key at: https://makersuite.google.com/app/apikey',
+                    HttpStatus.SERVICE_UNAVAILABLE
+                );
+            }
+
+            const count = await this.explanationService.generateMissingExplanations(limit);
+
+            return {
+                success: true,
+                message: `Triggered generation for ${count} missing explanations`,
+                count
+            };
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to generate missing explanations',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
      * Batch generate explanations for multiple questions
      * Admin only - processes questions without explanations
      */
@@ -91,9 +125,14 @@ export class ExplanationController {
 
             // If no specific IDs provided, find questions without explanations
             if (questionIds.length === 0) {
-                // This would need a method in ExplanationService to find questions
-                // For now, we'll return an error
-                throw new Error('Please provide questionIds or use the AI controller endpoint');
+                // Use the missing generator but keep the bulk-generate interface for specific IDs
+                const count = await this.explanationService.generateMissingExplanations(body.limit);
+                return {
+                    success: true,
+                    message: `Triggered generation for ${count} missing explanations available via bulk`,
+                    generated: count,
+                    questionIds: []
+                };
             }
 
             const explanations = await this.explanationService.generateBulkExplanations(questionIds);
@@ -110,6 +149,7 @@ export class ExplanationController {
             );
         }
     }
+
 
     /**
      * Get explanation for a question

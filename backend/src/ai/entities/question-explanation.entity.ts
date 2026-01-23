@@ -2,17 +2,17 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, Up
 import { Question } from '../../exams/entities/question.entity';
 import { Exam } from '../../exams/entities/exam.entity';
 
-@Entity()
+@Entity('question_explanation')
 export class QuestionExplanation {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
     @ManyToOne(() => Question, { onDelete: 'CASCADE' })
-    @Index()
+    @Index('IDX_QE_QUESTION')
     question: Question;
 
     @Column()
-    @Index()
+    @Index('IDX_QE_QUESTION_ID')
     questionId: string;
 
     @ManyToOne(() => Exam, { nullable: true, onDelete: 'SET NULL' })
@@ -20,7 +20,7 @@ export class QuestionExplanation {
     contextExam: Exam;
 
     @Column({ nullable: true })
-    @Index()
+    @Index('IDX_QE_CONTEXT_EXAM_ID')
     contextExamId: string;
 
     @Column('text')

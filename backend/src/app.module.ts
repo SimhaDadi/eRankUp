@@ -33,7 +33,7 @@ import { AIChatModule } from './ai-chat/ai-chat.module';
                 database: config.get<string>('DB_NAME', 'erankup_db'),
                 // entities: [__dirname + '/**/*.entity{.ts,.js}'],
                 autoLoadEntities: true,
-                synchronize: false,
+                synchronize: true,
             }),
         }),
         AuthModule,

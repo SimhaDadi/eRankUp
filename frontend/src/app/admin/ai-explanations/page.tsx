@@ -127,14 +127,34 @@ export default function AIExplanationsPage() {
     return (
         <div className="space-y-8 pb-10">
             {/* Header */}
-            <header className="flex flex-col gap-1">
-                <h1 className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                    AI Explanation Management
-                </h1>
-                <p className="text-slate-400 font-medium">
-                    Review, approve, and manage AI-generated question explanations
-                </p>
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                        AI Explanation Management
+                    </h1>
+                    <p className="text-slate-400 font-medium">
+                        Review, approve, and manage AI-generated question explanations
+                    </p>
+                </div>
+                <button
+                    onClick={async () => {
+                        if (confirm('Generative missing explanations for up to 50 questions? This happens in the background.')) {
+                            try {
+                                await api.post('/explanations/generate-missing', { limit: 50 });
+                                alert('Background generation started! Refresh metrics in a few minutes.');
+                            } catch (e: any) {
+                                console.error(e);
+                                alert(`Failed to start generation: ${e.response?.data?.message || e.message}`);
+                            }
+                        }
+                    }}
+                    className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all transform hover:scale-105 active:scale-95"
+                >
+                    <RefreshCw className="w-5 h-5" />
+                    <span>Generate Missing</span>
+                </button>
             </header>
+
 
             {/* Statistics Cards */}
             {stats && (
