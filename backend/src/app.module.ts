@@ -21,7 +21,10 @@ import { PassesModule } from './passes/passes.module';
 
 @Module({
     imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
+        ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: ['.env', 'backend/.env', '../.env'],
+        }),
         CommonModule,
         TypeOrmModule.forRootAsync({
             imports: [ConfigModule],

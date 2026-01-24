@@ -1,16 +1,22 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Pass } from './entities/pass.entity';
 import { UserPass } from './entities/user-pass.entity';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Razorpay = require('razorpay');
 
 @Injectable()
 export class PassesService implements OnModuleInit {
+    private readonly logger = new Logger(PassesService.name);
+
     constructor(
         @InjectRepository(Pass)
         private passRepo: Repository<Pass>,
         @InjectRepository(UserPass)
         private userPassRepo: Repository<UserPass>,
+        private configService: ConfigService,
     ) { }
 
     async onModuleInit() {
@@ -68,49 +74,58 @@ export class PassesService implements OnModuleInit {
         }
 
         // Razorpay Order Logic
-        // Initialize Razorpay instance (using ConfigService would be better but for speed: reusing same keys)
-        // TODO: Inject ConfigService properly
-        const Razorpay = require('razorpay');
-        const instance = new Razorpay({
-            key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
-            key_secret: process.env.RAZORPAY_KEY_SECRET || 'secret_placeholder',
-        });
+        const keyId = this.configService.get<string>('RAZORPAY_KEY_ID');
+        const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
 
-        const options = {
-            amount: Math.round(pass.price * 100),
-            currency: "INR",
-            receipt: `pass_order_${Date.now()}`,
-        };
+        if (!keyId || !keySecret) {
+            this.logger.error('Razorpay keys are missing in environment variables');
+            throw new Error('Payment gateway configuration error');
+        }
 
-        const order = await instance.orders.create(options);
+        try {
+            const instance = new Razorpay({
+                key_id: keyId,
+                key_secret: keySecret,
+            });
 
-        // Store tentative UserPass (PENDING)? Or just return order details?
-        // Let's create a pending UserPass to track
-        const userPass = this.userPassRepo.create({
-            user: { id: user.id } as any,
-            pass,
-            userId: user.id,
-            passId: pass.id,
-            purchaseDate: new Date(),
-            expiryDate: new Date(), // Placeholder
-            status: 'PENDING',
-            razorpayOrderId: order.id
-        });
-        await this.userPassRepo.save(userPass);
+            const options = {
+                amount: Math.round(pass.price * 100),
+                currency: "INR",
+                receipt: `pass_order_${Date.now()}`,
+            };
 
-        return {
-            id: order.id,
-            amount: order.amount,
-            currency: order.currency,
-            keyId: process.env.RAZORPAY_KEY_ID,
-            passId: pass.id,
-            userPassId: userPass.id
-        };
+            const order = await instance.orders.create(options);
+
+            // Create pending UserPass
+            const userPass = this.userPassRepo.create({
+                user: { id: user.userId } as any,
+                pass,
+                userId: user.userId,
+                passId: pass.id,
+                purchaseDate: new Date(),
+                expiryDate: new Date(), // Placeholder
+                status: 'PENDING',
+                razorpayOrderId: order.id
+            });
+            await this.userPassRepo.save(userPass);
+
+            return {
+                id: order.id,
+                amount: order.amount,
+                currency: order.currency,
+                keyId: keyId,
+                passId: pass.id,
+                userPassId: userPass.id
+            };
+        } catch (error) {
+            this.logger.error(`Razorpay order creation failed: ${error.message}`, error.stack);
+            throw new Error('Failed to create payment order');
+        }
     }
 
     async verifyPayment(user: any, payload: { razorpayOrderId: string, razorpayPaymentId: string, razorpaySignature: string }) {
         const crypto = require('crypto');
-        const secret = process.env.RAZORPAY_KEY_SECRET;
+        const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
 
         const generated_signature = crypto
             .createHmac('sha256', secret)
@@ -148,9 +163,9 @@ export class PassesService implements OnModuleInit {
         expiry.setDate(now.getDate() + pass.durationDays);
 
         const userPass = this.userPassRepo.create({
-            user: { id: user.id } as any,
+            user: { id: user.userId } as any,
             pass,
-            userId: user.id,
+            userId: user.userId,
             passId: pass.id,
             purchaseDate: now,
             expiryDate: expiry,

@@ -251,7 +251,11 @@ export default function SettingsPage() {
                 </motion.div>
             )}
 
-            {activeTab !== 'Profile' && (
+            {activeTab === 'Pass' && (
+                <PassSettingsTab />
+            )}
+
+            {activeTab !== 'Profile' && activeTab !== 'Pass' && (
                 <div className="bg-white border border-gray-200 rounded-3xl p-10 shadow-xl flex flex-col items-center justify-center min-h-[400px] text-center space-y-4">
                     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-2">
                         <Book className="w-8 h-8" />
@@ -262,6 +266,92 @@ export default function SettingsPage() {
                     </p>
                 </div>
             )}
+        </div>
+    );
+}
+
+function PassSettingsTab() {
+    const [pass, setPass] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchPass = async () => {
+            try {
+                const res = await api.get('/passes/my-pass');
+                setPass(res.data);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPass();
+    }, []);
+
+    if (loading) return <div className="p-10 text-center text-slate-500">Loading Pass Details...</div>;
+
+    if (!pass) {
+        return (
+            <div className="bg-white border border-gray-200 rounded-3xl p-10 shadow-xl flex flex-col items-center justify-center min-h-[300px] text-center space-y-4">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-2">
+                    <Building className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">No Active Pass</h3>
+                <p className="text-slate-500 max-w-sm">
+                    You don't have an active pass. Upgrade to unlock premium features and unlimited tests.
+                </p>
+                <a href="/dashboard/plans" className="mt-4 px-6 py-2 bg-[#00bfa5] text-white rounded-xl font-bold hover:bg-[#00a891] transition-colors">
+                    View Plans
+                </a>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-xl space-y-8">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-6">
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-900">My Active Pass</h2>
+                    <p className="text-slate-500 text-sm">Manage your subscription and billing details</p>
+                </div>
+                <div className="px-4 py-1.5 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-widest border border-green-200 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    {pass.status}
+                </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 flex flex-col md:flex-row gap-8 items-start">
+                <div className="flex-1 space-y-4">
+                    <div>
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Plan Name</span>
+                        <h3 className="text-xl font-black text-slate-800 mt-1">{pass.pass?.title}</h3>
+                    </div>
+                    <div className="flex gap-8">
+                        <div>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Purchased On</span>
+                            <p className="text-sm font-bold text-slate-700 mt-1">
+                                {new Date(pass.purchaseDate).toLocaleDateString(undefined, { dateStyle: 'long' })}
+                            </p>
+                        </div>
+                        <div>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valid Until</span>
+                            <p className="text-sm font-bold text-slate-700 mt-1">
+                                {new Date(pass.expiryDate).toLocaleDateString(undefined, { dateStyle: 'long' })}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm w-full md:w-64">
+                    <div className="text-center space-y-2">
+                        <span className="text-xs font-bold text-slate-400 uppercase">Days Remaining</span>
+                        <div className="text-4xl font-black text-[#00bfa5]">
+                            {Math.ceil((new Date(pass.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium">Enjoy your premium access!</p>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
