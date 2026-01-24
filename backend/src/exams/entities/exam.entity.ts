@@ -5,7 +5,9 @@ import { Question } from './question.entity';
 
 export enum ExamType {
     REAL_EXAM = 'real_exam',
-    QUESTION_BANK = 'question_bank'
+    QUESTION_BANK = 'question_bank',
+    PREVIOUS_YEAR_PAPER = 'previous_year_paper',
+    LIVE_EXAM = 'live_exam'
 }
 
 @Entity()
@@ -25,6 +27,9 @@ export class Exam {
 
     @Column({ nullable: true })
     description: string;
+
+    @Column({ nullable: true })
+    category: string;
 
     @Column({ default: true })
     isActive: boolean;

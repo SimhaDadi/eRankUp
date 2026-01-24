@@ -715,6 +715,19 @@ export class ExamsService implements OnApplicationBootstrap {
         };
     }
 
+    async getPracticeQuestions(chapterId: string, limit: number = 10) {
+        // Use RANDOM() for SQLite/Postgres. For MySQL it's RAND()
+        // Assuming Postgres/SQLite based on probable stack (NestJS default often uses Postgres or SQLite for dev)
+        // If TypeORM abstract, we might need a different approach or raw query.
+        // But 'ORDER BY RANDOM()' is standard enough for now.
+        return this.questionRepository
+            .createQueryBuilder('question')
+            .where('question.chapterId = :chapterId', { chapterId })
+            .orderBy('RANDOM()')
+            .take(limit)
+            .getMany();
+    }
+
     async unlinkQuestionsFromExam(examId: string, questionIds: string[]) {
         const exam = await this.examsRepository.findOne({
             where: { id: examId },

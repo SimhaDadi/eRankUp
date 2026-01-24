@@ -1,26 +1,59 @@
 'use client';
 
-import { useState } from 'react';
-import { FileText, Download, Calendar, BookOpen, Search, Filter, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileText, Download, Calendar, BookOpen, Search, Filter, Eye, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
+import api from '@/lib/api';
+import Link from 'next/link';
 
 export default function PreviousYearPapersPage() {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedExam, setSelectedExam] = useState('all');
-    const [selectedYear, setSelectedYear] = useState('all');
+    const [papers, setPapers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [activeCategory, setActiveCategory] = useState<string>('All');
 
-    const papers = [];
+    useEffect(() => {
+        const fetchPapers = async () => {
+            try {
+                const res = await api.get('/exams?type=previous_year_paper');
+                setPapers(res.data);
+                if (res.data.length > 0) {
+                    // Auto-select first category if available, else 'All' or specific logic
+                    // For now default to 'All' or user can switch.
+                    // Actually better to default to the most popular or first one found?
+                    // Let's keep 'SSC' as default if present, else first one.
+                    const cats = Array.from(new Set(res.data.map((p: any) => p.category || 'Other')));
+                    if (cats.includes('SSC')) setActiveCategory('SSC');
+                    else if (cats.length > 0) setActiveCategory(cats[0] as string);
+                }
+            } catch (error) {
+                console.error("Failed to fetch papers", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPapers();
+    }, []);
 
-    const exams = ['all', 'SSC CGL', 'RRB NTPC', 'SBI PO', 'IBPS PO', 'UPSC CSE'];
-    const years = ['all', '2023', '2022', '2021', '2020'];
+    const categories = ['All', ...Array.from(new Set(papers.map(p => p.category || 'Other')))].filter(c => c !== 'All' || papers.length > 0);
+    // Actually, distinct categories from papers + 'All' if we want.
+    // Let's just use the distinct categories found in data.
+    const distinctCategories = Array.from(new Set(papers.map(p => p.category || 'Other')));
 
-    const filteredPapers = papers.filter(paper => {
-        const matchesSearch = paper.exam.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            paper.tier.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesExam = selectedExam === 'all' || paper.exam === selectedExam;
-        const matchesYear = selectedYear === 'all' || paper.year.toString() === selectedYear;
-        return matchesSearch && matchesExam && matchesYear;
-    });
+    const filteredPapers = activeCategory === 'All'
+        ? papers
+        : papers.filter(p => (p.category || 'Other') === activeCategory);
+
+    const handleDownload = (paper: any) => {
+        alert("Download feature coming soon! (ID: " + paper.id + ")");
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="text-slate-500 animate-pulse">Loading papers...</div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-8">
@@ -31,110 +64,20 @@ export default function PreviousYearPapersPage() {
                     <p className="text-gray-600">Download and practice with authentic exam papers from past years</p>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <motion.div
-                        whileHover={{ y: -5 }}
-                        className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <FileText className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-gray-900">{papers.length}</div>
-                                <div className="text-sm text-gray-500">Total Papers</div>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        whileHover={{ y: -5 }}
-                        className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                                <BookOpen className="w-6 h-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-gray-900">{exams.length - 1}</div>
-                                <div className="text-sm text-gray-500">Exams Covered</div>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        whileHover={{ y: -5 }}
-                        className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <Calendar className="w-6 h-6 text-purple-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-gray-900">4</div>
-                                <div className="text-sm text-gray-500">Years Available</div>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        whileHover={{ y: -5 }}
-                        className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                                <Download className="w-6 h-6 text-orange-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-gray-900">15k+</div>
-                                <div className="text-sm text-gray-500">Downloads</div>
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
-
-                {/* Filters */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Search */}
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Search papers..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-
-                        {/* Exam Filter */}
-                        <select
-                            value={selectedExam}
-                            onChange={(e) => setSelectedExam(e.target.value)}
-                            className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {/* Categories */}
+                <div className="flex flex-wrap gap-2 mb-8">
+                    {distinctCategories.map(category => (
+                        <button
+                            key={category}
+                            onClick={() => setActiveCategory(category)}
+                            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeCategory === category
+                                ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                                }`}
                         >
-                            {exams.map(exam => (
-                                <option key={exam} value={exam}>
-                                    {exam === 'all' ? 'All Exams' : exam}
-                                </option>
-                            ))}
-                        </select>
-
-                        {/* Year Filter */}
-                        <select
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(e.target.value)}
-                            className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            {years.map(year => (
-                                <option key={year} value={year}>
-                                    {year === 'all' ? 'All Years' : year}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                            {category}
+                        </button>
+                    ))}
                 </div>
 
                 {/* Papers Grid */}
@@ -152,37 +95,42 @@ export default function PreviousYearPapersPage() {
                                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                                     <FileText className="w-6 h-6 text-white" />
                                 </div>
-                                <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
-                                    {paper.year}
-                                </span>
+                                {paper.createdAt && (
+                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                                        {new Date(paper.createdAt).getFullYear()}
+                                    </span>
+                                )}
                             </div>
 
-                            <h3 className="text-lg font-bold text-gray-900 mb-1">{paper.exam}</h3>
-                            <p className="text-sm text-gray-500 mb-4">{paper.tier}</p>
+                            <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2 min-h-[56px]">{paper.title}</h3>
+                            <p className="text-sm text-gray-500 mb-4 line-clamp-1">{paper.description || 'Official Previous Year Paper'}</p>
 
                             <div className="space-y-2 mb-6">
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                     <Calendar className="w-4 h-4" />
-                                    <span>{new Date(paper.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                    <span>Added {new Date(paper.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                     <BookOpen className="w-4 h-4" />
-                                    <span>{paper.questions} Questions</span>
+                                    <span>{paper.questionCount || 0} Questions</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                     <Download className="w-4 h-4" />
-                                    <span>{paper.downloads} Downloads</span>
+                                    <span>{0} Downloads</span>
                                 </div>
                             </div>
 
                             <div className="flex gap-2">
-                                <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                                <button
+                                    onClick={() => handleDownload(paper)}
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                                >
                                     <Download className="w-4 h-4" />
-                                    Download
+                                    PDF
                                 </button>
-                                <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
-                                    <Eye className="w-4 h-4" />
-                                </button>
+                                <Link href={`/dashboard/exams/${paper.id}`} className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors border border-emerald-200">
+                                    <Play className="w-4 h-4" />
+                                </Link>
                             </div>
                         </motion.div>
                     ))}
@@ -192,7 +140,7 @@ export default function PreviousYearPapersPage() {
                     <div className="text-center py-16">
                         <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-xl font-bold text-gray-900 mb-2">No papers found</h3>
-                        <p className="text-gray-500">Try adjusting your filters or search query</p>
+                        <p className="text-gray-500">Check back later for new uploads!</p>
                     </div>
                 )}
             </div>

@@ -414,4 +414,15 @@ export class ExamsController {
     deleteExam(@Param('id') id: string) {
         return this.examsService.deleteExam(id);
     }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get('practice/:chapterId/start')
+    async startPractice(@Param('chapterId') chapterId: string, @Query('limit') limit: number = 20) {
+        const questions = await this.examsService.getPracticeQuestions(chapterId, limit);
+        return {
+            id: `practice-${chapterId}-${Date.now()}`, // Virtual Exam ID
+            title: 'Chapter Practice',
+            questions
+        };
+    }
 }

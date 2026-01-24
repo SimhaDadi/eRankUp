@@ -3,7 +3,9 @@ import { Type } from 'class-transformer';
 
 export enum ExamType {
     REAL_EXAM = 'real_exam',
-    QUESTION_BANK = 'question_bank'
+    QUESTION_BANK = 'question_bank',
+    PREVIOUS_YEAR_PAPER = 'previous_year_paper',
+    LIVE_EXAM = 'live_exam'
 }
 
 export class CreateExamDto {
@@ -18,6 +20,10 @@ export class CreateExamDto {
     @IsString()
     @IsOptional()
     description?: string;
+
+    @IsString()
+    @IsOptional()
+    category?: string;
 
     @IsDateString()
     @IsOptional()
@@ -52,6 +58,14 @@ export class UpdateExamDto {
     @IsString()
     @IsOptional()
     title?: string;
+
+    @IsString()
+    @IsOptional()
+    category?: string;
+
+    @IsBoolean()
+    @IsOptional()
+    isPublished?: boolean;
 }
 
 // Content Hierarchy

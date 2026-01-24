@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Loader2, Plus, Library } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { X, Loader2, Plus, Library, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 
 interface CreateExamModalProps {
@@ -15,9 +15,12 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
     const [formData, setFormData] = useState({
         title: '',
         description: '',
+        category: 'SSC',
         type: 'real_exam',
         defaultPositiveMarks: 1,
-        defaultNegativeMarks: 0.25
+        defaultNegativeMarks: 0.25,
+        startTime: '',
+        endTime: ''
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -36,6 +39,13 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
         if (formData.defaultNegativeMarks < 0) {
             newErrors.defaultNegativeMarks = 'Negative marks cannot be negative';
         }
+        if (formData.type === 'live_exam') {
+            if (!formData.startTime) newErrors.startTime = 'Start time is required';
+            if (!formData.endTime) newErrors.endTime = 'End time is required';
+            if (formData.startTime && formData.endTime && new Date(formData.startTime) >= new Date(formData.endTime)) {
+                newErrors.endTime = 'End time must be after start time';
+            }
+        }
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -51,9 +61,12 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
             setFormData({
                 title: '',
                 description: '',
+                category: 'SSC',
                 type: 'real_exam',
                 defaultPositiveMarks: 1,
-                defaultNegativeMarks: 0.25
+                defaultNegativeMarks: 0.25,
+                startTime: '',
+                endTime: ''
             });
             setErrors({});
         } catch (error: any) {
@@ -141,16 +154,71 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
                         />
                     </div>
 
+                    {/* Category */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Category <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value={formData.category}
+                            onChange={(e) => handleChange('category', e.target.value)}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 bg-white"
+                        >
+                            <option value="SSC">SSC Exams</option>
+                            <option value="Banking">Banking & Insurance</option>
+                            <option value="Railways">Railways (RRB)</option>
+                            <option value="Teaching">Teaching Exams</option>
+                            <option value="Defence">Defence</option>
+                            <option value="UPSC">UPSC & State PSC</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    {/* Live Exam Schedule */}
+                    <AnimatePresence>
+                        {formData.type === 'live_exam' && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="grid grid-cols-2 gap-4 overflow-hidden"
+                            >
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Start Time <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="datetime-local"
+                                        value={formData.startTime}
+                                        onChange={(e) => handleChange('startTime', e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        End Time <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="datetime-local"
+                                        value={formData.endTime}
+                                        onChange={(e) => handleChange('endTime', e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                    />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     {/* Exam Type */}
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Exam Type <span className="text-red-500">*</span>
                         </label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-4 gap-2">
                             <button
                                 type="button"
                                 onClick={() => handleChange('type', 'real_exam')}
-                                className={`px-4 py-3 rounded-xl border-2 font-bold transition-all text-sm flex flex-col items-center gap-1 ${formData.type === 'real_exam'
+                                className={`px-2 py-3 rounded-xl border-2 font-bold transition-all text-[10px] flex flex-col items-center gap-1 ${formData.type === 'real_exam'
                                     ? 'border-blue-600 bg-blue-50 text-blue-700'
                                     : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
                                     }`}
@@ -160,20 +228,46 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
                             </button>
                             <button
                                 type="button"
+                                onClick={() => handleChange('type', 'live_exam')}
+                                className={`px-2 py-3 rounded-xl border-2 font-bold transition-all text-[10px] flex flex-col items-center gap-1 ${formData.type === 'live_exam'
+                                    ? 'border-rose-600 bg-rose-50 text-rose-700'
+                                    : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
+                                    }`}
+                            >
+                                <Zap className="w-4 h-4" />
+                                Live
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleChange('type', 'previous_year_paper')}
+                                className={`px-2 py-3 rounded-xl border-2 font-bold transition-all text-[10px] flex flex-col items-center gap-1 ${formData.type === 'previous_year_paper'
+                                    ? 'border-amber-600 bg-amber-50 text-amber-700'
+                                    : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
+                                    }`}
+                            >
+                                <Library className="w-4 h-4" />
+                                PYP
+                            </button>
+                            <button
+                                type="button"
                                 onClick={() => handleChange('type', 'question_bank')}
-                                className={`px-4 py-3 rounded-xl border-2 font-bold transition-all text-sm flex flex-col items-center gap-1 ${formData.type === 'question_bank'
+                                className={`px-2 py-3 rounded-xl border-2 font-bold transition-all text-[10px] flex flex-col items-center gap-1 ${formData.type === 'question_bank'
                                     ? 'border-purple-600 bg-purple-50 text-purple-700'
                                     : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
                                     }`}
                             >
                                 <Library className="w-4 h-4" />
-                                Question Bank
+                                Bank
                             </button>
                         </div>
                         <p className="text-[10px] text-gray-400 mt-2 italic px-1">
                             {formData.type === 'real_exam'
                                 ? 'Assignable to students. Appears in Test Series Hub.'
-                                : 'A repository of questions used as a source for other exams.'}
+                                : formData.type === 'live_exam'
+                                    ? 'Scheduled event. Only accessible during specified window.'
+                                    : formData.type === 'previous_year_paper'
+                                        ? 'Official past papers. Used for practice and reference.'
+                                        : 'A repository of questions used as a source for other exams.'}
                         </p>
                     </div>
 
