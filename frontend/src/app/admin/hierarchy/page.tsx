@@ -66,8 +66,9 @@ export default function HierarchyPage() {
         setLoading(true);
         try {
             const response = await api.get('/exams/hierarchy?type=question_bank');
+            const data = Array.isArray(response.data) ? response.data : [];
             // Transform backend response (name) to frontend format (title)
-            const transformedData = response.data.map((exam: any) => ({
+            const transformedData = data.map((exam: any) => ({
                 ...exam,
                 title: exam.name || exam.title,
                 subjects: exam.subjects?.map((subject: any) => ({

@@ -64,8 +64,8 @@ export default function AIExplanationsPage() {
                 api.get('/explanations/admin/stats')
             ]);
 
-            setExplanations(explanationsRes.data.explanations);
-            setStats(statsRes.data);
+            setExplanations(explanationsRes.data?.explanations || []);
+            setStats(statsRes.data || null);
         } catch (error) {
             console.error('Failed to fetch data:', error);
         } finally {

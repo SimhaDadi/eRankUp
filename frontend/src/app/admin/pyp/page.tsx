@@ -9,18 +9,7 @@ export default function PreviousYearPapersPage() {
     const [selectedExam, setSelectedExam] = useState('all');
     const [selectedYear, setSelectedYear] = useState('all');
 
-    const papers = [
-        { id: 1, exam: 'SSC CGL', year: 2023, tier: 'Tier 1', date: '2023-12-15', questions: 100, downloads: 1250 },
-        { id: 2, exam: 'SSC CGL', year: 2023, tier: 'Tier 2', date: '2023-11-20', questions: 200, downloads: 980 },
-        { id: 3, exam: 'SSC CGL', year: 2022, tier: 'Tier 1', date: '2022-12-10', questions: 100, downloads: 2100 },
-        { id: 4, exam: 'RRB NTPC', year: 2023, tier: 'CBT 1', date: '2023-10-05', questions: 100, downloads: 1500 },
-        { id: 5, exam: 'RRB NTPC', year: 2022, tier: 'CBT 1', date: '2022-09-15', questions: 100, downloads: 1800 },
-        { id: 6, exam: 'SBI PO', year: 2023, tier: 'Prelims', date: '2023-08-20', questions: 100, downloads: 1100 },
-        { id: 7, exam: 'SBI PO', year: 2023, tier: 'Mains', date: '2023-07-15', questions: 155, downloads: 950 },
-        { id: 8, exam: 'IBPS PO', year: 2023, tier: 'Prelims', date: '2023-06-10', questions: 100, downloads: 890 },
-        { id: 9, exam: 'UPSC CSE', year: 2023, tier: 'Prelims', date: '2023-05-28', questions: 200, downloads: 3200 },
-        { id: 10, exam: 'UPSC CSE', year: 2022, tier: 'Prelims', date: '2022-06-05', questions: 200, downloads: 2900 },
-    ];
+    const papers = [];
 
     const exams = ['all', 'SSC CGL', 'RRB NTPC', 'SBI PO', 'IBPS PO', 'UPSC CSE'];
     const years = ['all', '2023', '2022', '2021', '2020'];

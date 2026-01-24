@@ -17,8 +17,10 @@ export default function QuestionListTab() {
             if (searchQuery) params.topic = searchQuery;
             if (selectedDifficulty !== 'all') params.difficulty = selectedDifficulty;
 
-            const response = await api.get('/questions/global', { params });
-            setQuestions(response.data);
+            const response = await api.get('/exams/questions/global', { params });
+            // Handle both array (legacy) and paginated object responses
+            const data = response.data.questions || response.data;
+            setQuestions(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Failed to load questions", error);
         } finally {

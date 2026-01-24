@@ -41,7 +41,7 @@ export default function AdminExamsPage() {
     const fetchExams = async () => {
         try {
             const response = await api.get('/exams');
-            setExams(response.data);
+            setExams(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error("Failed to fetch exams", error);
         } finally {

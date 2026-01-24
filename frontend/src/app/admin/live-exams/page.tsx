@@ -42,7 +42,7 @@ export default function LiveExamsPage() {
         try {
             // Fetch all exams to allow scheduling any exam
             const res = await api.get('/admin/exams');
-            setExams(res.data);
+            setExams(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
             console.error('Failed to fetch exams', error);
         } finally {
@@ -115,16 +115,16 @@ export default function LiveExamsPage() {
                             >
                                 <div className="flex justify-between items-start mb-4">
                                     <div className={`p-3 rounded-2xl ${status === 'live' ? 'bg-red-500/10 text-red-500 animate-pulse' :
-                                            status === 'upcoming' ? 'bg-blue-500/10 text-blue-500' :
-                                                status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-700 text-slate-400'
+                                        status === 'upcoming' ? 'bg-blue-500/10 text-blue-500' :
+                                            status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-700 text-slate-400'
                                         }`}>
                                         {status === 'live' ? <Play className="w-6 h-6" /> :
                                             status === 'upcoming' ? <Calendar className="w-6 h-6" /> :
                                                 status === 'completed' ? <CheckCircle className="w-6 h-6" /> : <BookOpen className="w-6 h-6" />}
                                     </div>
                                     <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${status === 'live' ? 'bg-red-500 text-white' :
-                                            status === 'upcoming' ? 'bg-blue-500/20 text-blue-400' :
-                                                status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'
+                                        status === 'upcoming' ? 'bg-blue-500/20 text-blue-400' :
+                                            status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'
                                         }`}>
                                         {status}
                                     </span>
