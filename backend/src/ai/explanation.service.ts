@@ -7,6 +7,7 @@ import { Exam } from '../exams/entities/exam.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
 import { ConfigService } from '@nestjs/config';
 import { SystemHealthService } from '../admin/system-health.service';
+import { AIQueueService } from './ai-queue.service';
 
 @Injectable()
 export class ExplanationService {
@@ -23,6 +24,7 @@ export class ExplanationService {
         private explanationRepository: Repository<QuestionExplanation>,
         @InjectRepository(Exam)
         private examRepository: Repository<Exam>,
+        private queueService: AIQueueService,
     ) {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
 
@@ -33,7 +35,7 @@ export class ExplanationService {
         }
 
         this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
         this.isInitialized = true;
         console.log('✅ Gemini 1.5 Flash initialized successfully');
     }
@@ -82,7 +84,9 @@ export class ExplanationService {
 
             // 5. Generate with AI
             const prompt = this.buildPrompt(question, userAnswer, contextExamTitle);
-            const result = await this.model.generateContent(prompt);
+
+            // Execute via centralized queue
+            const result = await this.queueService.add(async () => await this.model.generateContent(prompt));
             const explanation = result.response.text();
 
             // Track successful API call
@@ -100,6 +104,13 @@ export class ExplanationService {
             return explanation;
         } catch (error) {
             console.error('AI generation failed:', error);
+
+            // Handle Rate Limits (429) specifically if needed
+            if (error.status === 429 || (error.message && error.message.includes('429'))) {
+                console.warn('⚠️ Gemini Rate Limit Exceeded. Using fallback explanation.');
+                // Optional: We could implement a retry queue here, but for now fallback is safer to avoid blocking users.
+            }
+
             return this.getFallbackExplanation(question);
         }
     }
@@ -170,10 +181,9 @@ Write a concise, high-impact explanation using the following Markdown structure 
                 explanations.set(questionId, explanation);
                 console.log(`[ExplanationService] Generated ${index + 1}/${questionIds.length}: ${questionId}`);
 
-                // Free tier: 15 RPM = 4 seconds between requests
-                if (index < questionIds.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 4000));
-                }
+                console.log(`[ExplanationService] Generated ${index + 1}/${questionIds.length}: ${questionId}`);
+
+                // Rate limiting is handled by AIQueueService now
             } catch (error) {
                 console.error(`[ExplanationService] Failed to generate explanation for ${questionId}:`, error);
             }

@@ -7,6 +7,7 @@ import { Question } from '../exams/entities/question.entity';
 import { Attempt } from '../exams/entities/attempt.entity';
 import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
+import { AIQueueService } from './ai-queue.service';
 
 interface QuestionScore {
     question: Question;
@@ -39,6 +40,7 @@ export class AIService {
         private chapterRepository: Repository<Chapter>,
         private configService: ConfigService,
         private systemHealthService: SystemHealthService,
+        private queueService: AIQueueService,
     ) { }
 
     /**
@@ -51,32 +53,34 @@ export class AIService {
             throw new Error('GEMINI_API_KEY not configured');
         }
 
-        try {
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: prompt }]
-                        }]
-                    })
+        return this.queueService.add(async () => {
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: prompt }]
+                            }]
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`Gemini API error: ${response.statusText}`);
                 }
-            );
 
-            if (!response.ok) {
-                throw new Error(`Gemini API error: ${response.statusText}`);
+                const data = await response.json();
+                return data.candidates[0]?.content?.parts[0]?.text || 'No response generated';
+            } catch (error) {
+                console.error('[AIService] Gemini API error:', error);
+                throw error;
             }
-
-            const data = await response.json();
-            return data.candidates[0]?.content?.parts[0]?.text || 'No response generated';
-        } catch (error) {
-            console.error('[AIService] Gemini API error:', error);
-            throw error;
-        }
+        });
     }
 
     /**
@@ -143,8 +147,7 @@ Keep the explanation student-friendly, encouraging, and under 200 words total.`;
                     onProgress(i + 1, questions.length);
                 }
 
-                // Rate limiting: wait 1 second between requests
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Rate limiting handled by AIQueueService
             } catch (error) {
                 failed++;
                 errors.push(`Question ${question.id}: ${error.message}`);
@@ -483,7 +486,7 @@ Keep the explanation student-friendly, encouraging, and under 200 words total.`;
         try {
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
             const prompt = `
                 You are an expert OCR and Question Extraction AI.
@@ -518,7 +521,9 @@ Keep the explanation student-friendly, encouraging, and under 200 words total.`;
             };
 
             const startTime = Date.now();
-            const result = await model.generateContent([prompt, imagePart]);
+
+            // Execute via Queue
+            const result = await this.queueService.add(async () => await model.generateContent([prompt, imagePart]));
             const response = await result.response;
 
             // Track successful API call

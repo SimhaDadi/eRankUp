@@ -6,6 +6,7 @@ import { AIController } from './ai.controller';
 import { ExplanationController } from './explanation.controller';
 import { MigrationService } from './migration.service';
 import { ExplanationService } from './explanation.service';
+import { AIQueueService } from './ai-queue.service';
 import { Question } from '../exams/entities/question.entity';
 import { Attempt } from '../exams/entities/attempt.entity';
 import { Response } from '../exams/entities/response.entity';
@@ -22,7 +23,7 @@ import { AdminModule } from '../admin/admin.module';
         ConfigModule
     ],
     controllers: [AIController, ExplanationController],
-    providers: [AIService, MigrationService, ExplanationService],
-    exports: [AIService, MigrationService, ExplanationService]
+    providers: [AIService, MigrationService, ExplanationService, AIQueueService],
+    exports: [AIService, MigrationService, ExplanationService, AIQueueService]
 })
 export class AIModule { }
