@@ -9,11 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@erankup/shared": "*",
     "axios": "^1.13.2",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.0.0",
     "framer-motion": "^10.18.0",
     "i18next": "^25.8.0",
+    "jspdf": "^4.0.0",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.294.0",
     "next": "14.0.4",
     "next-i18next": "^15.4.3",
@@ -27,12 +30,12 @@
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^2.1.0",
     "tesseract.js": "^7.0.0",
-    "zustand": "^5.0.10",
-    "@erankup/shared": "*"
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@types/canvas-confetti": "^1.9.0",
+    "@types/jspdf": "^1.3.3",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",

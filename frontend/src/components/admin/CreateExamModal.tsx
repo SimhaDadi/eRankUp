@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, Loader2, Plus, Library, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
+import { EXAM_CATEGORIES } from '@erankup/shared';
 
 interface CreateExamModalProps {
     isOpen: boolean;
@@ -164,13 +165,9 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
                             onChange={(e) => handleChange('category', e.target.value)}
                             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 bg-white"
                         >
-                            <option value="SSC">SSC Exams</option>
-                            <option value="Banking">Banking & Insurance</option>
-                            <option value="Railways">Railways (RRB)</option>
-                            <option value="Teaching">Teaching Exams</option>
-                            <option value="Defence">Defence</option>
-                            <option value="UPSC">UPSC & State PSC</option>
-                            <option value="Other">Other</option>
+                            {EXAM_CATEGORIES.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.label}</option>
+                            ))}
                         </select>
                     </div>
 

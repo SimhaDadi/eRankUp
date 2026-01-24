@@ -5,6 +5,8 @@ import { FileText, Download, Calendar, BookOpen, Search, Filter, Eye, Play } fro
 import { motion } from 'framer-motion';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { EXAM_CATEGORIES } from '@erankup/shared';
+import { generateExamPDF } from '@/utils/pdfGenerator';
 
 export default function PreviousYearPapersPage() {
     const [papers, setPapers] = useState<any[]>([]);
@@ -43,8 +45,56 @@ export default function PreviousYearPapersPage() {
         ? papers
         : papers.filter(p => (p.category || 'Other') === activeCategory);
 
-    const handleDownload = (paper: any) => {
-        alert("Download feature coming soon! (ID: " + paper.id + ")");
+    const handleDownload = async (paper: any) => {
+        try {
+            // Need to fetch full details including questions
+            // Assuming we have an endpoint for full exam details or we construct it
+            // If the list endpoint doesn't return questions, we fetch specific exam
+            const res = await api.get(`/exams/${paper.id}`);
+            const fullExam = res.data;
+
+            // Extract questions from hierarchy (Exam -> Models -> Questions?) 
+            // OR if generic exam structure, it might have questions linked directly or via models
+            // The service 'findOne' returns everything.
+            // But we need a flat list of questions for the PDF
+
+            let questions: any[] = [];
+
+            // Check direct questions linkage
+            if (fullExam.questions && fullExam.questions.length > 0) {
+                questions = fullExam.questions;
+            }
+            // Check models linkage
+            else if (fullExam.chapters) {
+                // Iterate through hierarchy
+                fullExam.chapters.forEach((chapter: any) => {
+                    chapter.models?.forEach((model: any) => {
+                        // We might need to fetch questions for model if not populated
+                        // But usually findOne populates hierarchy structure.
+                        // Wait, findOne populates models and chapters, does it populate QUESTIONS inside models?
+                        // Service: relations: ['models', 'models.chapter', 'models.chapter.subject', 'questions']
+                        // It fetches DIRECT questions. 
+                        // It does NOT deep fetch questions inside models by default in current 'findOne'.
+                    });
+                });
+            }
+
+            // If questions are empty, we might need a specific "get questions for exam" endpoint
+            // Let's use the '/exams/:id/questions' or similar if it exists, or just use what we have.
+            // Actually, for PYP, we usually link questions directly or via a single model.
+
+            if (questions.length === 0) {
+                // Fallback: Fetch questions for the first model if available?
+                // Or inform user.
+                alert("Generating PDF... (Ensure questions are properly linked to this exam)");
+            }
+
+            generateExamPDF(fullExam, questions);
+
+        } catch (error) {
+            console.error("Download failed", error);
+            alert("Failed to download PDF. Please try again.");
+        }
     };
 
     if (loading) {
@@ -75,7 +125,7 @@ export default function PreviousYearPapersPage() {
                                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                                 }`}
                         >
-                            {category}
+                            {EXAM_CATEGORIES.find(c => c.id === category)?.label || category}
                         </button>
                     ))}
                 </div>

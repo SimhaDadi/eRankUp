@@ -8,6 +8,18 @@ export enum ExamType {
     LIVE_EXAM = 'live_exam'
 }
 
+export const EXAM_CATEGORIES = [
+    { id: 'SSC', label: 'SSC Exams' },
+    { id: 'Banking', label: 'Banking & Insurance' },
+    { id: 'Railways', label: 'Railways (RRB)' },
+    { id: 'Teaching', label: 'Teaching Exams' },
+    { id: 'Defence', label: 'Defence' },
+    { id: 'UPSC', label: 'UPSC & State PSC' },
+    { id: 'Other', label: 'Other' }
+] as const;
+
+export type ExamCategory = typeof EXAM_CATEGORIES[number]['id'];
+
 export class CreateExamDto {
     @IsString()
     @IsNotEmpty()
