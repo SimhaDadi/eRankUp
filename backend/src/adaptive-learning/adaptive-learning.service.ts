@@ -267,7 +267,19 @@ export class AdaptiveLearningService {
         }
 
         // Fetch excess to allow shuffle
-        const questions = await query.take(50).getMany();
+        // Fetch excess to allow shuffle
+        let questions = await query.take(50).getMany();
+
+        // FALLBACK: If no questions found (e.g. topic mismatch or empty DB for topic), 
+        // try fetching simple random questions to avoid "No Questions Found" error provided user is beginner.
+        if (questions.length === 0) {
+            console.warn(`[Adaptive] No questions found for topic '${topic}'. Falling back to random selection.`);
+            questions = await this.questionRepo.createQueryBuilder('q')
+                .leftJoinAndSelect('q.subject', 's')
+                .orderBy('RANDOM()') // Postgres/SQLite specific usually, but works in many. If not, we take(50) and shuffle.
+                .take(50)
+                .getMany();
+        }
 
         // Shuffle in memory
         return questions.sort(() => 0.5 - Math.random()).slice(0, limit);

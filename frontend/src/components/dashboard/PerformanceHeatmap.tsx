@@ -12,18 +12,20 @@ interface TopicPerformance {
     color: string;
 }
 
-export default function PerformanceHeatmap() {
+interface Props {
+    data?: { subject: string; A: number; fullMark: number }[];
+}
+
+export default function PerformanceHeatmap({ data }: Props) {
     const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
 
-    // Semi-mock data for demonstration
-    // In real app, this would be fetched from /exams/user/stats
-    const data = [
-        { subject: 'Algebra', A: 85, fullMark: 100 },
-        { subject: 'Geometry', A: 40, fullMark: 100 },
-        { subject: 'Trigonometry', A: 70, fullMark: 100 },
-        { subject: 'Calculus', A: 55, fullMark: 100 },
-        { subject: 'Probability', A: 90, fullMark: 100 },
-        { subject: 'Statistics', A: 75, fullMark: 100 },
+    // Default empty state if no data provided
+    const chartData = data && data.length > 0 ? data : [
+        { subject: 'Algebra', A: 0, fullMark: 100 },
+        { subject: 'Geometry', A: 0, fullMark: 100 },
+        { subject: 'Calculus', A: 0, fullMark: 100 },
+        { subject: 'Statistics', A: 0, fullMark: 100 },
+        { subject: 'Probability', A: 0, fullMark: 100 },
     ];
 
     return (
@@ -44,7 +46,7 @@ export default function PerformanceHeatmap() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center flex-1">
                 <div className="h-[350px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
                             <PolarGrid stroke="#e2e8f0" />
                             <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} />
                             <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />

@@ -38,6 +38,7 @@ export class ScorerService implements OnModuleInit {
         startTime: number,
         questionTimings: Record<string, number> = {},
         flags: string[] = [],
+        allQuestionIds: string[] = [],
     ): Promise<Attempt> {
         console.log(`[Scorer] Grading attempt for User: ${user.id}, ID: ${modelId}`);
 
@@ -50,11 +51,15 @@ export class ScorerService implements OnModuleInit {
 
         if (modelId.startsWith('adaptive')) {
             // Fetch questions individually for adaptive sessions
-            const questionIds = Object.keys(userAnswers);
-            if (questionIds.length === 0) throw new Error('No questions attempted');
+            // Use all assigned questions if available, otherwise fallback to attempted ones (which might skew score if skipped)
+            const targetIds = (allQuestionIds && allQuestionIds.length > 0)
+                ? allQuestionIds
+                : Object.keys(userAnswers);
+
+            if (targetIds.length === 0) throw new Error('No questions found for grading');
 
             questions = await this.questionRepository.find({
-                where: questionIds.map(id => ({ id })),
+                where: targetIds.map(id => ({ id })),
                 relations: ['subject', 'chapter']
             });
         } else {
@@ -344,12 +349,44 @@ export class ScorerService implements OnModuleInit {
             }
         }
 
+        // Calculate Topic Performance
+        const topicStats = await this.responseRepository.createQueryBuilder('response')
+            .leftJoin('response.question', 'question')
+            .innerJoin('response.attempt', 'attempt') // Ensure we only count user's attempts
+            .where('attempt.userId = :userId', { userId })
+            .select([
+                'question.topic AS topic',
+                'COUNT(response.id) AS total',
+                'SUM(CASE WHEN response.isCorrect THEN 1 ELSE 0 END) AS correct'
+            ])
+            .groupBy('question.topic')
+            .getRawMany();
+
+        const topicPerformance = topicStats
+            .filter(stat => parseInt(stat.total) > 0)
+            .map(stat => ({
+                subject: stat.topic || 'General',
+                A: Math.round((parseInt(stat.correct) / parseInt(stat.total)) * 100) || 0,
+                fullMark: 100
+            }));
+
+        // Fill with comprehensive defaults if empty (aesthetic fallback)
+        if (topicPerformance.length < 3) {
+            const defaults = ['Algebra', 'Geometry', 'Arithmetic', 'Reasoning', 'Verbal'];
+            defaults.forEach(d => {
+                if (!topicPerformance.find(t => t.subject === d)) {
+                    topicPerformance.push({ subject: d, A: 0, fullMark: 100 });
+                }
+            });
+        }
+
         return {
             totalAttempts,
             averageScore: Math.round(totalScore / totalAttempts),
             totalTimeTaken,
             accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0,
             streak,
+            topicPerformance
         };
     }
     async getUserExamStats(userId: string) {

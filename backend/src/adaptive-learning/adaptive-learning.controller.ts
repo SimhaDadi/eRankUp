@@ -1,11 +1,35 @@
 import { Controller, Get, Post, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AdaptiveLearningService } from './adaptive-learning.service';
+import { TestSessionService } from '../test-session/test-session.service';
 
 @Controller('adaptive')
 @UseGuards(AuthGuard('jwt'))
 export class AdaptiveLearningController {
-    constructor(private readonly adaptiveService: AdaptiveLearningService) { }
+    constructor(
+        private readonly adaptiveService: AdaptiveLearningService,
+        private readonly testSessionService: TestSessionService,
+    ) { }
+
+    @Post('start-session')
+    async startSession(@Request() req: any) {
+        const userId = req.user.userId;
+
+        // 1. Get recommended questions based on learning path
+        const path = await this.adaptiveService.generateLearningPath(userId);
+        const topTopic = path.recommendedTopics[0]?.topic || 'General';
+
+        // Fetch 20 questions for the top recommended topic
+        const questions = await this.adaptiveService.getQuestionsForTopic(topTopic, 20);
+
+        // 2. Create a session with these questions
+        const session = await this.testSessionService.createAdaptiveSession(userId, questions);
+
+        return {
+            sessionId: session.testId,
+            questions: session.questions
+        };
+    }
 
     @Get('mastery')
     async getMastery(@Request() req: any) {

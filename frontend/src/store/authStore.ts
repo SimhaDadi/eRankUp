@@ -18,8 +18,13 @@ export const useAuthStore = create<AuthState>((set) => ({
             localStorage.setItem('user', JSON.stringify(user));
             set({ user, token: access_token, isLoading: false });
         } catch (error: any) {
+            console.error("Login Error Full Object:", error);
+            const status = error.response?.status;
+            const msg = error.response?.data?.message || error.message || 'Unknown Error';
+            const detailedError = `Login Failed (${status || 'Network'}): ${msg}`;
+
             set({
-                error: error.response?.data?.message || 'Login failed',
+                error: detailedError,
                 isLoading: false
             });
             throw error;

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, Info, Flag, Shield, Menu, X, User } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
 import MathRenderer from '@/components/MathRenderer';
 
@@ -17,6 +18,7 @@ interface Question {
 export default function TestPage() {
     const params = useParams();
     const router = useRouter();
+    const { user } = useAuthStore();
     const [questions, setQuestions] = useState<Question[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -70,17 +72,41 @@ export default function TestPage() {
         const fetchQuestions = async () => {
             try {
                 if (params.id?.toString().startsWith('adaptive')) {
-                    // Fetch dynamic AI recommended questions for adaptive session
-                    const response = await api.post('/ai/start-adaptive-session');
-                    const { questions: adaptiveQuestions } = response.data;
+                    // Fetch existing session info (including questions) for adaptive session
+                    try {
+                        const sessionRes = await api.get(`/test-session/${params.id}`);
+                        const session = sessionRes.data;
 
-                    if (!adaptiveQuestions || adaptiveQuestions.length === 0) {
-                        setIsLoading(false);
-                        return;
+                        if (session && session.questions && session.questions.length > 0) {
+                            setQuestions(session.questions);
+
+                            // Load session state
+                            if (session.answers) setAnswers(session.answers);
+                            if (session.timings) setQuestionTimeLog(session.timings);
+                            if (session.flags) setFlags(session.flags);
+
+                            // Restore visited state
+                            const visitedSet = new Set<string>();
+                            if (session.answers) Object.keys(session.answers).forEach(k => visitedSet.add(k));
+                            if (session.timings) Object.keys(session.timings).forEach(k => visitedSet.add(k));
+                            setVisited(Array.from(visitedSet));
+
+                            // Timer Sync
+                            if (session.startTime) {
+                                const now = Date.now();
+                                const elapsedSeconds = Math.floor((now - session.startTime) / 1000);
+                                const durationSeconds = 60 * 60; // 60 mins default for adaptive
+                                const remaining = Math.max(0, durationSeconds - elapsedSeconds);
+                                setTimeLeft(remaining);
+                            }
+                        } else {
+                            console.error("Adaptive session found but no questions available");
+                        }
+                    } catch (err) {
+                        console.error("Failed to load adaptive session", err);
                     }
-
-                    setQuestions(adaptiveQuestions);
-                    // Session is already started by the start-adaptive-session endpoint in backend
+                    setIsLoading(false);
+                    return;
                 } else {
                     // Standard exam model loading
                     let loadedQuestions: Question[] = [];
@@ -116,6 +142,13 @@ export default function TestPage() {
 
                     setQuestions(loadedQuestions);
 
+                    // Default duration to 60 mins if not specified
+                    // Check fetches above for exam/model duration
+                    let durationSeconds = 60 * 60;
+                    // Note: In a real app, 'model' or 'exam' fetch above would provide this.
+                    // For now, we'll try to extract it if we had access, but since scope is tight, 
+                    // let's assume standard 60 mins OR get it from session if we stored it.
+
                     // Start Test Session
                     try {
                         const sessionRes = await api.post('/test-session/start', { testId: params.id });
@@ -135,6 +168,14 @@ export default function TestPage() {
                             // Set current index to last answered or first
                             const lastAnsweringIdx = loadedQuestions.findIndex(q => !session.answers[q.id]);
                             if (lastAnsweringIdx !== -1) setCurrentQuestionIndex(lastAnsweringIdx);
+
+                            // === TIMER SYNC ===
+                            if (session.startTime) {
+                                const now = Date.now();
+                                const elapsedSeconds = Math.floor((now - session.startTime) / 1000);
+                                const remaining = Math.max(0, durationSeconds - elapsedSeconds);
+                                setTimeLeft(remaining);
+                            }
                         }
                     } catch (e) {
                         console.error('Failed to start/load session:', e);
@@ -252,6 +293,8 @@ export default function TestPage() {
         }
     };
 
+
+
     const getStatusColor = (idx: number, id: string) => {
         const isAnswered = !!answers[id];
         const isFlagged = flags.includes(id);
@@ -275,6 +318,13 @@ export default function TestPage() {
 
     const [isStarted, setIsStarted] = useState(false);
     const [showFullscreenWarning, setShowFullscreenWarning] = useState(false);
+
+    // Auto-submit when time runs out
+    useEffect(() => {
+        if (timeLeft <= 0 && isStarted && !isSubmitting && questions.length > 0) {
+            submitTest();
+        }
+    }, [timeLeft, isStarted, isSubmitting, questions.length]);
 
     useEffect(() => {
         const handleFullscreenChange = () => {
@@ -428,39 +478,56 @@ export default function TestPage() {
                     </div>
 
                     {/* Question Content (Scrollable) */}
-                    <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
-                        {/* Question Text */}
-                        <div className="mb-8 text-lg font-medium text-slate-900 border-b pb-8 border-gray-100">
-                            <MathRenderer content={currentQuestion.content} />
-                        </div>
+                    <div className="flex-1 overflow-y-auto w-full">
+                        <div className="max-w-[95%] mx-auto py-8">
+                            {/* Question Text */}
+                            <div className="mb-8 text-xl leading-8 font-medium text-slate-800 border-b pb-8 border-gray-100">
+                                <span className="inline-block mr-2 font-black text-blue-600 text-2xl">Q.</span>
+                                <MathRenderer content={currentQuestion.content} />
+                            </div>
 
-                        {/* Options */}
-                        <div className="space-y-4 max-w-3xl">
-                            {currentQuestion.options.map((option, idx) => {
-                                const isSelected = answers[currentQuestion.id] === option.id;
-                                return (
-                                    <label
-                                        key={option.id}
-                                        className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all
-                                            ${isSelected
-                                                ? 'border-blue-500 bg-blue-50'
-                                                : 'border-gray-200 hover:bg-slate-50 hover:border-slate-300'}`}
-                                    >
-                                        <div className="pt-0.5 relative">
+                            {/* Options */}
+                            <div className="space-y-4">
+                                {currentQuestion.options.map((option, idx) => {
+                                    const isSelected = answers[currentQuestion.id] === option.id;
+                                    const optionLabel = String.fromCharCode(65 + idx); // A, B, C, D...
+
+                                    return (
+                                        <label
+                                            key={option.id}
+                                            className={`flex items-center gap-5 p-5 rounded-2xl border-2 cursor-pointer transition-all group relative overflow-hidden
+                                                ${isSelected
+                                                    ? 'border-[#00bfa5] bg-teal-50 shadow-md shadow-teal-500/10'
+                                                    : 'border-slate-200 hover:border-slate-400 hover:bg-white bg-slate-50/50'}`}
+                                        >
+                                            {/* Selection Indicator */}
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg border-2 shrink-0 transition-colors
+                                                ${isSelected
+                                                    ? 'bg-[#00bfa5] border-[#00bfa5] text-white'
+                                                    : 'bg-white border-slate-300 text-slate-400 group-hover:border-slate-500 group-hover:text-slate-600'}`}>
+                                                {optionLabel}
+                                            </div>
+
+                                            <div className="text-lg text-slate-700 font-medium pt-0.5">
+                                                <MathRenderer content={option.text} />
+                                            </div>
+
+                                            {/* Hidden Radio for accessibility */}
                                             <input
                                                 type="radio"
                                                 name="question-option"
                                                 checked={isSelected}
                                                 onChange={() => handleOptionSelect(option.id)}
-                                                className="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                                className="absolute opacity-0 w-0 h-0"
                                             />
-                                        </div>
-                                        <div className="text-base text-slate-800 font-medium pt-0.5">
-                                            <MathRenderer content={option.text} />
-                                        </div>
-                                    </label>
-                                );
-                            })}
+
+                                            {isSelected && (
+                                                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-[#00bfa5]/20 to-transparent rounded-bl-3xl -mr-4 -mt-4" />
+                                            )}
+                                        </label>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
 
@@ -501,13 +568,17 @@ export default function TestPage() {
                 </div>
 
                 {/* 3b. Right Sidebar (Palette) */}
-                <div className="w-[320px] bg-slate-50 border-l flex flex-col shrink-0">
+                <div className="w-[340px] bg-slate-50 border-l border-slate-200 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] flex flex-col shrink-0 z-30">
                     {/* User & Info */}
                     <div className="p-4 bg-white border-b flex items-center gap-4">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" className="w-12 h-12 rounded-full border bg-slate-100" />
+                        <div className="w-12 h-12 rounded-full border bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-500 overflow-hidden">
+                            {user?.fullName?.charAt(0) || 'U'}
+                        </div>
                         <div>
-                            <div className="font-bold text-sm">Demo User</div>
-                            <div className="text-xs text-slate-500">Student</div>
+                            <div className="font-bold text-sm text-slate-900 truncate max-w-[150px]" title={user?.fullName || 'User'}>
+                                {user?.fullName || 'User'}
+                            </div>
+                            <div className="text-xs text-slate-500 capitalize">{user?.role || 'Student'}</div>
                         </div>
                     </div>
 

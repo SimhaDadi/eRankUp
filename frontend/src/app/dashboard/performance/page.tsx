@@ -137,7 +137,7 @@ export default function PerformancePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                 {/* Heatmap Section - Now taking 2 columns */}
                 <div className="lg:col-span-2 h-full">
-                    <PerformanceHeatmap />
+                    <PerformanceHeatmap data={stats?.topicPerformance} />
                 </div>
 
                 {/* Main Trend Chart - Now taking 1 column */}
@@ -232,38 +232,35 @@ export default function PerformancePage() {
                         {trendData.slice().reverse().slice(0, 5).map((item, idx) => (
                             <div
                                 key={idx}
-                                className="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors group relative border-b border-gray-50 last:border-0"
+                                className="p-4 hover:bg-slate-50 transition-colors group relative border-b border-gray-50 last:border-0"
                             >
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${item.score >= 80 ? 'bg-emerald-100 text-emerald-600' :
+                                {/* Top Row: Score + Title */}
+                                <div className="flex items-start gap-4 mb-3">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${item.score >= 80 ? 'bg-emerald-100 text-emerald-600' :
                                         item.score >= 60 ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
                                         }`}>
                                         {item.score}
                                     </div>
-                                    <div>
-                                        <div className="font-bold text-slate-900 text-sm truncate max-w-[200px]">{item.title}</div>
+                                    <div className="min-w-0">
+                                        <div className="font-bold text-slate-900 text-sm leading-tight mb-1">{item.title}</div>
                                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{item.date}</div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
-                                    <div className="text-right mr-4 hidden sm:block">
-                                        <div className="text-sm font-bold text-slate-700">{item.accuracy}% Acc.</div>
-                                        <div className="text-[10px] font-bold text-slate-400">{item.time} min</div>
+                                {/* Bottom Row: Stats + Buttons */}
+                                <div className="flex items-center justify-between pl-14">
+                                    <div className="flex items-center gap-3 text-xs font-semibold text-slate-500">
+                                        <span>{item.accuracy}% Acc.</span>
+                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                        <span>{item.time} min</span>
                                     </div>
 
                                     <div className="flex gap-2">
                                         <Link
                                             href={`/dashboard/solutions/${item.id}`}
-                                            className="px-4 py-2 bg-white border border-[#00bfa5] text-[#00bfa5] text-xs font-bold rounded-xl hover:bg-[#00bfa5] hover:text-white transition-all shadow-sm"
+                                            className="px-3 py-1.5 bg-white border border-[#00bfa5] text-[#00bfa5] text-[10px] font-bold rounded-lg hover:bg-[#00bfa5] hover:text-white transition-all shadow-sm"
                                         >
                                             Solution
-                                        </Link>
-                                        <Link
-                                            href={`/dashboard/results/${item.id}`}
-                                            className="px-4 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:border-slate-900 hover:text-slate-900 transition-all shadow-sm"
-                                        >
-                                            Analysis
                                         </Link>
                                     </div>
                                 </div>

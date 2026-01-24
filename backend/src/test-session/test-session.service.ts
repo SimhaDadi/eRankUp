@@ -17,6 +17,7 @@ export interface TestSession {
     timings: Record<string, number>; // questionId -> seconds spent
     flags: string[]; // array of questionId
     status: 'IN_PROGRESS' | 'COMPLETED';
+    questions?: any[]; // Local questions for adaptive sessions
 }
 
 @Injectable()
@@ -51,6 +52,26 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         return `session:${userId}:${testId}`;
     }
 
+    async createAdaptiveSession(userId: string, questions: any[]): Promise<TestSession> {
+        // Generate a unique session ID
+        const sessionId = `adaptive-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        const key = this.getSessionKey(userId, sessionId);
+
+        const newSession: TestSession = {
+            userId,
+            testId: sessionId,
+            startTime: Date.now(),
+            answers: {},
+            timings: {},
+            flags: [],
+            status: 'IN_PROGRESS',
+            questions,
+        };
+
+        await this.redis.set(key, JSON.stringify(newSession), 'EX', 60 * 60 * 2);
+        return newSession;
+    }
+
     async startSession(userId: string, testId: string): Promise<TestSession> {
         const key = this.getSessionKey(userId, testId);
         const existingSession = await this.redis.get(key);
@@ -64,19 +85,16 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             // If completed, we proceed to create a new one below (overwriting the key).
         }
 
-        // Adaptive sessions are handled dynamically
+        // Adaptive sessions logic is arguably handled by createAdaptiveSession now, 
+        // but if someone tries to start an existing adaptive session by ID, 
+        // we might land here if existingSession was null (expired). 
+        // If it's expired, we can't really "restart" an adaptive session easily 
+        // without the original questions. 
+        // So we fallback to creating a generic empty one or error.
         if (testId.startsWith('adaptive')) {
-            const newSession: TestSession = {
-                userId,
-                testId,
-                startTime: Date.now(),
-                answers: {},
-                timings: {},
-                flags: [],
-                status: 'IN_PROGRESS',
-            };
-            await this.redis.set(key, JSON.stringify(newSession), 'EX', 60 * 60 * 2);
-            return newSession;
+            // If we reach here, it means session not found/expired. 
+            // We cannot recreate it without questions.
+            throw new NotFoundException('Adaptive session not found or expired.');
         }
 
         // Check scheduling for regular models
@@ -218,7 +236,8 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
                 finalAnswers,
                 session.startTime,
                 timings,
-                session.flags
+                session.flags,
+                session.questions ? session.questions.map(q => q.id) : []
             );
 
             console.log(`[TestSession] ScorerService returned Attempt ID: ${attempt.id}`);
