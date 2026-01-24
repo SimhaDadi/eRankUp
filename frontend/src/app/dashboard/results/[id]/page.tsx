@@ -120,6 +120,8 @@ export default function ResultsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+    const [activeTab, setActiveTab] = useState<'summary' | 'analytics' | 'review'>('summary');
+
     useEffect(() => {
         let timeoutId: NodeJS.Timeout;
         let retryCount = 0;
@@ -201,238 +203,255 @@ export default function ResultsPage() {
     const accuracy = Math.round((attempt.correctAnswers / attempt.totalQuestions) * 100);
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-12">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+        <div className="max-w-6xl mx-auto pb-12 px-4 md:px-8">
+            {/* Header Area */}
+            <div className="py-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <button
                         onClick={() => router.push('/dashboard/exams')}
-                        className="text-slate-500 hover:text-blue-600 flex items-center gap-2 mb-4 transition-colors font-semibold"
+                        className="text-slate-500 hover:text-blue-600 flex items-center gap-2 mb-2 transition-colors font-bold text-sm"
                     >
                         <ArrowLeft className="w-4 h-4" /> Back to My Exams
                     </button>
-                    <h1 className="text-3xl font-bold text-slate-900">Test Results</h1>
-                    <p className="text-slate-500 mt-1 font-medium">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Test Results</h1>
+                    <p className="text-slate-500 font-medium mt-1">
                         {attempt.model
                             ? `${attempt.model.exams?.[0]?.title} • ${attempt.model.title}`
                             : attempt.exam?.title || 'Practice Exam'
                         }
                     </p>
                 </div>
-                <div className="text-right">
-                    <div className="text-xs text-slate-400 uppercase font-bold tracking-widest">Completed On</div>
-                    <div className="text-sm text-slate-700 font-bold">{new Date(attempt.createdAt).toLocaleDateString()}</div>
+
+                {/* Primary Actions - Moved to Top */}
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => router.push(`/dashboard/solutions/${params.id}`)}
+                        className="bg-[#00bfa5] hover:bg-[#00a690] text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-[#00bfa5]/20 transition-all flex items-center gap-2 hover:scale-105 active:scale-95"
+                    >
+                        <Eye className="w-5 h-5" /> View Solutions
+                    </button>
+                    <button
+                        onClick={() => router.push(`/dashboard/test/${attempt.model?.id || attempt.exam?.id || params.id}`)}
+                        className="bg-white hover:bg-gray-50 text-slate-900 border border-gray-200 font-bold py-3 px-6 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95"
+                    >
+                        Retake Test
+                    </button>
                 </div>
             </div>
 
-            {/* Hero Score Card */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white border border-gray-200 rounded-3xl p-8 relative overflow-hidden shadow-xl"
-            >
-                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-                    <Trophy className="w-48 h-48 text-yellow-500" />
-                </div>
+            {/* Navigation Tabs */}
+            <div className="flex items-center gap-1 bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm w-fit mb-8">
+                {[
+                    { id: 'summary', label: 'Summary' },
+                    { id: 'analytics', label: 'Deep Analytics' },
+                    { id: 'review', label: 'Question Review' }
+                ].map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all
+                            ${activeTab === tab.id
+                                ? 'bg-slate-900 text-white shadow-md'
+                                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`
+                        }
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-center">
-                    <div className="text-center md:border-r border-gray-100 flex flex-col items-center justify-center h-full gap-4">
-                        <div>
-                            <div className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-[#00bfa5] mb-2 tracking-tighter">
-                                {Math.round(attempt.score)}%
-                            </div>
-                            <div className="text-slate-400 font-bold uppercase tracking-widest text-xs bg-slate-50 px-3 py-1 rounded-full">Overall Score</div>
+            {/* TAB CONTENT: SUMMARY */}
+            {activeTab === 'summary' && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                    {/* Hero Score Card */}
+                    <div className="bg-white border border-gray-200 rounded-3xl p-8 relative overflow-hidden shadow-xl">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                            <Trophy className="w-48 h-48 text-yellow-500" />
                         </div>
 
-                        {attempt.insights?.rank && (
-                            <div className="pt-4 border-t border-gray-100 w-2/3">
-                                <div className="flex items-center justify-center gap-2 text-amber-600 font-bold">
-                                    <Trophy className="w-5 h-5" />
-                                    <span className="text-2xl">Rank #{attempt.insights.rank}</span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-center">
+                            <div className="text-center md:border-r border-gray-100 flex flex-col items-center justify-center h-full gap-4">
+                                <div>
+                                    <div className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-[#00bfa5] mb-2 tracking-tighter">
+                                        {Math.round(attempt.score)}%
+                                    </div>
+                                    <div className="text-slate-400 font-bold uppercase tracking-widest text-xs bg-slate-50 px-3 py-1 rounded-full">Overall Score</div>
                                 </div>
-                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                                    Out of {attempt.insights.totalParticipants} Participants
+
+                                {attempt.insights?.rank && (
+                                    <div className="pt-4 border-t border-gray-100 w-2/3">
+                                        <div className="flex items-center justify-center gap-2 text-amber-600 font-bold">
+                                            <Trophy className="w-5 h-5" />
+                                            <span className="text-2xl">Rank #{attempt.insights.rank}</span>
+                                        </div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                            Out of {attempt.insights.totalParticipants} Participants
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 col-span-2 gap-4">
+                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Target className="w-5 h-5 text-emerald-500" />
+                                        <span className="text-slate-500 text-sm font-bold">Accuracy</span>
+                                    </div>
+                                    <div className="text-3xl font-bold text-slate-900">{accuracy}%</div>
+                                </div>
+
+                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Clock className="w-5 h-5 text-blue-500" />
+                                        <span className="text-slate-500 text-sm font-bold">Time Taken</span>
+                                    </div>
+                                    <div className="text-3xl font-bold text-slate-900">{formatTime(attempt.timeTaken)}</div>
+                                </div>
+
+                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                        <span className="text-slate-500 text-sm font-bold">Correct</span>
+                                    </div>
+                                    <div className="text-3xl font-bold text-slate-900">{attempt.correctAnswers} <span className="text-slate-400 text-lg">/ {attempt.totalQuestions}</span></div>
+                                </div>
+
+                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <XCircle className="w-5 h-5 text-red-500" />
+                                        <span className="text-slate-500 text-sm font-bold">Incorrect</span>
+                                    </div>
+                                    <div className="text-3xl font-bold text-slate-900">{attempt.totalQuestions - attempt.correctAnswers}</div>
                                 </div>
                             </div>
-                        )}
-                    </div>
-
-                    <div className="grid grid-cols-2 col-span-2 gap-4">
-                        <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
-                            <div className="flex items-center gap-3 mb-2">
-                                <Target className="w-5 h-5 text-emerald-500" />
-                                <span className="text-slate-500 text-sm font-bold">Accuracy</span>
-                            </div>
-                            <div className="text-3xl font-bold text-slate-900">{accuracy}%</div>
-                        </div>
-
-                        <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
-                            <div className="flex items-center gap-3 mb-2">
-                                <Clock className="w-5 h-5 text-blue-500" />
-                                <span className="text-slate-500 text-sm font-bold">Time Taken</span>
-                            </div>
-                            <div className="text-3xl font-bold text-slate-900">{formatTime(attempt.timeTaken)}</div>
-                        </div>
-
-                        <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
-                            <div className="flex items-center gap-3 mb-2">
-                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                <span className="text-slate-500 text-sm font-bold">Correct</span>
-                            </div>
-                            <div className="text-3xl font-bold text-slate-900">{attempt.correctAnswers} <span className="text-slate-400 text-lg">/ {attempt.totalQuestions}</span></div>
-                        </div>
-
-                        <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
-                            <div className="flex items-center gap-3 mb-2">
-                                <XCircle className="w-5 h-5 text-red-500" />
-                                <span className="text-slate-500 text-sm font-bold">Incorrect</span>
-                            </div>
-                            <div className="text-3xl font-bold text-slate-900">{attempt.totalQuestions - attempt.correctAnswers}</div>
                         </div>
                     </div>
-                </div>
-            </motion.div>
 
-            {/* AI Recommendations */}
-            {attempt.insights ? (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-3xl p-8 flex gap-6 items-start shadow-inner">
-                    <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/20 shrink-0">
-                        <Zap className="w-8 h-8 text-white" />
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="text-xl font-bold text-blue-900 mb-2">AI Performance Insights</h3>
-                        <p className="text-blue-800 text-lg leading-relaxed">
-                            {attempt.insights.recommendation}
-                        </p>
-
-                        {attempt.insights.strengths.length > 0 && (
-                            <div className="mt-6 flex flex-wrap gap-2">
-                                <span className="text-xs uppercase font-black text-blue-400 tracking-widest py-1">Strengths:</span>
-                                {attempt.insights.strengths.map(s => (
-                                    <span key={s} className="bg-white text-emerald-600 font-bold text-xs px-3 py-1 rounded-full border border-emerald-100 shadow-sm">
-                                        {s}
-                                    </span>
-                                ))}
+                    {/* AI Recommendations */}
+                    {attempt.insights ? (
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-3xl p-8 flex gap-6 items-start shadow-inner">
+                            <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/20 shrink-0">
+                                <Zap className="w-8 h-8 text-white" />
                             </div>
-                        )}
+                            <div className="flex-1">
+                                <h3 className="text-xl font-bold text-blue-900 mb-2">AI Performance Insights</h3>
+                                <p className="text-blue-800 text-lg leading-relaxed">
+                                    {attempt.insights.recommendation}
+                                </p>
 
-                        {attempt.insights.topicAnalysis && Object.keys(attempt.insights.topicAnalysis).length > 0 && (
-                            <div className="mt-8 border-t border-blue-200/50 pt-6">
-                                <h4 className="text-xs uppercase font-black text-blue-400 tracking-widest mb-4">Granular Topic Mastery</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    {Object.entries(attempt.insights.topicAnalysis).map(([topic, stats]) => {
-                                        const topicAcc = Math.round((stats.correct / stats.total) * 100);
-                                        return (
-                                            <div key={topic} className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
-                                                <div className="text-xs font-bold text-slate-700 truncate mb-2" title={topic}>{topic}</div>
-                                                <div className="flex items-center justify-between mt-1">
-                                                    <div className="text-xs text-slate-400 font-medium">{stats.correct}/{stats.total} Correct</div>
-                                                    <div className={`text-sm font-black ${topicAcc >= 80 ? 'text-emerald-500' :
-                                                        topicAcc >= 50 ? 'text-amber-500' : 'text-red-500'
-                                                        }`}>
-                                                        {topicAcc}%
-                                                    </div>
-                                                </div>
-                                                <div className="w-full h-1.5 bg-gray-100 rounded-full mt-3 overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full ${topicAcc >= 80 ? 'bg-emerald-500' :
-                                                            topicAcc >= 50 ? 'bg-amber-500' : 'bg-red-500'
-                                                            }`}
-                                                        style={{ width: `${topicAcc}%` }}
-                                                    />
+                                {attempt.insights.strengths.length > 0 && (
+                                    <div className="mt-6 flex flex-wrap gap-2">
+                                        <span className="text-xs uppercase font-black text-blue-400 tracking-widest py-1">Strengths:</span>
+                                        {attempt.insights.strengths.map(s => (
+                                            <span key={s} className="bg-white text-emerald-600 font-bold text-xs px-3 py-1 rounded-full border border-emerald-100 shadow-sm">
+                                                {s}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : isAnalyzing ? (
+                        <div className="bg-white border border-blue-100 rounded-3xl p-12 text-center shadow-lg relative overflow-hidden">
+                            <div className="absolute inset-0 bg-blue-50/50 animate-pulse" />
+                            <div className="relative z-10">
+                                <div className="inline-block p-4 bg-blue-100 rounded-full mb-4 animate-bounce">
+                                    <Zap className="w-8 h-8 text-blue-600" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-slate-900 mb-2">Analyzing your performance...</h3>
+                                <p className="text-slate-500 max-w-md mx-auto">
+                                    Our AI engine is processing your answers, identifying weak spots, and generating personalized recommendations. This usually takes just a few seconds.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white border border-gray-200 border-dashed rounded-3xl p-8 flex gap-4 items-center justify-center opacity-60">
+                            <div className="text-slate-400 font-medium">No insights generated for this attempt.</div>
+                        </div>
+                    )}
+                </motion.div>
+            )}
+
+            {/* TAB CONTENT: ANALYTICS */}
+            {activeTab === 'analytics' && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                    {attempt.insights?.topicAnalysis && Object.keys(attempt.insights.topicAnalysis).length > 0 && (
+                        <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+                            <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                                <Target className="w-6 h-6 text-blue-600" /> Topic Mastery Analysis
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {Object.entries(attempt.insights.topicAnalysis).map(([topic, stats]) => {
+                                    const topicAcc = Math.round((stats.correct / stats.total) * 100);
+                                    return (
+                                        <div key={topic} className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                                            <div className="text-sm font-bold text-slate-700 truncate mb-3" title={topic}>{topic}</div>
+                                            <div className="flex items-end justify-between mb-2">
+                                                <div className="text-xs text-slate-500 font-medium">{stats.correct}/{stats.total} Correct</div>
+                                                <div className={`text-2xl font-black ${topicAcc >= 80 ? 'text-emerald-500' :
+                                                    topicAcc >= 50 ? 'text-amber-500' : 'text-red-500'
+                                                    }`}>
+                                                    {topicAcc}%
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
+                                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-all duration-1000 ${topicAcc >= 80 ? 'bg-emerald-500' :
+                                                        topicAcc >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                                                        }`}
+                                                    style={{ width: `${topicAcc}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        )}
-                    </div>
-                </div>
-            ) : isAnalyzing ? (
-                <div className="bg-white border border-blue-100 rounded-3xl p-12 text-center shadow-lg relative overflow-hidden">
-                    <div className="absolute inset-0 bg-blue-50/50 animate-pulse" />
-                    <div className="relative z-10">
-                        <div className="inline-block p-4 bg-blue-100 rounded-full mb-4 animate-bounce">
-                            <Zap className="w-8 h-8 text-blue-600" />
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-900 mb-2">Analyzing your performance...</h3>
-                        <p className="text-slate-500 max-w-md mx-auto">
-                            Our AI engine is processing your answers, identifying weak spots, and generating personalized recommendations. This usually takes just a few seconds.
-                        </p>
-                    </div>
-                </div>
-            ) : (
-                <div className="bg-white border border-gray-200 border-dashed rounded-3xl p-8 flex gap-4 items-center justify-center opacity-60">
-                    <div className="text-slate-400 font-medium">No insights generated for this attempt.</div>
-                </div>
-            )}
-            {/* Topper Comparison Benchmarking */}
-            {attempt && (
-                <div className="mt-8">
-                    <TopperComparison stats={generateTopperStats(attempt)} />
-                </div>
-            )}
+                    )}
 
-            {/* Percentile Ranking */}
-            {attempt?.percentileData && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="mt-8"
-                >
-                    <PercentileCard
-                        percentile={attempt.percentileData.percentile}
-                        rank={attempt.percentileData.rank}
-                        totalStudents={attempt.percentileData.totalStudents}
-                        userScore={attempt.percentileData.userScore}
-                        averageScore={attempt.percentileData.averageScore}
-                        medianScore={attempt.percentileData.medianScore}
-                        distribution={attempt.percentileData.distribution}
-                        performanceTier={attempt.percentileData.performanceTier}
-                    />
-                </motion.div>
-            )}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {attempt?.percentileData && (
+                            <PercentileCard
+                                percentile={attempt.percentileData.percentile}
+                                rank={attempt.percentileData.rank}
+                                totalStudents={attempt.percentileData.totalStudents}
+                                userScore={attempt.percentileData.userScore}
+                                averageScore={attempt.percentileData.averageScore}
+                                medianScore={attempt.percentileData.medianScore}
+                                distribution={attempt.percentileData.distribution}
+                                performanceTier={attempt.percentileData.performanceTier}
+                            />
+                        )}
 
-            {/* Score Distribution Chart */}
-            {attempt?.percentileData && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="mt-8"
-                >
-                    <PercentileChart
-                        distribution={attempt.percentileData.distribution}
-                        userScore={attempt.percentileData.userScore}
-                        averageScore={attempt.percentileData.averageScore}
-                        medianScore={attempt.percentileData.medianScore}
-                    />
-                </motion.div>
-            )}
-
-            {/* Weakness Patterns */}
-            {attempt?.patterns && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="mt-8"
-                >
-                    <WeaknessPatterns patterns={attempt.patterns} />
-                </motion.div>
-            )}
-
-            {/* Question-wise Detailed Review */}
-            {attempt.responses && attempt.responses.length > 0 && (
-                <div className="mt-12 space-y-8">
-                    <div className="flex items-center gap-3">
-                        <div className="h-8 w-1 bg-blue-600 rounded-full"></div>
-                        <h2 className="text-2xl font-bold text-slate-900">Detailed Question Review</h2>
+                        {attempt && <TopperComparison stats={generateTopperStats(attempt)} />}
                     </div>
 
-                    {/* Grouping by Topic (Exam-wise) */}
+                    {attempt?.percentileData && (
+                        <PercentileChart
+                            distribution={attempt.percentileData.distribution}
+                            userScore={attempt.percentileData.userScore}
+                            averageScore={attempt.percentileData.averageScore}
+                            medianScore={attempt.percentileData.medianScore}
+                        />
+                    )}
+
+                    {attempt?.patterns && <WeaknessPatterns patterns={attempt.patterns} />}
+                </motion.div>
+            )}
+
+            {/* TAB CONTENT: REVIEW */}
+            {activeTab === 'review' && attempt.responses && attempt.responses.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-8 w-1 bg-blue-600 rounded-full"></div>
+                            <h2 className="text-2xl font-bold text-slate-900">Detailed Question Review</h2>
+                        </div>
+                        <div className="text-sm text-slate-500 font-medium">
+                            Showing {attempt.responses.length} responses
+                        </div>
+                    </div>
+
                     {Object.entries(
                         attempt.responses.reduce((acc, resp) => {
                             const topic = resp.question.topic || 'General';
@@ -448,9 +467,7 @@ export default function ResultsPage() {
 
                             <div className="space-y-6">
                                 {topicResponses.map((resp, qIdx) => (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        whileInView={{ opacity: 1, y: 0 }}
+                                    <div
                                         key={resp.id}
                                         className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                                     >
@@ -510,38 +527,14 @@ export default function ResultsPage() {
                                                     );
                                                 })}
                                             </div>
-
-
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 ))}
                             </div>
                         </div>
                     ))}
-                </div>
+                </motion.div>
             )}
-
-            {/* Actions */}
-            <div className="flex gap-4 pt-4">
-                <button
-                    onClick={() => router.push(`/dashboard/solutions/${params.id}`)}
-                    className="flex-1 bg-[#00bfa5] hover:bg-[#00a690] text-white font-bold py-4 rounded-2xl shadow-lg shadow-[#00bfa5]/20 transition-all flex items-center justify-center gap-2"
-                >
-                    <Eye className="w-5 h-5" /> View Solutions
-                </button>
-                <button
-                    onClick={() => router.push(`/dashboard/test/${attempt.model?.id || attempt.exam?.id || params.id}`)}
-                    className="flex-1 bg-white hover:bg-gray-50 text-slate-900 border border-gray-200 font-bold py-4 rounded-2xl shadow-sm hover:shadow-md transition-all"
-                >
-                    Retake Test
-                </button>
-                <button
-                    onClick={() => router.push('/dashboard/exams')}
-                    className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-slate-900/10 transition-all"
-                >
-                    Choose Another Exam
-                </button>
-            </div>
 
         </div>
     );

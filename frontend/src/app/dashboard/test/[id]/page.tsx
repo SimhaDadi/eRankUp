@@ -13,6 +13,8 @@ interface Question {
     content: string;
     options: { id: string; text: string }[];
     topic?: string;
+    positiveMarks?: number;
+    negativeMarks?: number;
 }
 
 export default function TestPage() {
@@ -472,8 +474,10 @@ export default function TestPage() {
                     <div className="h-12 border-b flex items-center justify-between px-6 bg-slate-50 text-sm">
                         <div className="font-bold text-blue-700">Question No. {currentQuestionIndex + 1}</div>
                         <div className="flex items-center gap-4 text-xs font-bold">
-                            <span className="text-slate-500">Marks: <span className="text-green-600">+2.0</span> / <span className="text-red-500">-0.5</span></span>
-
+                            <span className="text-slate-500">Marks:
+                                <span className="text-green-600">+{currentQuestion.positiveMarks || 1.0}</span> /
+                                <span className="text-red-500">-{currentQuestion.negativeMarks || 0.25}</span>
+                            </span>
                         </div>
                     </div>
 
