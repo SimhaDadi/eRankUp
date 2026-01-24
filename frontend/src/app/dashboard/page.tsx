@@ -51,100 +51,171 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="space-y-10 pb-20 max-w-7xl mx-auto">
-            {/* Welcome Section */}
+        <div className="space-y-6 pb-12 max-w-7xl mx-auto">
+            {/* Welcome Section - SPLIT LAYOUT */}
             <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative p-1 overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#00bfa5]/20 via-transparent to-transparent shadow-2xl shadow-teal-500/10"
+                className="relative p-1 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#00bfa5]/30 via-teal-500/5 to-cyan-500/20 shadow-xl shadow-teal-500/10"
             >
-                <div className="bg-white/80 backdrop-blur-3xl rounded-[2.4rem] p-10 md:p-12 relative overflow-hidden group border border-white/50">
+                <div className="bg-white/90 backdrop-blur-3xl rounded-[1.9rem] p-6 md:p-8 relative overflow-hidden group border border-white/60">
                     {/* Mesh Gradient Background Layer */}
-                    <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-teal-100/40 via-blue-50/20 to-transparent rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-1000" />
-                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-cyan-100/30 to-transparent rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
+                    <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-teal-100/60 via-cyan-50/30 to-transparent rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 group-hover:scale-105 transition-transform duration-1000" />
+                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-cyan-100/40 to-transparent rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
 
-                    <div className="relative z-10">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.2 }}
-                            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00bfa5]/10 text-[#00bfa5] text-[10px] font-black uppercase tracking-widest mb-6 border border-[#00bfa5]/20 shadow-sm"
-                        >
-                            <Sparkles className="w-3.5 h-3.5" /> Preparation Status: Elite
-                        </motion.div>
-
-                        <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tighter text-slate-900 leading-[1.1]">
-                            Welcome back, <br className="md:hidden" />
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00bfa5] via-teal-600 to-cyan-500">
-                                {user?.fullName?.split(' ')[0] || 'Aspirant'}
-                            </span>! 🚀
-                        </h1>
-
-                        <p className="text-slate-500 max-w-xl font-medium text-lg leading-relaxed mb-10">
-                            You've mastered <span className="text-slate-900 font-bold">{stats?.totalAttempts || 0}</span> test cycles.
-                            Your streak is heating up at <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded-lg font-bold">{stats?.streak || 0} days</span>.
-                        </p>
-
-                        <div className="flex flex-wrap gap-5">
-                            <Link
-                                href="/dashboard/exams"
-                                className="group/btn relative inline-flex items-center gap-3 bg-slate-900 text-white px-10 py-5 rounded-[1.5rem] font-bold transition-all hover:scale-[1.05] active:scale-95 shadow-2xl shadow-slate-900/30 overflow-hidden"
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
+                        {/* Left Content */}
+                        <div className="flex-1 max-w-2xl">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.2 }}
+                                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00bfa5]/10 text-[#00bfa5] text-[10px] font-black uppercase tracking-widest mb-6 border border-[#00bfa5]/20 shadow-sm"
                             >
-                                <span className="relative z-10 flex items-center gap-3 text-base">
-                                    Start Practice <ChevronRight className="w-5 h-5 transition-transform group-hover/btn:translate-x-1.5" />
-                                </span>
-                                <div className="absolute inset-0 bg-gradient-to-r from-[#00bfa5] to-teal-400 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
-                            </Link>
+                                <Sparkles className="w-3.5 h-3.5" /> Preparation Status: Elite
+                            </motion.div>
 
-                            <Link
-                                href="/dashboard/study-plan"
-                                className="relative inline-flex items-center gap-3 bg-white/50 backdrop-blur-xl border border-slate-200 text-slate-700 px-10 py-5 rounded-[1.5rem] font-bold transition-all hover:bg-white hover:border-[#00bfa5]/30 hover:shadow-xl hover:shadow-[#00bfa5]/5 active:scale-95 text-base"
-                            >
-                                Personalized Path
-                            </Link>
+                            <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-slate-900 leading-[1.05]">
+                                Welcome back, <br />
+                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00bfa5] via-teal-600 to-cyan-600">
+                                    {user?.fullName?.split(' ')[0] || 'Aspirant'}
+                                </span>! 🚀
+                            </h1>
+
+                            <p className="text-slate-500 max-w-lg font-bold text-lg leading-relaxed mb-10">
+                                You've mastered <span className="text-slate-900 font-extrabold text-xl">{stats?.totalAttempts || 0}</span> test cycles.
+                                Your streak is heating up at <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-xl font-black border border-orange-200">{stats?.streak || 0} days</span>.
+                            </p>
+
+                            <div className="flex flex-wrap gap-4">
+                                <Link
+                                    href="/dashboard/exams"
+                                    className="group/btn relative inline-flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-[1.25rem] font-bold transition-all hover:scale-[1.03] active:scale-95 shadow-xl shadow-slate-900/20 overflow-hidden"
+                                >
+                                    <span className="relative z-10 flex items-center gap-2 text-sm uppercase tracking-wider">
+                                        Start Practice <ChevronRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                                    </span>
+                                    <div className="absolute inset-0 bg-gradient-to-r from-[#00bfa5] to-teal-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
+                                </Link>
+
+                                <Link
+                                    href="/dashboard/study-plan"
+                                    className="relative inline-flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-4 rounded-[1.25rem] font-bold transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95 text-sm uppercase tracking-wider"
+                                >
+                                    Personalized Path
+                                </Link>
+                            </div>
+                        </div>
+
+                        {/* Right Visualization - Daily Goal Ring */}
+                        <div className="relative w-full md:w-[320px] aspect-square flex-shrink-0">
+                            <div className="absolute inset-0 bg-gradient-to-br from-teal-50 to-white rounded-full opacity-50 blur-3xl" />
+                            <div className="relative h-full bg-white/40 backdrop-blur-md rounded-full border border-white/60 shadow-2xl flex items-center justify-center p-8">
+                                {/* Rings */}
+                                <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+                                    {/* Background Ring */}
+                                    <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" strokeWidth="8" strokeLinecap="round" />
+                                    {/* Progress Ring */}
+                                    <motion.circle
+                                        initial={{ pathLength: 0 }}
+                                        animate={{ pathLength: 0.75 }} // Mock 75%
+                                        transition={{ duration: 2, ease: "easeOut" }}
+                                        cx="50" cy="50" r="45"
+                                        fill="none"
+                                        stroke="url(#gradient)"
+                                        strokeWidth="8"
+                                        strokeLinecap="round"
+                                        strokeDasharray="1 1"
+                                        strokeDashoffset="0"
+                                    />
+                                    <defs>
+                                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stopColor="#00bfa5" />
+                                            <stop offset="100%" stopColor="#2dd4bf" />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Daily Goal</div>
+                                    <div className="text-5xl font-black text-slate-900 tracking-tighter">75%</div>
+                                    <div className="text-xs font-bold text-teal-600 mt-2 bg-teal-50 px-3 py-1 rounded-full border border-teal-100">Keep pushing!</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </motion.div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Stats Grid - REDESIGNED & DENSER */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     {
-                        icon: <Trophy className="w-6 h-6" />,
+                        icon: <Trophy className="w-5 h-5" />,
                         label: "Average Score",
                         value: `${stats?.averageScore || 0}%`,
                         trend: "+5.2%",
                         color: "from-amber-400 to-orange-500",
                         bgColor: "bg-amber-500/10",
-                        textColor: "text-amber-600"
+                        textColor: "text-amber-600",
+                        chart: (
+                            <div className="h-10 flex items-end gap-1 opacity-50">
+                                {[40, 60, 45, 70, 50, 65, 80].map((h, i) => (
+                                    <div key={i} className="flex-1 bg-amber-500 rounded-t-sm" style={{ height: `${h}%` }} />
+                                ))}
+                            </div>
+                        )
                     },
                     {
-                        icon: <CheckCircle2 className="w-6 h-6" />,
+                        icon: <CheckCircle2 className="w-5 h-5" />,
                         label: "Total Tests",
                         value: stats?.totalAttempts || 0,
                         trend: "On Track",
                         color: "from-emerald-400 to-teal-500",
                         bgColor: "bg-emerald-500/10",
-                        textColor: "text-emerald-600"
+                        textColor: "text-emerald-600",
+                        chart: (
+                            <div className="h-10 w-10 relative ml-auto">
+                                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#d1fae5" strokeWidth="4" />
+                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray="80, 100" />
+                                </svg>
+                            </div>
+                        )
                     },
                     {
-                        icon: <Target className="w-6 h-6" />,
+                        icon: <Target className="w-5 h-5" />,
                         label: "Accuracy",
                         value: `${stats?.accuracy || 0}%`,
                         trend: "Elite 5%",
                         color: "from-cyan-400 to-blue-500",
                         bgColor: "bg-cyan-500/10",
-                        textColor: "text-cyan-600"
+                        textColor: "text-cyan-600",
+                        chart: (
+                            <div className="h-10 flex items-center justify-end gap-1">
+                                <div className="w-10 h-10 rounded-full border-[3px] border-cyan-500 flex items-center justify-center bg-cyan-50 text-[8px] font-black text-cyan-600">
+                                    TOP
+                                </div>
+                            </div>
+                        )
                     },
                     {
-                        icon: <Clock className="w-6 h-6" />,
+                        icon: <Clock className="w-5 h-5" />,
                         label: "Study Time",
                         value: formatTime(stats?.totalTimeTaken || 0),
                         trend: "Peak Performance",
                         color: "from-indigo-400 to-violet-500",
                         bgColor: "bg-indigo-500/10",
-                        textColor: "text-indigo-600"
+                        textColor: "text-indigo-600",
+                        chart: (
+                            <div className="h-8 flex items-center gap-0.5 opacity-60">
+                                {[1, 2, 3, 2, 4, 3, 5].map((h, i) => (
+                                    <div key={i} className="w-1.5 h-full bg-indigo-200 rounded-full overflow-hidden relative">
+                                        <div className="absolute bottom-0 left-0 w-full bg-indigo-500 rounded-full" style={{ height: `${h * 20}%` }} />
+                                    </div>
+                                ))}
+                            </div>
+                        )
                     }
                 ].map((stat, i) => (
                     <motion.div
@@ -152,51 +223,52 @@ export default function DashboardPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 * i + 0.3 }}
-                        whileHover={{ y: -8, scale: 1.02 }}
+                        whileHover={{ y: -5 }}
                         className="group relative"
                     >
                         <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl -z-10 bg-white/50" />
-                        <div className="bg-white p-7 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden h-full flex flex-col justify-between">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className={`p-4 rounded-2xl ${stat.bgColor} ${stat.textColor} shadow-inner transition-transform group-hover:rotate-6`}>
+                        <div className="bg-white p-5 rounded-[1.5rem] border border-slate-200/60 shadow-lg shadow-slate-200/20 relative overflow-hidden h-full flex flex-col justify-between ring-1 ring-slate-900/5 hover:border-slate-300 transition-all">
+                            <div className="flex items-start justify-between mb-4">
+                                <div className={`w-12 h-12 rounded-2xl ${stat.bgColor} ${stat.textColor} flex items-center justify-center shadow-inner`}>
                                     {stat.icon}
                                 </div>
-                                <div className="text-[10px] font-black tracking-widest text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 uppercase">
-                                    {stat.trend}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-[32px] font-black text-slate-900 tracking-tighter mb-0.5 leading-none">
-                                    {stat.value}
-                                </div>
-                                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                                    {stat.label}
-                                </div>
+                                {stat.chart}
                             </div>
 
-                            {/* Decorative accent */}
-                            <div className={`absolute -bottom-1 -right-1 w-12 h-12 bg-gradient-to-br ${stat.color} opacity-5 rounded-full blur-xl`} />
+                            <div className="relative z-10">
+                                <div className="text-3xl font-black text-slate-900 tracking-tighter mb-1 leading-none">
+                                    {stat.value}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                        {stat.label}
+                                    </div>
+                                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${stat.bgColor} ${stat.textColor} uppercase tracking-wider`}>
+                                        {stat.trend}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
                 {/* Recent Activity */}
-                <div className="lg:col-span-3 space-y-8">
-                    <div className="flex items-center justify-between px-4">
-                        <h2 className="text-3xl font-black flex items-center gap-4 text-slate-900 tracking-tight">
-                            <div className="w-12 h-12 bg-[#00bfa5]/10 rounded-2xl flex items-center justify-center">
-                                <TrendingUp className="w-6 h-6 text-[#00bfa5]" />
+                <div className="lg:col-span-3 space-y-4">
+                    <div className="flex items-center justify-between px-2">
+                        <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900 tracking-tight">
+                            <div className="w-10 h-10 bg-[#00bfa5]/10 rounded-xl flex items-center justify-center">
+                                <TrendingUp className="w-5 h-5 text-[#00bfa5]" />
                             </div>
                             Recent Activity
                         </h2>
                         <Link href="/dashboard/activity" className="text-[10px] text-slate-400 hover:text-[#00bfa5] transition-all font-black uppercase tracking-[0.2em] flex items-center gap-2 group/link">
-                            Browse History <ChevronRight className="w-4 h-4 transition-transform group-hover/link:translate-x-1" />
+                            History <ChevronRight className="w-4 h-4 transition-transform group-hover/link:translate-x-1" />
                         </Link>
                     </div>
 
-                    <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-200/40 p-2">
+                    <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-lg shadow-slate-200/30 p-2">
                         {recentAttempts.length > 0 ? (
                             <div className="space-y-1">
                                 {recentAttempts.map((attempt, idx) => {
@@ -212,40 +284,40 @@ export default function DashboardPage() {
                                         >
                                             <Link
                                                 href={attempt.id ? `/dashboard/results/${attempt.id}` : '#'}
-                                                className="group flex items-center justify-between p-5 md:p-6 rounded-[2rem] hover:bg-slate-50 transition-all duration-500 relative overflow-hidden"
+                                                className="group flex items-center justify-between p-4 rounded-[1.8rem] hover:bg-slate-50 transition-all duration-300 relative overflow-hidden border border-transparent hover:border-slate-100"
                                             >
-                                                <div className="flex items-center gap-5 relative z-10">
-                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border border-white shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${isExcellent ? 'bg-emerald-50 text-emerald-600 shadow-emerald-200/50' :
+                                                <div className="flex items-center gap-4 relative z-10">
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center border border-white shadow-md transition-all duration-500 group-hover:scale-105 group-hover:rotate-3 ${isExcellent ? 'bg-emerald-50 text-emerald-600 shadow-emerald-200/50' :
                                                         isAverage ? 'bg-blue-50 text-blue-600 shadow-blue-200/50' :
                                                             'bg-orange-50 text-orange-600 shadow-orange-200/50'
                                                         }`}>
-                                                        <BookOpen className="w-6 h-6" />
+                                                        <BookOpen className="w-5 h-5" />
                                                     </div>
                                                     <div>
-                                                        <div className="font-extrabold text-[15px] text-slate-900 group-hover:text-[#00bfa5] transition-colors uppercase tracking-tight mb-0.5">
+                                                        <div className="font-bold text-sm text-slate-900 group-hover:text-[#00bfa5] transition-colors uppercase tracking-tight mb-0.5 max-w-[180px] truncate">
                                                             {attempt.exam?.title || attempt.model?.title || 'Practice Module'}
                                                         </div>
                                                         <div className="flex items-center gap-2">
-                                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                                                {new Date(attempt.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                                {new Date(attempt.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                                             </div>
-                                                            <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                                                            <div className="text-[10px] font-black text-[#00bfa5] uppercase tracking-widest">Mock Test</div>
+                                                            <span className="w-0.5 h-0.5 bg-slate-300 rounded-full" />
+                                                            <div className="text-[9px] font-black text-[#00bfa5] uppercase tracking-widest">Mock Test</div>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-8 relative z-10">
-                                                    <div className="text-right">
-                                                        <div className="flex items-baseline gap-1 justify-end">
-                                                            <span className={`text-2xl font-black tracking-tighter ${isExcellent ? 'text-emerald-600' : isAverage ? 'text-blue-600' : 'text-orange-600'
+                                                <div className="flex items-center gap-6 relative z-10">
+                                                    <div className="text-right hidden sm:block">
+                                                        <div className="flex items-baseline gap-0.5 justify-end">
+                                                            <span className={`text-xl font-black tracking-tighter ${isExcellent ? 'text-emerald-600' : isAverage ? 'text-blue-600' : 'text-orange-600'
                                                                 }`}>
                                                                 {Math.round(attempt.score)}
                                                             </span>
-                                                            <span className="text-xs font-bold text-slate-400">%</span>
+                                                            <span className="text-[10px] font-bold text-slate-400">%</span>
                                                         </div>
                                                         {/* Activity Micro-Sparkline Mockup */}
-                                                        <div className="w-16 h-1 mt-1 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div className="w-12 h-1 mt-1 bg-slate-100 rounded-full overflow-hidden ml-auto">
                                                             <motion.div
                                                                 initial={{ width: 0 }}
                                                                 animate={{ width: `${attempt.score}%` }}
@@ -254,8 +326,8 @@ export default function DashboardPage() {
                                                             />
                                                         </div>
                                                     </div>
-                                                    <div className="w-10 h-10 bg-slate-100 group-hover:bg-[#00bfa5] rounded-xl flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-6">
-                                                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+                                                    <div className="w-8 h-8 bg-slate-50 group-hover:bg-[#00bfa5] rounded-lg flex items-center justify-center transition-all group-hover:scale-110">
+                                                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
                                                     </div>
                                                 </div>
 
@@ -281,34 +353,34 @@ export default function DashboardPage() {
                 </div>
 
                 {/* AI Recommendations */}
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="px-4">
-                        <h2 className="text-3xl font-black flex items-center gap-4 text-slate-900 tracking-tight">
-                            <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center">
-                                <Zap className="w-6 h-6 text-orange-500" />
+                <div className="lg:col-span-2 space-y-4">
+                    <div className="px-2">
+                        <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900 tracking-tight">
+                            <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center">
+                                <Zap className="w-5 h-5 text-orange-500" />
                             </div>
                             For You
                         </h2>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.8 }}
-                            className="bg-gradient-to-br from-[#1a237e] via-[#311b92] to-[#4527a0] p-10 rounded-[3rem] text-white relative overflow-hidden group shadow-2xl shadow-indigo-500/30 border border-white/10"
+                            className="bg-gradient-to-br from-[#1a237e] via-[#311b92] to-[#4527a0] p-8 rounded-[2.5rem] text-white relative overflow-hidden group shadow-xl shadow-indigo-500/30 border border-white/10"
                         >
                             <div className="relative z-10">
-                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-2xl text-white text-[10px] font-black uppercase tracking-[0.15em] mb-8 border border-white/20 shadow-lg">
-                                    <Sparkles className="w-4 h-4 text-yellow-300" /> Focus Recommendation
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-2xl text-white text-[9px] font-black uppercase tracking-[0.15em] mb-6 border border-white/20 shadow-lg">
+                                    <Sparkles className="w-3 h-3 text-yellow-300" /> Focus Recommendation
                                 </div>
-                                <h3 className="text-3xl font-black mb-5 leading-[1.2] tracking-tight">Master Geometry <br />Properties</h3>
-                                <p className="text-indigo-100 text-[13px] leading-relaxed font-medium mb-10 opacity-80">
-                                    Your accuracy in Triangle centers is <span className="text-emerald-300 font-bold text-base">28% lower</span> than the average topper.
+                                <h3 className="text-2xl font-black mb-3 leading-[1.2] tracking-tight">Master Geometry <br />Properties</h3>
+                                <p className="text-indigo-100 text-xs leading-relaxed font-medium mb-8 opacity-80">
+                                    Your accuracy in Triangle centers is <span className="text-emerald-300 font-bold">28% lower</span> than the average topper.
                                 </p>
                                 <Link
                                     href="/dashboard/study-plan"
-                                    className="group/deep relative block w-full text-center py-6 bg-white text-[#311b92] rounded-[1.8rem] font-bold text-[13px] uppercase tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.03] active:scale-95 overflow-hidden"
+                                    className="group/deep relative block w-full text-center py-4 bg-white text-[#311b92] rounded-[1.2rem] font-bold text-xs uppercase tracking-[0.2em] shadow-xl transition-all hover:scale-[1.03] active:scale-95 overflow-hidden"
                                 >
                                     <span className="relative z-10 transition-colors group-hover/deep:text-white">Start Deep Dive</span>
                                     <div className="absolute inset-0 bg-gradient-to-r from-teal-400 to-[#00bfa5] opacity-0 group-hover/deep:opacity-100 transition-opacity duration-300" />
@@ -322,7 +394,7 @@ export default function DashboardPage() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 1.0 }}
-                            className="group relative p-[2px] rounded-[3.2rem] overflow-hidden"
+                            className="group relative p-[2px] rounded-[2.5rem] overflow-hidden"
                         >
                             {/* Animated Neon "Reactor" Border */}
                             <motion.div
@@ -331,59 +403,55 @@ export default function DashboardPage() {
                                 className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,transparent_0%,transparent_40%,#fbbf24_50%,transparent_60%,transparent_100%)] opacity-40 group-hover:opacity-100 transition-opacity duration-1000"
                             />
 
-                            <div className="relative bg-[#0b0f1a] backdrop-blur-3xl p-10 rounded-[3.1rem] h-full transition-colors duration-700 group-hover:bg-[#0f1424]">
+                            <div className="relative bg-[#0b0f1a] backdrop-blur-3xl p-8 rounded-[2.4rem] h-full transition-colors duration-700 group-hover:bg-[#0f1424]">
                                 <div className="relative z-10 font-inter">
-                                    <div className="flex items-center justify-between mb-10">
-                                        <div className="relative overflow-hidden px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 group/badge shadow-2xl">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div className="relative overflow-hidden px-4 py-2 rounded-xl bg-white/5 border border-white/10 group/badge shadow-xl">
                                             {/* Holographic Shimmer Layer */}
                                             <motion.div
                                                 animate={{ x: ['-100%', '200%'] }}
                                                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                                                 className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent skew-x-12"
                                             />
-                                            <div className="relative flex items-center gap-3">
-                                                <div className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping shadow-[0_0_15px_#fbbf24]" />
-                                                <span className="text-[12px] font-black text-white uppercase tracking-[0.3em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                                            <div className="relative flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping shadow-[0_0_15px_#fbbf24]" />
+                                                <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                                                     MOMENTUM <span className="text-amber-400">REACTOR</span>
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]" />
-                                            CORE: <span className="text-white">STABLE</span>
-                                        </div>
                                     </div>
 
-                                    <div className="space-y-8 mb-12">
-                                        <div className="flex items-center gap-8">
+                                    <div className="space-y-6 mb-8">
+                                        <div className="flex items-center gap-6">
                                             <div className="relative">
                                                 <motion.div
                                                     animate={{ scale: [1, 1.05, 1], rotate: [0, 5, -5, 0] }}
                                                     transition={{ duration: 5, repeat: Infinity }}
-                                                    className="text-8xl font-black text-white tracking-tighter leading-none select-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
+                                                    className="text-6xl font-black text-white tracking-tighter leading-none select-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
                                                 >
                                                     {stats?.streak || 1}
                                                 </motion.div>
                                                 {/* Reactor Glow Ring */}
-                                                <div className="absolute inset-0 bg-amber-500/5 blur-[40px] rounded-full -z-10 animate-pulse" />
+                                                <div className="absolute inset-0 bg-amber-500/5 blur-[30px] rounded-full -z-10 animate-pulse" />
                                             </div>
-                                            <div className="space-y-2">
-                                                <div className="text-amber-500 text-[14px] font-black uppercase tracking-[0.3em] leading-none">Day Streak</div>
-                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-400 text-[10px] font-black uppercase tracking-widest border border-orange-500/20">
-                                                    <Zap className="w-3.5 h-3.5 fill-orange-400" /> Superconducting
+                                            <div className="space-y-1">
+                                                <div className="text-amber-500 text-[11px] font-black uppercase tracking-[0.3em] leading-none">Day Streak</div>
+                                                <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-orange-500/10 text-orange-400 text-[9px] font-black uppercase tracking-widest border border-orange-500/20">
+                                                    <Zap className="w-3 h-3 fill-orange-400" /> Superconducting
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Liquid Consistency Tracker */}
-                                        <div className="pt-6 border-t border-white/5 relative">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Efficiency Matrix</span>
-                                                <div className="text-[11px] font-black text-amber-500 tracking-widest">S-RANK</div>
+                                        <div className="pt-4 border-t border-white/5 relative">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Efficiency Matrix</span>
+                                                <div className="text-[10px] font-black text-amber-500 tracking-widest">S-RANK</div>
                                             </div>
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2">
                                                 {[1, 2, 3, 4, 5, 6, 7].map((day, i) => (
-                                                    <div key={day} className="flex-1 group/bead relative h-3 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
+                                                    <div key={day} className="flex-1 group/bead relative h-2.5 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
                                                         {i < (stats?.streak || 1) % 8 && (
                                                             <motion.div
                                                                 initial={{ y: "100%" }}
@@ -405,23 +473,19 @@ export default function DashboardPage() {
                                         </div>
                                     </div>
 
-                                    <p className="text-slate-400 text-[13px] leading-relaxed font-medium mb-12 border-l-2 border-amber-500/30 pl-5 italic">
-                                        "Focus is the accelerator. Consistency is the fuel." Your trajectory is currently <span className="text-white font-bold text-base shadow-white/10">unbounded</span>.
-                                    </p>
-
                                     <Link
                                         href="/dashboard/study-plan"
                                         className="group/btn block relative"
                                     >
                                         <div className="absolute inset-0 bg-amber-500 blur-xl opacity-0 group-hover/btn:opacity-20 transition-opacity duration-500" />
-                                        <div className="relative text-center py-6 bg-gradient-to-r from-slate-800 to-slate-900 border border-white/10 text-white rounded-2xl font-black text-[13px] uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-95 hover:border-amber-500/50 hover:text-amber-400">
+                                        <div className="relative text-center py-4 bg-gradient-to-r from-slate-800 to-slate-900 border border-white/10 text-white rounded-xl font-black text-xs uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-95 hover:border-amber-500/50 hover:text-amber-400">
                                             Ignite Pipeline
                                         </div>
                                     </Link>
                                 </div>
 
                                 {/* Reactor Core Backdrop Effects */}
-                                <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-amber-500/5 rounded-full blur-[120px]" />
+                                <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-amber-500/5 rounded-full blur-[100px]" />
                                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.05),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                             </div>
                         </motion.div>
