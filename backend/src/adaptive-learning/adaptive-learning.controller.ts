@@ -41,6 +41,30 @@ export class AdaptiveLearningController {
     @Get('learning-path')
     async getLearningPath(@Request() req: any) {
         const userId = req.user.userId;
-        return this.adaptiveService.generateLearningPath(userId);
+        const path = await this.adaptiveService.generateLearningPath(userId);
+
+        // Frontend expects questions immediately. Let's auto-generate a practice set based on the top recommendation.
+        const topTopic = path.recommendedTopics[0];
+        const topicName = topTopic?.topic || 'General';
+
+        // Fetch questions for this topic
+        // We'll use a new service method or repurpose generateAdaptiveQuestionSet if we can pass a topic filter
+        // For now, let's fetch questions via repo in service or add a helper.
+        // Since we are in controller, let's ask service to "getQuestionsForTopic(topic)"
+
+        const questions = await this.adaptiveService.getQuestionsForTopic(topicName, 10);
+
+        return {
+            userId,
+            rationale: topTopic?.reason || "General improvement based on initial assessment.",
+            totalQuestions: questions.length,
+            questions: questions.map(q => ({
+                id: q.id,
+                content: q.content,
+                subject: q.subject?.title || 'General',
+                chapter: q.topic || 'General',
+                difficulty: q.difficultyWeight || 0.5
+            }))
+        };
     }
 }

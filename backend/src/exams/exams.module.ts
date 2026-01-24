@@ -22,6 +22,7 @@ import { QuestionsUploadService } from './services/questions-upload.service';
 import { GamificationModule } from '../gamification/gamification.module';
 import { AdaptiveLearningModule } from '../adaptive-learning/adaptive-learning.module';
 import { TestSessionModule } from '../test-session/test-session.module';
+import { PassesModule } from '../passes/passes.module';
 
 @Module({
     imports: [
@@ -31,6 +32,7 @@ import { TestSessionModule } from '../test-session/test-session.module';
         AIModule,
         GamificationModule,
         AdaptiveLearningModule,
+        PassesModule,
     ],
     controllers: [ExamsController, SubjectsController, ChaptersController, QuestionsController],
     providers: [ExamsService, ExamsSeederService, ScorerService, DifficultyService, QuestionsUploadService],

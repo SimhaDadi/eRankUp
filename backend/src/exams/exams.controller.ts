@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query, ForbiddenException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { ExamsSeederService } from './exams-seeder.service';
 import { ScorerService } from './scorer.service';
 import { QuestionsUploadService } from './services/questions-upload.service';
 import { PaymentsService } from '../payments/payments.service';
+import { PassesService } from '../passes/passes.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -22,6 +23,7 @@ export class ExamsController {
         private readonly testSessionService: TestSessionService,
         private readonly seederService: ExamsSeederService,
         private readonly uploadService: QuestionsUploadService,
+        private readonly passesService: PassesService,
     ) { }
 
     @UseGuards(AuthGuard('jwt'))
@@ -117,16 +119,48 @@ export class ExamsController {
     async findOne(@Param('id') id: string, @Request() req: any) {
         const isAdmin = req.user.role === 'admin';
         const exam = await this.examsService.findOne(id, isAdmin);
-        if (exam && exam.isPremium) {
-            (exam as any).hasPurchased = await this.paymentsService.hasPurchased(req.user.userId, exam.id);
+
+        if (!exam) return exam;
+
+        if (exam.isPremium && !isAdmin) {
+            const hasPurchased = await this.paymentsService.hasPurchased(req.user.userId, exam.id);
+            const hasPass = await this.passesService.getCurrentPass(req.user.userId);
+
+            (exam as any).hasPurchased = hasPurchased || !!hasPass;
+
+            // GATEKEEPER: If no purchase AND no active pass -> Deny details (or restricted view)
+            // For now, we return data but client handles it? 
+            // User requested strict access: "Gain access to test series"
+            // If we throw error, they can't even see the exam details page to buy it.
+            // BETTER: Return exam but flag it isLocked? Access to QUESTIONS (getModel) should be the hard gate.
+            // Let's implement the hard gate in `getModel` endpoint which returns the content.
         }
         return exam;
     }
 
     @UseGuards(AuthGuard('jwt'))
     @Get('models/:id')
-    getModel(@Param('id') id: string, @Request() req: any) {
-        return this.examsService.findModel(id, req.user.userId);
+    async getModel(@Param('id') id: string, @Request() req: any) {
+        const isAdmin = req.user.role === 'admin';
+
+        // Use existing findModel which fetches relationships
+        const model = await this.examsService.findModel(id, req.user.userId);
+        if (!model) return model;
+
+        // Check if any associated Exam is Premium
+        // findModel loads 'exams' relation
+        const premiumExam = model.exams?.find(e => e.isPremium);
+
+        if (premiumExam && !isAdmin) {
+            const hasPurchased = await this.paymentsService.hasPurchased(req.user.userId, premiumExam.id);
+            const hasPass = await this.passesService.getCurrentPass(req.user.userId);
+
+            if (!hasPurchased && !hasPass) {
+                throw new ForbiddenException('Access Denied. Premium Pass or Purchase required.');
+            }
+        }
+
+        return model;
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)

@@ -53,7 +53,6 @@ export default function Sidebar({ customNavSections, title }: SidebarProps) {
             ]
         },
         {
-            title: 'LEARN',
             items: [
                 // { icon: Zap, label: 'SuperCoaching', href: '/dashboard/super-coaching' },
                 // { icon: Tv, label: 'Live Classes', href: '/dashboard/live', badge: 'FREE', badgeColor: 'bg-green-500' },
@@ -61,7 +60,6 @@ export default function Sidebar({ customNavSections, title }: SidebarProps) {
             ]
         },
         {
-            title: 'TESTS',
             items: [
                 { icon: Layers, label: 'Test Series', href: '/dashboard/exams' }, // Main exams page
                 { icon: Activity, label: 'Live Tests & Quizzes', href: '/dashboard/live-tests' },
@@ -69,14 +67,13 @@ export default function Sidebar({ customNavSections, title }: SidebarProps) {
                 { icon: Crosshair, label: 'Practice', href: '/dashboard/practice' },
                 { icon: Clock, label: 'Free Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },
                 { icon: CheckCircle, label: 'Attempted Tests', href: '/dashboard/performance' }, // Performance page
-                { icon: Ticket, label: 'Pass', href: '/dashboard/pass' },
+                { icon: Ticket, label: 'Pass', href: '/dashboard/plans' },
                 // { icon: Crown, label: 'Pass Pro', href: '/dashboard/pass-pro' },
                 // { icon: Star, label: 'Pass Elite', href: '/dashboard/pass-elite' },
                 // { icon: Trophy, label: 'Rank Predictor', href: '/dashboard/leaderboard', badge: 'NEW', badgeColor: 'bg-orange-500' }, // Leaderboard
             ]
         },
         {
-            title: 'MISCELLANEOUS',
             items: [
                 { icon: List, label: 'Exams', href: '/dashboard/all-exams' },
                 { icon: Bookmark, label: 'Saved Questions', href: '/dashboard/saved' },

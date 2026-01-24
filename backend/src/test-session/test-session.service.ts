@@ -56,7 +56,12 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         const existingSession = await this.redis.get(key);
 
         if (existingSession) {
-            return JSON.parse(existingSession);
+            const session: TestSession = JSON.parse(existingSession);
+            // If session is active, resume it. If completed, we allow a new session (Retake).
+            if (session.status !== 'COMPLETED') {
+                return session;
+            }
+            // If completed, we proceed to create a new one below (overwriting the key).
         }
 
         // Adaptive sessions are handled dynamically

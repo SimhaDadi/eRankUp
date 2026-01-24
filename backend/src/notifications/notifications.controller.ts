@@ -7,31 +7,35 @@ import { UserRole } from '../users/user.entity';
 
 @Controller('admin/notifications')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles(UserRole.ADMIN)
 export class NotificationsController {
     constructor(private readonly notificationsService: NotificationsService) { }
 
     @Get('templates')
+    @Roles(UserRole.ADMIN)
     async getTemplates() {
         return this.notificationsService.getAllTemplates();
     }
 
     @Post('templates')
+    @Roles(UserRole.ADMIN)
     async createTemplate(@Body() body: any) {
         return this.notificationsService.createTemplate(body);
     }
 
     @Put('templates/:id')
+    @Roles(UserRole.ADMIN)
     async updateTemplate(@Param('id') id: string, @Body() body: any) {
         return this.notificationsService.updateTemplate(id, body);
     }
 
     @Delete('templates/:id')
+    @Roles(UserRole.ADMIN)
     async deleteTemplate(@Param('id') id: string) {
         return this.notificationsService.deleteTemplate(id);
     }
 
     @Post('send')
+    @Roles(UserRole.ADMIN)
     async sendNotification(@Body() body: { title: string; body: string; recipients: string[] | 'ALL' }) {
         return this.notificationsService.sendBulkNotification(body);
     }

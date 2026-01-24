@@ -125,6 +125,13 @@ export default function TestPage() {
                             if (session.answers) setAnswers(session.answers);
                             if (session.timings) setQuestionTimeLog(session.timings);
                             if (session.flags) setFlags(session.flags);
+
+                            // Restore visited state from existing interactions
+                            const visitedSet = new Set<string>();
+                            if (session.answers) Object.keys(session.answers).forEach(k => visitedSet.add(k));
+                            if (session.timings) Object.keys(session.timings).forEach(k => visitedSet.add(k));
+                            setVisited(Array.from(visitedSet));
+
                             // Set current index to last answered or first
                             const lastAnsweringIdx = loadedQuestions.findIndex(q => !session.answers[q.id]);
                             if (lastAnsweringIdx !== -1) setCurrentQuestionIndex(lastAnsweringIdx);
@@ -251,10 +258,10 @@ export default function TestPage() {
         const isVisited = visited.includes(id);
         const isCurrent = currentQuestionIndex === idx;
 
-        if (isCurrent) return 'bg-gray-200 border-gray-400'; // Current is handled by outline usually, but distinct status?
         if (isFlagged && isAnswered) return 'bg-[#7c3aed] text-white'; // Purple (Marked & Answered)
         if (isFlagged) return 'bg-[#a855f7] text-white'; // Purple (Marked)
         if (isAnswered) return 'bg-[#22c55e] text-white'; // Green
+        if (isCurrent) return 'bg-gray-200 border-gray-400'; // Current (if not answered/marked)
         if (isVisited && !isAnswered) return 'bg-[#ef4444] text-white'; // Red (Not Answered)
         return 'bg-white border-gray-300'; // Not Visited
     };
@@ -266,21 +273,115 @@ export default function TestPage() {
         return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    const [isFullScreen, setIsFullScreen] = useState(false);
-    const enterFullScreen = () => {
-        const element = document.documentElement;
-        if (element.requestFullscreen) {
-            element.requestFullscreen();
+    const [isStarted, setIsStarted] = useState(false);
+    const [showFullscreenWarning, setShowFullscreenWarning] = useState(false);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement && isStarted && !isSubmitting) {
+                setShowFullscreenWarning(true);
+            }
+        };
+
+        const preventDefault = (e: Event) => e.preventDefault();
+
+        if (isStarted) {
+            document.addEventListener('contextmenu', preventDefault);
+            document.addEventListener('copy', preventDefault);
+            document.addEventListener('cut', preventDefault);
+            document.addEventListener('paste', preventDefault);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+                    e.preventDefault();
+                }
+            });
+        }
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('contextmenu', preventDefault);
+            document.removeEventListener('copy', preventDefault);
+            document.removeEventListener('cut', preventDefault);
+            document.removeEventListener('paste', preventDefault);
+        };
+    }, [isStarted, isSubmitting]);
+
+    const startTest = async () => {
+        try {
+            await document.documentElement.requestFullscreen();
+        } catch (err) {
+            console.error("Fullscreen denied:", err);
+        }
+        setIsStarted(true);
+    };
+
+    const reEnterFullscreen = async () => {
+        try {
+            await document.documentElement.requestFullscreen();
+            setShowFullscreenWarning(false);
+        } catch (err) {
+            console.error("Fullscreen denied:", err);
         }
     };
 
     if (isLoading) return <div className="flex h-screen items-center justify-center">Loading Assessment...</div>;
     if (questions.length === 0) return <div>No Questions Found</div>;
 
+    if (!isStarted) {
+        return (
+            <div className="flex flex-col h-screen bg-slate-50 items-center justify-center p-4 select-none">
+                <div className="bg-white p-8 rounded-3xl shadow-xl max-w-lg w-full text-center space-y-6">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                        <Shield className="w-8 h-8 text-blue-600" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-900 mb-2">Secure Exam Environment</h2>
+                        <p className="text-slate-500 font-medium">
+                            To maintain integrity, this exam must be taken in full-screen mode.
+                            Click below to enter the secure environment and begin.
+                        </p>
+                    </div>
+                    <button
+                        onClick={startTest}
+                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg shadow-blue-600/20 uppercase tracking-widest transition-all hover:scale-105"
+                    >
+                        Start Test
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (showFullscreenWarning) {
+        return (
+            <div className="fixed inset-0 z-50 bg-red-900/90 backdrop-blur-md flex items-center justify-center p-4">
+                <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full text-center space-y-6 animate-pulse">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                        <AlertCircle className="w-8 h-8 text-red-600" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-900 mb-2">Warning: Fullscreen Exited</h2>
+                        <p className="text-slate-500 font-medium">
+                            You have exited the secure full-screen mode. Please return immediately to continue your exam.
+                        </p>
+                    </div>
+                    <button
+                        onClick={reEnterFullscreen}
+                        className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-lg shadow-red-600/20 uppercase tracking-widest transition-all scale-110"
+                    >
+                        Return to Exam
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     const currentQuestion = questions[currentQuestionIndex];
 
     return (
-        <div className="flex flex-col h-screen bg-gray-100 overflow-hidden font-sans">
+        <div className="flex flex-col h-screen bg-gray-100 overflow-hidden font-sans select-none">
             {/* 1. Header */}
             <header className="h-16 bg-white border-b flex items-center justify-between px-4 shrink-0 shadow-sm z-20">
                 <div className="font-bold text-lg text-slate-800 truncate max-w-md">SSC CGL 2030 Tier-I Mock Test</div>
@@ -289,9 +390,7 @@ export default function TestPage() {
                         <div className="text-xs font-bold text-slate-500 uppercase">Time Left</div>
                         <div className="font-mono font-bold text-xl text-slate-800">{formatTime(timeLeft)}</div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <User className="w-8 h-8 rounded-full bg-slate-200 p-1.5 text-slate-500" />
-                    </div>
+
                 </div>
             </header>
 
@@ -324,9 +423,7 @@ export default function TestPage() {
                         <div className="font-bold text-blue-700">Question No. {currentQuestionIndex + 1}</div>
                         <div className="flex items-center gap-4 text-xs font-bold">
                             <span className="text-slate-500">Marks: <span className="text-green-600">+2.0</span> / <span className="text-red-500">-0.5</span></span>
-                            <div className="flex items-center gap-1 text-slate-500 border-l pl-4 border-slate-300">
-                                <AlertCircle className="w-3 h-3" /> Report
-                            </div>
+
                         </div>
                     </div>
 

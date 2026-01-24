@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Sidebar from '../../components/Sidebar';
 import Topbar from '../../components/Topbar';
@@ -14,6 +14,9 @@ export default function DashboardLayout({
 }) {
     const { user, isLoading } = useAuthStore();
     const router = useRouter();
+    const pathname = usePathname();
+
+    const isTestMode = pathname?.startsWith('/dashboard/test/');
 
     useEffect(() => {
         if (!isLoading && !user) {
@@ -26,8 +29,17 @@ export default function DashboardLayout({
     }
 
     if (!user) {
-        // Prevent flashing content before redirect
         return null;
+    }
+
+    if (isTestMode) {
+        return (
+            <div className="min-h-screen bg-white">
+                <main className="h-screen overflow-hidden">
+                    {children}
+                </main>
+            </div>
+        );
     }
 
     return (

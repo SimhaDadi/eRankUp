@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Search, Sparkles, Trophy, Users, Globe, ChevronRight, Bookmark, Rocket, BookOpen, CheckCircle2 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface Exam {
     id: string;
@@ -26,7 +27,8 @@ interface Exam {
 export default function ExamsPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
 
     useEffect(() => {
         fetchExams();
@@ -91,39 +93,10 @@ export default function ExamsPage() {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-4 bg-white p-3.5 rounded-2xl border border-sky-50 shadow-sm">
-                        <div className="flex -space-x-1.5">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className={`w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[7px] font-black
-                                     ${i === 1 ? 'bg-sky-500 text-white' : i === 2 ? 'bg-emerald-500 text-white' : 'bg-blue-50 text-sky-400'}
-                                 `}>
-                                    {i === 1 ? 'U1' : i === 2 ? 'U2' : '+9'}
-                                </div>
-                            ))}
-                        </div>
-                        <div className="h-5 w-[1px] bg-slate-100" />
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Global Access</span>
-                    </div>
+
                 </div>
 
-                {/* Search Bar - BREEZE GLASS */}
-                <div className="relative max-w-xl">
-                    <div className="relative flex items-center bg-white/80 backdrop-blur-xl border border-sky-100/50 p-1.5 rounded-2xl shadow-sm">
-                        <div className="w-10 h-10 flex items-center justify-center text-sky-400">
-                            <Search className="w-5 h-5" />
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Find your series..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-transparent w-full px-2 py-2.5 outline-none text-base font-bold text-slate-700 placeholder-slate-300"
-                        />
-                        <button className="bg-sky-600 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-sky-700 transition-all shadow-lg shadow-sky-600/10 mr-1">
-                            Search
-                        </button>
-                    </div>
-                </div>
+
 
                 {/* Grid - BREEZE CARDS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

@@ -108,10 +108,12 @@ export class AdaptiveLearningService {
             order: { masteryScore: 'ASC' }, // Prioritize weak areas
         });
 
-        // Get all questions for the exam
-        const allQuestions = await this.questionRepo.find({
-            where: { examId },
-        });
+        // Get all questions for the exam (supporting both direct examId and ManyToMany relation)
+        const allQuestions = await this.questionRepo.createQueryBuilder('question')
+            .leftJoin('question.exams', 'exams')
+            .where('question.examId = :examId', { examId })
+            .orWhere('exams.id = :examId', { examId })
+            .getMany();
 
         if (allQuestions.length === 0) {
             return [];
@@ -232,6 +234,16 @@ export class AdaptiveLearningService {
             estimatedTime: 30, // minutes
         }));
 
+        // COLD START: If no data, recommend a diagnostic test
+        if (recommendations.length === 0) {
+            recommendations.push({
+                topic: 'General Assessment',
+                priority: 10,
+                reason: 'Start here to analyze your strengths and weaknesses',
+                estimatedTime: 60,
+            });
+        }
+
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7); // Valid for 1 week
 
@@ -244,5 +256,23 @@ export class AdaptiveLearningService {
         });
 
         return this.pathRepo.save(path);
+    }
+
+    async getQuestionsForTopic(topic: string, limit: number = 10) {
+        if (topic === 'General Assessment') {
+            // Return random mix
+            return this.questionRepo.createQueryBuilder('q')
+                .leftJoinAndSelect('q.subject', 's')
+                .orderBy('RANDOM()')
+                .take(limit)
+                .getMany();
+        }
+
+        return this.questionRepo.createQueryBuilder('q')
+            .leftJoinAndSelect('q.subject', 's')
+            .where('q.topic = :topic', { topic })
+            .orderBy('RANDOM()') // Shuffle
+            .take(limit)
+            .getMany();
     }
 }

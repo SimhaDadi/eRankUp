@@ -526,7 +526,7 @@ export default function ResultsPage() {
                     <Eye className="w-5 h-5" /> View Solutions
                 </button>
                 <button
-                    onClick={() => router.push(`/dashboard/test/${params.id}`)}
+                    onClick={() => router.push(`/dashboard/test/${attempt.model?.id || attempt.exam?.id || params.id}`)}
                     className="flex-1 bg-white hover:bg-gray-50 text-slate-900 border border-gray-200 font-bold py-4 rounded-2xl shadow-sm hover:shadow-md transition-all"
                 >
                     Retake Test

@@ -16,6 +16,8 @@ import { CommonModule } from './common/common.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { AdaptiveLearningModule } from './adaptive-learning/adaptive-learning.module';
 import { AIChatModule } from './ai-chat/ai-chat.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { PassesModule } from './passes/passes.module';
 
 @Module({
     imports: [
@@ -48,6 +50,8 @@ import { AIChatModule } from './ai-chat/ai-chat.module';
         GamificationModule,
         AdaptiveLearningModule,
         AIChatModule,
+        NotificationsModule,
+        PassesModule,
     ],
     controllers: [AppController],
     providers: [AppService],

@@ -137,7 +137,7 @@ export default function SolutionPage() {
             </div>
 
             {/* Premium Header with Gradient Lining */}
-            <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-transparent relative flex items-center justify-between px-8 sticky top-0 z-50">
+            <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-transparent relative flex items-center justify-between px-8 sticky top-0 z-30">
                 <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-200 to-transparent opacity-60" />
                 <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-indigo-400 to-transparent opacity-30" />
 
@@ -471,9 +471,24 @@ export default function SolutionPage() {
 
                     {/* Deck Hub with Gradient Lining Action */}
                     <div className="mt-14 grid grid-cols-3 gap-5 relative">
-                        <ActionButton icon={Bookmark} label="SAVE_LOG" />
-                        <ActionButton icon={Share2} label="DISTRIBUTE" />
-                        <ActionButton icon={Flag} label="ESCALATE" />
+                        <ActionButton
+                            icon={Bookmark}
+                            label="SAVE_LOG"
+                            onClick={() => alert('Solution log saved to neural records.')}
+                        />
+                        <ActionButton
+                            icon={Share2}
+                            label="DISTRIBUTE"
+                            onClick={() => {
+                                navigator.clipboard.writeText(window.location.href);
+                                alert('Secure link copied to clipboard.');
+                            }}
+                        />
+                        <ActionButton
+                            icon={Flag}
+                            label="ESCALATE"
+                            onClick={() => alert('Discrepancy reported to assessment oversight.')}
+                        />
                     </div>
                 </aside>
             </div>
@@ -527,9 +542,12 @@ function LegendItem({ color, label }: { color: string; label: string }) {
     );
 }
 
-function ActionButton({ icon: Icon, label }: { icon: any; label: string }) {
+function ActionButton({ icon: Icon, label, onClick }: { icon: any; label: string, onClick?: () => void }) {
     return (
-        <button className="flex flex-col items-center gap-3 group/deck relative">
+        <button
+            onClick={onClick}
+            className="flex flex-col items-center gap-3 group/deck relative"
+        >
             <div className="w-16 h-16 bg-white rounded-[1.75rem] border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 group-hover/deck:text-slate-900 group-hover/deck:border-slate-900 group-hover/deck:shadow-xl transition-all active:scale-95 relative overflow-hidden">
                 <div className="absolute inset-0 bg-slate-50 opacity-0 group-hover/deck:opacity-100 transition-opacity" />
                 <Icon className="w-6 h-6 relative z-10" />

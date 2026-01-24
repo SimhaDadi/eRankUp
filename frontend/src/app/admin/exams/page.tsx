@@ -17,7 +17,7 @@ import api from '@/lib/api';
 import Link from 'next/link';
 import { Database } from 'lucide-react'; // Import Database icon for Bank
 import { CreateExamModal } from '@/components/admin/CreateExamModal';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface Exam {
     id: string;
@@ -34,9 +34,10 @@ interface Exam {
 export default function AdminExamsPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
 
     const fetchExams = async () => {
         try {
@@ -52,6 +53,8 @@ export default function AdminExamsPage() {
     useEffect(() => {
         fetchExams();
     }, []);
+
+    // ... (rest of methods: handleDelete, handleTogglePublish)
 
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this exam? All associated chapters and questions will be lost.')) {
@@ -76,9 +79,9 @@ export default function AdminExamsPage() {
     const [filterType, setFilterType] = useState<'all' | 'real_exam' | 'question_bank'>('real_exam');
 
     const filteredExams = exams.filter(exam => {
-        const matchesSearch = exam.title.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = filterType === 'all' || exam.type === filterType;
-        return matchesSearch && matchesType;
+        const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesType && matchesSearch;
     });
 
     return (
@@ -150,17 +153,7 @@ export default function AdminExamsPage() {
                 </div>
             </div>
 
-            {/* Toolbar */}
-            <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-                <input
-                    type="text"
-                    placeholder="Search exams by title..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all"
-                />
-            </div>
+
 
             {/* Exams Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -241,13 +234,7 @@ export default function AdminExamsPage() {
 
                 {filteredExams.length === 0 && !isLoading && (
                     <div className="col-span-full py-20 text-center bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl">
-                        <div className="text-slate-500 mb-2">No exams found matching your search.</div>
-                        <button
-                            onClick={() => setSearchTerm('')}
-                            className="text-blue-500 hover:underline font-medium"
-                        >
-                            Clear Search
-                        </button>
+                        <div className="text-slate-500 mb-2">No exams found matching your filter.</div>
                     </div>
                 )}
             </div>

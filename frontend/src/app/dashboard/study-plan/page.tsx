@@ -42,7 +42,7 @@ export default function StudyPlanPage() {
         const fetchPlan = async () => {
             if (!user?.id) return;
             try {
-                const res = await api.get(`/ai/learning-path/${user.id}`);
+                const res = await api.get('/adaptive/learning-path');
                 setPlan(res.data);
             } catch (error) {
                 console.error("Failed to fetch study plan", error);

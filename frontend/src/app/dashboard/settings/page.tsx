@@ -48,18 +48,17 @@ export default function SettingsPage() {
 
     const handleSave = async () => {
         setIsSaving(true);
+        const payload = {
+            ...formData,
+            dob: formData.dob ? formData.dob : null, // Send null if empty
+        };
+
         try {
-            const res = await api.patch('/users/profile', formData);
+            const res = await api.patch('/users/profile', payload);
             if (res.data) {
                 // Update local store user object (merge active fields)
-                if (res.data) {
-                    // We might need to refresh the full user object or just update name
-                    // The auth store might expect specific fields, so let's just update what we can.
-                    // Assuming setUser takes a full User object or Partial.
-                    // For now, let's just rely on the fact that next fetch will get it, 
-                    // but to update UI immediately we can't easily deep update 'user' if it's strictly typed in store without fetching.
-                    // But we can trigger a re-fetch or let the page reload.
-                    // Let's just alert for now.
+                if (user) {
+                    setUser({ ...user, ...res.data });
                 }
                 alert('Profile updated successfully!');
             }
