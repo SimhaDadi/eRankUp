@@ -55,29 +55,20 @@ export class AIService {
 
         return this.queueService.add(async () => {
             try {
-                const response = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [{ text: prompt }]
-                            }]
-                        })
-                    }
-                );
+                // Use the SDK which handles endpoints robustly
+                const { GoogleGenerativeAI } = require("@google/generative-ai");
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-                if (!response.ok) {
-                    throw new Error(`Gemini API error: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                return data.candidates[0]?.content?.parts[0]?.text || 'No response generated';
+                const result = await model.generateContent(prompt);
+                const response = await result.response;
+                return response.text();
             } catch (error) {
                 console.error('[AIService] Gemini API error:', error);
+                // Fallback message if AI fails
+                if (error.status === 503) {
+                    return "I am currently overloaded. Please try again in a moment.";
+                }
                 throw error;
             }
         });

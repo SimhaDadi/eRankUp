@@ -191,7 +191,7 @@ export default function DashboardPage() {
                             </div>
                             Recent Activity
                         </h2>
-                        <Link href="/dashboard/performance" className="text-[10px] text-slate-400 hover:text-[#00bfa5] transition-all font-black uppercase tracking-[0.2em] flex items-center gap-2 group/link">
+                        <Link href="/dashboard/activity" className="text-[10px] text-slate-400 hover:text-[#00bfa5] transition-all font-black uppercase tracking-[0.2em] flex items-center gap-2 group/link">
                             Browse History <ChevronRight className="w-4 h-4 transition-transform group-hover/link:translate-x-1" />
                         </Link>
                     </div>

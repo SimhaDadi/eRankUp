@@ -35,6 +35,7 @@ export default function StudyPlanPage() {
     const { user } = useAuthStore();
     const [plan, setPlan] = useState<LearningPath | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const router = useRouter();
 
@@ -44,8 +45,9 @@ export default function StudyPlanPage() {
             try {
                 const res = await api.get('/adaptive/learning-path');
                 setPlan(res.data);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to fetch study plan", error);
+                setError(error.response?.data?.message || error.message);
             } finally {
                 setIsLoading(false);
             }
@@ -88,6 +90,7 @@ export default function StudyPlanPage() {
             <div className="text-center py-20">
                 <h2 className="text-xl font-bold text-slate-800">Unable to generate plan</h2>
                 <p className="text-slate-500">Please try attempting some tests first.</p>
+                {error && <p className="text-red-500 text-sm mt-2">Error: {error}</p>}
             </div>
         );
     }

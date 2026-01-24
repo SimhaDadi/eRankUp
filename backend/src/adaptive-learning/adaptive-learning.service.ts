@@ -259,20 +259,17 @@ export class AdaptiveLearningService {
     }
 
     async getQuestionsForTopic(topic: string, limit: number = 10) {
-        if (topic === 'General Assessment') {
-            // Return random mix
-            return this.questionRepo.createQueryBuilder('q')
-                .leftJoinAndSelect('q.subject', 's')
-                .orderBy('RANDOM()')
-                .take(limit)
-                .getMany();
+        let query = this.questionRepo.createQueryBuilder('q')
+            .leftJoinAndSelect('q.subject', 's');
+
+        if (topic !== 'General Assessment') {
+            query = query.where('q.topic = :topic', { topic });
         }
 
-        return this.questionRepo.createQueryBuilder('q')
-            .leftJoinAndSelect('q.subject', 's')
-            .where('q.topic = :topic', { topic })
-            .orderBy('RANDOM()') // Shuffle
-            .take(limit)
-            .getMany();
+        // Fetch excess to allow shuffle
+        const questions = await query.take(50).getMany();
+
+        // Shuffle in memory
+        return questions.sort(() => 0.5 - Math.random()).slice(0, limit);
     }
 }

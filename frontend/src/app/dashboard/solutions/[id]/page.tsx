@@ -28,6 +28,7 @@ import {
     Lightbulb
 } from 'lucide-react';
 import api from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 import MathRenderer from '@/components/MathRenderer';
 import Link from 'next/link';
 
@@ -66,6 +67,7 @@ interface Attempt {
 export default function SolutionPage() {
     const params = useParams();
     const router = useRouter();
+    const { user } = useAuthStore();
     const [attempt, setAttempt] = useState<Attempt | null>(null);
     const [currentIdx, setCurrentIdx] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -398,13 +400,19 @@ export default function SolutionPage() {
                             <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl -translate-y-12 translate-x-12" />
                             <div className="w-16 h-16 rounded-2xl bg-[#0f172a] flex items-center justify-center text-white font-black text-2xl shadow-2xl relative">
                                 <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-cyan-400 opacity-20" />
-                                D
+                                {user?.fullName?.[0]?.toUpperCase() || 'S'}
                             </div>
                             <div>
-                                <div className="font-black text-slate-900 text-xl tracking-tight leading-none mb-2">Commander Dadi</div>
+                                <div className="font-black text-slate-900 text-xl tracking-tight leading-none mb-2 truncate max-w-[180px]">
+                                    {user?.fullName || 'Student'}
+                                </div>
                                 <div className="flex gap-2">
-                                    <div className="bg-indigo-600 text-[9px] font-black text-white px-2.5 py-1 rounded-md tracking-widest uppercase">MASTER</div>
-                                    <div className="bg-slate-200 text-[9px] font-black text-slate-600 px-2.5 py-1 rounded-md tracking-widest uppercase">RANK_12</div>
+                                    <div className="bg-indigo-600 text-[9px] font-black text-white px-2.5 py-1 rounded-md tracking-widest uppercase">
+                                        {user?.role || 'SCHOLAR'}
+                                    </div>
+                                    <div className="bg-slate-200 text-[9px] font-black text-slate-600 px-2.5 py-1 rounded-md tracking-widest uppercase">
+                                        LEVEL {Math.floor((attempt.score / 10) + 1)}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -417,10 +425,38 @@ export default function SolutionPage() {
                             <div className="h-[1px] flex-1 ml-6 bg-gradient-to-r from-slate-100 to-transparent" />
                         </div>
                         <div className="grid grid-cols-2 gap-5">
-                            <AnalyticsStat icon={Zap} color="text-emerald-500" bg="bg-emerald-50/50" border="border-emerald-100/50" label="SPEED" value="1.2x" />
-                            <AnalyticsStat icon={Clock} color="text-amber-500" bg="bg-amber-50/50" border="border-amber-100/50" label="STABLE" value="HIGH" />
-                            <AnalyticsStat icon={Target} color="text-indigo-600" bg="bg-indigo-50/50" border="border-indigo-100/50" label="ACCY" value="76%" />
-                            <AnalyticsStat icon={AlertCircle} color="text-red-400" bg="bg-red-50/50" border="border-red-100/50" label="LEAKS" value="03" />
+                            <AnalyticsStat
+                                icon={Zap}
+                                color="text-emerald-500"
+                                bg="bg-emerald-50/50"
+                                border="border-emerald-100/50"
+                                label="SPEED"
+                                value={`${(attempt.totalQuestions / (attempt.timeTaken / 60 || 1)).toFixed(1)}/m`}
+                            />
+                            <AnalyticsStat
+                                icon={Clock}
+                                color="text-amber-500"
+                                bg="bg-amber-50/50"
+                                border="border-amber-100/50"
+                                label="STATUS"
+                                value={attempt.score >= 80 ? 'ELITE' : 'ACTIVE'}
+                            />
+                            <AnalyticsStat
+                                icon={Target}
+                                color="text-indigo-600"
+                                bg="bg-indigo-50/50"
+                                border="border-indigo-100/50"
+                                label="ACCY"
+                                value={`${Math.round((attempt.correctAnswers / attempt.totalQuestions) * 100)}%`}
+                            />
+                            <AnalyticsStat
+                                icon={AlertCircle}
+                                color={attempt.totalQuestions - attempt.correctAnswers > 0 ? "text-red-400" : "text-emerald-400"}
+                                bg={attempt.totalQuestions - attempt.correctAnswers > 0 ? "bg-red-50/50" : "bg-emerald-50/50"}
+                                border={attempt.totalQuestions - attempt.correctAnswers > 0 ? "border-red-100/50" : "border-emerald-100/50"}
+                                label="MISSED"
+                                value={(attempt.totalQuestions - attempt.correctAnswers).toString().padStart(2, '0')}
+                            />
                         </div>
                     </div>
 
