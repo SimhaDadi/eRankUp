@@ -32,11 +32,20 @@ export default function PracticePage() {
     }, []);
 
     const handleStartPractice = async (chapterId: string) => {
-        // In a real app, we might create a session here.
-        // For now, we utilize the Test Player which usually takes an examId.
-        // We'll need to update the Test Player to handle "Practice Mode" or "Virtual Exam IDs".
-        // But for MVP: We can link to a special route like `/dashboard/practice/[chapterId]`.
-        window.location.href = `/dashboard/practice/${chapterId}`;
+        setLoading(true);
+        try {
+            // Start a chapter session via backend
+            const res = await api.post('/test-session/start/chapter', { chapterId });
+            const sessionId = res.data.testId; // format: chapter-{chapterId} usually, or session ID
+            // Redirect to test player with session context
+            // Correct logic: /dashboard/test/[id]
+            window.location.href = `/dashboard/test/${sessionId}`;
+        } catch (error) {
+            console.error("Failed to start practice session", error);
+            alert("Failed to start practice session. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (loading) return (
@@ -93,8 +102,8 @@ export default function PracticePage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
                             className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden ${expandedSubject === subject.id
-                                    ? 'ring-2 ring-blue-500 shadow-xl border-transparent col-span-1 md:col-span-2 lg:col-span-3'
-                                    : 'hover:shadow-lg border-slate-100 hover:border-slate-200 cursor-pointer'
+                                ? 'ring-2 ring-blue-500 shadow-xl border-transparent col-span-1 md:col-span-2 lg:col-span-3'
+                                : 'hover:shadow-lg border-slate-100 hover:border-slate-200 cursor-pointer'
                                 }`}
                             onClick={() => {
                                 if (expandedSubject !== subject.id) setExpandedSubject(subject.id);
@@ -154,13 +163,16 @@ export default function PracticePage() {
                                                     <p className="text-xs text-slate-500 mb-4 line-clamp-2 min-h-[2.5em]">
                                                         {chapter.description || 'Practice questions from this chapter.'}
                                                     </p>
-                                                    <Link
-                                                        href={`/dashboard/practice/start/${chapter.id}`}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            handleStartPractice(chapter.id);
+                                                        }}
                                                         className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors"
                                                     >
                                                         <Play className="w-4 h-4 fill-current" />
                                                         Start Practice
-                                                    </Link>
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>

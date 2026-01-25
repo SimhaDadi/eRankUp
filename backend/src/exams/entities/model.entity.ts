@@ -14,6 +14,10 @@ export class Model {
     @Column({ default: 0 })
     totalQuestions: number;
 
+    @Column({ default: 60 }) // Duration in minutes
+    duration: number;
+
+
     @Column({ type: 'timestamp', nullable: true })
     scheduledAt: Date;
 

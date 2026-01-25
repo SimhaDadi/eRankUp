@@ -18,7 +18,8 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
         description: '',
         type: 'real_exam',
         defaultPositiveMarks: 1,
-        defaultNegativeMarks: 0.25
+        defaultNegativeMarks: 0.25,
+        duration: 60
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -30,7 +31,8 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                 description: exam.description || '',
                 type: exam.type || 'real_exam',
                 defaultPositiveMarks: exam.defaultPositiveMarks || 1,
-                defaultNegativeMarks: exam.defaultNegativeMarks || 0.25
+                defaultNegativeMarks: exam.defaultNegativeMarks || 0.25,
+                duration: exam.duration || 60
             });
         }
     }, [exam]);
@@ -172,8 +174,20 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                         </div>
                     </div>
 
-                    {/* Marking Scheme */}
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Marking Scheme & Duration */}
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Duration (Min) <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                value={formData.duration}
+                                onChange={(e) => handleChange('duration', parseInt(e.target.value))}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 placeholder-gray-400"
+                            />
+                        </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Positive Marks <span className="text-red-500">*</span>

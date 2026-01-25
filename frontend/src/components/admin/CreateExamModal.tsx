@@ -20,6 +20,7 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
         type: 'real_exam',
         defaultPositiveMarks: 1,
         defaultNegativeMarks: 0.25,
+        duration: 60,
         startTime: '',
         endTime: ''
     });
@@ -66,6 +67,7 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
                 type: 'real_exam',
                 defaultPositiveMarks: 1,
                 defaultNegativeMarks: 0.25,
+                duration: 60,
                 startTime: '',
                 endTime: ''
             });
@@ -268,8 +270,20 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
                         </p>
                     </div>
 
-                    {/* Marking Scheme */}
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Marking Scheme & Duration */}
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Duration (Min) <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                value={formData.duration}
+                                onChange={(e) => handleChange('duration', parseInt(e.target.value))}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 placeholder-gray-400"
+                            />
+                        </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Positive Marks <span className="text-red-500">*</span>

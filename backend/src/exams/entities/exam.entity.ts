@@ -49,13 +49,19 @@ export class Exam {
     @Column('float', { default: 0.25 })
     defaultNegativeMarks: number;
 
+    @Column({ default: 60 }) // Default duration in minutes for models in this exam
+    duration: number;
+
+    @Column({ default: false })
+    isLive: boolean;
+
     @Column({ type: 'timestamp', nullable: true })
     startTime: Date;
 
     @Column({ type: 'timestamp', nullable: true })
     endTime: Date;
 
-    @OneToMany(() => Subject, (subject) => subject.exam, { cascade: true })
+    @OneToMany(() => Subject, (subject) => subject.exam)
     subjects: Subject[];
 
     @ManyToMany(() => Question, (question) => question.exams)

@@ -45,6 +45,12 @@ export class CreateExamDto {
     @IsOptional()
     endTime?: Date;
 
+    @IsNumber()
+    @Min(0)
+    @IsOptional()
+    @Type(() => Number)
+    duration?: number;
+
     @IsBoolean()
     @IsOptional()
     isPremium?: boolean;
@@ -84,8 +90,12 @@ export class UpdateExamDto {
 
 export class CreateSubjectDto {
     @IsString()
-    @IsNotEmpty()
-    title!: string;
+    @IsOptional()
+    title?: string;
+
+    @IsString()
+    @IsOptional()
+    name?: string;
 
     @IsString()
     @IsOptional()
@@ -116,8 +126,12 @@ export class UpdateSubjectDto {
 
 export class CreateChapterDto {
     @IsString()
-    @IsNotEmpty()
-    title!: string;
+    @IsOptional()
+    title?: string;
+
+    @IsString()
+    @IsOptional()
+    name?: string;
 
     @IsString()
     @IsOptional()
@@ -140,16 +154,26 @@ export class UpdateChapterDto {
 
 export class CreateModelDto {
     @IsString()
-    @IsNotEmpty()
-    title!: string;
+    @IsOptional()
+    title?: string;
+
+    @IsString()
+    @IsOptional()
+    name?: string;
 
     @IsDateString()
     @IsOptional()
     scheduledAt?: Date;
 
+    @IsNumber()
+    @Min(0)
+    @IsOptional()
+    @Type(() => Number)
+    duration?: number;
+
     @IsUUID()
-    @IsNotEmpty()
-    chapterId!: string;
+    @IsOptional()
+    chapterId?: string;
 
     @IsArray()
     @IsOptional()
@@ -217,4 +241,5 @@ export interface Model {
     id: string;
     title: string;
     totalQuestions: number;
+    duration?: number;
 }

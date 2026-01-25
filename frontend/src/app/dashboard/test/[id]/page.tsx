@@ -109,16 +109,72 @@ export default function TestPage() {
                     }
                     setIsLoading(false);
                     return;
+                } else if (params.id?.toString().startsWith('chapter-')) {
+                    // --- Chapter Wise Practice Mode ---
+                    const chapterId = params.id.toString().replace('chapter-', '');
+                    try {
+                        // 1. Fetch Questions for Chapter
+                        const response = await api.get(`/exams/chapters/${chapterId}/questions`);
+                        const loadedQuestions = response.data;
+
+                        if (loadedQuestions && loadedQuestions.length > 0) {
+                            setQuestions(loadedQuestions);
+
+                            // 2. Load Session (Already started by PracticePage)
+                            const sessionRes = await api.get(`/test-session/${params.id}`);
+                            const session = sessionRes.data;
+
+                            if (session) {
+                                if (session.answers) setAnswers(session.answers);
+                                if (session.timings) setQuestionTimeLog(session.timings);
+                                if (session.flags) setFlags(session.flags);
+
+                                // Restore visited state
+                                const visitedSet = new Set<string>();
+                                if (session.answers) Object.keys(session.answers).forEach(k => visitedSet.add(k));
+                                if (session.timings) Object.keys(session.timings).forEach(k => visitedSet.add(k));
+                                setVisited(Array.from(visitedSet));
+
+                                // Set Timer (Practice Mode usually untimed, but let's keep it consistent or huge)
+                                // Let's give 2 hours for practice
+                                if (session.startTime) {
+                                    const now = Date.now();
+                                    const elapsedSeconds = Math.floor((now - session.startTime) / 1000);
+                                    const durationSeconds = 2 * 60 * 60; // 2 hours
+                                    const remaining = Math.max(0, durationSeconds - elapsedSeconds);
+                                    setTimeLeft(remaining);
+                                }
+                            }
+                        } else {
+                            console.warn('No questions found for this chapter');
+                        }
+                    } catch (err) {
+                        console.error('Failed to load chapter practice', err);
+                    }
+                    setIsLoading(false);
+                    return;
                 } else {
                     // Standard exam model loading
                     let loadedQuestions: Question[] = [];
+                    let testDurationMinutes = 60; // Default
 
                     // Try fetching as Model first
                     try {
                         const response = await api.get(`/exams/models/${params.id}`);
                         const model = response.data;
-                        if (model && model.questions && model.questions.length > 0) {
-                            loadedQuestions = model.questions;
+                        if (model) {
+                            if (model.questions && model.questions.length > 0) {
+                                loadedQuestions = model.questions;
+                            }
+                            // Use Model duration, or fallback to Exam default if linked
+                            // If model.duration > 0 use it. 
+                            // If not, check if model has exams and use first exam's duration?
+                            // For now, assume Model duration is authoritative if set, else 60.
+                            if (model.duration && model.duration > 0) {
+                                testDurationMinutes = model.duration;
+                            } else if (model.exams && model.exams[0]?.duration) {
+                                testDurationMinutes = model.exams[0].duration;
+                            }
                         }
                     } catch (err) {
                         console.warn('Failed to fetch as model, trying as exam...', err);
@@ -129,8 +185,13 @@ export default function TestPage() {
                         try {
                             const response = await api.get(`/exams/${params.id}`);
                             const exam = response.data;
-                            if (exam && exam.questions && exam.questions.length > 0) {
-                                loadedQuestions = exam.questions;
+                            if (exam) {
+                                if (exam.questions && exam.questions.length > 0) {
+                                    loadedQuestions = exam.questions;
+                                }
+                                if (exam.duration && exam.duration > 0) {
+                                    testDurationMinutes = exam.duration;
+                                }
                             }
                         } catch (err) {
                             console.error('Failed to fetch as exam', err);
@@ -144,12 +205,7 @@ export default function TestPage() {
 
                     setQuestions(loadedQuestions);
 
-                    // Default duration to 60 mins if not specified
-                    // Check fetches above for exam/model duration
-                    let durationSeconds = 60 * 60;
-                    // Note: In a real app, 'model' or 'exam' fetch above would provide this.
-                    // For now, we'll try to extract it if we had access, but since scope is tight, 
-                    // let's assume standard 60 mins OR get it from session if we stored it.
+                    const durationSeconds = testDurationMinutes * 60;
 
                     // Start Test Session
                     try {
