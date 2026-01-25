@@ -30,7 +30,10 @@ async function run() {
         const exams = await request('GET', '/exams', adminToken);
 
         // 3. Filter Test Exams
-        const testExams = exams.filter(e => e.title && e.title.includes('Golden Path'));
+        const testExams = exams.filter(e =>
+            (e.title && e.title.includes('Golden Path')) ||
+            (e.title && e.title.includes('Debug Exam'))
+        );
 
         if (testExams.length === 0) {
             console.log('✨ No Golden Path exams found to delete.');

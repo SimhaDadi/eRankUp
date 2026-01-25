@@ -5,6 +5,7 @@ import { UserTopicMastery } from './entities/user-topic-mastery.entity';
 import { LearningPath, TopicRecommendation } from './entities/learning-path.entity';
 import { Question } from '../exams/entities/question.entity';
 import { Response } from '../exams/entities/response.entity';
+import { AIService } from '../ai/ai.service';
 
 @Injectable()
 export class AdaptiveLearningService {
@@ -17,6 +18,7 @@ export class AdaptiveLearningService {
         private questionRepo: Repository<Question>,
         @InjectRepository(Response)
         private responseRepo: Repository<Response>,
+        private aiService: AIService,
     ) { }
 
     async calculateMasteryScore(userId: string, topic: string, existingMastery?: UserTopicMastery): Promise<number> {
@@ -56,7 +58,7 @@ export class AdaptiveLearningService {
     }
 
     async updateTopicMastery(userId: string, responses: Response[]): Promise<void> {
-        const topicStats = new Map<string, { correct: number; total: number }>();
+        const topicStats = new Map<string, { correct: number; total: number; lastWrongResponse?: Response }>();
 
         // Aggregate by topic
         for (const response of responses) {
@@ -69,7 +71,11 @@ export class AdaptiveLearningService {
             const topic = response.question.topic || 'General';
             const stats = topicStats.get(topic) || { correct: 0, total: 0 };
             stats.total++;
-            if (response.isCorrect) stats.correct++;
+            if (response.isCorrect) {
+                stats.correct++;
+            } else {
+                stats.lastWrongResponse = response;
+            }
             topicStats.set(topic, stats);
         }
 
@@ -92,6 +98,20 @@ export class AdaptiveLearningService {
             mastery.correctAttempts += stats.correct;
             mastery.lastPracticedAt = new Date();
             mastery.masteryScore = await this.calculateMasteryScore(userId, topic, mastery);
+
+            // AI Cognitive Analysis for wrong answers
+            if (stats.lastWrongResponse) {
+                try {
+                    const analysis = await this.aiService.analyzeWrongAnswer(
+                        stats.lastWrongResponse.question,
+                        stats.lastWrongResponse.selectedOptionId
+                    );
+                    mastery.lastErrorPattern = analysis.pattern;
+                    mastery.cognitiveAdvice = analysis.advice;
+                } catch (error) {
+                    console.error('[AdaptiveLearning] AI analysis failed:', error);
+                }
+            }
 
             await this.masteryRepo.save(mastery);
         }

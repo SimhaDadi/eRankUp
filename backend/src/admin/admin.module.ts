@@ -7,15 +7,35 @@ import { FinanceController } from './finance.controller';
 import { FinanceService } from './finance.service';
 import { MediaController } from './media.controller';
 import { MediaService } from './media.service';
+import { LiveExamsController } from './live-exams.controller';
+import { LiveExamsService } from './live-exams.service';
 import { Purchase } from '../exams/entities/purchase.entity';
+import { User } from '../users/user.entity';
+import { Exam } from '../exams/entities/exam.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Purchase]),
+        TypeOrmModule.forFeature([Purchase, User, Exam]),
         ConfigModule
     ],
-    controllers: [SystemHealthController, FinanceController, MediaController],
-    providers: [SystemHealthService, FinanceService, MediaService],
-    exports: [SystemHealthService, FinanceService, MediaService]
+    controllers: [
+        SystemHealthController,
+        FinanceController,
+        MediaController,
+        LiveExamsController
+    ],
+    providers: [
+        SystemHealthService,
+        FinanceService,
+        MediaService,
+        LiveExamsService
+    ],
+    exports: [
+        SystemHealthService,
+        FinanceService,
+        MediaService,
+        LiveExamsService
+    ]
 })
 export class AdminModule { }
+

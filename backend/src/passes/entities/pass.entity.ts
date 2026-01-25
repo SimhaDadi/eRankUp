@@ -6,7 +6,7 @@ export enum PassType {
     LIFETIME = 'LIFETIME'            // Never expires
 }
 
-@Entity()
+@Entity('pass')
 export class Pass {
     @PrimaryGeneratedColumn('uuid')
     id: string;

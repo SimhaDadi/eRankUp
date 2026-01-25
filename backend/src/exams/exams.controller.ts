@@ -28,7 +28,6 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get()
-    @Get()
     async findAll(@Request() req: any, @Query('type') type?: string) {
         const isAdmin = req.user.role === 'admin';
         const exams = await this.examsService.findAll({
@@ -189,6 +188,7 @@ export class ExamsController {
     @Post('models/:modelId/bulk-upload')
     @UseInterceptors(FileInterceptor('file'))
     async bulkUploadToModel(
+        @Request() req: any,
         @Param('modelId') modelId: string,
         @UploadedFile() file: Express.Multer.File
     ) {
@@ -207,7 +207,7 @@ export class ExamsController {
             negativeMarks: q.negativeMarks
         }));
 
-        const result = await this.examsService.createQuestionsBulk(modelId, questionsData);
+        const result = await this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, questionsData);
         return {
             uploaded: result.length,
             message: `Successfully uploaded ${result.length} questions`
@@ -273,6 +273,12 @@ export class ExamsController {
         return this.examsService.getAvailableQuestionsForExam(examId);
     }
 
+    @UseGuards(AuthGuard('jwt'))
+    @Get('chapters/:chapterId/questions')
+    getQuestionsByChapter(@Param('chapterId') chapterId: string) {
+        return this.examsService.getQuestionsByChapter(chapterId);
+    }
+
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Get('questions/stats')
@@ -282,8 +288,8 @@ export class ExamsController {
 
     // --- Content Hierarchy Management ---
 
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
-    @Roles(UserRole.ADMIN)
+    @UseGuards(AuthGuard('jwt'))
+    // @Roles(UserRole.ADMIN) // Allow students to fetch subjects for practice
     @Get('subjects/all')
     findAllSubjects() {
         return this.examsService.findAllSubjects();
@@ -300,7 +306,9 @@ export class ExamsController {
     @Roles(UserRole.ADMIN)
     @Post('subjects/:id/chapters')
     createChapter(@Param('id') subjectId: string, @Body() chapterData: CreateChapterDto) {
-        return this.examsService.createChapter(subjectId, chapterData);
+        // Ensure subjectId is set in DTO for service
+        chapterData.subjectId = subjectId;
+        return this.examsService.createChapter(chapterData);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -321,21 +329,49 @@ export class ExamsController {
     @Roles(UserRole.ADMIN)
     @Put('subjects/:subjectId/chapters/:chapterId')
     updateChapter(@Param('subjectId') subjectId: string, @Param('chapterId') chapterId: string, @Body() data: UpdateChapterDto) {
-        return this.examsService.updateChapter(subjectId, chapterId, data);
+        return this.examsService.updateChapter(chapterId, data);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Delete('subjects/:subjectId/chapters/:chapterId')
     deleteChapter(@Param('subjectId') subjectId: string, @Param('chapterId') chapterId: string) {
-        return this.examsService.deleteChapter(subjectId, chapterId);
+        return this.examsService.deleteChapter(chapterId);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Post('chapters/:id/models')
-    createModel(@Param('id') chapterId: string, @Body() modelData: CreateModelDto) {
+    async createModel(@Param('id') chapterId: string, @Body() modelData: CreateModelDto) {
         return this.examsService.createModel(chapterId, modelData);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Put('models/:id')
+    updateModel(@Param('id') id: string, @Body() data: any) {
+        return this.examsService.updateModel(id, data);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Delete('models/:id')
+    deleteModel(@Param('id') id: string) {
+        return this.examsService.deleteModel(id);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Delete('chapters/:id')
+    deleteChapterDirect(@Param('id') id: string) {
+        return this.examsService.deleteChapter(id);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Put('chapters/:id')
+    updateChapterDirect(@Param('id') id: string, @Body() data: any) {
+        return this.examsService.updateChapter(id, data);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -343,15 +379,16 @@ export class ExamsController {
     @Post('questions/upload')
     @UseInterceptors(FileInterceptor('file'))
     async uploadQuestions(
+        @Request() req: any,
         @UploadedFile() file: Express.Multer.File,
-        @Body('modelId') modelId: string,
+        @Body('modelId') modelId?: string,
         @Body('examId') examId?: string
     ) {
         if (!file) {
             throw new BadRequestException('File is required');
         }
-        if (!modelId) {
-            throw new BadRequestException('Model ID is required');
+        if (!modelId && !examId) {
+            throw new BadRequestException('Either Model ID or Exam ID is required');
         }
 
         const parsedQuestions = await this.uploadService.parseExamsFile(file.buffer, file.mimetype);
@@ -362,7 +399,7 @@ export class ExamsController {
             exams: examId ? [{ id: examId }] : []
         }));
 
-        return this.examsService.createQuestionsBulk(modelId, questionsWithContext);
+        return this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, questionsWithContext, examId);
     }
 
     // --- Question Bank Browser Endpoints ---
@@ -404,8 +441,8 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Post('models/:id/questions/bulk')
-    createQuestionsBulk(@Param('id') modelId: string, @Body() dto: BulkCreateQuestionsDto) {
-        return this.examsService.createQuestionsBulk(modelId, dto.questions);
+    createQuestionsBulk(@Request() req: any, @Param('id') modelId: string, @Body() dto: BulkCreateQuestionsDto) {
+        return this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, dto.questions);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)

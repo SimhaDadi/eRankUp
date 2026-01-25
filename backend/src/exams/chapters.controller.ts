@@ -3,67 +3,49 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Chapter } from './entities/chapter.entity';
+import { ExamsService } from './exams.service';
+import { CreateChapterDto } from '@erankup/shared';
 
 @Controller('chapters')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class ChaptersController {
     constructor(
-        @InjectRepository(Chapter)
-        private chapterRepository: Repository<Chapter>,
+        private readonly examsService: ExamsService,
     ) { }
 
     @Get()
     async getAllChapters() {
-        return this.chapterRepository.find({ relations: ['subject'] });
+        return this.examsService.findAllChapters();
     }
 
     @Get('by-subject/:subjectId')
     async getChaptersBySubject(@Param('subjectId') subjectId: string) {
-        return this.chapterRepository.find({
-            where: { subject: { id: subjectId } },
-            order: { title: 'ASC' }
-        });
+        return this.examsService.findChaptersBySubject(subjectId);
     }
 
     @Get(':id')
     async getChapter(@Param('id') id: string) {
-        return this.chapterRepository.findOne({
-            where: { id },
-            relations: ['subject']
-        });
+        return this.examsService.findOneChapter(id);
     }
 
     @Post()
     @Roles(UserRole.ADMIN)
-    async createChapter(@Body() chapterData: { name: string; subjectId: string }) {
-        const chapter = this.chapterRepository.create({
-            title: chapterData.name,
-            subject: { id: chapterData.subjectId }
-        });
-        return this.chapterRepository.save(chapter);
+    async createChapter(@Body() chapterData: CreateChapterDto) {
+        return this.examsService.createChapter(chapterData);
     }
 
     @Put(':id')
     @Roles(UserRole.ADMIN)
     async updateChapter(
         @Param('id') id: string,
-        @Body() chapterData: { name?: string; subjectId?: string }
+        @Body() chapterData: any
     ) {
-        const updateData: any = {};
-        if (chapterData.name) updateData.title = chapterData.name;
-        if (chapterData.subjectId) updateData.subject = { id: chapterData.subjectId };
-
-        await this.chapterRepository.update(id, updateData);
-        return this.getChapter(id);
+        return this.examsService.updateChapter(id, chapterData);
     }
 
     @Delete(':id')
     @Roles(UserRole.ADMIN)
     async deleteChapter(@Param('id') id: string) {
-        await this.chapterRepository.delete(id);
-        return { message: 'Chapter deleted successfully' };
+        return this.examsService.deleteChapter(id);
     }
 }

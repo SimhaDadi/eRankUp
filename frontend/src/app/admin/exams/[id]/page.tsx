@@ -15,10 +15,12 @@ import {
     Hash,
     MoreVertical,
     X,
-    Loader2
+    Loader2,
+    Upload
 } from 'lucide-react';
 import api from '@/lib/api';
 import { QuestionBankBrowser } from '@/components/admin/QuestionBankBrowser';
+import UploadExamQuestionsModal from '@/components/admin/UploadExamQuestionsModal';
 import { EditExamModal } from '@/components/admin/EditExamModal';
 
 interface Question {
@@ -49,6 +51,7 @@ export default function ExamDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [showQuestionBrowser, setShowQuestionBrowser] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showUploadModal, setShowUploadModal] = useState(false);
     const [removingQuestionId, setRemovingQuestionId] = useState<string | null>(null);
 
     const fetchExamDetails = async () => {
@@ -127,8 +130,8 @@ export default function ExamDetailPage() {
                         <div className="flex items-center gap-4 mb-3">
                             <h1 className="text-3xl font-bold text-white">{exam.title}</h1>
                             <span className={`px-3 py-1 rounded-full text-xs font-bold border ${exam.type === 'question_bank'
-                                    ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                                 }`}>
                                 {exam.type === 'question_bank' ? 'QUESTION BANK' : 'REAL EXAM'}
                             </span>
@@ -192,6 +195,13 @@ export default function ExamDetailPage() {
                     >
                         <Plus className="w-5 h-5" />
                         Browse Question Bank
+                    </button>
+                    <button
+                        onClick={() => setShowUploadModal(true)}
+                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all ml-3"
+                    >
+                        <Upload className="w-5 h-5" />
+                        Upload Questions
                     </button>
                 </div>
 
@@ -279,6 +289,18 @@ export default function ExamDetailPage() {
                     }}
                 />
             )}
+
+            {/* Upload Questions Modal */}
+            <UploadExamQuestionsModal
+                isOpen={showUploadModal}
+                onClose={() => setShowUploadModal(false)}
+                onSuccess={() => {
+                    fetchExamDetails();
+                    setShowUploadModal(false);
+                }}
+                examId={exam.id}
+                examTitle={exam.title}
+            />
 
             {/* Edit Exam Modal */}
             <EditExamModal

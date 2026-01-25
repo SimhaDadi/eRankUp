@@ -3,68 +3,54 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Subject } from './entities/subject.entity';
+import { ExamsService } from './exams.service';
+import { CreateSubjectDto } from '@erankup/shared';
 
 @Controller('subjects')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class SubjectsController {
     constructor(
-        @InjectRepository(Subject)
-        private subjectRepository: Repository<Subject>,
+        private readonly examsService: ExamsService,
     ) { }
 
     @Get()
     async getAllSubjects() {
-        return this.subjectRepository.find({ relations: ['exam'] });
+        return this.examsService.findAllSubjects();
     }
 
     @Get('by-exam/:examId')
     async getSubjectsByExam(@Param('examId') examId: string) {
-        return this.subjectRepository.find({
-            where: { exam: { id: examId } },
-            relations: ['chapters'],
-            order: { title: 'ASC' }
-        });
+        // This logic is currently in service as part of findOne? 
+        // No, let's keep it here but we could move it to service if needed.
+        // For now, let's use the service if it had it, but it doesn't have "findSubjectsByExam".
+        // Let's add it to service or keep direct repo if it's "simple".
+        // Actually, standardization means everything goes through Service.
+        return this.examsService.findSubjectsByExam(examId);
     }
 
     @Get(':id')
     async getSubject(@Param('id') id: string) {
-        return this.subjectRepository.findOne({
-            where: { id },
-            relations: ['exam', 'chapters']
-        });
+        return this.examsService.findOneSubject(id);
     }
 
     @Post()
     @Roles(UserRole.ADMIN)
-    async createSubject(@Body() subjectData: { name: string; examId: string }) {
-        const subject = this.subjectRepository.create({
-            title: subjectData.name,
-            exam: { id: subjectData.examId }
-        });
-        return this.subjectRepository.save(subject);
+    async createSubject(@Body() subjectData: CreateSubjectDto) {
+        return this.examsService.createSubject(subjectData);
     }
 
     @Put(':id')
     @Roles(UserRole.ADMIN)
     async updateSubject(
         @Param('id') id: string,
-        @Body() subjectData: { name?: string; examId?: string }
+        @Body() subjectData: any
     ) {
-        const updateData: any = {};
-        if (subjectData.name) updateData.title = subjectData.name;
-        if (subjectData.examId) updateData.exam = { id: subjectData.examId };
-
-        await this.subjectRepository.update(id, updateData);
-        return this.getSubject(id);
+        return this.examsService.updateSubject(id, subjectData);
     }
 
     @Delete(':id')
     @Roles(UserRole.ADMIN)
     async deleteSubject(@Param('id') id: string) {
-        await this.subjectRepository.delete(id);
-        return { message: 'Subject deleted successfully' };
+        return this.examsService.deleteSubject(id);
     }
 }

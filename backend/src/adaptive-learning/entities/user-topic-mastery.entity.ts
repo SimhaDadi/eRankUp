@@ -36,6 +36,12 @@ export class UserTopicMastery {
     @Column({ type: 'timestamp', nullable: true })
     lastPracticedAt: Date;
 
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    lastErrorPattern: string;
+
+    @Column({ type: 'text', nullable: true })
+    cognitiveAdvice: string;
+
     @CreateDateColumn()
     createdAt: Date;
 

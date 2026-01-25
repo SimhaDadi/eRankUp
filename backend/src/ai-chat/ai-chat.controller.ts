@@ -14,6 +14,7 @@ export class AIChatController {
     ) {
         return this.aiChatService.sendMessage(
             req.user.userId,
+            req.user.role,
             body.conversationId || null,
             body.message,
         );

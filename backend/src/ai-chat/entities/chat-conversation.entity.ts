@@ -1,8 +1,8 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../../users/user.entity';
-import { ChatMessage } from './chat-message.entity';
+import { AIChatMessage } from './chat-message.entity';
 
-@Entity()
+@Entity('ai_chat_conversation')
 export class ChatConversation {
     @PrimaryGeneratedColumn('uuid')
     id: string;
@@ -17,8 +17,8 @@ export class ChatConversation {
     @Column({ type: 'varchar', length: 255 })
     title: string;
 
-    @OneToMany(() => ChatMessage, message => message.conversation)
-    messages: ChatMessage[];
+    @OneToMany(() => AIChatMessage, message => message.conversation)
+    messages: AIChatMessage[];
 
     @CreateDateColumn()
     createdAt: Date;

@@ -13,17 +13,19 @@ import { Response } from '../exams/entities/response.entity';
 import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
+import { AIUsage } from './entities/ai-usage.entity';
+import { AIUsageService } from './ai-usage.service';
 import { Exam } from '../exams/entities/exam.entity';
 import { AdminModule } from '../admin/admin.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, QuestionExplanation, Exam]),
+        TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, QuestionExplanation, Exam, AIUsage]),
         forwardRef(() => AdminModule),
         ConfigModule
     ],
     controllers: [AIController, ExplanationController],
-    providers: [AIService, MigrationService, ExplanationService, AIQueueService],
-    exports: [AIService, MigrationService, ExplanationService, AIQueueService]
+    providers: [AIService, MigrationService, ExplanationService, AIQueueService, AIUsageService],
+    exports: [AIService, MigrationService, ExplanationService, AIQueueService, AIUsageService]
 })
 export class AIModule { }

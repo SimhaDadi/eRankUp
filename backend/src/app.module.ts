@@ -19,6 +19,7 @@ import { AdaptiveLearningModule } from './adaptive-learning/adaptive-learning.mo
 import { AIChatModule } from './ai-chat/ai-chat.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PassesModule } from './passes/passes.module';
+import { QualityModule } from './quality/quality.module';
 
 @Module({
     imports: [
@@ -31,17 +32,22 @@ import { PassesModule } from './passes/passes.module';
         TypeOrmModule.forRootAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
-            useFactory: (config: ConfigService) => ({
-                type: 'postgres',
-                host: config.get<string>('DB_HOST', 'localhost'),
-                port: config.get<number>('DB_PORT', 5432),
-                username: config.get<string>('DB_USER', 'admin'),
-                password: config.get<string>('DB_PASSWORD', 'password'),
-                database: config.get<string>('DB_NAME', 'erankup_db'),
-                // entities: [__dirname + '/**/*.entity{.ts,.js}'],
-                autoLoadEntities: true,
-                synchronize: true,
-            }),
+            useFactory: (config: ConfigService) => {
+                const dbConfig = {
+                    type: 'postgres' as const,
+                    host: config.get<string>('DB_HOST', 'localhost'),
+                    port: config.get<number>('DB_PORT', 5432),
+                    username: config.get<string>('DB_USER', 'admin'),
+                    password: config.get<string>('DB_PASSWORD', 'password'),
+                    database: config.get<string>('DB_NAME', 'erankup_db'),
+                    // entities: [__dirname + '/**/*.entity{.ts,.js}'],
+                    autoLoadEntities: true,
+                    synchronize: false,
+                    ssl: false,
+                };
+                console.log('DB Config:', { ...dbConfig, password: '***' });
+                return dbConfig;
+            },
         }),
         AuthModule,
         UsersModule,
@@ -57,6 +63,7 @@ import { PassesModule } from './passes/passes.module';
         AIChatModule,
         NotificationsModule,
         PassesModule,
+        QualityModule,
     ],
     controllers: [AppController],
     providers: [AppService],

@@ -3,13 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AIChatService } from './ai-chat.service';
 import { AIChatController } from './ai-chat.controller';
 import { ChatConversation } from './entities/chat-conversation.entity';
-import { ChatMessage } from './entities/chat-message.entity';
+import { AIChatMessage } from './entities/chat-message.entity';
 import { AIModule } from '../ai/ai.module';
 import { AdaptiveLearningModule } from '../adaptive-learning/adaptive-learning.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([ChatConversation, ChatMessage]),
+        TypeOrmModule.forFeature([ChatConversation, AIChatMessage]),
         AIModule,
         AdaptiveLearningModule,
     ],

@@ -16,8 +16,79 @@ export class NotificationsService {
         private userRepository: Repository<User>,
     ) { }
 
-    async createTemplate(data: { name: string; title: string; body: string; type: 'general' | 'promotion' | 'alert' }) {
-        const template = this.templateRepository.create(data);
+    /**
+     * Send admin notification with targeted filtering
+     * Supports: 'all', 'active', 'inactive', or specific userIds
+     */
+    async sendAdminNotification(data: { title: string; message: string; targetUsers: 'all' | 'active' | 'inactive'; userIds?: string[] }) {
+        let usersToNotify: User[] = [];
+
+        if (data.userIds && data.userIds.length > 0) {
+            usersToNotify = await this.userRepository.findByIds(data.userIds);
+        } else {
+            const queryBuilder = this.userRepository.createQueryBuilder('user');
+
+            if (data.targetUsers === 'active') {
+                // Active users: logged in within last 30 days
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                queryBuilder.where('user.lastLoginAt >= :date', { date: thirtyDaysAgo });
+            } else if (data.targetUsers === 'inactive') {
+                // Inactive users: not logged in for 30+ days
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                queryBuilder.where('user.lastLoginAt < :date OR user.lastLoginAt IS NULL', { date: thirtyDaysAgo });
+            }
+            // 'all' - no filter needed
+
+            usersToNotify = await queryBuilder.getMany();
+        }
+
+        if (usersToNotify.length === 0) {
+            return {
+                success: true,
+                message: 'No users matched the criteria',
+                recipientCount: 0
+            };
+        }
+
+        // Batch insert for performance
+        // Map 'message' (frontend param) to 'body' (db column)
+        const notifications = usersToNotify.map(user => ({
+            userId: user.id,
+            title: data.title,
+            body: data.message,
+            type: 'general',
+            isRead: false
+        }));
+
+        // Chunking
+        const chunkSize = 500;
+        for (let i = 0; i < notifications.length; i += chunkSize) {
+            await this.notificationRepository.save(notifications.slice(i, i + chunkSize));
+        }
+
+        return {
+            success: true,
+            message: `Notification sent to ${notifications.length} users`,
+            recipientCount: notifications.length,
+            timestamp: new Date()
+        };
+    }
+
+    async createTemplate(data: any) {
+        // Ensure data maps correctly to entity
+        // Frontend sends: { title, message, category }
+        // Entity expects: { title, body, type, name (required column) }
+
+        const templateData = {
+            name: data.title, // Use title as name if not provided
+            title: data.title,
+            body: data.message || data.body,
+            type: data.category || 'general'
+        };
+
+        const template = this.templateRepository.create(templateData);
         return this.templateRepository.save(template);
     }
 
@@ -45,41 +116,5 @@ export class NotificationsService {
 
     async markAsRead(id: string, userId: string) {
         return this.notificationRepository.update({ id, userId }, { isRead: true });
-    }
-
-    async sendBulkNotification(data: { title: string; body: string; recipients: string[] | 'ALL' }) {
-        let usersToNotify: User[] = [];
-
-        if (data.recipients === 'ALL') {
-            usersToNotify = await this.userRepository.find({ select: ['id'] });
-        } else {
-            // parsing recipients string[] to user ids if needed, assuming validation done elsewhere
-            // For now simplest assumption: recipients is array of userIds
-            // In real app, might be email list etc. adapting to IDs:
-            usersToNotify = await this.userRepository.findByIds(data.recipients);
-        }
-
-        // Batch insert for performance
-        const notifications = usersToNotify.map(user => ({
-            userId: user.id,
-            title: data.title,
-            body: data.body,
-            type: 'general', // Default type
-            isRead: false
-        }));
-
-        // Chunking inserts to avoid query size limits
-        const chunkSize = 500;
-        for (let i = 0; i < notifications.length; i += chunkSize) {
-            await this.notificationRepository.save(notifications.slice(i, i + chunkSize));
-        }
-
-        console.log(`Stored ${notifications.length} notifications in DB.`);
-
-        return {
-            success: true,
-            message: `Notification sent to ${notifications.length} users`,
-            timestamp: new Date()
-        };
     }
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, UseGuards, HttpException, HttpStatus, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -33,10 +33,10 @@ export class AIController {
     @Post('generate-explanation/:questionId')
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
-    async generateExplanation(@Param('questionId') questionId: string) {
+    async generateExplanation(@Request() req: any, @Param('questionId') questionId: string) {
         try {
             // Delegate to ExplanationService (superior implementation)
-            const explanation = await this.explanationService.generateExplanation(questionId);
+            const explanation = await this.explanationService.generateExplanation(req.user.userId, req.user.role, questionId);
 
             return {
                 success: true,
@@ -60,6 +60,7 @@ export class AIController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     async batchGenerateExplanations(
+        @Request() req: any,
         @Body() body: { examId?: string; subjectId?: string; chapterId?: string; limit?: number }
     ) {
         try {
@@ -84,7 +85,7 @@ export class AIController {
 
             // Delegate to ExplanationService for bulk generation
             const questionIds = questions.map(q => q.id);
-            const explanations = await this.explanationService.generateBulkExplanations(questionIds);
+            const explanations = await this.explanationService.generateBulkExplanations(req.user.userId, req.user.role, questionIds);
 
             return {
                 success: true,
@@ -104,10 +105,10 @@ export class AIController {
      * Kept for backward compatibility
      */
     @Get('explanation/:questionId')
-    async getExplanation(@Param('questionId') questionId: string) {
+    async getExplanation(@Request() req: any, @Param('questionId') questionId: string) {
         try {
             // Delegate to ExplanationService
-            const explanation = await this.explanationService.generateExplanation(questionId);
+            const explanation = await this.explanationService.generateExplanation(req.user.userId, req.user.role, questionId);
 
             return {
                 questionId,

@@ -4,7 +4,6 @@ import { Pass } from './pass.entity';
 
 @Entity()
 @Index(['userId', 'status'])
-@Index(['expiryDate'])
 export class UserPass {
     @PrimaryGeneratedColumn('uuid')
     id: string;

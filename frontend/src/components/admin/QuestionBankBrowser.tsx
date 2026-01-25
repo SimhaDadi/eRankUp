@@ -105,36 +105,34 @@ export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: Ques
         setLoading(true);
         setSelectedQuestions(new Set());
         try {
-            const res = await api.get(`/exams/models/${model.id}`); // getModel questions? 
-            // Wait, previous endpoint was `/exams/question-bank/models/${model.id}/questions`
-            // Or `examsService.getModelQuestions(modelId)`.
-            // Let's use `/exams/models/${model.id}` does it return questions?
-            // `ExamsController.getModel`: `return this.examsService.findModel(id, ...)`
-            // `ExamsService.findModel` returns model with questions?
-            // Let's use the explicit question fetch if available.
-            // Actually, `ExamsController` has `getModel` (line 116).
-            // Let's assume we need to fetch questions specifically.
-            // I'll stick to the logic: `api.get('/exams/question-bank/models/' + model.id + '/questions')` if that endpoint exists or works.
-            // Or `/exams/models/${model.id}` and extract questions.
-            // Let's use `/exams/models/${model.id}`.
-
-            // Re-checking previous implementation:
-            // `api.get('/exams/question-bank/models/' + model.id + '/questions')`.
-            // Does this endpoint exist? 
-            // I removed `ExamsService.getModelQuestions`.
-            // Wait, I didn't see `ExamsController` having `question-bank/models` endpoints in my previous view.
-            // It might have been `getModelQuestions` I saw earlier?
-            // Actually I modified `ExamsService` but `ExamsController`...
-
-            // Let's use `api.get('/exams/models/' + model.id)`. 
-            // And expect filtered questions or all questions?
-            // `ExamsService.findModel` returns model with questions.
-            const res2 = await api.get(`/exams/models/${model.id}`);
-            // res2.data.questions is the array?
-            setQuestions(res2.data.questions || []);
+            // Use existing endpoint to fetch model questions
+            const res = await api.get(`/exams/models/${model.id}`);
+            setQuestions(res.data.questions || []);
         } catch (error) {
             console.error('Error fetching questions:', error);
-            // alert('Failed to load questions'); 
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleChapterSelect = async (chapter: any) => {
+        // Create a virtual model to represent the chapter view
+        const virtualModel: Model = {
+            id: chapter.id,
+            title: `Chapter: ${chapter.title}`,
+            totalQuestions: 0 // Unknown initially
+        };
+        setSelectedModel(virtualModel);
+        setLoading(true);
+        setSelectedQuestions(new Set());
+
+        try {
+            // Fetch all questions for this chapter
+            const res = await api.get(`/exams/chapters/${chapter.id}/questions`);
+            setQuestions(res.data || []);
+        } catch (error) {
+            console.error('Error fetching chapter questions:', error);
+            alert('Failed to load chapter questions');
         } finally {
             setLoading(false);
         }
@@ -242,14 +240,22 @@ export function QuestionBankBrowser({ examId, onClose, onQuestionsLinked }: Ques
 
                                                 {expandedSubjects.has(subject.id) && (subject.chapters || []).map(chapter => (
                                                     <div key={chapter.id} className="border-t border-gray-100">
-                                                        <button
-                                                            onClick={() => toggleExpand(expandedChapters, chapter.id, setExpandedChapters)}
-                                                            className="w-full flex items-center gap-2 p-2 pl-12 hover:bg-gray-50 transition-colors text-left"
-                                                        >
-                                                            {expandedChapters.has(chapter.id) ? <ChevronDown className="w-3 h-3 text-purple-600" /> : <ChevronRight className="w-3 h-3 text-gray-400" />}
-                                                            <FileText className="w-3 h-3 text-purple-600" />
-                                                            <span className="text-gray-600 text-xs">{chapter.title}</span>
-                                                        </button>
+                                                        <div className="w-full flex items-center justify-between p-2 pl-12 hover:bg-gray-50 transition-colors group">
+                                                            <button
+                                                                onClick={() => toggleExpand(expandedChapters, chapter.id, setExpandedChapters)}
+                                                                className="flex items-center gap-2 text-left"
+                                                            >
+                                                                {expandedChapters.has(chapter.id) ? <ChevronDown className="w-3 h-3 text-purple-600" /> : <ChevronRight className="w-3 h-3 text-gray-400" />}
+                                                                <FileText className="w-3 h-3 text-purple-600" />
+                                                                <span className="text-gray-600 text-xs">{chapter.title}</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleChapterSelect(chapter); }}
+                                                                className="opacity-0 group-hover:opacity-100 px-2 py-0.5 text-[10px] bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-all font-bold"
+                                                            >
+                                                                Browse All
+                                                            </button>
+                                                        </div>
 
                                                         {expandedChapters.has(chapter.id) && (chapter.models || []).map(model => (
                                                             <button

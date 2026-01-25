@@ -9,7 +9,8 @@ import {
     Query,
     UseGuards,
     HttpException,
-    HttpStatus
+    HttpStatus,
+    Request
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -30,6 +31,7 @@ export class ExplanationController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     async generateExplanation(
+        @Request() req: any,
         @Param('questionId') questionId: string,
         @Body('userAnswer') userAnswer?: string,
         @Body('examId') examId?: string
@@ -44,6 +46,8 @@ export class ExplanationController {
             }
 
             const explanation = await this.explanationService.generateExplanation(
+                req.user.userId,
+                req.user.role,
                 questionId,
                 userAnswer,
                 examId
@@ -70,6 +74,7 @@ export class ExplanationController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     async generateMissingExplanations(
+        @Request() req: any,
         @Body('limit') limit?: number
     ) {
         try {
@@ -81,7 +86,11 @@ export class ExplanationController {
                 );
             }
 
-            const count = await this.explanationService.generateMissingExplanations(limit);
+            const count = await this.explanationService.generateMissingExplanations(
+                req.user.userId,
+                req.user.role,
+                limit
+            );
 
             return {
                 success: true,
@@ -104,6 +113,7 @@ export class ExplanationController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     async bulkGenerateExplanations(
+        @Request() req: any,
         @Body() body: {
             questionIds?: string[];
             examId?: string;
@@ -126,7 +136,11 @@ export class ExplanationController {
             // If no specific IDs provided, find questions without explanations
             if (questionIds.length === 0) {
                 // Use the missing generator but keep the bulk-generate interface for specific IDs
-                const count = await this.explanationService.generateMissingExplanations(body.limit);
+                const count = await this.explanationService.generateMissingExplanations(
+                    req.user.userId,
+                    req.user.role,
+                    body.limit
+                );
                 return {
                     success: true,
                     message: `Triggered generation for ${count} missing explanations available via bulk`,
@@ -135,7 +149,11 @@ export class ExplanationController {
                 };
             }
 
-            const explanations = await this.explanationService.generateBulkExplanations(questionIds);
+            const explanations = await this.explanationService.generateBulkExplanations(
+                req.user.userId,
+                req.user.role,
+                questionIds
+            );
 
             return {
                 success: true,
@@ -157,11 +175,18 @@ export class ExplanationController {
      */
     @Get(':questionId')
     async getExplanation(
+        @Request() req: any,
         @Param('questionId') questionId: string,
         @Query('examId') examId?: string
     ) {
         try {
-            const explanation = await this.explanationService.generateExplanation(questionId, undefined, examId);
+            const explanation = await this.explanationService.generateExplanation(
+                req.user.userId,
+                req.user.role,
+                questionId,
+                undefined,
+                examId
+            );
 
             return {
                 questionId,

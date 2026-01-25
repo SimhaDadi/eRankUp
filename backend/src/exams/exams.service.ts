@@ -781,41 +781,68 @@ export class ExamsService implements OnApplicationBootstrap {
 
     // --- Question Bank Browser Methods ---
 
-    async createQuestionsBulk(userId: string, role: UserRole, modelId: string, questionsData: any[]) {
-        const model = await this.modelRepository.findOne({
-            where: { id: modelId },
-            relations: ['chapter', 'chapter.subject']
-        });
+    async createQuestionsBulk(userId: string, role: UserRole, modelId: string | undefined, questionsData: any[], examId?: string) {
+        let model: Model | null = null;
 
-        if (!model) throw new BadRequestException('Model not found');
+        if (modelId) {
+            model = await this.modelRepository.findOne({
+                where: { id: modelId },
+                relations: ['chapter', 'chapter.subject']
+            });
+            if (!model) throw new BadRequestException('Model not found');
+        }
 
         const questions: Question[] = [];
 
         for (const data of questionsData) {
-            const question = this.questionRepository.create({
+            const questionData: any = {
                 ...data,
-                subject: model.chapter?.subject,
-                chapter: model.chapter,
-                models: [model],
                 positiveMarks: data.positiveMarks || 1.0,
                 negativeMarks: data.negativeMarks || 0.25,
-            } as any);
+            };
+
+            // Link to hierarchy if model exists
+            if (model) {
+                questionData.subject = model.chapter?.subject;
+                questionData.chapter = model.chapter;
+                questionData.models = [model];
+            } else {
+                // Orphan question or direct exam link
+                // If direct exam link, we might want to infer subject/chapter from exam if possible? 
+                // For now, leave subject/chapter null if not in model.
+                questionData.models = [];
+            }
+
+            // Explicit examId linking override?
+            if (examId) {
+                // Ensure exams array exists
+                if (!questionData.exams) questionData.exams = [];
+                if (!questionData.exams.some((e: any) => e.id === examId)) {
+                    questionData.exams.push({ id: examId });
+                }
+            }
+
+            const question = this.questionRepository.create(questionData);
             questions.push(question as unknown as Question);
         }
 
         const savedQuestions = await this.questionRepository.save(questions);
 
-        // Update model question count
-        const count = await this.questionRepository
-            .createQueryBuilder('question')
-            .leftJoin('question.models', 'model')
-            .where('model.id = :modelId', { modelId })
-            .getCount();
+        // Update model question count if model exists
+        if (model) {
+            const count = await this.questionRepository
+                .createQueryBuilder('question')
+                .leftJoin('question.models', 'model')
+                .where('model.id = :modelId', { modelId: model.id })
+                .getCount();
 
-        model.totalQuestions = count;
-        await this.modelRepository.save(model);
+            model.totalQuestions = count;
+            await this.modelRepository.save(model);
+        }
 
-        await this.invalidateCache();
+        // If we linked to an exam directly, we might need to invalidate that exam's cache
+        // Or if we created for model, we invalidate linked exams.
+        await this.invalidateCache(examId);
 
         // Background: Generate AI Explanations for new questions
         const questionIds = savedQuestions.map(q => q.id);

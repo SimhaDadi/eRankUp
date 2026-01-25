@@ -19,12 +19,15 @@ export class QuestionsUploadService {
     constructor(private readonly aiService: AIService) { }
 
     async parseExamsFile(buffer: Buffer, mimetype: string): Promise<ParsedQuestion[]> {
+        console.log(`[QuestionsUploadService] Processing file: ${mimetype}, Size: ${buffer.length} bytes`);
         if (mimetype === 'text/csv' || mimetype === 'application/vnd.ms-excel') {
             return this.parseCsv(buffer);
-        } else if (mimetype === 'application/pdf') {
-            return this.parsePdf(buffer);
+        } else if (mimetype === 'application/pdf' || mimetype.startsWith('image/')) {
+            console.log(`[QuestionsUploadService] Routing to AI Parser for ${mimetype}`);
+            return this.parseDocumentWithAI(buffer, mimetype);
         } else {
-            throw new BadRequestException('Unsupported file type. Only CSV and PDF are supported.');
+            console.warn(`[QuestionsUploadService] Unsupported file type: ${mimetype}`);
+            throw new BadRequestException('Unsupported file type. Only CSV, PDF, and Images are supported.');
         }
     }
 

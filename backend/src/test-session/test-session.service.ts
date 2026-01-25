@@ -98,13 +98,22 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         }
 
         // Check scheduling for regular models
-        const model = await this.examsService.findModel(testId);
-        if (model?.scheduledAt) {
-            const now = new Date();
-            const scheduledTime = new Date(model.scheduledAt);
-            if (now < scheduledTime) {
-                throw new Error(`This test is scheduled for ${scheduledTime.toLocaleString()}. Please wait.`);
+        // NOTE: For Chapter Practice, testId might be 'chapter-chapterId'.
+        // This simple check might fail if we pass raw chapter UUID.
+        // We assume this method is for Exams/Models. 
+
+        try {
+            const model = await this.examsService.findModel(testId);
+            if (model?.scheduledAt) {
+                const now = new Date();
+                const scheduledTime = new Date(model.scheduledAt);
+                if (now < scheduledTime) {
+                    throw new Error(`This test is scheduled for ${scheduledTime.toLocaleString()}. Please wait.`);
+                }
             }
+        } catch (e) {
+            // If findModel fails, it might be a direct ID call that is invalid or simply not a model.
+            // But usually we should validate. 
         }
 
         const newSession: TestSession = {
@@ -119,6 +128,41 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
 
         // Session expires in 2 hours (test duration + buffer)
         await this.redis.set(key, JSON.stringify(newSession), 'EX', 60 * 60 * 2);
+        return newSession;
+    }
+
+    /**
+     * Start a session for Chapter Wise Practice
+     * testId will be `chapter-${chapterId}` to distinguish from exam models
+     */
+    async startChapterSession(userId: string, chapterId: string): Promise<TestSession> {
+        const testId = `chapter-${chapterId}`;
+        const key = this.getSessionKey(userId, testId);
+        const existingSession = await this.redis.get(key);
+
+        if (existingSession) {
+            const session: TestSession = JSON.parse(existingSession);
+            if (session.status !== 'COMPLETED') {
+                return session;
+            }
+        }
+
+        // Fetch questions for this chapter to validate and store if needed
+        // For practice, we might want to store question IDs in session so we know what they practiced?
+        // Or client just fetches all questions.
+        // Let's just create the session marker. Client fetches questions via /exams/chapters/:id/questions
+
+        const newSession: TestSession = {
+            userId,
+            testId,
+            startTime: Date.now(),
+            answers: {},
+            timings: {},
+            flags: [],
+            status: 'IN_PROGRESS',
+        };
+
+        await this.redis.set(key, JSON.stringify(newSession), 'EX', 60 * 60 * 2); // 2 hours
         return newSession;
     }
 

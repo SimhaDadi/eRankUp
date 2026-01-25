@@ -22,12 +22,6 @@ export class NotificationsController {
         return this.notificationsService.createTemplate(body);
     }
 
-    @Put('templates/:id')
-    @Roles(UserRole.ADMIN)
-    async updateTemplate(@Param('id') id: string, @Body() body: any) {
-        return this.notificationsService.updateTemplate(id, body);
-    }
-
     @Delete('templates/:id')
     @Roles(UserRole.ADMIN)
     async deleteTemplate(@Param('id') id: string) {
@@ -36,8 +30,8 @@ export class NotificationsController {
 
     @Post('send')
     @Roles(UserRole.ADMIN)
-    async sendNotification(@Body() body: { title: string; body: string; recipients: string[] | 'ALL' }) {
-        return this.notificationsService.sendBulkNotification(body);
+    async sendNotification(@Body() body: { title: string; message: string; targetUsers: 'all' | 'active' | 'inactive'; userIds?: string[] }) {
+        return this.notificationsService.sendAdminNotification(body);
     }
 
     @Get('my')

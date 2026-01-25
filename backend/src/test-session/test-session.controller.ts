@@ -14,6 +14,12 @@ export class TestSessionController {
         return this.sessionService.startSession(req.user.userId, testId);
     }
 
+    @UseGuards(AuthGuard('jwt'))
+    @Post('start/chapter')
+    async startChapterSession(@Request() req: any, @Body('chapterId') chapterId: string) {
+        return this.sessionService.startChapterSession(req.user.userId, chapterId);
+    }
+
     @UseGuards(AuthGuard('jwt'), PremiumGuard)
     @Get(':testId')
     async getSession(@Request() req: any, @Param('testId') testId: string) {

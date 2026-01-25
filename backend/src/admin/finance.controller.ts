@@ -29,8 +29,8 @@ export class FinanceController {
         );
     }
 
-    @Post('refund/:paymentId')
-    async processRefund(@Param('paymentId') paymentId: string) {
+    @Post('refund/:id')
+    async processRefund(@Param('id') paymentId: string) {
         try {
             return await this.financeService.processRefund(paymentId);
         } catch (error) {
