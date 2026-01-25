@@ -57,15 +57,19 @@ export class Question {
     @Column('float', { default: 1.0 })
     positiveMarks: number;
 
+    @Expose({ groups: ['admin', 'review'] })
     @Column('float', { default: 0.25 })
     negativeMarks: number;
 
+    @Expose({ groups: ['admin', 'review'] })
     @Column({ default: 0 })
     correctCount: number;
 
+    @Expose({ groups: ['admin', 'review'] })
     @Column({ default: 0 })
     totalAttempts: number;
 
+    @Expose({ groups: ['admin', 'review'] })
     @Column('float', { default: 0 })
     avgTopperTime: number; // Average time taken by students who got it right
 
