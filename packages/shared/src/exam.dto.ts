@@ -122,6 +122,10 @@ export class CreateChapterDto {
     @IsString()
     @IsOptional()
     description?: string;
+
+    @IsUUID()
+    @IsOptional()
+    subjectId?: string;
 }
 
 export class UpdateChapterDto {
@@ -142,6 +146,14 @@ export class CreateModelDto {
     @IsDateString()
     @IsOptional()
     scheduledAt?: Date;
+
+    @IsUUID()
+    @IsNotEmpty()
+    chapterId!: string;
+
+    @IsArray()
+    @IsOptional()
+    exams?: any[];
 }
 
 // Question Bank

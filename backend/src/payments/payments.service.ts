@@ -68,7 +68,19 @@ export class PaymentsService implements OnModuleInit {
             receipt: `receipt_order_${Date.now()}`,
         };
 
-        const rzpOrder = await this.razorpay.orders.create(options);
+        let rzpOrder;
+        const keyId = this.configService.get('RAZORPAY_KEY_ID', 'rzp_test_placeholder');
+
+        if (keyId === 'rzp_test_placeholder' || keyId === 'test') {
+            console.log('[Payments] Mocking Razorpay order creation');
+            rzpOrder = {
+                id: `order_mock_${Date.now()}`,
+                amount: options.amount,
+                currency: options.currency
+            };
+        } else {
+            rzpOrder = await this.razorpay.orders.create(options);
+        }
 
         const purchase = this.purchaseRepository.create({
             user,

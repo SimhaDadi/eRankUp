@@ -9,7 +9,9 @@ export class PaymentsController {
     @UseGuards(JwtAuthGuard)
     @Post('create-order')
     async createOrder(@Req() req, @Body('examId') examId: string, @Body('couponCode') couponCode?: string) {
-        return this.paymentsService.createOrder(req.user, examId, couponCode);
+        // Map JWT userId to entity id
+        const user = { ...req.user, id: req.user.userId };
+        return this.paymentsService.createOrder(user, examId, couponCode);
     }
 
     @Post('webhook')

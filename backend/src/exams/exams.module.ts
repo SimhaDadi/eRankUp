@@ -4,6 +4,7 @@ import { ExamsService } from './exams.service';
 import { ExamsController } from './exams.controller';
 import { SubjectsController } from './subjects.controller';
 import { ChaptersController } from './chapters.controller';
+import { ModelsController } from './models.controller';
 import { QuestionsController } from './questions.controller';
 import { Exam } from './entities/exam.entity';
 import { Subject } from './entities/subject.entity';
@@ -34,7 +35,7 @@ import { PassesModule } from '../passes/passes.module';
         AdaptiveLearningModule,
         PassesModule,
     ],
-    controllers: [ExamsController, SubjectsController, ChaptersController, QuestionsController],
+    controllers: [ExamsController, SubjectsController, ChaptersController, ModelsController, QuestionsController],
     providers: [ExamsService, ExamsSeederService, ScorerService, DifficultyService, QuestionsUploadService],
     exports: [ExamsService, ScorerService, DifficultyService]
 })

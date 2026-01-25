@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Inject, forwardRef, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { Exam, ExamType } from './entities/exam.entity';
@@ -6,6 +6,8 @@ import { Subject } from './entities/subject.entity';
 import { Chapter } from './entities/chapter.entity';
 import { Model } from './entities/model.entity';
 import { Question } from './entities/question.entity';
+import { Purchase } from './entities/purchase.entity';
+import { Attempt } from './entities/attempt.entity';
 import { PaymentsService } from '../payments/payments.service';
 import { CacheService } from '../common/cache.service';
 import { CreateExamDto } from './dto/create-exam.dto';
@@ -26,6 +28,10 @@ export class ExamsService implements OnApplicationBootstrap {
         private modelRepository: Repository<Model>,
         @InjectRepository(Question)
         private questionRepository: Repository<Question>,
+        @InjectRepository(Purchase)
+        private purchaseRepository: Repository<Purchase>,
+        @InjectRepository(Attempt)
+        private attemptRepository: Repository<Attempt>,
         @Inject(forwardRef(() => PaymentsService))
         private paymentsService: PaymentsService,
         private cacheService: CacheService,
@@ -319,9 +325,35 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     // --- Subject Management ---
+    // --- Subject Management ---
     async createSubject(data: any) {
-        const subject = this.subjectRepository.create(data);
-        return this.subjectRepository.save(subject);
+        const fs = require('fs');
+        try {
+            fs.appendFileSync('debug_trace.txt', `[START] createSubject data: ${JSON.stringify(data)}\n`);
+            console.error('[DEBUG-ERR] createSubject data:', JSON.stringify(data));
+            let subject = this.subjectRepository.create(data as CreateSubjectDto);
+            fs.appendFileSync('debug_trace.txt', `[STEP] Created entity. IsArray: ${Array.isArray(subject)}\n`);
+
+            if (Array.isArray(subject)) {
+                subject = subject[0];
+            }
+            if (data.examId && !data.exam) {
+                // Ensure exam mapping if missing
+                (subject as any).exam = { id: data.examId };
+            }
+            if (!subject.title && data.title) {
+                fs.appendFileSync('debug_trace.txt', `[FIX] Manual title set: ${data.title}\n`);
+                console.error('[Fixing] Manual title set');
+                subject.title = data.title;
+            }
+            fs.appendFileSync('debug_trace.txt', `[PRE-SAVE] Subject: ${JSON.stringify(subject)}\n`);
+            console.error('[DEBUG-ERR] createSubject entity:', JSON.stringify(subject));
+            return await this.subjectRepository.save(subject);
+        } catch (error) {
+            fs.appendFileSync('debug_trace.txt', `[ERROR] ${error}\n`);
+            console.error('Error creating subject:', error);
+            throw error;
+        }
     }
 
     async findAllSubjects() {
@@ -396,6 +428,8 @@ export class ExamsService implements OnApplicationBootstrap {
             // But usually deleting the "One" side of ManyToOne (Model side) works if no other constraints.
             // Let's delete models one by one to use the repository
             for (const model of chapter.models) {
+                // Delete attempts linked to this model first
+                await this.attemptRepository.delete({ model: { id: model.id } });
                 await this.modelRepository.delete(model.id);
             }
         }
@@ -578,7 +612,27 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     async deleteExam(id: string) {
+        // 1. Delete Purchase records (FK to Exam)
+        await this.purchaseRepository.delete({ exam: { id } });
+
+        // 2. Delete Attempts linked directly to Exam (FK to Exam)
+        await this.attemptRepository.delete({ exam: { id } });
+
+        // 3. Delete Subjects (Cascade Logic)
+        const exam = await this.examsRepository.findOne({
+            where: { id },
+            relations: ['subjects']
+        });
+
+        if (exam?.subjects) {
+            for (const subject of exam.subjects) {
+                await this.deleteSubject(subject.id);
+            }
+        }
+
+        // 4. Delete the Exam itself
         await this.examsRepository.delete(id);
+
         await this.cacheService.del('exams:all');
         await this.cacheService.del(`exam:${id}`);
         return { message: 'Exam deleted successfully' };
