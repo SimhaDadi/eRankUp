@@ -66,6 +66,9 @@ export class Question {
     @Column({ default: 0 })
     totalAttempts: number;
 
+    @Column('float', { default: 0 })
+    avgTopperTime: number; // Average time taken by students who got it right
+
     @ManyToMany(() => Model, (model) => model.questions)
     models: Model[];
 }

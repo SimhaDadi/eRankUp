@@ -47,6 +47,7 @@ interface QuestionResponse {
         correctOptionId: string;
         explanation: string;
         topic: string;
+        avgTopperTime?: number;
     };
 }
 
@@ -250,9 +251,23 @@ export default function SolutionPage() {
                                 >
                                     <Share2 className="w-5 h-5 group-active:translate-x-1 group-active:-translate-y-1 transition-transform" />
                                 </button>
-                                <div className="text-right flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
-                                    <Clock className="w-4 h-4 text-slate-500" />
-                                    <div className="text-slate-900 font-black text-sm">{currentResp.timeSpent}s</div>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
+                                        <Clock className="w-4 h-4 text-slate-500" />
+                                        <div className="text-slate-900 font-black text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
+                                            <span className="text-[7px] text-slate-400">YOU</span>
+                                            {currentResp.timeSpent}s
+                                        </div>
+                                    </div>
+                                    {question.avgTopperTime !== undefined && question.avgTopperTime > 0 && (
+                                        <div className="text-right flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 ring-1 ring-emerald-900/5">
+                                            <Trophy className="w-4 h-4 text-emerald-600" />
+                                            <div className="text-emerald-900 font-black text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
+                                                <span className="text-[7px] text-emerald-400">TOPPER AVG</span>
+                                                {Math.round(question.avgTopperTime)}s
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

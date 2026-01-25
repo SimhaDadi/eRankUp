@@ -37,6 +37,7 @@ interface QuestionResponse {
         correctOptionId: string;
         explanation: string;
         topic: string;
+        avgTopperTime?: number;
     };
 }
 
@@ -491,8 +492,15 @@ export default function ResultsPage() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                                    Time Spent: {resp.timeSpent}s
+                                                <div className="flex items-center gap-6">
+                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                        <Clock className="w-3 h-3" /> Your Time: {resp.timeSpent}s
+                                                    </div>
+                                                    {resp.question.avgTopperTime !== undefined && resp.question.avgTopperTime > 0 && (
+                                                        <div className="text-xs font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
+                                                            <Trophy className="w-3 h-3" /> Topper Avg: {Math.round(resp.question.avgTopperTime)}s
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 

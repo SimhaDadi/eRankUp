@@ -128,7 +128,11 @@ export class ScorerService implements OnModuleInit {
 
         // 2. Update question stats (AWAITED to avoid race conditions/mangling)
         try {
-            await this.difficultyService.bulkUpdateStats(questionResults);
+            const statsPayload = questionResults.map(res => ({
+                ...res,
+                timeSpent: questionTimings[res.questionId] || 0
+            }));
+            await this.difficultyService.bulkUpdateStats(statsPayload);
         } catch (err) {
             console.error('[Scorer] Failed to update question stats', err);
         }
