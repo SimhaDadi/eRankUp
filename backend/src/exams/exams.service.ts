@@ -8,12 +8,14 @@ import { Model } from './entities/model.entity';
 import { Question } from './entities/question.entity';
 import { Purchase } from './entities/purchase.entity';
 import { Attempt } from './entities/attempt.entity';
+import { Response } from './entities/response.entity';
 import { PaymentsService } from '../payments/payments.service';
 import { CacheService } from '../common/cache.service';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 import { CreateSubjectDto, CreateChapterDto, CreateModelDto } from '@erankup/shared';
 import { ExplanationService } from '../ai/explanation.service';
+import { UserRole } from '../users/user.entity';
 
 @Injectable()
 export class ExamsService implements OnApplicationBootstrap {
@@ -32,6 +34,8 @@ export class ExamsService implements OnApplicationBootstrap {
         private purchaseRepository: Repository<Purchase>,
         @InjectRepository(Attempt)
         private attemptRepository: Repository<Attempt>,
+        @InjectRepository(Response)
+        private responseRepository: Repository<Response>,
         @Inject(forwardRef(() => PaymentsService))
         private paymentsService: PaymentsService,
         private cacheService: CacheService,
@@ -141,6 +145,24 @@ export class ExamsService implements OnApplicationBootstrap {
         }
 
         return model;
+    }
+
+    async findAllChapters() {
+        return this.chapterRepository.find({ relations: ['subject'] });
+    }
+
+    async findChaptersBySubject(subjectId: string) {
+        return this.chapterRepository.find({
+            where: { subject: { id: subjectId } },
+            order: { title: 'ASC' }
+        });
+    }
+
+    async findOneChapter(id: string) {
+        return this.chapterRepository.findOne({
+            where: { id },
+            relations: ['subject']
+        });
     }
 
     private async invalidateCache(examId?: string) {
@@ -325,43 +347,50 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     // --- Subject Management ---
-    // --- Subject Management ---
     async createSubject(data: any) {
-        const fs = require('fs');
-        try {
-            fs.appendFileSync('debug_trace.txt', `[START] createSubject data: ${JSON.stringify(data)}\n`);
-            console.error('[DEBUG-ERR] createSubject data:', JSON.stringify(data));
-            let subject = this.subjectRepository.create(data as CreateSubjectDto);
-            fs.appendFileSync('debug_trace.txt', `[STEP] Created entity. IsArray: ${Array.isArray(subject)}\n`);
+        let subject = this.subjectRepository.create({
+            title: data.title || data.name,
+            description: data.description,
+            icon: data.icon,
+            exam: data.examId ? { id: data.examId } : undefined
+        });
 
-            if (Array.isArray(subject)) {
-                subject = subject[0];
-            }
-            if (data.examId && !data.exam) {
-                // Ensure exam mapping if missing
-                (subject as any).exam = { id: data.examId };
-            }
-            if (!subject.title && data.title) {
-                fs.appendFileSync('debug_trace.txt', `[FIX] Manual title set: ${data.title}\n`);
-                console.error('[Fixing] Manual title set');
-                subject.title = data.title;
-            }
-            fs.appendFileSync('debug_trace.txt', `[PRE-SAVE] Subject: ${JSON.stringify(subject)}\n`);
-            console.error('[DEBUG-ERR] createSubject entity:', JSON.stringify(subject));
-            return await this.subjectRepository.save(subject);
-        } catch (error) {
-            fs.appendFileSync('debug_trace.txt', `[ERROR] ${error}\n`);
-            console.error('Error creating subject:', error);
-            throw error;
+        if (!subject.title) {
+            throw new BadRequestException('Subject title is required');
         }
+
+        const saved = await this.subjectRepository.save(subject);
+        await this.invalidateCache();
+        return saved;
     }
 
     async findAllSubjects() {
-        return this.subjectRepository.find({ relations: ['chapters'] });
+        return this.subjectRepository.find({ relations: ['chapters', 'exam'] });
+    }
+
+    async findSubjectsByExam(examId: string) {
+        return this.subjectRepository.find({
+            where: { exam: { id: examId } },
+            relations: ['chapters'],
+            order: { title: 'ASC' }
+        });
+    }
+
+    async findOneSubject(id: string) {
+        return this.subjectRepository.findOne({
+            where: { id },
+            relations: ['exam', 'chapters']
+        });
     }
 
     async updateSubject(id: string, data: any) {
-        await this.subjectRepository.update(id, data);
+        const updateData: any = {};
+        if (data.title || data.name) updateData.title = data.title || data.name;
+        if (data.description) updateData.description = data.description;
+        if (data.icon) updateData.icon = data.icon;
+        if (data.examId) updateData.exam = { id: data.examId };
+
+        await this.subjectRepository.update(id, updateData);
         await this.invalidateCache();
         return this.subjectRepository.findOneBy({ id });
     }
@@ -372,11 +401,15 @@ export class ExamsService implements OnApplicationBootstrap {
             relations: ['chapters']
         });
 
+        // 1. Unlink Chapters from this subject (preserving them for reuse)
         if (subject?.chapters) {
             for (const chapter of subject.chapters) {
-                await this.deleteChapter(id, chapter.id);
+                await this.chapterRepository.update(chapter.id, { subject: null });
             }
         }
+
+        // 2. Unlink Questions linked to this subject
+        await this.questionRepository.update({ subject: { id } }, { subject: null } as any);
 
         const result = await this.subjectRepository.delete(id);
         await this.invalidateCache();
@@ -402,46 +435,70 @@ export class ExamsService implements OnApplicationBootstrap {
         return saved;
     }
 
-    async createChapter(subjectId: string, data: any) {
-        const subject = await this.subjectRepository.findOneBy({ id: subjectId });
-        const chapter = this.chapterRepository.create({ ...data, subject });
-        return this.chapterRepository.save(chapter);
+    async createChapter(data: any) {
+        const subject = data.subjectId ? await this.subjectRepository.findOneBy({ id: data.subjectId }) : null;
+        const chapter = this.chapterRepository.create({
+            title: data.title || data.name,
+            description: data.description,
+            subject: subject || undefined
+        });
+
+        if (!chapter.title) {
+            throw new BadRequestException('Chapter title is required');
+        }
+        const saved = await this.chapterRepository.save(chapter);
+        await this.invalidateCache();
+        return saved;
     }
 
-    async updateChapter(subjectId: string, chapterId: string, data: any) {
-        await this.chapterRepository.update(chapterId, data);
-        return this.chapterRepository.findOneBy({ id: chapterId });
+    async updateChapter(id: string, data: any) {
+        const updateData: any = {};
+        if (data.title || data.name) updateData.title = data.title || data.name;
+        if (data.description) updateData.description = data.description;
+        if (data.subjectId) updateData.subject = { id: data.subjectId };
+
+        await this.chapterRepository.update(id, updateData);
+        await this.invalidateCache();
+        return this.chapterRepository.findOneBy({ id });
     }
 
-    async deleteChapter(subjectId: string, chapterId: string) {
+    async deleteChapter(chapterId: string) {
         // Find chapter with all its models
         const chapter = await this.chapterRepository.findOne({
             where: { id: chapterId },
             relations: ['models']
         });
 
+        // 1. Unlink Questions linked to this chapter to avoid FK blocks
+        await this.questionRepository.update({ chapter: { id: chapterId } }, { chapter: null } as any);
+
+        // 2. Unlink Models from this chapter (preserving them for reuse)
         if (chapter?.models) {
-            // Delete all models associated with this chapter
-            // Note: Since Models have ManyToMany with Questions and Exams,
-            // TypeORM's repository.delete/remove should handle junction table cleanup
-            // IF cascade is set, otherwise we might need to verify.
-            // But usually deleting the "One" side of ManyToOne (Model side) works if no other constraints.
-            // Let's delete models one by one to use the repository
             for (const model of chapter.models) {
-                // Delete attempts linked to this model first
-                await this.attemptRepository.delete({ model: { id: model.id } });
-                await this.modelRepository.delete(model.id);
+                await this.modelRepository.update(model.id, { chapter: null });
             }
         }
 
-        return this.chapterRepository.delete(chapterId);
+        const result = await this.chapterRepository.delete(chapterId);
+        await this.invalidateCache();
+        return result;
     }
 
     async createModel(chapterId: string, data: any) {
         const chapter = await this.chapterRepository.findOne({ where: { id: chapterId } });
         const { exams, ...modelData } = data;
-        const model = this.modelRepository.create({ ...modelData, chapter });
-        const savedModel = await this.modelRepository.save(model);
+
+        const newModel = this.modelRepository.create({
+            ...modelData,
+            title: data.title || data.name,
+            chapter
+        });
+
+        if (!(newModel as any).title) {
+            throw new BadRequestException('Model title is required');
+        }
+
+        const savedModel = await this.modelRepository.save(newModel);
 
         if (exams && exams.length > 0) {
             // exams is likely [{id: '...'}] from frontend or just IDs
@@ -463,6 +520,43 @@ export class ExamsService implements OnApplicationBootstrap {
         return savedModel;
     }
 
+    async updateModel(id: string, data: any) {
+        const model = await this.modelRepository.findOne({ where: { id } });
+        if (!model) throw new BadRequestException('Model not found');
+
+        const updateData: any = {
+            title: data.title || data.name || model.title,
+            scheduledAt: data.scheduledAt ?? model.scheduledAt
+        };
+
+        Object.assign(model, updateData);
+        const saved = await this.modelRepository.save(model);
+        await this.invalidateCache();
+        return saved;
+    }
+
+    async deleteModel(id: string) {
+        const model = await this.modelRepository.findOne({
+            where: { id },
+            relations: ['questions', 'exams']
+        });
+
+        if (!model) throw new BadRequestException('Model not found');
+
+        // 1. Unlink questions (questions can belong to multiple models)
+        // ManyToMany relation: model.questions
+        model.questions = [];
+        await this.modelRepository.save(model);
+
+        // 2. Unlink from exams
+        model.exams = [];
+        await this.modelRepository.save(model);
+
+        // 3. Delete the model
+        const result = await this.modelRepository.delete(id);
+        await this.invalidateCache();
+        return result;
+    }
     async createQuestion(modelId: string, data: any) {
         const model = await this.modelRepository.findOne({ where: { id: modelId }, relations: ['chapter', 'chapter.subject', 'exams'] });
 
@@ -492,13 +586,13 @@ export class ExamsService implements OnApplicationBootstrap {
         await this.modelRepository.increment({ id: modelId }, 'totalQuestions', 1);
 
         // Invalidate Cache for all linked exams
-        if (model.exams) {
+        if (model && model.exams) {
             console.log(`[DEBUG] Found ${model.exams.length} exams to invalidate for model ${model.id}`);
             for (const exam of model.exams) {
                 console.log(`[DEBUG] Invalidating cache for exam ${exam.id}`);
                 await this.invalidateCache(exam.id);
             }
-        } else {
+        } else if (model) {
             console.log(`[DEBUG] No exams found for model ${model.id} to invalidate.`);
         }
 
@@ -612,35 +706,68 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     async deleteExam(id: string) {
-        // 1. Delete Purchase records (FK to Exam)
-        await this.purchaseRepository.delete({ exam: { id } });
-
-        // 2. Delete Attempts linked directly to Exam (FK to Exam)
-        await this.attemptRepository.delete({ exam: { id } });
-
-        // 3. Delete Subjects (Cascade Logic)
+        // 1. Load full relations
         const exam = await this.examsRepository.findOne({
             where: { id },
-            relations: ['subjects']
+            relations: ['subjects', 'subjects.chapters', 'subjects.chapters.models', 'questions', 'models']
         });
 
-        if (exam?.subjects) {
+        if (!exam) return { message: 'Exam not found' };
+
+        // 2. ❌ REMOVED: Delete Purchase records
+        // Purchase is deprecated - passes are platform-level, not exam-specific
+        // Student access is managed via UserPass, which is not tied to individual exams
+
+        // 3. Delete ALL Attempts and Responses linked to this Exam (direct)
+        const directAttempts = await this.attemptRepository.find({ where: { exam: { id } } });
+        for (const att of directAttempts) {
+            await this.responseRepository.delete({ attempt: { id: att.id } });
+            await this.attemptRepository.delete(att.id);
+        }
+
+        // 4. (Skipped/Removed) We no longer delete attempts by model alone to preserve other exams/practice data.
+        // Step 3 already cleared attempts scoped to this exam.
+
+        // 5. Unlink Subjects from this exam
+        if (exam.subjects) {
             for (const subject of exam.subjects) {
-                await this.deleteSubject(subject.id);
+                await this.subjectRepository.update(subject.id, { exam: null });
             }
         }
 
-        // 4. Delete the Exam itself
+        // 6. Unlink Questions from this exam
+        // a) Unlink ManyToOne legacy reference
+        await this.questionRepository.update({ exam: { id } }, { exam: null } as any);
+
+        // b) Unlink ManyToMany references (junction table)
+        if (exam.questions && exam.questions.length > 0) {
+            await this.examsRepository
+                .createQueryBuilder()
+                .relation(Exam, 'questions')
+                .of(id)
+                .remove(exam.questions);
+        }
+
+        // 7. Unlink Models from this exam (junction table)
+        if (exam.models && exam.models.length > 0) {
+            await this.examsRepository
+                .createQueryBuilder()
+                .relation(Exam, 'models')
+                .of(id)
+                .remove(exam.models);
+        }
+
+        // 8. Delete the Exam entity
         await this.examsRepository.delete(id);
 
-        await this.cacheService.del('exams:all');
-        await this.cacheService.del(`exam:${id}`);
+        await this.invalidateCache(id);
         return { message: 'Exam deleted successfully' };
     }
 
+
     // --- Question Bank Browser Methods ---
 
-    async createQuestionsBulk(modelId: string, questionsData: any[]) {
+    async createQuestionsBulk(userId: string, role: UserRole, modelId: string, questionsData: any[]) {
         const model = await this.modelRepository.findOne({
             where: { id: modelId },
             relations: ['chapter', 'chapter.subject']
@@ -651,15 +778,15 @@ export class ExamsService implements OnApplicationBootstrap {
         const questions: Question[] = [];
 
         for (const data of questionsData) {
-            const [question] = this.questionRepository.create([{
+            const question = this.questionRepository.create({
                 ...data,
                 subject: model.chapter?.subject,
                 chapter: model.chapter,
                 models: [model],
                 positiveMarks: data.positiveMarks || 1.0,
                 negativeMarks: data.negativeMarks || 0.25,
-            }]);
-            questions.push(question);
+            } as any);
+            questions.push(question as unknown as Question);
         }
 
         const savedQuestions = await this.questionRepository.save(questions);
@@ -678,7 +805,7 @@ export class ExamsService implements OnApplicationBootstrap {
 
         // Background: Generate AI Explanations for new questions
         const questionIds = savedQuestions.map(q => q.id);
-        this.explanationService.generateBulkExplanations(questionIds).catch(err => {
+        this.explanationService.generateBulkExplanations(userId, role, questionIds).catch(err => {
             console.error('[ExamsService] Background AI explanation generation failed:', err);
         });
 
@@ -770,10 +897,6 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     async getPracticeQuestions(chapterId: string, limit: number = 10) {
-        // Use RANDOM() for SQLite/Postgres. For MySQL it's RAND()
-        // Assuming Postgres/SQLite based on probable stack (NestJS default often uses Postgres or SQLite for dev)
-        // If TypeORM abstract, we might need a different approach or raw query.
-        // But 'ORDER BY RANDOM()' is standard enough for now.
         return this.questionRepository
             .createQueryBuilder('question')
             .where('question.chapterId = :chapterId', { chapterId })
@@ -806,6 +929,4 @@ export class ExamsService implements OnApplicationBootstrap {
             remaining: afterCount
         };
     }
-
-    // --- End of Service ---
 }

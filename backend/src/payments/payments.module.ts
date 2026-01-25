@@ -6,15 +6,18 @@ import { Purchase } from '../exams/entities/purchase.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { ExamsModule } from '../exams/exams.module';
 import { MarketingModule } from '../marketing/marketing.module';
+import { PassesModule } from '../passes/passes.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Purchase, Exam]),
         forwardRef(() => ExamsModule),
         MarketingModule,
+        PassesModule,
     ],
     controllers: [PaymentsController],
     providers: [PaymentsService],
     exports: [PaymentsService],
 })
 export class PaymentsModule { }
+

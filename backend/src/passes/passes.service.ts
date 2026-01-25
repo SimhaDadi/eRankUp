@@ -1,11 +1,11 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan, LessThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Pass } from './entities/pass.entity';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { Pass, PassType } from './entities/pass.entity';
 import { UserPass } from './entities/user-pass.entity';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const Razorpay = require('razorpay');
+import { User } from '../users/user.entity';
 
 @Injectable()
 export class PassesService implements OnModuleInit {
@@ -13,9 +13,9 @@ export class PassesService implements OnModuleInit {
 
     constructor(
         @InjectRepository(Pass)
-        private passRepo: Repository<Pass>,
+        private passRepository: Repository<Pass>,
         @InjectRepository(UserPass)
-        private userPassRepo: Repository<UserPass>,
+        private userPassRepository: Repository<UserPass>,
         private configService: ConfigService,
     ) { }
 
@@ -31,7 +31,9 @@ export class PassesService implements OnModuleInit {
                 price: 0,
                 durationDays: 30,
                 isPopular: false,
+                passType: PassType.ONE_TIME,
                 features: ['Full Test Series Access', 'Basic Analytics', '30 Days Validity'],
+                sortOrder: 1,
             },
             {
                 title: 'Quarterly Sprint',
@@ -39,7 +41,9 @@ export class PassesService implements OnModuleInit {
                 price: 499,
                 durationDays: 90,
                 isPopular: false,
+                passType: PassType.SUBSCRIPTION,
                 features: ['Unlimited Tests', 'AI Performance Insights', '3 Months Validity', 'Priority Support'],
+                sortOrder: 2,
             },
             {
                 title: 'Annual Elite',
@@ -47,83 +51,237 @@ export class PassesService implements OnModuleInit {
                 price: 1499,
                 durationDays: 365,
                 isPopular: true,
+                passType: PassType.SUBSCRIPTION,
                 features: ['Unlimited Tests', 'Advanced AI Coaching', '1 Year Validity', 'Offline Download Access'],
+                sortOrder: 3,
             },
         ];
 
         for (const plan of plans) {
-            const existing = await this.passRepo.findOne({ where: { title: plan.title } });
+            const existing = await this.passRepository.findOne({ where: { title: plan.title } });
             if (!existing) {
-                await this.passRepo.save(this.passRepo.create(plan));
-                console.log(`Seeded Pass: ${plan.title}`);
+                await this.passRepository.save(this.passRepository.create(plan));
+                this.logger.log(`Seeded Pass: ${plan.title}`);
             }
         }
     }
 
+    // ==================== Pass Management ====================
+
+    async findAllPasses(): Promise<Pass[]> {
+        return this.passRepository.find({
+            where: { isActive: true },
+            order: { sortOrder: 'ASC', price: 'ASC' }
+        });
+    }
+
+    async findPassById(id: string): Promise<Pass> {
+        const pass = await this.passRepository.findOne({ where: { id } });
+        if (!pass) throw new NotFoundException('Pass not found');
+        return pass;
+    }
+
+    // ==================== User Pass Management ====================
+
+    async createUserPass(
+        user: User,
+        passId: string,
+        paymentDetails: {
+            razorpayOrderId: string;
+            amount: number;
+            couponCode?: string;
+            discountAmount?: number;
+        }
+    ): Promise<UserPass> {
+        const pass = await this.findPassById(passId);
+
+        const purchaseDate = new Date();
+        const expiryDate = this.calculateExpiryDate(purchaseDate, pass);
+
+        const userPass = this.userPassRepository.create({
+            user,
+            pass,
+            userId: user.id,
+            passId: pass.id,
+            purchaseDate,
+            expiryDate,
+            amount: paymentDetails.amount,
+            razorpayOrderId: paymentDetails.razorpayOrderId,
+            couponCode: paymentDetails.couponCode,
+            discountAmount: paymentDetails.discountAmount || 0,
+            paymentStatus: 'PENDING',
+            status: 'ACTIVE'
+        });
+
+        return this.userPassRepository.save(userPass);
+    }
+
+    async completePayment(razorpayOrderId: string, razorpayPaymentId: string): Promise<UserPass> {
+        const userPass = await this.userPassRepository.findOne({
+            where: { razorpayOrderId }
+        });
+
+        if (!userPass) throw new NotFoundException('User pass not found');
+
+        userPass.paymentStatus = 'COMPLETED';
+        userPass.razorpayPaymentId = razorpayPaymentId;
+
+        return this.userPassRepository.save(userPass);
+    }
+
+    async failPayment(razorpayOrderId: string): Promise<UserPass> {
+        const userPass = await this.userPassRepository.findOne({
+            where: { razorpayOrderId }
+        });
+
+        if (!userPass) throw new NotFoundException('User pass not found');
+
+        userPass.paymentStatus = 'FAILED';
+        userPass.status = 'CANCELLED';
+
+        return this.userPassRepository.save(userPass);
+    }
+
+    // ==================== Access Control ====================
+
+    async hasActivePass(userId: string): Promise<boolean> {
+        const activePass = await this.getActivePass(userId);
+        return !!activePass;
+    }
+
+    async getActivePass(userId: string): Promise<UserPass | null> {
+        return this.userPassRepository.findOne({
+            where: {
+                userId,
+                status: 'ACTIVE',
+                paymentStatus: 'COMPLETED',
+                expiryDate: MoreThan(new Date())
+            },
+            relations: ['pass'],
+            order: { expiryDate: 'DESC' }
+        });
+    }
+
+    async getUserPasses(userId: string): Promise<UserPass[]> {
+        return this.userPassRepository.find({
+            where: { userId },
+            relations: ['pass'],
+            order: { createdAt: 'DESC' }
+        });
+    }
+
+    async canAccessExam(userId: string, examId: string, examType: string): Promise<boolean> {
+        const activePass = await this.getActivePass(userId);
+        if (!activePass) return false;
+
+        const pass = activePass.pass;
+
+        // Check if exam type is included
+        if (pass.includedExamTypes.length > 0 && !pass.includedExamTypes.includes(examType)) {
+            return false;
+        }
+
+        // Check if exam is explicitly excluded
+        if (pass.excludedExamIds.includes(examId)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // ==================== Pass Lifecycle ====================
+
+    async cancelPass(userPassId: string, reason: string): Promise<UserPass> {
+        const userPass = await this.userPassRepository.findOne({ where: { id: userPassId } });
+        if (!userPass) throw new NotFoundException('User pass not found');
+
+        userPass.status = 'CANCELLED';
+        userPass.cancelledAt = new Date();
+        userPass.cancellationReason = reason;
+
+        return this.userPassRepository.save(userPass);
+    }
+
+    async renewPass(userId: string, passId: string): Promise<UserPass> {
+        // Get current active pass
+        const currentPass = await this.getActivePass(userId);
+
+        // Create new pass starting from current expiry or now (whichever is later)
+        const startDate = currentPass && currentPass.expiryDate > new Date()
+            ? currentPass.expiryDate
+            : new Date();
+
+        const pass = await this.findPassById(passId);
+        const expiryDate = this.calculateExpiryDate(startDate, pass);
+
+        // This would typically be called after payment, so we'd have payment details
+        // For now, this is a placeholder
+        throw new BadRequestException('Renewal must go through payment flow');
+    }
+
+    // ==================== Utilities ====================
+
+    private calculateExpiryDate(startDate: Date, pass: Pass): Date {
+        if (pass.passType === PassType.LIFETIME) {
+            // Set to 100 years in the future (effectively lifetime)
+            const expiryDate = new Date(startDate);
+            expiryDate.setFullYear(expiryDate.getFullYear() + 100);
+            return expiryDate;
+        }
+
+        const expiryDate = new Date(startDate);
+        expiryDate.setDate(expiryDate.getDate() + pass.durationDays);
+        return expiryDate;
+    }
+
+    // ==================== Cron Jobs ====================
+
+    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+    async expirePassesCron() {
+        const expiredPasses = await this.userPassRepository.find({
+            where: {
+                status: 'ACTIVE',
+                expiryDate: LessThan(new Date())
+            }
+        });
+
+        for (const userPass of expiredPasses) {
+            userPass.status = 'EXPIRED';
+            await this.userPassRepository.save(userPass);
+        }
+
+        this.logger.log(`Expired ${expiredPasses.length} passes`);
+    }
+
+    // ==================== Legacy Methods (Keep for compatibility) ====================
+
     async getAvailablePasses() {
-        return this.passRepo.find({ where: { isActive: true }, order: { price: 'ASC' } });
+        return this.findAllPasses();
+    }
+
+    async getCurrentPass(userId: string) {
+        return this.getActivePass(userId);
     }
 
     async createOrder(user: any, passId: string) {
-        const pass = await this.passRepo.findOne({ where: { id: passId } });
-        if (!pass) throw new Error('Pass not found');
+        // This method is kept for backward compatibility
+        // New code should use PaymentsService.createPassOrder instead
+        this.logger.warn('createOrder is deprecated, use PaymentsService.createPassOrder instead');
+        const pass = await this.findPassById(passId);
 
         // Free Pass Logic
         if (pass.price == 0) {
             return this.activateFreePass(user, pass);
         }
 
-        // Razorpay Order Logic
-        const keyId = this.configService.get<string>('RAZORPAY_KEY_ID');
-        const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
-
-        if (!keyId || !keySecret) {
-            this.logger.error('Razorpay keys are missing in environment variables');
-            throw new Error('Payment gateway configuration error');
-        }
-
-        try {
-            const instance = new Razorpay({
-                key_id: keyId,
-                key_secret: keySecret,
-            });
-
-            const options = {
-                amount: Math.round(pass.price * 100),
-                currency: "INR",
-                receipt: `pass_order_${Date.now()}`,
-            };
-
-            const order = await instance.orders.create(options);
-
-            // Create pending UserPass
-            const userPass = this.userPassRepo.create({
-                user: { id: user.userId } as any,
-                pass,
-                userId: user.userId,
-                passId: pass.id,
-                purchaseDate: new Date(),
-                expiryDate: new Date(), // Placeholder
-                status: 'PENDING',
-                razorpayOrderId: order.id
-            });
-            await this.userPassRepo.save(userPass);
-
-            return {
-                id: order.id,
-                amount: order.amount,
-                currency: order.currency,
-                keyId: keyId,
-                passId: pass.id,
-                userPassId: userPass.id
-            };
-        } catch (error) {
-            this.logger.error(`Razorpay order creation failed: ${error.message}`, error.stack);
-            throw new Error('Failed to create payment order');
-        }
+        throw new BadRequestException('Use PaymentsService.createPassOrder for paid passes');
     }
 
     async verifyPayment(user: any, payload: { razorpayOrderId: string, razorpayPaymentId: string, razorpaySignature: string }) {
+        // This method is kept for backward compatibility
+        // New code should use PaymentsService.handleWebhook instead
+        this.logger.warn('verifyPayment is deprecated, use PaymentsService.handleWebhook instead');
+
         const crypto = require('crypto');
         const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
 
@@ -133,23 +291,7 @@ export class PassesService implements OnModuleInit {
             .digest('hex');
 
         if (generated_signature === payload.razorpaySignature) {
-            // Payment Successful
-            const userPass = await this.userPassRepo.findOne({ where: { razorpayOrderId: payload.razorpayOrderId } });
-            if (!userPass) throw new Error('Order not found');
-
-            const pass = await this.passRepo.findOne({ where: { id: userPass.passId } });
-
-            // Activate
-            const now = new Date();
-            const expiry = new Date(now);
-            expiry.setDate(now.getDate() + pass.durationDays);
-
-            userPass.status = 'ACTIVE';
-            userPass.razorpayPaymentId = payload.razorpayPaymentId;
-            userPass.purchaseDate = now;
-            userPass.expiryDate = expiry;
-
-            await this.userPassRepo.save(userPass);
+            await this.completePayment(payload.razorpayOrderId, payload.razorpayPaymentId);
             return { success: true, message: 'Pass Activated Successfully' };
         } else {
             throw new Error('Invalid Signature');
@@ -157,46 +299,25 @@ export class PassesService implements OnModuleInit {
     }
 
     private async activateFreePass(user: any, pass: Pass) {
-        // Check if user already had a free trial? (Optional logic later)
         const now = new Date();
-        const expiry = new Date(now);
-        expiry.setDate(now.getDate() + pass.durationDays);
+        const expiry = this.calculateExpiryDate(now, pass);
 
-        const userPass = this.userPassRepo.create({
+        const userPass = this.userPassRepository.create({
             user: { id: user.userId } as any,
             pass,
             userId: user.userId,
             passId: pass.id,
             purchaseDate: now,
             expiryDate: expiry,
+            amount: 0,
             status: 'ACTIVE',
+            paymentStatus: 'COMPLETED',
             razorpayOrderId: 'FREE_TRIAL',
             razorpayPaymentId: 'FREE_TRIAL'
         });
 
-        await this.userPassRepo.save(userPass);
+        await this.userPassRepository.save(userPass);
         return { success: true, message: 'Free Trial Activated', isFree: true };
     }
-    async getCurrentPass(userId: string) {
-        const userPass = await this.userPassRepo.findOne({
-            where: {
-                userId,
-                status: 'ACTIVE',
-            },
-            relations: ['pass'],
-            order: {
-                expiryDate: 'DESC'
-            }
-        });
-
-        if (!userPass) return null;
-
-        if (new Date() > userPass.expiryDate) {
-            userPass.status = 'EXPIRED';
-            await this.userPassRepo.save(userPass);
-            return null;
-        }
-
-        return userPass;
-    }
 }
+

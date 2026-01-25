@@ -16,8 +16,10 @@ import {
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
+import ActivePassBadge from '@/components/ActivePassBadge';
 
 import { Stats, RecentAttempt } from '@/types/dashboard.types';
+
 
 export default function DashboardPage() {
     const { user } = useAuthStore();
@@ -147,7 +149,11 @@ export default function DashboardPage() {
                 </div>
             </motion.div>
 
+            {/* Active Pass Badge */}
+            <ActivePassBadge />
+
             {/* Stats Grid - REDESIGNED & DENSER */}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     {

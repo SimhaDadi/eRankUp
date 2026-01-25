@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -25,6 +26,7 @@ import { PassesModule } from './passes/passes.module';
             isGlobal: true,
             envFilePath: ['.env', 'backend/.env', '../.env'],
         }),
+        ScheduleModule.forRoot(),
         CommonModule,
         TypeOrmModule.forRootAsync({
             imports: [ConfigModule],
@@ -60,3 +62,4 @@ import { PassesModule } from './passes/passes.module';
     providers: [AppService],
 })
 export class AppModule { }
+
