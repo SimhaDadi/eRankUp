@@ -44,15 +44,17 @@ export default function DashboardLayout({
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 flex">
+        <div className="min-h-screen bg-slate-50 text-slate-900 flex selection:bg-blue-100 selection:text-blue-900">
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
                 onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             />
-            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${isSidebarCollapsed ? 'ml-[86px]' : 'ml-[280px]'}`}>
                 <Topbar />
-                <main className="flex-1 p-8 overflow-y-auto">
-                    {children}
+                <main className="flex-1 p-6 lg:p-10 overflow-y-auto">
+                    <div className="max-w-[1600px] mx-auto animate-in fade-in duration-500">
+                        {children}
+                    </div>
                 </main>
                 <ChatSupport />
             </div>

@@ -108,35 +108,57 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
 
     const sections = customNavSections || defaultSections;
 
+    // Color mapping for "living" icons
+    const getItemColor = (label: string) => {
+        const colors: Record<string, string> = {
+            'Home': 'from-blue-500 to-indigo-600',
+            'Test Series': 'from-violet-500 to-purple-600',
+            'Live Tests & Quizzes': 'from-rose-500 to-pink-600',
+            'Previous Year Papers': 'from-amber-400 to-orange-500',
+            'Practice': 'from-emerald-400 to-teal-500',
+            'Free Quizzes': 'from-cyan-400 to-blue-500',
+            'Attempted Tests': 'from-lime-400 to-green-500',
+            'Pass': 'from-yellow-400 to-amber-500',
+            'Exams': 'from-indigo-400 to-blue-600',
+            'Saved Questions': 'from-fuchsia-500 to-pink-600',
+            'Reported Questions': 'from-red-500 to-rose-600',
+            'Doubts': 'from-teal-400 to-emerald-600',
+        };
+        return colors[label] || 'from-slate-700 to-slate-900';
+    };
+
     return (
         <motion.div
             ref={sidebarRef}
-            animate={{ width: isCollapsed ? 80 : 256 }}
-            className="h-screen bg-[#1a1d21] text-white flex flex-col fixed left-0 top-0 overflow-y-auto z-30 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent border-r border-gray-800 shadow-xl"
+            animate={{ width: isCollapsed ? 90 : 290 }}
+            className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto z-30 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
         >
-            {/* Logo Area */}
-            <div className="p-5 border-b border-gray-800 flex items-center justify-between sticky top-0 bg-[#1a1d21] z-20">
+            {/* Larger Logo Area */}
+            <div className="px-6 py-6 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-20">
                 <Link
                     href="/dashboard"
-                    className="flex items-center gap-3 transition-transform hover:scale-105 cursor-pointer overflow-hidden"
+                    className="flex items-center gap-4 transition-transform hover:scale-105 cursor-pointer overflow-hidden group"
                 >
-                    <div className="w-8 h-8 min-w-[32px] bg-[#00bfa5] rounded-lg flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-teal-500/20">
-                        e
+                    <div className="w-10 h-10 min-w-[40px] bg-slate-900 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-xl shadow-slate-900/20 ring-1 ring-slate-900/10 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <span className="relative z-10">e</span>
                     </div>
                     {!isCollapsed && (
-                        <motion.span
+                        <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="text-xl font-bold tracking-tight text-white whitespace-nowrap"
+                            className="flex flex-col"
                         >
-                            {title || 'eRankUp'}
-                        </motion.span>
+                            <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">
+                                eRankUp
+                            </span>
+                        </motion.div>
                     )}
                 </Link>
 
                 <button
                     onClick={handleToggle}
-                    className={`p-1.5 rounded-lg hover:bg-white/10 text-gray-400 transition-colors ${isCollapsed ? 'hidden' : ''}`}
+                    className={`p-2 rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'hidden' : ''}`}
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -150,51 +172,52 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                 )}
             </div>
 
-            {/* Navigation */}
-            <div className="flex-1 py-4 px-3">
+            {/* Living Navigation */}
+            <div className="flex-1 py-4 px-4 space-y-6">
                 {sections.map((section, idx) => (
-                    <div key={idx} className={`mb-6 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
+                    <div key={idx} className={`space-y-3 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
                         {section.title && !isCollapsed && (
-                            <div className="px-4 mb-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">
+                            <div className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 opacity-60">
                                 {section.title}
                             </div>
                         )}
-                        <div className="space-y-1 w-full">
+                        <div className="space-y-3 w-full relative">
                             {section.items.map((item) => {
                                 const isActive = pathname === item.href;
+                                const gradient = getItemColor(item.label);
+
                                 return (
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={`relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all group overflow-hidden ${isActive
-                                            ? 'bg-gradient-to-r from-cyan-600/20 to-blue-600/10 text-cyan-400 border border-cyan-500/20 shadow-lg shadow-cyan-500/5'
-                                            : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-                                            } ${isCollapsed ? 'justify-center w-10 mx-auto' : ''}`}
+                                        className={`relative flex items-center gap-4 px-3 py-3 rounded-2xl transition-all duration-300 group ${isActive
+                                            ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 scale-[1.02]'
+                                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                            } ${isCollapsed ? 'justify-center w-12 h-12 mx-auto p-0' : ''}`}
                                         title={isCollapsed ? item.label : ''}
                                     >
-                                        <item.icon className={`w-5 h-5 min-w-[20px] transition-colors ${isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                                        {/* Living Icon Container */}
+                                        <div className={`relative z-10 w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 shadow-sm ${isActive
+                                            ? `bg-gradient-to-br ${gradient} text-white shadow-lg`
+                                            : 'bg-white border-2 border-slate-100 text-slate-400 group-hover:border-slate-200 group-hover:scale-110'
+                                            }`}>
+                                            <item.icon className="w-5 h-5" strokeWidth={isActive ? 3 : 2.5} />
+                                        </div>
 
                                         {!isCollapsed && (
                                             <motion.span
-                                                initial={{ opacity: 0, x: -10 }}
+                                                initial={{ opacity: 0, x: -5 }}
                                                 animate={{ opacity: 1, x: 0 }}
-                                                className="font-medium whitespace-nowrap"
+                                                className={`text-[15px] tracking-tight whitespace-nowrap font-black leading-none pt-0.5 ${isActive ? 'text-white' : ''}`}
                                             >
                                                 {item.label}
                                             </motion.span>
                                         )}
 
                                         {item.badge && !isCollapsed && (
-                                            <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${item.badgeColor || 'bg-blue-500'}`}>
+                                            <span className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full text-white shadow-sm ${item.badgeColor || 'bg-blue-500'}`}>
                                                 {item.badge}
                                             </span>
-                                        )}
-
-                                        {isActive && !isCollapsed && (
-                                            <motion.div
-                                                layoutId="activeSide"
-                                                className="absolute left-0 w-1 h-6 bg-cyan-500 rounded-r-full shadow-[0_0_15px_rgba(6,182,212,0.5)]"
-                                            />
                                         )}
                                     </Link>
                                 );
@@ -204,8 +227,20 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                 ))}
             </div>
 
-            {/* Footer gradient fade (optional visual touch) */}
-            {!isCollapsed && <div className="h-20 bg-gradient-to-t from-[#1a1d21] to-transparent pointer-events-none fixed bottom-0 left-0 w-64" />}
+            {/* Larger Profile Area */}
+            {!isCollapsed && (
+                <div className="p-4 m-4 mt-auto bg-slate-50 border border-slate-100 rounded-2xl relative overflow-hidden group">
+                    <div className="relative z-10 flex items-center justify-between gap-3">
+                        <div>
+                            <h4 className="font-black text-sm text-slate-900">Pro Access</h4>
+                            <p className="text-[10px] text-slate-500 font-bold leading-tight">Unlock premium features.</p>
+                        </div>
+                        <button className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[11px] font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all hover:bg-black">
+                            UPGRADE
+                        </button>
+                    </div>
+                </div>
+            )}
         </motion.div>
     );
 }
