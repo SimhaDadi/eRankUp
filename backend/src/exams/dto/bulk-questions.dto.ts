@@ -10,6 +10,10 @@ export class QuestionDto {
     @IsOptional()
     type?: string;
 
+    @IsString()
+    @IsOptional()
+    imageUrl?: string;
+
     // Options can be complex JSON array, keep as basic validation for now or generic array
     @IsArray()
     @IsOptional()

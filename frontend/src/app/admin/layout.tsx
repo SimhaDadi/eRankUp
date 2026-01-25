@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
@@ -72,11 +72,26 @@ export default function AdminLayout({
     const { user, isLoading, logout } = useAuthStore();
     const router = useRouter();
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const handleLogout = () => {
         logout();
         router.push('/login');
     };
+
+    // Click outside handler
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsProfileDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     useEffect(() => {
         if (!isLoading && (!user || user.role !== 'admin')) {
@@ -98,8 +113,13 @@ export default function AdminLayout({
 
     return (
         <div className="min-h-screen bg-[#0c111d] text-slate-100 flex font-inter">
-            <Sidebar customNavSections={adminNavSections} title="eRankUp Admin" />
-            <div className="flex-1 ml-64 flex flex-col min-h-screen">
+            <Sidebar
+                customNavSections={adminNavSections}
+                title="eRankUp Admin"
+                isCollapsed={isSidebarCollapsed}
+                onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            />
+            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
                 <header className="h-20 border-b border-slate-800/50 bg-[#0c111d]/50 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-8">
                     <div className="flex items-center gap-4 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
                         <Search className="w-4 h-4 text-slate-500" />
@@ -119,7 +139,7 @@ export default function AdminLayout({
                             <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#0c111d]"></span>
                         </motion.button>
 
-                        <div className="flex items-center gap-3 pl-6 border-l border-slate-800 relative">
+                        <div ref={dropdownRef} className="flex items-center gap-3 pl-6 border-l border-slate-800 relative">
                             <div className="text-right">
                                 <div className="text-sm font-bold text-slate-200">{user?.fullName || 'Admin User'}</div>
                                 <div className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">{user?.role || 'Administrator'}</div>

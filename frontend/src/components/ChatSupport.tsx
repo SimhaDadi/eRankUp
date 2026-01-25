@@ -45,6 +45,23 @@ export default function ChatSupport() {
         }
     }, [messages]);
 
+    // Click outside detection
+    const chatWidgetRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (chatWidgetRef.current && !chatWidgetRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        }
+
+        if (isOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isOpen]);
+
     const sendMessage = () => {
         if (message.trim() && socketRef.current) {
             socketRef.current.emit('sendMessage', { message });
@@ -53,7 +70,7 @@ export default function ChatSupport() {
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-6 right-6 z-50" ref={chatWidgetRef}>
             {isOpen ? (
                 <div className="bg-slate-900 border border-slate-800 w-80 h-[450px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
                     {/* Header */}

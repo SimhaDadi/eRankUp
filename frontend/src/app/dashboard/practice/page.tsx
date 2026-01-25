@@ -9,10 +9,16 @@ import {
     Layers,
     Target,
     Brain,
-    Folder
+    Folder,
+    Sparkles,
+    Zap,
+    BookOpen,
+    ChevronDown,
+    Activity
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Chapter {
     id: string;
@@ -28,24 +34,15 @@ interface Subject {
     chapters: Chapter[];
 }
 
-interface ExamCategory {
-    name: string;
-    subjects: Subject[];
-}
-
 export default function PracticePage() {
-    const [hierarchy, setHierarchy] = useState<any[]>([]);
+    const router = useRouter();
+    const [hierarchy, setHierarchy] = useState<Subject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedCategory, setSelectedCategory] = useState<string>('All');
-
-    // UI State
     const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchHierarchy = async () => {
             try {
-                // Determine if we have a hierarchy endpoint or need to build it
-                // Assuming /exams/hierarchy gives us nested structure
                 const response = await api.get('/exams/hierarchy');
                 setHierarchy(Array.isArray(response.data) ? response.data : []);
             } catch (error) {
@@ -58,103 +55,171 @@ export default function PracticePage() {
         fetchHierarchy();
     }, []);
 
+    const startChapterPractice = async (chapterId: string) => {
+        try {
+            await api.post('/test-session/start/chapter', { chapterId });
+            router.push(`/dashboard/test/chapter-${chapterId}`);
+        } catch (error) {
+            console.error("Failed to start chapter practice", error);
+            alert("Failed to initiate practice session. Please try again.");
+        }
+    };
+
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+            <div className="flex flex-col items-center justify-center min-h-[60vh] bg-[#fbfdff]">
+                <div className="w-12 h-12 border-[3px] border-sky-100 border-t-sky-500 rounded-full animate-spin" />
+                <p className="mt-4 text-sky-400 font-black uppercase tracking-[0.2em] text-[10px]">Assembling Curriculum...</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8 max-w-7xl mx-auto pb-20">
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent mb-2">
-                    Chapter-wise Practice
-                </h1>
-                <p className="text-slate-400 text-lg">
-                    Master specific topics with focused chapter-wise tests.
-                </p>
+        <div className="min-h-screen bg-[#fbfdff] pb-24 overflow-x-hidden selection:bg-sky-100 selection:text-sky-900">
+            {/* Background Decorative Elements */}
+            <div className="fixed inset-0 pointer-events-none opacity-20">
+                <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[40%] bg-sky-100 rounded-full blur-[100px]" />
+                <div className="absolute bottom-[0%] right-[-5%] w-[30%] h-[30%] bg-emerald-50 rounded-full blur-[100px]" />
             </div>
 
-            {/* Content - Since hierarchy might be complex, we list subjects primarily */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <AnimatePresence>
-                    {hierarchy.length === 0 ? (
-                        <div className="col-span-full py-20 text-center bg-slate-900/30 border border-dashed border-slate-800 rounded-3xl">
-                            <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <Brain className="w-10 h-10 text-slate-600" />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-300 mb-2">No practice content yet</h3>
-                            <p className="text-slate-500">Practice chapters will appear here once configured.</p>
+            <div className="relative z-10 max-w-7xl mx-auto space-y-12">
+                {/* Header Section */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="px-3 py-1 bg-sky-50 text-sky-600 text-[9px] font-black rounded-full uppercase tracking-widest border border-sky-100">
+                            Mastery Mode
                         </div>
-                    ) : (
-                        hierarchy.map((subject) => (
+                        <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">
+                            <Sparkles className="w-3 h-3 fill-current" /> Chapter-wise
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <h1 className="text-4xl font-black text-slate-800 tracking-tight leading-none">
+                            Curated Practice
+                        </h1>
+                        <p className="text-slate-500 font-medium text-lg leading-snug tracking-tight max-w-2xl">
+                            Architect elite domain expertise through high-fidelity, topic-specific practice modules.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Content Area */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <AnimatePresence mode="wait">
+                        {hierarchy.length === 0 ? (
                             <motion.div
-                                layout
-                                key={subject.id}
-                                className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-emerald-500/30 transition-all"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="col-span-full py-24 text-center bg-white border border-sky-50 rounded-[3rem] shadow-sm relative overflow-hidden group"
                             >
-                                <div
-                                    className="p-6 cursor-pointer flex justify-between items-center group"
-                                    onClick={() => setExpandedSubject(expandedSubject === subject.id ? null : subject.id)}
+                                <div className="absolute top-0 right-0 w-48 h-48 bg-sky-50 rounded-bl-full opacity-50 transition-transform group-hover:scale-110" />
+                                <div className="relative z-10">
+                                    <div className="w-24 h-24 bg-white border border-sky-100 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-sm group-hover:rotate-6 transition-transform">
+                                        <Brain className="w-10 h-10 text-sky-400" />
+                                    </div>
+                                    <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2 uppercase tracking-wider">No Content Available</h3>
+                                    <p className="text-slate-400 font-medium max-w-sm mx-auto">Our academic team is currently curating practice sessions for your curriculum.</p>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            hierarchy.map((subject, idx) => (
+                                <motion.div
+                                    key={subject.id}
+                                    initial={{ opacity: 0, scale: 0.98 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: idx * 0.05 }}
+                                    className={`bg-white border rounded-[2.5rem] overflow-hidden transition-all duration-500 relative group
+                                        ${expandedSubject === subject.id ? 'border-sky-200 shadow-xl' : 'border-sky-50 shadow-sm hover:border-sky-200 hover:shadow-lg'}`}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                                            <Book className="w-6 h-6 text-white" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">{subject.title}</h3>
-                                            <p className="text-slate-500 text-sm">{subject.chapters?.length || 0} Chapters</p>
+                                    {/* Top Accent Line */}
+                                    <div className={`absolute top-0 left-12 right-12 h-[2px] bg-gradient-to-r from-transparent via-sky-400 to-emerald-400 to-transparent opacity-0 group-hover:opacity-60 transition-opacity`} />
+
+                                    <div
+                                        className="p-8 cursor-pointer relative"
+                                        onClick={() => setExpandedSubject(expandedSubject === subject.id ? null : subject.id)}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-6">
+                                                <div className="w-16 h-16 bg-sky-50 rounded-[1.5rem] border border-sky-100 flex items-center justify-center shadow-sm group-hover:bg-white transition-colors duration-300">
+                                                    <BookOpen className="w-7 h-7 text-sky-500" />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <h3 className="text-xl font-black text-slate-800 tracking-tight group-hover:text-sky-600 transition-colors">
+                                                        {subject.title}
+                                                    </h3>
+                                                    <div className="flex items-center gap-4">
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                            <Layers className="w-3 h-3" /> {subject.chapters?.length || 0} Modules
+                                                        </span>
+                                                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1.5">
+                                                            <Activity className="w-3 h-3" /> Online
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className={`w-10 h-10 rounded-xl border border-sky-50 flex items-center justify-center transition-all duration-300
+                                                ${expandedSubject === subject.id ? 'bg-sky-600 border-sky-600 text-white rotate-180 shadow-lg shadow-sky-600/20' : 'bg-white text-slate-400 group-hover:border-sky-200 group-hover:text-sky-500'}`}>
+                                                <ChevronDown className="w-5 h-5" />
+                                            </div>
                                         </div>
                                     </div>
-                                    <ChevronRight className={`w-5 h-5 text-slate-500 transition-transform ${expandedSubject === subject.id ? 'rotate-90' : ''}`} />
-                                </div>
 
-                                <AnimatePresence>
-                                    {expandedSubject === subject.id && (
-                                        <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="border-t border-slate-800 bg-slate-950/30"
-                                        >
-                                            <div className="p-4 space-y-2">
-                                                {subject.chapters?.map((chapter: any) => (
-                                                    <div key={chapter.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/50 transition-colors group/chapter">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">
-                                                                <Layers className="w-4 h-4 text-emerald-500" />
-                                                            </div>
-                                                            <span className="font-medium text-slate-300 group-hover/chapter:text-white transition-colors">
-                                                                {chapter.title}
-                                                            </span>
-                                                        </div>
-                                                        <button
-                                                            onClick={async () => {
-                                                                // Logic to start practice for this chapter
-                                                                // Likely navigate to a test runner or model selector
-                                                                // For now, assume it starts a session
-                                                                alert(`Starting practice for ${chapter.title}`);
-                                                            }}
-                                                            className="px-4 py-2 bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded-lg text-sm font-bold transition-all"
+                                    <AnimatePresence>
+                                        {expandedSubject === subject.id && (
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                animate={{ height: 'auto' }}
+                                                exit={{ height: 0 }}
+                                                className="bg-slate-50/50 border-t border-sky-50"
+                                            >
+                                                <div className="p-6 space-y-3">
+                                                    {subject.chapters?.map((chapter) => (
+                                                        <motion.div
+                                                            key={chapter.id}
+                                                            initial={{ opacity: 0, x: -10 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            className="flex items-center justify-between p-4 bg-white border border-sky-50/50 rounded-2xl hover:border-sky-200 hover:shadow-md transition-all group/chapter"
                                                         >
-                                                            Start
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                                {(!subject.chapters || subject.chapters.length === 0) && (
-                                                    <div className="text-center text-slate-500 text-sm py-4">No chapters found for this subject.</div>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
-                        ))
-                    )}
-                </AnimatePresence>
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-10 h-10 rounded-xl bg-sky-50/50 border border-sky-100/50 flex items-center justify-center text-sky-600 group-hover/chapter:bg-sky-600 group-hover/chapter:text-white transition-all">
+                                                                    <Book className="w-4 h-4" />
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-bold text-slate-700 tracking-tight group-hover/chapter:text-sky-600 transition-colors">
+                                                                        {chapter.title}
+                                                                    </span>
+                                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Practice Module</span>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    startChapterPractice(chapter.id);
+                                                                }}
+                                                                className="px-6 py-2.5 bg-white border border-sky-100 text-sky-600 hover:bg-sky-600 hover:text-white hover:border-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                                                            >
+                                                                Launch
+                                                            </button>
+                                                        </motion.div>
+                                                    ))}
+                                                    {(!subject.chapters || subject.chapters.length === 0) && (
+                                                        <div className="text-center py-8">
+                                                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                                                                <Folder className="w-5 h-5 text-slate-300" />
+                                                            </div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expansion Imminent</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.div>
+                            ))
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
         </div>
     );

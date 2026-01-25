@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, Info, Flag, Shield, Menu, X, User } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, Info, Flag, Shield, Menu, X, User, Pause, Play } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
 import MathRenderer from '@/components/MathRenderer';
@@ -28,7 +28,11 @@ export default function TestPage() {
     const [visited, setVisited] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
+    const [pauseReason, setPauseReason] = useState<'manual' | 'security'>('manual');
     const [timeLeft, setTimeLeft] = useState(60 * 60); // 60 minutes default
+
+
 
     // Sections Logic
     const sections = useMemo(() => {
@@ -230,7 +234,15 @@ export default function TestPage() {
                             // === TIMER SYNC ===
                             if (session.startTime) {
                                 const now = Date.now();
-                                const elapsedSeconds = Math.floor((now - session.startTime) / 1000);
+                                const accumulated = session.accumulatedTime || 0;
+                                let elapsedSeconds = accumulated;
+
+                                if (session.status === 'PAUSED') {
+                                    setIsPaused(true);
+                                } else {
+                                    elapsedSeconds += Math.floor((now - session.startTime) / 1000);
+                                }
+
                                 const remaining = Math.max(0, durationSeconds - elapsedSeconds);
                                 setTimeLeft(remaining);
                             }
@@ -239,6 +251,7 @@ export default function TestPage() {
                         console.error('Failed to start/load session:', e);
                     }
                 }
+
             } catch (err) {
                 console.error('Failed to load test:', err);
             } finally {
@@ -249,7 +262,7 @@ export default function TestPage() {
     }, [params.id]);
 
     useEffect(() => {
-        if (!questions.length || isSubmitting) return;
+        if (!questions.length || isSubmitting || isPaused) return;
         const timer = setInterval(() => {
             const currentQId = questions[currentQuestionIndex]?.id;
             if (currentQId) {
@@ -261,7 +274,57 @@ export default function TestPage() {
             setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
         }, 1000);
         return () => clearInterval(timer);
-    }, [questions, currentQuestionIndex, isSubmitting]);
+    }, [questions, currentQuestionIndex, isSubmitting, isPaused]);
+
+    const handlePause = async (reason: 'manual' | 'security' = 'manual') => {
+        if (isPaused || isSubmitting) return;
+        try {
+            setPauseReason(reason);
+            setIsPaused(true); // Set local state immediately for responsiveness
+
+            // Force progress sync before pausing
+            await syncProgress(answers, questionTimeLog);
+            await api.post(`/test-session/${params.id}/pause`);
+
+            if (document.fullscreenElement) {
+                try {
+                    await document.exitFullscreen();
+                } catch (e) {
+                    // Silently fail if already exiting
+                }
+            }
+        } catch (error) {
+            console.error('Failed to pause session:', error);
+            // Optionally revert isPaused if API fails? 
+            // But usually we want to stop the timer anyway for user.
+        }
+    };
+
+
+    const handleResume = async () => {
+        if (!isPaused || isSubmitting) return;
+        try {
+            await api.post(`/test-session/${params.id}/resume`);
+
+            // Re-enter fullscreen for integrity
+            try {
+                if (!document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                }
+            } catch (e) {
+                console.warn("Fullscreen resume failed:", e);
+                // Even if fullscreen fails, we might want to let them continue 
+                // but the security logic will just pause them again if they aren't in it.
+                // However, the user request says it should work.
+            }
+
+            setIsPaused(false);
+            setIsStarted(true);
+        } catch (error) {
+            console.error('Failed to resume session:', error);
+        }
+    };
+
 
     const handleOptionSelect = (optionId: string) => {
         const questionId = questions[currentQuestionIndex].id;
@@ -342,6 +405,16 @@ export default function TestPage() {
 
             const response = await api.post(`/test-session/${params.id}/submit`, payload);
             const { attemptId } = response.data;
+
+            // Exit fullscreen if active
+            if (document.fullscreenElement) {
+                try {
+                    await document.exitFullscreen();
+                } catch (err) {
+                    console.error("Failed to exit fullscreen:", err);
+                }
+            }
+
             router.push(`/dashboard/results/${attemptId}`);
         } catch (error: any) {
             console.error("Failed to submit test:", error);
@@ -375,9 +448,9 @@ export default function TestPage() {
     };
 
     const [isStarted, setIsStarted] = useState(false);
-    const [showFullscreenWarning, setShowFullscreenWarning] = useState(false);
 
     // Auto-submit when time runs out
+
     useEffect(() => {
         if (timeLeft <= 0 && isStarted && !isSubmitting && questions.length > 0) {
             submitTest();
@@ -386,10 +459,11 @@ export default function TestPage() {
 
     useEffect(() => {
         const handleFullscreenChange = () => {
-            if (!document.fullscreenElement && isStarted && !isSubmitting) {
-                setShowFullscreenWarning(true);
+            if (!document.fullscreenElement && isStarted && !isSubmitting && !isPaused) {
+                handlePause('security');
             }
         };
+
 
         const preventDefault = (e: Event) => e.preventDefault();
 
@@ -414,7 +488,8 @@ export default function TestPage() {
             document.removeEventListener('cut', preventDefault);
             document.removeEventListener('paste', preventDefault);
         };
-    }, [isStarted, isSubmitting]);
+    }, [isStarted, isSubmitting, isPaused]);
+
 
     const startTest = async () => {
         try {
@@ -426,13 +501,9 @@ export default function TestPage() {
     };
 
     const reEnterFullscreen = async () => {
-        try {
-            await document.documentElement.requestFullscreen();
-            setShowFullscreenWarning(false);
-        } catch (err) {
-            console.error("Fullscreen denied:", err);
-        }
+        handleResume();
     };
+
 
     if (isLoading) return <div className="flex h-screen items-center justify-center">Loading Assessment...</div>;
     if (questions.length === 0) return <div>No Questions Found</div>;
@@ -462,29 +533,7 @@ export default function TestPage() {
         );
     }
 
-    if (showFullscreenWarning) {
-        return (
-            <div className="fixed inset-0 z-50 bg-red-900/90 backdrop-blur-md flex items-center justify-center p-4">
-                <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full text-center space-y-6 animate-pulse">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-                        <AlertCircle className="w-8 h-8 text-red-600" />
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-black text-slate-900 mb-2">Warning: Fullscreen Exited</h2>
-                        <p className="text-slate-500 font-medium">
-                            You have exited the secure full-screen mode. Please return immediately to continue your exam.
-                        </p>
-                    </div>
-                    <button
-                        onClick={reEnterFullscreen}
-                        className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-lg shadow-red-600/20 uppercase tracking-widest transition-all scale-110"
-                    >
-                        Return to Exam
-                    </button>
-                </div>
-            </div>
-        );
-    }
+
 
     const currentQuestion = questions[currentQuestionIndex];
 
@@ -494,11 +543,16 @@ export default function TestPage() {
             <header className="h-16 bg-white border-b flex items-center justify-between px-4 shrink-0 shadow-sm z-20">
                 <div className="font-bold text-lg text-slate-800 truncate max-w-md">SSC CGL 2030 Tier-I Mock Test</div>
                 <div className="flex items-center gap-6">
+                    <button
+                        onClick={() => handlePause('manual')}
+                        className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs transition-all"
+                    >
+                        <Pause className="w-3 h-3" /> PAUSE
+                    </button>
                     <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
                         <div className="text-xs font-bold text-slate-500 uppercase">Time Left</div>
                         <div className="font-mono font-bold text-xl text-slate-800">{formatTime(timeLeft)}</div>
                     </div>
-
                 </div>
             </header>
 
@@ -542,7 +596,6 @@ export default function TestPage() {
                         <div className="max-w-[95%] mx-auto py-8">
                             {/* Question Text */}
                             <div className="mb-8 text-xl leading-8 font-medium text-slate-800 border-b pb-8 border-gray-100">
-                                <span className="inline-block mr-2 font-black text-blue-600 text-2xl">Q.</span>
                                 <MathRenderer content={currentQuestion.content} />
                             </div>
 
@@ -779,6 +832,50 @@ export default function TestPage() {
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* PAUSED / SECURITY OVERLAY */}
+            <AnimatePresence>
+                {isPaused && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xl flex items-center justify-center p-4"
+                    >
+                        <div className="bg-white p-10 md:p-12 rounded-[3rem] shadow-2xl max-w-lg w-full text-center space-y-8 border border-white/20">
+                            <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border shadow-inner ${pauseReason === 'security' ? 'bg-sky-50 border-sky-100' : 'bg-amber-50 border-amber-100'
+                                }`}>
+                                {pauseReason === 'security' ? (
+                                    <Shield className="w-10 h-10 text-sky-500" />
+                                ) : (
+                                    <Pause className="w-10 h-10 text-amber-500" />
+                                )}
+                            </div>
+
+                            <div className="space-y-3">
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                                    {pauseReason === 'security' ? 'Security Protocol' : 'Assessment Paused'}
+                                </h2>
+                                <p className="text-slate-500 font-medium leading-relaxed">
+                                    {pauseReason === 'security' ? (
+                                        "Integrity check triggered. To maintain a fair environment, this session has been suspended. Please re-enter secure mode to continue."
+                                    ) : (
+                                        "Your progress has been synchronized and the timer is suspended. Ready to continue when you are."
+                                    )}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={handleResume}
+                                className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl shadow-xl shadow-slate-900/20 uppercase tracking-[0.2em] text-xs transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
+                            >
+                                <Play className="w-4 h-4 fill-current" />
+                                Resume Assessment
+                            </button>
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

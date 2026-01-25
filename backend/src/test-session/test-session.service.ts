@@ -13,10 +13,12 @@ export interface TestSession {
     userId: string;
     testId: string; // Model ID
     startTime: number;
+    pausedAt?: number;
+    accumulatedTime?: number; // Total seconds spent BEFORE current resume
     answers: Record<string, string>; // questionId -> optionId
     timings: Record<string, number>; // questionId -> seconds spent
     flags: string[]; // array of questionId
-    status: 'IN_PROGRESS' | 'COMPLETED';
+    status: 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED';
     questions?: any[]; // Local questions for adaptive sessions
 }
 
@@ -244,9 +246,9 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         }
 
         const session: TestSession = JSON.parse(sessionData);
-        session.status = 'COMPLETED';
 
         console.log(`[TestSession] Session parsed. Answers count: ${Object.keys(session.answers).length}, Timings count: ${Object.keys(timings).length}`);
+
 
         // 1. Grade and Persist to Postgres
         try {
@@ -273,16 +275,26 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             const finalAnswers = answers || session.answers;
             console.log(`[TestSession] Final answers for scoring: ${Object.keys(finalAnswers).length}`);
 
-            console.log(`[TestSession] Calling ScorerService.gradeAndSave...`);
+            // Calculate actual total duration for the scorer
+            let totalTimeSpent = session.accumulatedTime || 0;
+            if (session.status !== 'PAUSED') {
+                totalTimeSpent += Math.floor((Date.now() - session.startTime) / 1000);
+            }
+            const virtualStartTime = Date.now() - (totalTimeSpent * 1000);
+
+            console.log(`[TestSession] Calling ScorerService.gradeAndSave... (Duration: ${totalTimeSpent}s)`);
             const attempt = await this.scorerService.gradeAndSave(
                 user,
                 testId,
                 finalAnswers,
-                session.startTime,
+                virtualStartTime,
                 timings,
                 session.flags,
                 session.questions ? session.questions.map(q => q.id) : []
             );
+
+            session.status = 'COMPLETED'; // Set after calculation
+
 
             console.log(`[TestSession] ScorerService returned Attempt ID: ${attempt.id}`);
 
@@ -322,11 +334,42 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             const data = await this.redis.get(key);
             if (data) {
                 const session: TestSession = JSON.parse(data);
-                if (session.status === 'IN_PROGRESS') {
+                if (session.status === 'IN_PROGRESS' || session.status === 'PAUSED') {
                     activeTestIds.push(session.testId);
                 }
             }
         }
         return activeTestIds;
+    }
+
+    async pauseSession(userId: string, testId: string) {
+        const session = await this.getSession(userId, testId);
+        if (!session) throw new NotFoundException('Session not found');
+        if (session.status !== 'IN_PROGRESS') throw new Error('Only in-progress sessions can be paused');
+
+        const now = Date.now();
+        const elapsedSinceLastResume = Math.floor((now - session.startTime) / 1000);
+
+        session.status = 'PAUSED';
+        session.pausedAt = now;
+        session.accumulatedTime = (session.accumulatedTime || 0) + elapsedSinceLastResume;
+
+        const key = this.getSessionKey(userId, testId);
+        await this.redis.set(key, JSON.stringify(session), 'KEEPTTL');
+        return session;
+    }
+
+    async resumeSession(userId: string, testId: string) {
+        const session = await this.getSession(userId, testId);
+        if (!session) throw new NotFoundException('Session not found');
+        if (session.status !== 'PAUSED') throw new Error('Only paused sessions can be resumed');
+
+        session.status = 'IN_PROGRESS';
+        session.startTime = Date.now();
+        session.pausedAt = undefined;
+
+        const key = this.getSessionKey(userId, testId);
+        await this.redis.set(key, JSON.stringify(session), 'KEEPTTL');
+        return session;
     }
 }

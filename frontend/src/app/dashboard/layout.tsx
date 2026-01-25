@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Sidebar from '../../components/Sidebar';
@@ -15,6 +15,7 @@ export default function DashboardLayout({
     const { user, isLoading } = useAuthStore();
     const router = useRouter();
     const pathname = usePathname();
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
     const isTestMode = pathname?.startsWith('/dashboard/test/');
 
@@ -44,8 +45,11 @@ export default function DashboardLayout({
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 flex">
-            <Sidebar />
-            <div className="flex-1 ml-64 flex flex-col min-h-screen">
+            <Sidebar
+                isCollapsed={isSidebarCollapsed}
+                onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            />
+            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
                 <Topbar />
                 <main className="flex-1 p-8 overflow-y-auto">
                     {children}

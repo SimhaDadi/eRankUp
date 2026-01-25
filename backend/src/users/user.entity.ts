@@ -36,8 +36,8 @@ export class User {
     @UpdateDateColumn()
     updatedAt: Date;
 
-    @Column({ nullable: true })
-    dob: Date;
+    @Column({ type: 'date', nullable: true })
+    dob: string;
 
     @Column({ nullable: true })
     education: string;

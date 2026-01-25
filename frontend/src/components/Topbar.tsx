@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useAuthStore } from '../store/authStore';
 import { Bell, Search, ChevronDown, User, Settings, LogOut, Check } from 'lucide-react';
 import Link from 'next/link';
@@ -19,6 +19,7 @@ interface Notification {
 
 export default function Topbar() {
     const { user, logout } = useAuthStore();
+    const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -89,14 +90,12 @@ export default function Topbar() {
             }
         };
 
-        if (isDropdownOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
+        document.addEventListener('mousedown', handleClickOutside);
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isDropdownOpen, isNotifOpen]);
+    }, []);
 
     const handleLogout = () => {
         logout();
@@ -120,16 +119,20 @@ export default function Topbar() {
     return (
         <div className="h-16 border-b border-gray-200 bg-white/80 backdrop-blur-xl flex items-center justify-between px-8 sticky top-0 z-40 shadow-sm">
             {/* Search Bar */}
-            <div className="flex items-center bg-gray-100/50 rounded-xl px-4 py-2 w-96 border border-gray-200 focus-within:border-[#00bfa5] focus-within:ring-2 focus-within:ring-[#00bfa5]/10 transition-all duration-300">
-                <Search className="w-4 h-4 text-gray-400 mr-3" />
-                <input
-                    type="text"
-                    placeholder="Search anything..."
-                    className="bg-transparent text-sm w-full outline-none text-slate-900 placeholder-gray-500"
-                    value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
-                />
-            </div>
+            {pathname === '/dashboard' ? (
+                <div className="flex items-center bg-gray-100/50 rounded-xl px-4 py-2 w-96 border border-gray-200 focus-within:border-[#00bfa5] focus-within:ring-2 focus-within:ring-[#00bfa5]/10 transition-all duration-300">
+                    <Search className="w-4 h-4 text-gray-400 mr-3" />
+                    <input
+                        type="text"
+                        placeholder="Search anything..."
+                        className="bg-transparent text-sm w-full outline-none text-slate-900 placeholder-gray-500"
+                        value={searchTerm}
+                        onChange={(e) => handleSearch(e.target.value)}
+                    />
+                </div>
+            ) : (
+                <div className="flex-1" />
+            )}
 
             {/* Right Actions */}
             <div className="flex items-center gap-6">

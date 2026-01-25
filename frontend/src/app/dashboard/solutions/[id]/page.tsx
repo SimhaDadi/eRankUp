@@ -74,6 +74,8 @@ export default function SolutionPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [showSolution, setShowSolution] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         const fetchAttempt = async () => {
@@ -88,6 +90,40 @@ export default function SolutionPage() {
         };
         fetchAttempt();
     }, [params.id]);
+
+    useEffect(() => {
+        const checkSavedStatus = async () => {
+            if (!attempt || !attempt.responses[currentIdx]) return;
+            try {
+                const qId = attempt.responses[currentIdx].question.id;
+                const res = await api.get(`/users/saved-questions/${qId}/status`);
+                setIsSaved(res.data.saved);
+            } catch (e) { }
+        };
+        checkSavedStatus();
+    }, [currentIdx, attempt]);
+
+    const handleToggleSave = async () => {
+        if (!attempt || !attempt.responses[currentIdx]) return;
+        setIsSaving(true);
+        try {
+            const qId = attempt.responses[currentIdx].question.id;
+            const res = await api.post(`/users/saved-questions/${qId}/toggle`);
+            setIsSaved(res.data.saved);
+        } catch (error: any) {
+            console.error("Failed to toggle save", error);
+            const msg = error.response?.data?.message || 'Failed to save question. Please try again.';
+            alert(msg);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleShare = () => {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url);
+        alert('Solution link copied to clipboard!');
+    };
 
     if (isLoading) {
         return (
@@ -122,7 +158,6 @@ export default function SolutionPage() {
         );
     }
 
-
     const currentResp = attempt.responses[currentIdx];
     const { question } = currentResp;
 
@@ -135,13 +170,13 @@ export default function SolutionPage() {
 
     return (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
-            {/* ... (backgrounds) */}
+            {/* Backgrounds */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-40">
                 <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-indigo-100/50 rounded-full blur-[160px]" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-100/40 rounded-full blur-[140px]" />
             </div>
 
-            {/* Premium Header with Gradient Lining */}
+            {/* Premium Header */}
             <header className="h-16 bg-white/70 backdrop-blur-xl border-b border-transparent relative flex items-center justify-between px-6 sticky top-0 z-30">
                 <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-200 to-transparent opacity-60" />
 
@@ -163,7 +198,7 @@ export default function SolutionPage() {
                 </div>
             </header >
 
-            {/* Mobile/Toggle Button for Drawer */}
+            {/* Mobile Sidebar Toggle */}
             <button
                 onClick={() => setIsDrawerOpen(!isDrawerOpen)}
                 className={`fixed right-0 top-32 z-40 bg-white border-l border-t border-b border-slate-200 p-3 rounded-l-2xl shadow-lg transition-transform duration-300 ${isDrawerOpen ? 'translate-x-full' : 'translate-x-0'} lg:hidden`}
@@ -174,10 +209,10 @@ export default function SolutionPage() {
 
             <div className="flex flex-1 overflow-hidden relative z-10 lg:p-4 lg:gap-6 lg:max-w-[1900px] mx-auto w-full">
 
-                {/* Main Content Area - COMPACT & FRAMED */}
+                {/* Main Content Area */}
                 <main className={`flex-1 overflow-y-auto bg-white lg:rounded-[2rem] shadow-xl shadow-slate-200/60 ring-1 ring-slate-900/5 p-6 lg:p-10 relative group/main transition-all duration-300 ${isDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
                     <div className="max-w-5xl mx-auto space-y-8 relative z-10">
-                        {/* Question Header: Number & Meta */}
+                        {/* Question Header */}
                         <div className="flex items-center justify-between gap-4 pb-6 border-b border-slate-200">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-900 font-black text-xl shadow-sm ring-1 ring-slate-900/5">
@@ -193,7 +228,28 @@ export default function SolutionPage() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleToggleSave}
+                                    disabled={isSaving}
+                                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all border shadow-sm group
+                                        ${isSaved
+                                            ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+                                            : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600'}`}
+                                    title={isSaved ? "Saved" : "Save Question"}
+                                >
+                                    <Bookmark
+                                        className="w-5 h-5 transition-all group-active:scale-90"
+                                        fill={isSaved ? "currentColor" : "none"}
+                                    />
+                                </button>
+                                <button
+                                    onClick={handleShare}
+                                    className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-xl transition-all border border-slate-200 text-slate-400 hover:text-indigo-600 shadow-sm group"
+                                    title="Share Question"
+                                >
+                                    <Share2 className="w-5 h-5 group-active:translate-x-1 group-active:-translate-y-1 transition-transform" />
+                                </button>
                                 <div className="text-right flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
                                     <Clock className="w-4 h-4 text-slate-500" />
                                     <div className="text-slate-900 font-black text-sm">{currentResp.timeSpent}s</div>
@@ -201,7 +257,7 @@ export default function SolutionPage() {
                             </div>
                         </div>
 
-                        {/* Question Text - DARKER & CRISP */}
+                        {/* Question Text */}
                         <div className="text-lg lg:text-xl text-slate-900 font-bold leading-relaxed tracking-tight py-2">
                             <MathRenderer content={question.content} />
                         </div>
@@ -239,7 +295,7 @@ export default function SolutionPage() {
                             })}
                         </div>
 
-                        {/* Solution Section - Toggleable */}
+                        {/* Solution Section */}
                         <div className="mt-8 pt-8 border-t border-slate-200 transition-all duration-500 ease-in-out">
                             {!showSolution ? (
                                 <button
@@ -293,7 +349,7 @@ export default function SolutionPage() {
                     </div>
                 </main>
 
-                {/* Right Sidebar - ALWAYS VISIBLE ON LG & IMPROVED */}
+                {/* Right Sidebar */}
                 <aside className={`fixed right-0 top-0 bottom-0 w-[340px] bg-white border-l border-slate-200 shadow-[0_0_40px_-5px_rgb(0,0,0,0.1)] z-50 transition-transform duration-300 ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'} lg:static lg:translate-x-0 lg:w-[340px] lg:bg-transparent lg:shadow-none lg:border-none lg:block lg:flex flex-col gap-6`}>
                     <div className="flex-1 bg-white lg:rounded-[2rem] lg:border border-slate-200 p-6 flex flex-col shadow-xl shadow-slate-200/50 ring-1 ring-slate-900/5 h-full overflow-hidden divide-y divide-slate-100">
 
@@ -359,59 +415,7 @@ function HeaderMetric({ label, value, color }: { label: string; value: string; c
     return (
         <div className="flex flex-col items-center group/metric">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1 group-hover/metric:text-slate-900 transition-colors">{label}</span>
-            <span className={`font - black text - xl tracking - tighter transition - transform group - hover / metric:scale-110 ${color}`}>{value}</span>
+            <span className={`font-black text-xl tracking-tighter transition-transform group-hover/metric:scale-110 ${color}`}>{value}</span>
         </div>
-    );
-}
-
-function MetricBlock({ icon: Icon, label, value, color = "text-slate-900" }: any) {
-    return (
-        <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm relative overflow-hidden group/m">
-                <div className="absolute inset-0 bg-slate-50 opacity-0 group-hover/m:opacity-100 transition-opacity" />
-                <Icon className="w-5 h-5 relative z-10" />
-            </div>
-            <div className="flex flex-col">
-                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1.5">{label}</span>
-                <span className={`text-base font-black tracking-tight ${color}`}>{value}</span>
-            </div>
-        </div>
-    );
-}
-
-function AnalyticsStat({ icon: Icon, color, bg, border, label, value }: any) {
-    return (
-        <div className={`p-6 rounded-[2rem] ${bg} ${border} flex flex-col items-center gap-3 border transition-all duration-500 hover:scale-110 hover:-rotate-2 group shadow-sm hover:shadow-md relative overflow-hidden`}>
-            <div className={`absolute top-0 left-1/4 right-1/4 h-[0.5px] bg-gradient-to-r from-transparent via-indigo-600/10 to-transparent group-hover:via-indigo-600/30 transition-all`} />
-            <Icon className={`w-6 h-6 ${color} transition-transform group-hover:rotate-12`} />
-            <div className="text-center relative z-10">
-                <div className="text-slate-900 font-black text-lg tracking-tight leading-none">{value}</div>
-                <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1.5">{label}</div>
-            </div>
-        </div>
-    );
-}
-
-function LegendItem({ color, label }: { color: string; label: string }) {
-    return (
-        <div className="flex items-center gap-3.5 group/legend">
-            <div className={`w-4 h-4 rounded-lg ${color} transition-transform group-hover/legend:scale-125`} />
-            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] group-hover/legend:text-slate-900 transition-colors">{label}</span>
-        </div>
-    );
-}
-
-function ActionButton({ icon: Icon, label, onClick }: { icon: any; label: string, onClick?: () => void }) {
-    return (
-        <button
-            onClick={onClick}
-            className="flex flex-col items-center gap-3 group/deck relative"
-        >
-            <div className="w-16 h-16 bg-white rounded-[1.75rem] border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 group-hover/deck:text-slate-900 group-hover/deck:border-slate-900 group-hover/deck:shadow-xl transition-all active:scale-95 relative overflow-hidden">
-                <div className="absolute inset-0 bg-slate-50 opacity-0 group-hover/deck:opacity-100 transition-opacity" />
-                <Icon className="w-6 h-6 relative z-10" />
-            </div>
-            <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] opacity-0 group-hover/deck:opacity-100 group-hover/deck:text-slate-900 transition-all -translate-y-2 group-hover/deck:translate-y-0">{label}</span>
-        </button>
     );
 }

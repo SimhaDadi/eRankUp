@@ -360,7 +360,7 @@ export class ExamsService implements OnApplicationBootstrap {
 
     // --- Subject Management ---
     async createSubject(data: any) {
-        let subject = this.subjectRepository.create({
+        const subject = this.subjectRepository.create({
             title: data.title || data.name,
             description: data.description,
             icon: data.icon,

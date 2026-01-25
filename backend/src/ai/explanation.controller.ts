@@ -131,7 +131,7 @@ export class ExplanationController {
                 );
             }
 
-            let questionIds = body.questionIds || [];
+            const questionIds = body.questionIds || [];
 
             // If no specific IDs provided, find questions without explanations
             if (questionIds.length === 0) {

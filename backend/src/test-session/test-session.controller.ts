@@ -62,4 +62,14 @@ export class TestSessionController {
         const { timings, answers } = body;
         return this.sessionService.completeSession(req.user.userId, testId, timings, answers);
     }
+
+    @Post(':testId/pause')
+    async pauseSession(@Request() req: any, @Param('testId') testId: string) {
+        return this.sessionService.pauseSession(req.user.userId, testId);
+    }
+
+    @Post(':testId/resume')
+    async resumeSession(@Request() req: any, @Param('testId') testId: string) {
+        return this.sessionService.resumeSession(req.user.userId, testId);
+    }
 }

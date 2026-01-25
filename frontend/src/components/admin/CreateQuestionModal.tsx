@@ -110,6 +110,7 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
             const payload = {
                 questions: [{
                     content: questionData.content,
+                    imageUrl: (questionData as any).imageUrl,
                     options: transformedOptions,
                     correctOptionId: transformedOptions[questionData.correctOptionIndex]?.id,
                     difficultyWeight: questionData.difficultyWeight,
@@ -197,8 +198,6 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
                                         {chapters.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Model</label>
                                     <select
                                         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
                                         disabled={!selectedChapter}
@@ -209,6 +208,28 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
                                         {models.map((m: any) => <option key={m.id} value={m.id}>{m.title}</option>)}
                                     </select>
                                 </div>
+                            </div>
+
+                            {/* Image URL for DI/Figures */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Question Image URL (Optional)</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-blue-500 outline-none placeholder:text-slate-600"
+                                    placeholder="https://example.com/chart.png"
+                                    value={(questionData as any).imageUrl || ''}
+                                    onChange={e => setQuestionData({ ...questionData, imageUrl: e.target.value } as any)}
+                                />
+                                {(questionData as any).imageUrl && (
+                                    <div className="mt-2 p-2 bg-slate-900 rounded-xl border border-dashed border-slate-700 flex justify-center">
+                                        <img
+                                            src={(questionData as any).imageUrl}
+                                            alt="Preview"
+                                            className="max-h-48 rounded-lg object-contain"
+                                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Options */}
@@ -285,8 +306,9 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
                             </button>
                         </div>
                     </motion.div>
-                </div>
-            )}
-        </AnimatePresence>
+                </div >
+            )
+}
+        </AnimatePresence >
     );
 }

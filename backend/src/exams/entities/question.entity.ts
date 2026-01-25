@@ -12,6 +12,9 @@ export class Question {
     @Column('text')
     content: string;
 
+    @Column('text', { nullable: true })
+    imageUrl: string;
+
     @Column('simple-json', { nullable: true })
     options: { id: string; text: string }[];
 

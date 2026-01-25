@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     FileText,
     Calendar,
-    Download,
     Search,
     ChevronRight,
     Loader2,
@@ -78,7 +77,7 @@ export default function PreviousYearPapersPage() {
                     Previous Year Papers
                 </h1>
                 <p className="text-slate-400 text-lg">
-                    Download and practice with authentic exam papers from past years.
+                    Practice with authentic exam papers from past years.
                 </p>
             </div>
 
@@ -163,12 +162,6 @@ export default function PreviousYearPapersPage() {
                                     >
                                         <ChevronRight className="w-4 h-4" /> Attempt
                                     </Link>
-                                    <button
-                                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold p-3 rounded-xl shadow-lg shadow-blue-500/20 transition-colors"
-                                        title="Download PDF"
-                                    >
-                                        <Download className="w-5 h-5" />
-                                    </button>
                                 </div>
                             </div>
                         </motion.div>
