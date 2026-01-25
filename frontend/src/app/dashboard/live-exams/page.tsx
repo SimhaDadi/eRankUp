@@ -7,15 +7,19 @@ import {
     Calendar,
     Clock,
     Search,
-    ChevronRight,
+    ChevronDown,
     Loader2,
     BookOpen,
     HelpCircle,
-    PlayCircle
+    PlayCircle,
+    Sparkles,
+    Zap,
+    Activity,
+    Shield,
+    Trophy
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { useAuthStore } from '@/store/authStore';
 
 interface Exam {
     id: string;
@@ -34,7 +38,7 @@ export default function LiveExamsPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
-    const [searchQuery, setSearchQuery] = useState('');
+
 
     useEffect(() => {
         const fetchExams = async () => {
@@ -58,151 +62,162 @@ export default function LiveExamsPage() {
     const categories = ['All', ...Array.from(new Set(exams.map(e => e.category || 'Uncategorized')))];
 
     const filteredExams = exams.filter(exam => {
-        const matchesCategory = selectedCategory === 'All' || (exam.category || 'Uncategorized') === selectedCategory;
-        const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
+        return selectedCategory === 'All' || (exam.category || 'Uncategorized') === selectedCategory;
     });
 
-    // Helper to determine status
+
     const getStatus = (exam: Exam) => {
         const now = new Date();
         const start = exam.startTime ? new Date(exam.startTime) : null;
         const end = exam.endTime ? new Date(exam.endTime) : null;
 
-        if (!start || !end) return { label: 'Live', color: 'bg-red-500', animate: true }; // Default to live if no dates
+        if (!start || !end) return { label: 'Live Now', color: 'bg-red-50 text-red-600 border-red-100', animate: true };
 
-        if (now < start) return { label: 'Upcoming', color: 'bg-amber-500', animate: false };
-        if (now >= start && now <= end) return { label: 'Live Now', color: 'bg-red-500', animate: true };
-        return { label: 'Ended', color: 'bg-slate-500', animate: false };
+        if (now < start) return { label: 'Upcoming', color: 'bg-amber-50 text-amber-600 border-amber-100', animate: false };
+        if (now >= start && now <= end) return { label: 'Live Now', color: 'bg-red-50 text-red-600 border-red-100', animate: true };
+        return { label: 'Ended', color: 'bg-slate-50 text-slate-400 border-slate-100', animate: false };
     };
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            <div className="flex flex-col items-center justify-center min-h-[60vh] bg-[#fbfdff]">
+                <div className="w-12 h-12 border-[3px] border-red-100 border-t-red-500 rounded-full animate-spin" />
+                <p className="mt-4 text-red-400 font-black uppercase tracking-[0.2em] text-[10px]">Synchronizing Arena...</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8 max-w-7xl mx-auto pb-20">
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent mb-2">
-                    Live Exams
-                </h1>
-                <p className="text-slate-400 text-lg">
-                    Compete in real-time with thousands of other aspirants.
-                </p>
+        <div className="min-h-screen bg-[#fbfdff] pb-24 overflow-x-hidden selection:bg-red-100 selection:text-red-900">
+            {/* Background Decorative Elements */}
+            <div className="fixed inset-0 pointer-events-none opacity-20">
+                <div className="absolute top-[10%] right-[-5%] w-[40%] h-[40%] bg-red-100 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[20%] left-[-10%] w-[35%] h-[35%] bg-orange-50 rounded-full blur-[100px]" />
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center sticky top-0 z-10 bg-[#0a0a0a]/80 backdrop-blur-md py-4">
-                <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide max-w-full">
-                    {categories.map(category => (
-                        <button
-                            key={category}
-                            onClick={() => setSelectedCategory(category)}
-                            className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${selectedCategory === category
-                                ? 'bg-red-600 text-white shadow-lg shadow-red-500/25'
-                                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                                }`}
-                        >
-                            {category}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="relative w-full md:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input
-                        type="text"
-                        placeholder="Search exams..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all placeholder-slate-600"
-                    />
-                </div>
-            </div>
-
-            {/* Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <AnimatePresence mode="popLayout">
-                    {filteredExams.map((exam) => {
-                        const status = getStatus(exam);
-                        return (
-                            <motion.div
-                                layout
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                key={exam.id}
-                                className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-red-500/30 transition-all group relative overflow-hidden"
-                            >
-                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <Layout className="w-24 h-24 text-red-500 transform rotate-12" />
-                                </div>
-
-                                <div className="relative z-10">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
-                                            <Layout className="w-6 h-6 text-white" />
-                                        </div>
-                                        <span className={`flex items-center gap-1.5 text-white text-xs font-bold px-2 py-1 rounded ${status.color}`}>
-                                            {status.animate && <span className="w-2 h-2 bg-white rounded-full animate-pulse" />}
-                                            {status.label}
-                                        </span>
-                                    </div>
-
-                                    <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-red-400 transition-colors">
-                                        {exam.title}
-                                    </h3>
-
-                                    <div className="text-sm text-slate-500 mb-6 font-medium bg-slate-800/50 inline-block px-3 py-1 rounded-full">
-                                        {exam.category || 'General'}
-                                    </div>
-
-                                    <div className="space-y-3 mb-6">
-                                        <div className="flex items-center gap-3 text-sm text-slate-400">
-                                            <Calendar className="w-4 h-4 text-red-500" />
-                                            <span>
-                                                {exam.startTime ? new Date(exam.startTime).toLocaleString() : 'Scheduled Soon'}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-sm text-slate-400">
-                                            <Clock className="w-4 h-4 text-orange-500" />
-                                            <span>{exam.duration} Minutes</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-sm text-slate-400">
-                                            <HelpCircle className="w-4 h-4 text-blue-500" />
-                                            <span>{exam.questionCount || 0} Questions</span>
-                                        </div>
-                                    </div>
-
-                                    <Link
-                                        href={`/dashboard/exams/${exam.id}`}
-                                        className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-red-500/20"
-                                    >
-                                        <PlayCircle className="w-5 h-5" /> Participate Now
-                                    </Link>
-                                </div>
-                            </motion.div>
-                        );
-                    })}
-                </AnimatePresence>
-            </div>
-
-            {filteredExams.length === 0 && (
-                <div className="text-center py-20 bg-slate-900/30 border border-dashed border-slate-800 rounded-3xl">
-                    <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Calendar className="w-10 h-10 text-slate-600" />
+            <div className="relative z-10 max-w-7xl mx-auto space-y-12">
+                {/* Header Section */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="px-3 py-1 bg-red-50 text-red-600 text-[9px] font-black rounded-full uppercase tracking-widest border border-red-100">
+                            Battleground
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-orange-100">
+                            <Activity className="w-3 h-3" /> Real-time
+                        </div>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-300 mb-2">No active live exams</h3>
-                    <p className="text-slate-500">
-                        Check back later for scheduled competitions.
-                    </p>
+                    <div className="space-y-1">
+                        <h1 className="text-4xl font-black text-slate-800 tracking-tight leading-none uppercase tracking-wider">
+                            Live Arena
+                        </h1>
+                        <p className="text-slate-500 font-medium text-lg leading-snug tracking-tight max-w-2xl">
+                            Forge your legacy. Compete alongside thousands in high-stakes, real-time assessments.
+                        </p>
+                    </div>
                 </div>
-            )}
-        </div>
+
+                {/* Filters */}
+                <div className="sticky top-4 z-40">
+                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar bg-white/40 backdrop-blur-xl p-2 rounded-3xl border border-white/40 shadow-sm w-max max-w-full">
+                        {categories.map(category => (
+                            <button
+                                key={category}
+                                onClick={() => setSelectedCategory(category)}
+                                className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap
+                                    ${selectedCategory === category
+                                        ? 'bg-red-600 text-white shadow-xl shadow-red-600/20'
+                                        : 'bg-white text-slate-400 hover:text-red-500 hover:border-red-100 border border-slate-50'
+                                    }`}
+                            >
+                                {category}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <AnimatePresence mode="popLayout">
+                        {filteredExams.map((exam, idx) => {
+                            const status = getStatus(exam);
+                            return (
+                                <motion.div
+                                    layout
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    transition={{ delay: idx * 0.05 }}
+                                    key={exam.id}
+                                    className="bg-white border border-red-50/50 rounded-[2.5rem] p-8 hover:border-red-200 hover:shadow-2xl hover:shadow-red-500/5 transition-all duration-500 group relative overflow-hidden flex flex-col h-full"
+                                >
+                                    {/* Status Badge */}
+                                    <div className="flex justify-between items-start mb-8 relative z-10">
+                                        <div className="w-16 h-16 bg-red-50/50 rounded-2xl border border-red-100/50 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-500">
+                                            <Trophy className="w-8 h-8 text-red-500 group-hover:text-white transition-colors duration-500" />
+                                        </div>
+                                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest ${status.color}`}>
+                                            {status.animate && <span className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" />}
+                                            {status.label}
+                                        </div>
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="space-y-4 flex-1 relative z-10">
+                                        <div className="space-y-1">
+                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{exam.category || 'General Assessment'}</div>
+                                            <h3 className="text-xl font-black text-slate-800 tracking-tight leading-tight group-hover:text-red-600 transition-colors">
+                                                {exam.title}
+                                            </h3>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-4 py-4">
+                                            <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
+                                                <Calendar className="w-3.5 h-3.5 text-red-400" />
+                                                <span className="text-[10px] font-bold text-slate-500">
+                                                    {exam.startTime ? new Date(exam.startTime).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'TBA'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
+                                                <Clock className="w-3.5 h-3.5 text-orange-400" />
+                                                <span className="text-[10px] font-bold text-slate-500">{exam.duration} Min</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
+                                                <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
+                                                <span className="text-[10px] font-bold text-slate-500">{exam.questionCount || 0} Qs</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-8 relative z-10">
+                                        <Link
+                                            href={`/dashboard/exams/${exam.id}`}
+                                            className="w-full py-5 bg-slate-900 hover:bg-red-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-900/10 group-hover:shadow-red-600/20 text-[10px] uppercase tracking-[0.2em]"
+                                        >
+                                            <Zap className="w-4 h-4 fill-current" /> Participate Now
+                                        </Link>
+                                    </div>
+
+                                    {/* Decorative Background Elements */}
+                                    <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-3xl pointer-events-none" />
+                                </motion.div>
+                            );
+                        })}
+                    </AnimatePresence>
+                </div>
+
+                {filteredExams.length === 0 && (
+                    <div className="py-24 text-center bg-white border border-red-50 rounded-[3rem] shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-red-50 rounded-bl-full opacity-50" />
+                        <div className="relative z-10">
+                            <div className="w-24 h-24 bg-white border border-red-100 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-sm">
+                                <Calendar className="w-10 h-10 text-red-200" />
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2 uppercase tracking-wider">No Active Challenges</h3>
+                            <p className="text-slate-400 font-medium max-w-sm mx-auto">The arena is currently silent. Check back soon for scheduled high-stakes competitions.</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div >
     );
 }
