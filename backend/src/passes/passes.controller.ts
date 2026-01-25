@@ -28,4 +28,10 @@ export class PassesController {
     async getMyPass(@Request() req) {
         return this.passesService.getCurrentPass(req.user.userId);
     }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get('current')
+    async getCurrentPass(@Request() req) {
+        return this.passesService.getCurrentPass(req.user.userId);
+    }
 }
