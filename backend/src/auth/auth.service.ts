@@ -75,4 +75,29 @@ export class AuthService {
             }
         };
     }
+
+    async validateGoogleUser(googleUser: any) {
+        const { email, fullName } = googleUser;
+        let user = await this.usersService.findOneByEmail(email);
+
+        if (!user) {
+            // Create user without password (OAuth-only users can set password later if needed)
+            user = await this.usersService.create({
+                email,
+                fullName,
+                password: '', // Placeholder since they login via Google
+            });
+        }
+
+        const payload = { sub: user.id, email: user.email, role: user.role };
+        return {
+            access_token: this.jwtService.sign(payload),
+            user: {
+                id: user.id,
+                email: user.email,
+                fullName: user.fullName,
+                role: user.role
+            }
+        };
+    }
 }

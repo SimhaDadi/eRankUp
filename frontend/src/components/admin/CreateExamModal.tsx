@@ -56,7 +56,13 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
 
         setLoading(true);
         try {
-            const res = await api.post('/exams', formData);
+            // Filter out empty fields that cause backend validation errors (like startTime/endTime as '')
+            const payload: any = { ...formData };
+            if (!payload.startTime) delete payload.startTime;
+            if (!payload.endTime) delete payload.endTime;
+            if (!payload.description) delete payload.description;
+
+            const res = await api.post('/exams', payload);
             onSuccess(res.data.id);
             onClose();
             // Reset form

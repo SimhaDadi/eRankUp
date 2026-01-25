@@ -1,14 +1,21 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 import helmet from 'helmet';
 
+import { NestExpressApplication, ExpressAdapter } from '@nestjs/platform-express';
+
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule, { rawBody: true });
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, new ExpressAdapter(), { rawBody: true });
 
     // Enable Helmet for Security Headers
     app.use(helmet());
+
+    // Register Global Exception Filter
+    const httpAdapterHost = app.get(HttpAdapterHost);
+    app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost));
 
     // Enable Global Validation
     app.useGlobalPipes(new ValidationPipe({
@@ -26,8 +33,16 @@ async function bootstrap() {
     });
 
     // Logging middleware
+    const fs = require('fs');
+    const logFile = 'c:\\Users\\dadim\\OneDrive\\Desktop\\eRankUp\\backend\\debug.log';
     app.use((req, res, next) => {
-        console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+        const start = Date.now();
+        res.on('finish', () => {
+            const duration = Date.now() - start;
+            const logMsg = `[${new Date().toISOString()}] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)\n`;
+            console.log(logMsg.trim());
+            fs.appendFileSync(logFile, logMsg);
+        });
         next();
     });
 

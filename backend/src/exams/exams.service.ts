@@ -252,6 +252,18 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     /**
+     * Get all questions for a specific chapter
+     * Used for Chapter Wise Practice
+     */
+    async getQuestionsByChapter(chapterId: string) {
+        return this.questionRepository.find({
+            where: { chapter: { id: chapterId } },
+            relations: ['subject', 'chapter', 'models'],
+            order: { difficultyWeight: 'ASC' }
+        });
+    }
+
+    /**
      * Validate that a question can be used in a model
      * Prevents exam-specific questions from being used in wrong exams
      */
@@ -418,12 +430,14 @@ export class ExamsService implements OnApplicationBootstrap {
 
     // --- Exam Management ---
     async create(createExamDto: CreateExamDto) {
-        // Map 'name' to 'title' if title is missing (backward compatibility/frontend mismatch fix)
-        // DTO ensures title is present, but let's keep logic safe
-        const examData = {
+        const examData: any = {
             ...createExamDto,
-            title: createExamDto.title,
         };
+
+        // Backward compatibility: map 'name' to 'title' if title is missing
+        if (!examData.title && (createExamDto as any).name) {
+            examData.title = (createExamDto as any).name;
+        }
 
         if (!examData.title) {
             throw new BadRequestException('Exam title is required');
