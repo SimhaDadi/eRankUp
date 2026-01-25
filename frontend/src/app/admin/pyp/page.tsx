@@ -1,4 +1,5 @@
 'use client';
+import 'reflect-metadata';
 
 import { useState, useEffect } from 'react';
 import { FileText, Download, Calendar, BookOpen, Search, Filter, Eye, Play } from 'lucide-react';
