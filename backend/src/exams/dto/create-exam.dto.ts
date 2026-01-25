@@ -15,6 +15,10 @@ export class CreateExamDto {
     @IsOptional()
     description?: string;
 
+    @IsString()
+    @IsOptional()
+    category?: string;
+
     @IsDateString()
     @IsOptional()
     startTime?: Date;

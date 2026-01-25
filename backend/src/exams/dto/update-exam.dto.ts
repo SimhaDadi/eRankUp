@@ -11,6 +11,10 @@ export class UpdateExamDto {
     @IsOptional()
     description?: string;
 
+    @IsString()
+    @IsOptional()
+    category?: string;
+
     @IsEnum(ExamType)
     @IsOptional()
     type?: ExamType;

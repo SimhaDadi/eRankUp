@@ -32,8 +32,11 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                 type: exam.type || 'real_exam',
                 defaultPositiveMarks: exam.defaultPositiveMarks || 1,
                 defaultNegativeMarks: exam.defaultNegativeMarks || 0.25,
-                duration: exam.duration || 60
-            });
+                duration: exam.duration || 60,
+                category: (exam as any).category || '',
+                startTime: exam.startTime ? new Date(exam.startTime).toISOString().slice(0, 16) : '',
+                endTime: exam.endTime ? new Date(exam.endTime).toISOString().slice(0, 16) : ''
+            } as any);
         }
     }, [exam]);
 
@@ -130,6 +133,48 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                         )}
                     </div>
 
+                    {/* Category Field - NEW */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Category (Exam Name)
+                        </label>
+                        <input
+                            type="text"
+                            value={(formData as any).category || ''}
+                            onChange={(e) => handleChange('category', e.target.value)}
+                            placeholder="e.g. SSC CGL"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 placeholder-gray-400"
+                        />
+                    </div>
+
+                    {/* Live Exam Schedule */}
+                    {(formData.type === 'live_exam' || (formData as any).startTime) && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Start Time
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    value={(formData as any).startTime || ''}
+                                    onChange={(e) => handleChange('startTime', e.target.value)}
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 text-gray-900 bg-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    End Time
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    value={(formData as any).endTime || ''}
+                                    onChange={(e) => handleChange('endTime', e.target.value)}
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 text-gray-900 bg-white"
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Description */}
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -148,11 +193,11 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Exam Type <span className="text-red-500">*</span>
                         </label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <button
                                 type="button"
                                 onClick={() => handleChange('type', 'real_exam')}
-                                className={`px-4 py-3 rounded-xl border-2 font-bold transition-all text-sm flex flex-col items-center gap-1 ${formData.type === 'real_exam'
+                                className={`px-2 py-3 rounded-xl border-2 font-bold transition-all text-xs flex flex-col items-center gap-1 ${formData.type === 'real_exam'
                                     ? 'border-blue-600 bg-blue-50 text-blue-700'
                                     : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
                                     }`}
@@ -162,14 +207,36 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                             </button>
                             <button
                                 type="button"
+                                onClick={() => handleChange('type', 'live_exam')}
+                                className={`px-2 py-3 rounded-xl border-2 font-bold transition-all text-xs flex flex-col items-center gap-1 ${formData.type === 'live_exam'
+                                    ? 'border-red-600 bg-red-50 text-red-700'
+                                    : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
+                                    }`}
+                            >
+                                <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse" />
+                                Live Exam
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleChange('type', 'previous_year_paper')}
+                                className={`px-2 py-3 rounded-xl border-2 font-bold transition-all text-xs flex flex-col items-center gap-1 ${formData.type === 'previous_year_paper'
+                                    ? 'border-amber-600 bg-amber-50 text-amber-700'
+                                    : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
+                                    }`}
+                            >
+                                <Plus className="w-4 h-4" />
+                                PYP
+                            </button>
+                            <button
+                                type="button"
                                 onClick={() => handleChange('type', 'question_bank')}
-                                className={`px-4 py-3 rounded-xl border-2 font-bold transition-all text-sm flex flex-col items-center gap-1 ${formData.type === 'question_bank'
+                                className={`px-2 py-3 rounded-xl border-2 font-bold transition-all text-xs flex flex-col items-center gap-1 ${formData.type === 'question_bank'
                                     ? 'border-purple-600 bg-purple-50 text-purple-700'
                                     : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
                                     }`}
                             >
                                 <Library className="w-4 h-4" />
-                                Question Bank
+                                Bank
                             </button>
                         </div>
                     </div>

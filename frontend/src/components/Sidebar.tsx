@@ -61,8 +61,8 @@ export default function Sidebar({ customNavSections, title }: SidebarProps) {
         },
         {
             items: [
-                { icon: Layers, label: 'Test Series', href: '/dashboard/exams' }, // Main exams page
-                { icon: Activity, label: 'Live Tests & Quizzes', href: '/dashboard/live-tests' },
+                { icon: Layers, label: 'Test Series', href: '/dashboard/test-series' },
+                { icon: Activity, label: 'Live Tests & Quizzes', href: '/dashboard/live-exams' },
                 { icon: FileText, label: 'Previous Year Papers', href: '/dashboard/pyp' },
                 { icon: Crosshair, label: 'Practice', href: '/dashboard/practice' },
                 { icon: Clock, label: 'Free Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },

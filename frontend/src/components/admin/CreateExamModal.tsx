@@ -196,7 +196,7 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
                                         type="datetime-local"
                                         value={formData.startTime}
                                         onChange={(e) => handleChange('startTime', e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 text-gray-900 bg-white"
                                     />
                                 </div>
                                 <div>
@@ -207,7 +207,7 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
                                         type="datetime-local"
                                         value={formData.endTime}
                                         onChange={(e) => handleChange('endTime', e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 text-gray-900 bg-white"
                                     />
                                 </div>
                             </motion.div>
