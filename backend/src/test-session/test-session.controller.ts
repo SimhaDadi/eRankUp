@@ -1,10 +1,11 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Request, UseInterceptors, ClassSerializerInterceptor } from '@nestjs/common';
 import { TestSessionService } from './test-session.service';
 import { AuthGuard } from '@nestjs/passport';
 import { PremiumGuard } from '../payments/guards/premium.guard';
 
 @Controller('test-session')
 @UseGuards(AuthGuard('jwt'))
+@UseInterceptors(ClassSerializerInterceptor)
 export class TestSessionController {
     constructor(private readonly sessionService: TestSessionService) { }
 
@@ -14,7 +15,7 @@ export class TestSessionController {
         return this.sessionService.startSession(req.user.userId, testId);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(AuthGuard('jwt'), PremiumGuard)
     @Post('start/chapter')
     async startChapterSession(@Request() req: any, @Body('chapterId') chapterId: string) {
         return this.sessionService.startChapterSession(req.user.userId, chapterId);

@@ -714,3 +714,105 @@ QueryFailedError: invalid input value for enum exam_type_enum: "quiz"
 [2026-01-25T20:01:08.274Z] GET /exams?type=quiz - 500 (7ms)
 [2026-01-25T20:01:30.115Z] GET /admin/notifications/my - 304 (17ms)
 [2026-01-25T20:02:29.961Z] GET /admin/notifications/my - 304 (13ms)
+[2026-01-25T20:03:30.274Z] GET /admin/notifications/my - 304 (15ms)
+[2026-01-25T20:04:15.660Z] GET /passes/current - 200 (18ms)
+[2026-01-25T20:04:15.816Z] GET /exams/user/stats - 304 (9ms)
+[2026-01-25T20:04:15.957Z] GET /exams/user/recent - 304 (10ms)
+[2026-01-25T20:04:15.972Z] GET /passes/current - 200 (22ms)
+[2026-01-25T20:04:15.977Z] GET /exams/user/stats - 304 (9ms)
+[2026-01-25T20:04:16.136Z] GET /exams/user/recent - 304 (11ms)
+[2026-01-25T20:04:19.534Z] GET /exams?type=live_exam - 304 (11ms)
+[2026-01-25T20:04:19.858Z] GET /exams?type=live_exam - 304 (11ms)
+[2026-01-25T20:04:20.943Z] GET /exams?type=real_exam - 304 (11ms)
+[2026-01-25T20:04:21.266Z] GET /exams?type=real_exam - 304 (10ms)
+[2026-01-25T20:04:22.383Z] GET /exams?type=live_exam - 304 (9ms)
+[2026-01-25T20:04:22.703Z] GET /exams?type=live_exam - 304 (10ms)
+[2026-01-25T20:04:23.658Z] GET /exams?type=previous_year_paper - 304 (10ms)
+[2026-01-25T20:04:23.981Z] GET /exams?type=previous_year_paper - 304 (10ms)
+[2026-01-25T20:04:26.196Z] GET /exams?type=quiz - 500: "invalid input value for enum exam_type_enum: \"quiz\""
+QueryFailedError: invalid input value for enum exam_type_enum: "quiz"
+    at PostgresQueryRunner.query (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\driver\postgres\PostgresQueryRunner.js:216:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async SelectQueryBuilder.loadRawResults (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:2231:25)
+    at async SelectQueryBuilder.executeEntitiesAndRawResults (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:2079:26)
+    at async SelectQueryBuilder.getRawAndEntities (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:684:29)
+    at async SelectQueryBuilder.getMany (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:750:25)
+    at async ExamsService.findAll (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\dist\backend\src\exams\exams.service.js:68:23)
+    at async ExamsController.findAll (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\dist\backend\src\exams\exams.controller.js:43:23)
+    at async C:\Users\dadim\OneDrive\Desktop\eRankUp\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async C:\Users\dadim\OneDrive\Desktop\eRankUp\node_modules\@nestjs\core\router\router-proxy.js:9:17
+[2026-01-25T20:04:26.198Z] GET /exams?type=quiz - 500 (9ms)
+[2026-01-25T20:04:26.382Z] GET /exams?type=quiz - 500: "invalid input value for enum exam_type_enum: \"quiz\""
+QueryFailedError: invalid input value for enum exam_type_enum: "quiz"
+    at PostgresQueryRunner.query (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\driver\postgres\PostgresQueryRunner.js:216:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async SelectQueryBuilder.loadRawResults (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:2231:25)
+    at async SelectQueryBuilder.executeEntitiesAndRawResults (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:2079:26)
+    at async SelectQueryBuilder.getRawAndEntities (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:684:29)
+    at async SelectQueryBuilder.getMany (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:750:25)
+    at async ExamsService.findAll (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\dist\backend\src\exams\exams.service.js:68:23)
+    at async ExamsController.findAll (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\dist\backend\src\exams\exams.controller.js:43:23)
+    at async C:\Users\dadim\OneDrive\Desktop\eRankUp\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async C:\Users\dadim\OneDrive\Desktop\eRankUp\node_modules\@nestjs\core\router\router-proxy.js:9:17
+[2026-01-25T20:04:26.384Z] GET /exams?type=quiz - 500 (9ms)
+[2026-01-25T20:04:28.121Z] GET /exams/hierarchy - 403: "Forbidden resource"
+[2026-01-25T20:04:28.123Z] GET /exams/hierarchy - 403 (2ms)
+[2026-01-25T20:04:28.129Z] GET /exams/hierarchy - 403: "Forbidden resource"
+[2026-01-25T20:04:28.131Z] GET /exams/hierarchy - 403 (2ms)
+[2026-01-25T20:04:29.787Z] GET /admin/notifications/my - 304 (3ms)
+[2026-01-25T20:04:33.024Z] GET /passes/current - 200 (7ms)
+[2026-01-25T20:04:33.042Z] GET /exams/user/stats - 304 (21ms)
+[2026-01-25T20:04:33.050Z] GET /exams/user/recent - 304 (28ms)
+[2026-01-25T20:04:33.271Z] GET /passes/current - 200 (5ms)
+[2026-01-25T20:04:33.343Z] GET /exams/user/stats - 304 (6ms)
+[2026-01-25T20:04:33.359Z] GET /exams/user/recent - 304 (9ms)
+[2026-01-25T20:05:29.958Z] GET /admin/notifications/my - 304 (14ms)
+[2026-01-25T20:07:13.276Z] GET /admin/notifications/my - 304 (15ms)
+[2026-01-25T20:08:12.965Z] GET /admin/notifications/my - 304 (14ms)
+[2026-01-25T20:09:13.274Z] GET /admin/notifications/my - 304 (15ms)
+[2026-01-25T20:10:04.151Z] GET /admin/notifications/my - 304 (17ms)
+[2026-01-25T20:10:06.425Z] GET /exams?type=real_exam - 304 (12ms)
+[2026-01-25T20:10:06.623Z] GET /exams?type=real_exam - 304 (9ms)
+[2026-01-25T20:10:23.624Z] GET /exams?type=live_exam - 304 (26ms)
+[2026-01-25T20:10:23.943Z] GET /exams?type=live_exam - 304 (11ms)
+[2026-01-25T20:10:24.793Z] GET /exams?type=previous_year_paper - 304 (10ms)
+[2026-01-25T20:10:25.116Z] GET /exams?type=previous_year_paper - 304 (9ms)
+[2026-01-25T20:10:25.492Z] GET /exams/hierarchy - 403: "Forbidden resource"
+[2026-01-25T20:10:25.494Z] GET /exams/hierarchy - 403 (2ms)
+[2026-01-25T20:10:25.801Z] GET /exams/hierarchy - 403: "Forbidden resource"
+[2026-01-25T20:10:25.803Z] GET /exams/hierarchy - 403 (2ms)
+[2026-01-25T20:10:26.582Z] GET /exams?type=quiz - 500: "invalid input value for enum exam_type_enum: \"quiz\""
+QueryFailedError: invalid input value for enum exam_type_enum: "quiz"
+    at PostgresQueryRunner.query (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\driver\postgres\PostgresQueryRunner.js:216:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async SelectQueryBuilder.loadRawResults (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:2231:25)
+    at async SelectQueryBuilder.executeEntitiesAndRawResults (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:2079:26)
+    at async SelectQueryBuilder.getRawAndEntities (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:684:29)
+    at async SelectQueryBuilder.getMany (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:750:25)
+    at async ExamsService.findAll (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\dist\backend\src\exams\exams.service.js:68:23)
+    at async ExamsController.findAll (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\dist\backend\src\exams\exams.controller.js:43:23)
+    at async C:\Users\dadim\OneDrive\Desktop\eRankUp\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async C:\Users\dadim\OneDrive\Desktop\eRankUp\node_modules\@nestjs\core\router\router-proxy.js:9:17
+[2026-01-25T20:10:26.585Z] GET /exams?type=quiz - 500 (10ms)
+[2026-01-25T20:10:26.804Z] GET /exams?type=quiz - 500: "invalid input value for enum exam_type_enum: \"quiz\""
+QueryFailedError: invalid input value for enum exam_type_enum: "quiz"
+    at PostgresQueryRunner.query (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\driver\postgres\PostgresQueryRunner.js:216:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async SelectQueryBuilder.loadRawResults (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:2231:25)
+    at async SelectQueryBuilder.executeEntitiesAndRawResults (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:2079:26)
+    at async SelectQueryBuilder.getRawAndEntities (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:684:29)
+    at async SelectQueryBuilder.getMany (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:750:25)
+    at async ExamsService.findAll (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\dist\backend\src\exams\exams.service.js:68:23)
+    at async ExamsController.findAll (C:\Users\dadim\OneDrive\Desktop\eRankUp\backend\dist\backend\src\exams\exams.controller.js:43:23)
+    at async C:\Users\dadim\OneDrive\Desktop\eRankUp\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async C:\Users\dadim\OneDrive\Desktop\eRankUp\node_modules\@nestjs\core\router\router-proxy.js:9:17
+[2026-01-25T20:10:26.806Z] GET /exams?type=quiz - 500 (8ms)
+[2026-01-25T20:10:27.006Z] GET /exams/performance/trend - 304 (6ms)
+[2026-01-25T20:10:27.319Z] GET /exams/user/stats - 304 (7ms)
+[2026-01-25T20:10:27.329Z] GET /exams/performance/trend - 304 (5ms)
+[2026-01-25T20:10:27.338Z] GET /adaptive/mastery - 304 (24ms)
+[2026-01-25T20:10:27.639Z] GET /exams/user/stats - 304 (8ms)
+[2026-01-25T20:10:27.658Z] GET /adaptive/mastery - 304 (5ms)
+[2026-01-25T20:10:30.246Z] GET /admin/notifications/my - 304 (4ms)
+[2026-01-25T20:10:33.080Z] GET /users/saved-questions - 200 (10ms)
+[2026-01-25T20:10:33.097Z] GET /users/saved-questions - 304 (7ms)

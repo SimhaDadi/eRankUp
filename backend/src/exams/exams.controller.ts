@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query, ForbiddenException, ClassSerializerInterceptor } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { ExamsSeederService } from './exams-seeder.service';
@@ -14,6 +14,7 @@ import { UserRole } from '@erankup/shared';
 import { CreateExamDto, UpdateExamDto, CreateSubjectDto, UpdateSubjectDto, CreateChapterDto, UpdateChapterDto, CreateModelDto, BulkCreateQuestionsDto } from '@erankup/shared';
 
 @Controller('exams')
+@UseInterceptors(ClassSerializerInterceptor)
 export class ExamsController {
     constructor(
         private readonly examsService: ExamsService,

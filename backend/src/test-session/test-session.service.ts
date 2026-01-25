@@ -99,23 +99,22 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             throw new NotFoundException('Adaptive session not found or expired.');
         }
 
-        // Check scheduling for regular models
-        // NOTE: For Chapter Practice, testId might be 'chapter-chapterId'.
-        // This simple check might fail if we pass raw chapter UUID.
-        // We assume this method is for Exams/Models. 
-
+        let durationSeconds = 60 * 60; // Default 1 hour
         try {
             const model = await this.examsService.findModel(testId);
-            if (model?.scheduledAt) {
-                const now = new Date();
-                const scheduledTime = new Date(model.scheduledAt);
-                if (now < scheduledTime) {
-                    throw new Error(`This test is scheduled for ${scheduledTime.toLocaleString()}. Please wait.`);
+            if (model) {
+                if (model.scheduledAt) {
+                    const now = new Date();
+                    const scheduledTime = new Date(model.scheduledAt);
+                    if (now < scheduledTime) {
+                        throw new Error(`This test is scheduled for ${scheduledTime.toLocaleString()}. Please wait.`);
+                    }
                 }
+                // Use model duration + 1 hour buffer
+                durationSeconds = (model.duration * 60) + (60 * 60);
             }
         } catch (e) {
-            // If findModel fails, it might be a direct ID call that is invalid or simply not a model.
-            // But usually we should validate. 
+            // If findModel fails, use default
         }
 
         const newSession: TestSession = {
@@ -128,8 +127,7 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             status: 'IN_PROGRESS',
         };
 
-        // Session expires in 2 hours (test duration + buffer)
-        await this.redis.set(key, JSON.stringify(newSession), 'EX', 60 * 60 * 2);
+        await this.redis.set(key, JSON.stringify(newSession), 'EX', durationSeconds);
         return newSession;
     }
 
@@ -164,7 +162,8 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             status: 'IN_PROGRESS',
         };
 
-        await this.redis.set(key, JSON.stringify(newSession), 'EX', 60 * 60 * 2); // 2 hours
+        // Standard practice duration is 1 hour + buffer
+        await this.redis.set(key, JSON.stringify(newSession), 'EX', 60 * 60 * 2);
         return newSession;
     }
 
