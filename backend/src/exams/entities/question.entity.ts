@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, Index } from 'typeorm';
-import { Exclude } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 import { Model } from './model.entity';
 import { Subject } from './subject.entity';
 import { Chapter } from './chapter.entity';
@@ -20,10 +20,12 @@ export class Question {
     options: { id: string; text: string }[];
 
     @Exclude()
+    @Expose({ groups: ['admin', 'review'] })
     @Column()
     correctOptionId: string;
 
     @Exclude()
+    @Expose({ groups: ['admin', 'review'] })
     @Column('text', { nullable: true })
     explanation: string;
 

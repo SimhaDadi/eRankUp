@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, UseInterceptors, ClassSerializerInterceptor, SerializeOptions } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { SavedQuestionsService } from './saved-questions.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -8,6 +8,7 @@ import { UserRole } from './user.entity';
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt')) // Root guard (Jwt only, add RolesGuard to specific admin routes)
+@UseInterceptors(ClassSerializerInterceptor)
 export class UsersController {
     constructor(
         private readonly usersService: UsersService,
@@ -39,6 +40,7 @@ export class UsersController {
     }
 
     @Get('saved-questions')
+    @SerializeOptions({ groups: ['review'] })
     async getSavedQuestions(@Request() req) {
         return this.savedQuestionsService.getSavedQuestions(req.user.userId);
     }
