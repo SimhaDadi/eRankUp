@@ -5,15 +5,23 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { useRouter } from 'next/navigation';
+import { isValidEmail } from '@/utils/validators';
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [emailError, setEmailError] = useState('');
     const { login, isLoading, error } = useAuthStore();
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!isValidEmail(email)) {
+            setEmailError("Please enter a valid email address");
+            return;
+        }
+
         try {
             await login({ email, password });
             const user = useAuthStore.getState().user;
@@ -58,10 +66,14 @@ export default function Login() {
                             type="email"
                             required
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-900 placeholder-slate-400 transition-all font-medium"
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                setEmailError('');
+                            }}
+                            className={`w-full px-5 py-4 bg-gray-50 border rounded-xl focus:ring-2 outline-none text-slate-900 placeholder-slate-400 transition-all font-medium ${emailError ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-blue-500/20 focus:border-blue-500'}`}
                             placeholder="you@email.com"
                         />
+                        {emailError && <p className="text-red-500 text-xs mt-1 font-medium ml-1">{emailError}</p>}
                     </div>
 
                     <div>

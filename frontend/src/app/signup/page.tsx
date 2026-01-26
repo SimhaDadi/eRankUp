@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { useRouter } from 'next/navigation';
+import { isValidEmail } from '@/utils/validators';
 
 export default function Signup() {
     const [formData, setFormData] = useState({
@@ -13,17 +14,24 @@ export default function Signup() {
         password: '',
         confirmPassword: ''
     });
+    const [emailError, setEmailError] = useState('');
     const { signup, isLoading, error } = useAuthStore();
     const router = useRouter();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (e.target.name === 'email') setEmailError('');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (formData.password !== formData.confirmPassword) {
             alert("Passwords do not match");
+            return;
+        }
+
+        if (!isValidEmail(formData.email)) {
+            setEmailError("Please enter a valid email address");
             return;
         }
 
@@ -78,9 +86,10 @@ export default function Signup() {
                             required
                             value={formData.email}
                             onChange={handleChange}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00bfa5]/20 focus:border-[#00bfa5] outline-none text-slate-900 placeholder:text-slate-400 transition-all font-medium"
+                            className={`w-full px-4 py-3 bg-gray-50 border rounded-lg focus:ring-2 outline-none text-slate-900 placeholder:text-slate-400 transition-all font-medium ${emailError ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-[#00bfa5]/20 focus:border-[#00bfa5]'}`}
                             placeholder="you@example.com"
                         />
+                        {emailError && <p className="text-red-500 text-xs mt-1 font-medium ml-1">{emailError}</p>}
                     </div>
 
                     <div>
@@ -93,6 +102,9 @@ export default function Signup() {
                             required
                             value={formData.password}
                             onChange={handleChange}
+                            onPaste={(e) => e.preventDefault()}
+                            onCopy={(e) => e.preventDefault()}
+                            onCut={(e) => e.preventDefault()}
                             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00bfa5]/20 focus:border-[#00bfa5] outline-none text-slate-900 placeholder:text-slate-400 transition-all font-medium"
                             placeholder="Create a strong password"
                         />
@@ -108,6 +120,9 @@ export default function Signup() {
                             required
                             value={formData.confirmPassword}
                             onChange={handleChange}
+                            onPaste={(e) => e.preventDefault()}
+                            onCopy={(e) => e.preventDefault()}
+                            onCut={(e) => e.preventDefault()}
                             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00bfa5]/20 focus:border-[#00bfa5] outline-none text-slate-900 placeholder:text-slate-400 transition-all font-medium"
                             placeholder="Repeat password"
                         />

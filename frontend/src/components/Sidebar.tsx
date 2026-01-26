@@ -147,12 +147,12 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto overflow-x-hidden z-30 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50"
         >
             {/* Larger Logo Area */}
-            <div className="px-6 py-4 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-20">
+            <div className="px-5 py-4 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-20">
                 <Link
                     href="/dashboard"
-                    className="flex items-center gap-4 transition-transform hover:scale-105 cursor-pointer overflow-hidden group"
+                    className="flex items-center gap-3 transition-transform hover:scale-105 cursor-pointer overflow-hidden group"
                 >
-                    <div className="w-10 h-10 min-w-[40px] bg-slate-900 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-xl shadow-slate-900/20 ring-1 ring-slate-900/10 relative overflow-hidden">
+                    <div className="w-11 h-11 min-w-[44px] bg-slate-900 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-xl shadow-slate-900/20 ring-1 ring-slate-900/10 relative overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                         <span className="relative z-10">e</span>
                     </div>
@@ -169,9 +169,9 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
 
                 <button
                     onClick={handleToggle}
-                    className={`p-2 rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'hidden' : ''}`}
+                    className={`w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'hidden' : ''}`}
                 >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-6 h-6" />
                 </button>
 
                 {isCollapsed && (
