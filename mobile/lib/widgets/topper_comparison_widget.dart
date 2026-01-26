@@ -26,16 +26,18 @@ class TopperComparisonWidget extends StatelessWidget {
         'topperScore': topperScore,
       };
     }).toList();
-  }
-
+  @override
+  Widget build(BuildContext context) {
+    final stats = _generateTopperStats();
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
     
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isDark 
+          colors: Theme.of(context).brightness == Brightness.dark 
             ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
             : [Colors.indigo.shade50, Colors.blue.shade50],
           begin: Alignment.topLeft,
@@ -43,7 +45,7 @@ class TopperComparisonWidget extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : Colors.blue.shade100, 
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.blue.shade100, 
           width: 1.5
         ),
       ),
@@ -56,11 +58,11 @@ class TopperComparisonWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2563EB) : Colors.blue.shade600,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blue.shade600.withOpacity(0.3),
+                      color: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2563EB) : Colors.blue.shade600).withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -102,7 +104,7 @@ class TopperComparisonWidget extends StatelessWidget {
               'Competitive Analytics',
               style: AppTextStyles.caption.copyWith(
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.amberAccent : Colors.amber.shade800,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.amberAccent : Colors.amber.shade800,
                 letterSpacing: 0.5,
               ),
             ),
@@ -128,7 +130,7 @@ class TopperComparisonWidget extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.lightbulb_outline, color: Colors.amber.shade700, size: 20),
+                Icon(Icons.lightbulb_outline, color: isDark ? Colors.amberAccent : Colors.amber.shade700, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -147,6 +149,7 @@ class TopperComparisonWidget extends StatelessWidget {
         ],
       ),
     );
+  }
   }
 
   Widget _buildTopicComparison(String topic, int yourScore, int topperScore) {
@@ -171,7 +174,9 @@ class TopperComparisonWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: gap > 10 ? Colors.red.shade50 : Colors.green.shade50,
+                  color: gap > 10 
+                    ? (isDark ? const Color(0xFF7F1D1D).withOpacity(0.2) : Colors.red.shade50) 
+                    : (isDark ? const Color(0xFF064E3B).withOpacity(0.2) : Colors.green.shade50),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -179,7 +184,9 @@ class TopperComparisonWidget extends StatelessWidget {
                     Icon(
                       gap > 10 ? Icons.trending_down : Icons.trending_up,
                       size: 14,
-                      color: gap > 10 ? Colors.red.shade700 : Colors.green.shade700,
+                      color: gap > 10 
+                        ? (isDark ? Colors.redAccent : Colors.red.shade700) 
+                        : (isDark ? Colors.greenAccent : Colors.green.shade700),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -187,7 +194,9 @@ class TopperComparisonWidget extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: gap > 10 ? Colors.red.shade700 : Colors.green.shade700,
+                        color: gap > 10 
+                          ? (isDark ? Colors.redAccent : Colors.red.shade700) 
+                          : (isDark ? Colors.greenAccent : Colors.green.shade700),
                       ),
                     ),
                   ],
@@ -204,7 +213,7 @@ class TopperComparisonWidget extends StatelessWidget {
                 width: 40,
                 child: Text(
                   'You',
-                  style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black54),
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54),
                 ),
               ),
               Expanded(
@@ -224,7 +233,9 @@ class TopperComparisonWidget extends StatelessWidget {
                         height: 8,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.blue.shade400, Colors.blue.shade600],
+                            colors: isDark 
+                              ? [const Color(0xFF2563EB), const Color(0xFF1D4ED8)]
+                              : [Colors.blue.shade400, Colors.blue.shade600],
                           ),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -238,9 +249,9 @@ class TopperComparisonWidget extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade700,
+                            color: isDark ? const Color(0xFF2563EB) : Colors.blue.shade700,
                             borderRadius: BorderRadius.circular(6),
-                            boxShadow: AppShadows.small,
+                            boxShadow: isDark ? [] : AppShadows.small,
                           ),
                           child: Text(
                             'You: $yourScore%',
@@ -260,7 +271,7 @@ class TopperComparisonWidget extends StatelessWidget {
                 child: Text(
                   '100%',
                   textAlign: TextAlign.right,
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 10, color: isDark ? Colors.white38 : Colors.grey.shade600),
                 ),
               ),
             ],
@@ -291,7 +302,9 @@ class TopperComparisonWidget extends StatelessWidget {
                         height: 8,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.amber.shade400, Colors.amber.shade600],
+                            colors: isDark 
+                              ? [const Color(0xFFD97706), const Color(0xFFB45309)]
+                              : [Colors.amber.shade400, Colors.amber.shade600],
                           ),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -303,7 +316,7 @@ class TopperComparisonWidget extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade600,
+                          color: isDark ? const Color(0xFFD97706) : Colors.amber.shade600,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(

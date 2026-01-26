@@ -20,7 +20,7 @@ class ShimmerLoading {
         highlightColor: highlightColor,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
           ),
         ),
@@ -36,7 +36,7 @@ class ShimmerLoading {
       highlightColor: isDark ? const Color(0xFF334155) : Colors.grey.shade100,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         ),
       ),
@@ -58,7 +58,7 @@ class ShimmerLoading {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               ),
             ),
@@ -72,7 +72,7 @@ class ShimmerLoading {
                     height: 16,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -81,7 +81,7 @@ class ShimmerLoading {
                     height: 14,
                     width: 150,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -107,7 +107,7 @@ class ShimmerLoading {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(4),
         ),
       ),
@@ -124,7 +124,7 @@ class ShimmerLoading {
         width: size,
         height: size,
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
           shape: BoxShape.circle,
         ),
       ),
@@ -163,7 +163,7 @@ class ShimmerLoading {
             highlightColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
               ),
             ),
@@ -258,7 +258,7 @@ class PulsingDots extends StatefulWidget {
   
   const PulsingDots({
     super.key,
-    this.color = Colors.blue,
+    this.color = AppColors.primaryBlue,
     this.size = 8,
   });
 

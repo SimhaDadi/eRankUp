@@ -135,7 +135,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               const SizedBox(height: 8),
               Text(
                 'Your mastery vs. Toppers in key topics',
-                style: TextStyle(color: theme.brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600),
+                style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600),
               ),
               const SizedBox(height: 24),
               _buildRadarChart(),
@@ -166,11 +166,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                   padding: const EdgeInsets.all(32),
                   child: Column(
                     children: [
-                      Icon(Icons.inbox, size: 64, color: Colors.grey.shade300),
+                      Icon(Icons.inbox, size: 64, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade300),
                       const SizedBox(height: 16),
                       Text(
                         'No attempts yet',
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.grey.shade600),
                       ),
                     ],
                   ),
@@ -335,7 +335,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             height: 60,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.blue.shade400, Colors.blue.shade600],
+                colors: Theme.of(context).brightness == Brightness.dark 
+                  ? [const Color(0xFF1E40AF), const Color(0xFF1E3A8A)]
+                  : [Colors.blue.shade400, Colors.blue.shade600],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -386,7 +388,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               ],
             ),
           ),
-          Icon(Icons.chevron_right, color: Colors.grey.shade400),
+          Icon(Icons.chevron_right, color: isDark ? Colors.white24 : Colors.grey.shade400),
         ],
       ),
     );
