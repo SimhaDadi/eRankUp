@@ -160,16 +160,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
             
             // Hero Score Card
             Container(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(AppSpacing.xxl),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [Color(0xFF2563EB), Color(0xFF00BFA5)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight
-                ),
-                borderRadius: BorderRadius.circular(24),
+                gradient: AppColors.heroGradient,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
                 boxShadow: [
-                    BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))
+                    BoxShadow(color: AppColors.primaryBlue.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))
                 ]
               ),
               child: Column(
@@ -180,11 +176,21 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     letterSpacing: 1.2,
                   )),
                   const SizedBox(height: 8),
-                  Text('$score%', style: AppTextStyles.whiteWithShadow.copyWith(
-                    fontSize: 64,
-                    fontWeight: FontWeight.black,
-                    height: 1.1,
-                  )),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: score.toDouble()),
+                    duration: const Duration(seconds: 2),
+                    curve: Curves.easeOutQuart,
+                    builder: (context, value, child) {
+                      return Text(
+                        '${value.round()}%',
+                        style: AppTextStyles.whiteWithShadow.copyWith(
+                          fontSize: 64,
+                          fontWeight: FontWeight.black,
+                          height: 1.1,
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 8),
                   Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -215,10 +221,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 crossAxisSpacing: AppSpacing.lg,
                 childAspectRatio: 1.5,
                 children: [
-                    _buildMetricCard(Icons.center_focus_strong, "Accuracy", "$accuracy%", Colors.blue),
+                    _buildMetricCard(Icons.center_focus_strong, "Accuracy", "$accuracy%", AppColors.primaryBlue),
                     _buildMetricCard(Icons.timer, "Time Taken", "${(timeTaken/60).round()}m", Colors.orange),
                     _buildMetricCard(Icons.check_circle, "Correct", "$correct", Colors.green),
-                    _buildMetricCard(Icons.cancel, "Incorrect", "$incorrect", Colors.red),
+                    _buildMetricCard(Icons.cancel, "Incorrect", "$incorrect", AppColors.errorText),
                 ],
             ),
 

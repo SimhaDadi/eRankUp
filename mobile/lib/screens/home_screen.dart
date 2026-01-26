@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +12,8 @@ import 'performance_screen.dart';
 import 'doubts_screen.dart';
 import 'saved_questions_screen.dart';
 import 'study_plan_screen.dart';
+import '../widgets/daily_goal_widget.dart';
+import '../widgets/premium_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +23,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late ConfettiController _confettiController;
   Map<String, dynamic>? _stats;
   List<dynamic>? _recentAttempts;
   List<dynamic>? _liveTests;
@@ -28,7 +32,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
     _fetchHomeData();
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchHomeData() async {
@@ -47,6 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           if (results[0].statusCode == 200) {
             _stats = jsonDecode(results[0].body);
+            if ((_stats?['dailyQuestions'] ?? 0) >= 100) {
+              _confettiController.play();
+            }
           }
           if (results[1].statusCode == 200) {
             _recentAttempts = jsonDecode(results[1].body) as List;
@@ -68,34 +82,54 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _fetchHomeData,
-          color: AppColors.primaryBlue,
-          child: _isLoading
-              ? _buildLoadingState()
-              : SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildQuickStats(),
-                      const SizedBox(height: AppSpacing.xxl),
-                      if (_recentAttempts != null && _recentAttempts!.isNotEmpty)
-                        _buildContinueLearning(),
-                      if (_liveTests != null && _liveTests!.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.xxl),
-                        _buildLiveTests(),
-                      ],
-                      const SizedBox(height: AppSpacing.xxl),
-                      _buildQuickActions(),
-                      const SizedBox(height: AppSpacing.xxl),
-                    ],
-                  ),
-                ),
-        ),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: RefreshIndicator(
+              onRefresh: _fetchHomeData,
+              color: AppColors.primaryBlue,
+              child: _isLoading
+                  ? _buildLoadingState()
+                  : SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+                            child: DailyGoalWidget(
+                              currentQuestions: _stats?['dailyQuestions'] ?? 0,
+                              targetQuestions: 100, // Matching web default
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xxl),
+                          _buildQuickStats(),
+                          const SizedBox(height: AppSpacing.xxl),
+                          if (_recentAttempts != null && _recentAttempts!.isNotEmpty)
+                            _buildContinueLearning(),
+                          if (_liveTests != null && _liveTests!.isNotEmpty) ...[
+                            const SizedBox(height: AppSpacing.xxl),
+                            _buildLiveTests(),
+                          ],
+                          const SizedBox(height: AppSpacing.xxl),
+                          _buildQuickActions(),
+                          const SizedBox(height: AppSpacing.xxl),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [Colors.green, Colors.blue, Colors.pink, Colors.orange, Colors.purple],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -241,14 +275,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
-    return Container(
+    return PremiumCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.bgPrimary,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: AppShadows.small,
-      ),
+      border: Border.all(color: Colors.grey.shade200),
+      boxShadow: AppShadows.small,
+      onTap: () {
+          // Navigating to performance from any stat card for a fluid feel
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
+      },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -256,16 +290,12 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: AppSpacing.sm),
           Text(
             value,
-            style: AppTextStyles.h2.copyWith(
-              fontWeight: FontWeight.black,
-            ),
+            style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.black),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: AppTextStyles.caption.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
         ],
@@ -406,22 +436,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildLiveTestCard(Map<String, dynamic> test) {
     final title = test['title'] ?? 'Live Test';
-    final participants = test['participants'] ?? 0;
-
-    return Container(
-      width: 280,
+    return PremiumCard(
       margin: const EdgeInsets.only(right: AppSpacing.lg),
-      decoration: BoxDecoration(
-        gradient: AppColors.liveGradient,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        boxShadow: AppShadows.medium,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      boxShadow: AppShadows.medium,
+      onTap: () {},
+      child: Container(
+        width: 280,
+        decoration: BoxDecoration(
+          gradient: AppColors.liveGradient,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          onTap: () {},
-          child: Padding(
+        ),
+        child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -429,10 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
@@ -440,66 +464,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
+                          const Icon(Icons.circle, color: Colors.white, size: 8),
                           const SizedBox(width: 4),
-                          Text(
-                            'LIVE',
-                            style: AppTextStyles.overline.copyWith(
-                              color: Colors.white,
-                            ),
-                          ),
+                          Text('LIVE', style: AppTextStyles.overline.copyWith(color: Colors.white, fontSize: 10)),
                         ],
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(Icons.people, size: 16, color: Colors.white70),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$participants',
-                      style: AppTextStyles.caption.copyWith(
-                        color: Colors.white70,
                       ),
                     ),
                   ],
                 ),
                 const Spacer(),
-                Text(
-                  title,
-                  style: AppTextStyles.h4.copyWith(
-                    color: Colors.white,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                  ),
-                  child: Text(
-                    'Join Now',
-                    style: AppTextStyles.caption.copyWith(
-                      fontWeight: FontWeight.black,
-                      color: Colors.red.shade600,
-                    ),
-                  ),
-                ),
+                Text(title, style: AppTextStyles.h4.copyWith(color: Colors.white)),
+                const SizedBox(height: 4),
+                Text('Join thousands of students', style: AppTextStyles.captionSmall.copyWith(color: Colors.white70)),
               ],
             ),
-          ),
-        ),
+        )
       ),
     );
   }
@@ -565,32 +544,23 @@ class _HomeScreenState extends State<HomeScreen> {
     Color color,
     VoidCallback onTap,
   ) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        child: Container(
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-            border: Border.all(color: color.withOpacity(0.3)),
+    return PremiumCard(
+      onTap: onTap,
+      color: color.withOpacity(0.1),
+      border: Border.all(color: color.withOpacity(0.3)),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: AppSpacing.iconXl),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: AppSpacing.iconXl),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                label,
-                style: AppTextStyles.caption.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

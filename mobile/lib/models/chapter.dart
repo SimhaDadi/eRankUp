@@ -20,12 +20,14 @@ class TestModel {
   final String id;
   final String title;
   final int totalQuestions;
+  final int duration;
   final DateTime? scheduledAt;
 
   TestModel({
     required this.id,
     required this.title,
     required this.totalQuestions,
+    this.duration = 60,
     this.scheduledAt,
   });
 
@@ -34,6 +36,7 @@ class TestModel {
       id: json['id'],
       title: json['title'],
       totalQuestions: json['totalQuestions'] ?? 0,
+      duration: json['duration'] ?? 60,
       scheduledAt: json['scheduledAt'] != null 
           ? DateTime.parse(json['scheduledAt']) 
           : null,

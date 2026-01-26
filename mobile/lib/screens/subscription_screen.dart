@@ -163,26 +163,76 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Have a Coupon Code?'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Enter coupon code (optional)',
-            border: OutlineInputBorder(),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
+        elevation: 10,
+        backgroundColor: AppColors.bgPrimary,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryCyan.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.local_offer, color: AppColors.primaryCyan, size: 32),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Have a Coupon?', style: AppTextStyles.h2),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Enter your code below to get a discount on your purchase.',
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  hintText: 'COUPONCODE',
+                  hintStyle: TextStyle(color: AppColors.textTertiary.withOpacity(0.5)),
+                  filled: true,
+                  fillColor: AppColors.bgSecondary,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                ),
+                textCapitalization: TextCapitalization.characters,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context, null),
+                      child: Text('SKIP', style: TextStyle(color: AppColors.textTertiary, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, controller.text.trim()),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryCyan,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                      ),
+                      child: const Text('APPLY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          textCapitalization: TextCapitalization.characters,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('Skip'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Apply'),
-          ),
-        ],
       ),
     );
   }

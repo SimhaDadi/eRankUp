@@ -6,6 +6,10 @@ class Exam {
   final double price;
   final bool hasPurchased;
   final String type;
+  final int? duration;
+  final int? totalQuestions;
+  final String? activeSession;
+  final int? totalModels;
 
   Exam({
     required this.id,
@@ -15,6 +19,10 @@ class Exam {
     required this.price,
     this.type = 'real_exam',
     this.hasPurchased = false,
+    this.duration,
+    this.totalQuestions,
+    this.activeSession,
+    this.totalModels,
   });
 
   factory Exam.fromJson(Map<String, dynamic> json) {
@@ -26,6 +34,10 @@ class Exam {
       price: (json['price'] ?? 0).toDouble(),
       type: json['type'] ?? 'real_exam',
       hasPurchased: json['hasPurchased'] ?? false,
+      duration: json['duration'],
+      totalQuestions: json['questionCount'] ?? json['totalQuestions'],
+      activeSession: json['activeSession'],
+      totalModels: json['totalModels'],
     );
   }
 }

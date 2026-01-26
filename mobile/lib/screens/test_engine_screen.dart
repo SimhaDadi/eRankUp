@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/haptic_service.dart';
 import '../models/chapter.dart';
 import '../models/question.dart';
 import 'results_screen.dart';
@@ -139,6 +140,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
   }
 
   Future<void> _toggleFlag(String questionId) async {
+    HapticService.light();
     final apiService = Provider.of<ApiService>(context, listen: false);
     setState(() {
       if (_flaggedIds.contains(questionId)) {
@@ -158,6 +160,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
   }
 
   Future<void> _saveAnswer(String questionId, String answerId) async {
+    HapticService.light();
     final apiService = Provider.of<ApiService>(context, listen: false);
     setState(() {
       _userAnswers[questionId] = answerId;
@@ -188,6 +191,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
           'timings': _timings,
           'answers': _userAnswers
       });
+      HapticService.success();
 
       if (mounted) Navigator.pop(context); // Close loading dialog
 
@@ -262,14 +266,14 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
           child: Column(
               children: [
                   Container(
-                      padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-                      color: Colors.blue.shade50,
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 50, AppSpacing.xl, AppSpacing.xl),
+                      color: AppColors.infoBg,
                       child: Column(
                           children: [
                              Row(
                                  children: [
-                                     const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.person, color: Colors.white)),
-                                     const SizedBox(width: 12),
+                                     const CircleAvatar(backgroundColor: AppColors.primaryBlue, child: Icon(Icons.person, color: Colors.white)),
+                                     const SizedBox(width: AppSpacing.md),
                                      Column(
                                          crossAxisAlignment: CrossAxisAlignment.start,
                                          children: [
@@ -301,8 +305,8 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                       Padding(
-                                          padding: const EdgeInsets.symmetric(vertical: 8),
-                                          child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                                          child: Text(entry.key, style: AppTextStyles.h4.copyWith(color: AppColors.primaryBlue)),
                                       ),
                                       Wrap(
                                           spacing: 8,
@@ -317,7 +321,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                                                       decoration: BoxDecoration(
                                                           color: _getStatusColor(idx, qId),
                                                           border: Border.all(color: Colors.grey.shade300),
-                                                          borderRadius: BorderRadius.circular(8),
+                                                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                                                       ),
                                                       child: Stack(
                                                           children: [
@@ -379,21 +383,21 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
               child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                      color: _timeLeft < 300 ? Colors.red.shade50 : Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _timeLeft < 300 ? Colors.red.shade100 : Colors.blue.shade100)
+                      color: _timeLeft < 300 ? AppColors.errorBg : AppColors.infoBg,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
+                      border: Border.all(color: _timeLeft < 300 ? AppColors.errorBorder : AppColors.infoBorder)
                   ),
                   child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                          Icon(Icons.timer, size: 16, color: _timeLeft < 300 ? Colors.red : Colors.blue),
+                          Icon(Icons.timer, size: 16, color: _timeLeft < 300 ? AppColors.errorDark : AppColors.primaryBlue),
                           const SizedBox(width: 4),
                           Text(
                             _formatTime(_timeLeft),
                             style: TextStyle(
                               fontWeight: FontWeight.bold, 
                               fontSize: 14, 
-                              color: _timeLeft < 300 ? Colors.red : Colors.blue
+                              color: _timeLeft < 300 ? AppColors.errorDark : AppColors.primaryBlue
                             ),
                           ),
                       ],
@@ -427,8 +431,8 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                                       });
                                   }
                               },
-                              selectedColor: Colors.blue.shade100,
-                              labelStyle: TextStyle(color: isActive ? Colors.blue.shade900 : Colors.grey.shade700, fontWeight: FontWeight.bold),
+                              selectedColor: AppColors.infoBg,
+                              labelStyle: TextStyle(color: isActive ? AppColors.primaryBlue : AppColors.textSecondary, fontWeight: FontWeight.bold),
                           ),
                       );
                   }).toList(),
@@ -459,7 +463,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppSpacing.xxl),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -468,7 +472,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                       children: [
                         Text(
                           'Q. ${_currentIndex + 1}',
-                          style: TextStyle(color: Colors.blue.shade600, fontWeight: FontWeight.bold, fontSize: 18),
+                          style: AppTextStyles.h3.copyWith(color: AppColors.primaryBlue),
                         ),
                         if (isFlagged)
                           const Chip(
@@ -496,14 +500,14 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.blue.shade50 : Colors.white,
+                              color: isSelected ? AppColors.infoBg : AppColors.bgPrimary,
                               border: Border.all(
-                                color: isSelected ? Colors.blue : Colors.grey.shade200,
+                                color: isSelected ? AppColors.primaryBlue : Colors.grey.shade200,
                                 width: isSelected ? 2 : 1,
                               ),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                               boxShadow: [
-                                  if (isSelected) BoxShadow(color: Colors.blue.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))
+                                  if (isSelected) BoxShadow(color: AppColors.primaryBlue.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))
                               ]
                             ),
                             child: Row(
@@ -513,8 +517,8 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                                   height: 24,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: isSelected ? Colors.blue : Colors.grey.shade400, width: 2),
-                                    color: isSelected ? Colors.blue : Colors.transparent,
+                                    border: Border.all(color: isSelected ? AppColors.primaryBlue : Colors.grey.shade400, width: 2),
+                                    color: isSelected ? AppColors.primaryBlue : Colors.transparent,
                                   ),
                                   child: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
                                 ),
@@ -522,7 +526,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                                 Expanded(
                                   child: MathRichText(
                                     text: option.text, 
-                                    style: TextStyle(fontSize: 16, color: isSelected ? Colors.blue.shade900 : Colors.slate.shade700)
+                                    style: TextStyle(fontSize: 16, color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary)
                                   )
                                 ),
                               ],
@@ -537,7 +541,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
@@ -549,8 +553,8 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                   ? OutlinedButton(
                       onPressed: () => setState(() { _currentIndex--; _visitedIds.add(_allQuestions[_currentIndex].id); }),
                       style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md)
                       ),
                       child: const Text('Previous'),
                     )
@@ -580,20 +584,20 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                       icon: const Icon(Icons.chevron_right),
                       label: const Text('Next'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue, 
+                        backgroundColor: AppColors.primaryBlue, 
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
                       ),
                       child: const Text('Save & Next'),
                     )
                   : ElevatedButton(
                       onPressed: _submitTest,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00BFA5), 
+                        backgroundColor: AppColors.primaryCyan, 
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
                       ),
                       child: const Text('Submit'),
                     ),

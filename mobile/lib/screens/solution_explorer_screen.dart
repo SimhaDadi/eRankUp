@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/haptic_service.dart';
 import '../theme/app_theme.dart';
 import 'test_engine_screen.dart'; // For MathRichText
 
@@ -283,6 +284,7 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
       Navigator.pop(context); // Close loading
 
       if (response.statusCode == 200) {
+        HapticService.success();
         final data = jsonDecode(response.body);
         final newExplanation = data['explanation'];
         

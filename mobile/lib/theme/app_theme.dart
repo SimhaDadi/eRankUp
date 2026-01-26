@@ -268,6 +268,19 @@ class AppTheme {
         side: BorderSide(color: Colors.grey.shade200),
       ),
     ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: AppColors.darkNavy,
+      contentTextStyle: AppTextStyles.bodySmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+      elevation: 6,
+    ),
+    dialogTheme: DialogTheme(
+      backgroundColor: AppColors.bgPrimary,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
+      titleTextStyle: AppTextStyles.h2,
+      contentTextStyle: AppTextStyles.body,
+    ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primaryBlue,
@@ -320,8 +333,38 @@ class AppTheme {
       secondary: AppColors.primaryCyan,
       surface: AppColors.darkNavy,
       error: AppColors.errorDark,
+      onSurface: Colors.white,
     ),
-    scaffoldBackgroundColor: const Color(0xFF0A0F1E),
-    // ... rest of dark theme
+    scaffoldBackgroundColor: const Color(0xFF0F172A),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF0F172A),
+      foregroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: false,
+    ),
+    cardTheme: CardTheme(
+      color: const Color(0xFF1E293B),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        side: const BorderSide(color: Color(0xFF334155)),
+      ),
+    ),
+    textTheme: TextTheme(
+      displayLarge: AppTextStyles.h1.copyWith(color: Colors.white),
+      displayMedium: AppTextStyles.h2.copyWith(color: Colors.white),
+      displaySmall: AppTextStyles.h3.copyWith(color: Colors.white),
+      headlineMedium: AppTextStyles.h4.copyWith(color: Colors.white),
+      bodyLarge: AppTextStyles.bodyLarge.copyWith(color: Colors.white70),
+      bodyMedium: AppTextStyles.body.copyWith(color: Colors.white70),
+      bodySmall: AppTextStyles.bodySmall.copyWith(color: Colors.white60),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primaryBlue,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
+      ),
+    ),
   );
 }
