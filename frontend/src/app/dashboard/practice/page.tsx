@@ -83,7 +83,7 @@ export default function PracticePage() {
                 <div className="absolute bottom-[0%] right-[-5%] w-[30%] h-[30%] bg-emerald-50 rounded-full blur-[100px]" />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto space-y-12">
+            <div className="relative z-10 max-w-7xl mx-auto space-y-8">
                 {/* Header Section */}
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
@@ -95,7 +95,7 @@ export default function PracticePage() {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <h1 className="text-4xl font-black text-slate-800 tracking-tight leading-none">
+                        <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none">
                             Curated Practice
                         </h1>
                         <p className="text-slate-500 font-medium text-lg leading-snug tracking-tight max-w-2xl">

@@ -77,7 +77,7 @@ export default function DashboardPage() {
                                 <Sparkles className="w-3.5 h-3.5" /> Preparation Status: Elite
                             </motion.div>
 
-                            <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tighter text-slate-900 leading-[1.05]">
+                            <h1 className="text-3xl md:text-4xl font-black mb-4 tracking-tighter text-slate-900 leading-[1.05]">
                                 Welcome back, <br />
                                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00bfa5] via-teal-600 to-cyan-600">
                                     {user?.fullName?.split(' ')[0] || 'Aspirant'}

@@ -84,7 +84,7 @@ export default function PerformancePage() {
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00bfa5]/10 text-[#00bfa5] text-xs font-black uppercase tracking-widest mb-4">
                         <Sparkles className="w-4 h-4" /> Your Growth Journey
                     </div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">
                         Performance <span className="text-[#00bfa5]">Analytics</span>
                     </h1>
                     <p className="text-slate-500 font-medium text-lg max-w-2xl">

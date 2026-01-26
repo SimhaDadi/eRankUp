@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, Unique, Column, JoinColumn } from 'typeorm';
+import { Expose, Type } from 'class-transformer';
 import { User } from './user.entity';
 import { Question } from '../exams/entities/question.entity';
 
@@ -15,6 +16,8 @@ export class SavedQuestion {
     @Column()
     userId: string;
 
+    @Expose()
+    @Type(() => Question)
     @ManyToOne(() => Question, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'questionId' })
     question: Question;

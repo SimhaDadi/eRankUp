@@ -104,7 +104,7 @@ export default function SettingsPage() {
     return (
         <div className="max-w-6xl mx-auto pb-20 px-4 md:px-0">
             <header className="mb-10">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight">Settings</h1>
+                <h1 className="text-3xl font-black text-slate-900 tracking-tight">Settings</h1>
                 <p className="text-slate-500 mt-2 font-medium">Manage your personal information and preferences.</p>
             </header>
 

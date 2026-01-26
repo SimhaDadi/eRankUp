@@ -72,10 +72,10 @@ export default function PreviousYearPapersPage() {
     }
 
     return (
-        <div className="pb-24 space-y-12">
+        <div className="pb-12 space-y-4">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 animate-in fade-in slide-in-from-top-4 duration-700">
-                <div className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
+                <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <div className="px-4 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase tracking-[0.2em] border border-blue-100 shadow-sm shadow-blue-500/10">
                             Hall of Fame
@@ -84,8 +84,8 @@ export default function PreviousYearPapersPage() {
                             <History className="w-3 h-3" /> Historical
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <h1 className="text-5xl font-black tracking-tighter leading-none">
+                    <div className="space-y-1">
+                        <h1 className="text-3xl font-black tracking-tighter leading-none">
                             <span className="text-gradient-ultra">PREVIOUS</span> <span className="text-gradient-accent">PAPERS</span>
                         </h1>
                         <p className="text-slate-500 font-medium text-lg leading-snug tracking-tight max-w-2xl">
@@ -96,9 +96,9 @@ export default function PreviousYearPapersPage() {
             </div>
 
             {/* Content Box */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 p-2 relative overflow-hidden ring-1 ring-slate-900/5">
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 p-1 relative overflow-hidden ring-1 ring-slate-900/5">
                 {/* Filters - Sticky within the box */}
-                <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-50 p-4 rounded-t-[2rem]">
+                <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-50 p-3 rounded-t-[2rem]">
                     <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                         {categories.map(category => (
                             <button
@@ -117,7 +117,7 @@ export default function PreviousYearPapersPage() {
                 </div>
 
                 {/* Grid */}
-                <div className="p-6 md:p-8">
+                <div className="p-4 md:p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         <AnimatePresence mode="popLayout">
                             {filteredExams.map((exam, idx) => (
@@ -130,8 +130,8 @@ export default function PreviousYearPapersPage() {
                                     key={exam.id}
                                     className="ultra-card group flex flex-col h-full bg-slate-50/50 hover:bg-white"
                                 >
-                                    <div className="p-8 flex-1 flex flex-col relative z-10">
-                                        <div className="flex justify-between items-start mb-6">
+                                    <div className="p-6 flex-1 flex flex-col relative z-10">
+                                        <div className="flex justify-between items-start mb-4">
                                             <div className="w-14 h-14 bg-white rounded-2xl border border-slate-100 flex items-center justify-center shadow-md shadow-slate-200/50 group-hover:scale-110 transition-transform duration-500">
                                                 <FileCheck className="w-7 h-7 text-blue-600" strokeWidth={2} />
                                             </div>
@@ -140,7 +140,7 @@ export default function PreviousYearPapersPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-4 mb-8 flex-1">
+                                        <div className="space-y-4 mb-5 flex-1">
                                             <h3 className="text-xl font-black text-slate-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
                                                 {exam.title}
                                             </h3>

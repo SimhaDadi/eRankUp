@@ -78,7 +78,7 @@ export default function FreeQuizzesPage() {
                 <div className="absolute bottom-[20%] left-[-10%] w-[35%] h-[35%] bg-orange-50 rounded-full blur-[100px]" />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto space-y-12">
+            <div className="relative z-10 max-w-7xl mx-auto space-y-8">
                 {/* Header Section */}
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
@@ -90,7 +90,7 @@ export default function FreeQuizzesPage() {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <h1 className="text-4xl font-black text-slate-800 tracking-tight leading-none uppercase tracking-wider">
+                        <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none uppercase tracking-wider">
                             Free Quizzes
                         </h1>
                         <p className="text-slate-500 font-medium text-lg leading-snug tracking-tight max-w-2xl">
@@ -119,72 +119,72 @@ export default function FreeQuizzesPage() {
                 </div>
 
                 {/* Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <AnimatePresence mode="popLayout">
-                        {filteredQuizzes.map((quiz, idx) => (
-                            <motion.div
-                                layout
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ delay: idx * 0.05 }}
-                                key={quiz.id}
-                                className="bg-white border border-amber-50/50 rounded-[2.5rem] p-8 hover:border-amber-200 hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500 group relative overflow-hidden flex flex-col h-full"
-                            >
-                                {/* Icon */}
-                                <div className="flex justify-between items-start mb-8 relative z-10">
-                                    <div className="w-16 h-16 bg-amber-50/50 rounded-2xl border border-amber-100/50 flex items-center justify-center group-hover:bg-amber-500 transition-colors duration-500">
-                                        <Brain className="w-8 h-8 text-amber-500 group-hover:text-white transition-colors duration-500" />
-                                    </div>
-                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-100 bg-amber-50 text-[9px] font-black uppercase tracking-widest text-amber-600">
-                                        Daily Quiz
-                                    </div>
-                                </div>
-
-                                {/* Content */}
-                                <div className="space-y-4 flex-1 relative z-10">
-                                    <div className="space-y-1">
-                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{quiz.category || 'General Knowledge'}</div>
-                                        <h3 className="text-xl font-black text-slate-800 tracking-tight leading-tight group-hover:text-amber-600 transition-colors">
-                                            {quiz.title}
-                                        </h3>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-4 py-4">
-                                        <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
-                                            <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                                            <span className="text-[10px] font-bold text-slate-500">
-                                                {new Date(quiz.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                                            </span>
+                {filteredQuizzes.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <AnimatePresence mode="popLayout">
+                            {filteredQuizzes.map((quiz, idx) => (
+                                <motion.div
+                                    layout
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    transition={{ delay: idx * 0.05 }}
+                                    key={quiz.id}
+                                    className="bg-white border border-amber-50/50 rounded-[2.5rem] p-8 hover:border-amber-200 hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500 group relative overflow-hidden flex flex-col h-full"
+                                >
+                                    {/* Icon */}
+                                    <div className="flex justify-between items-start mb-8 relative z-10">
+                                        <div className="w-16 h-16 bg-amber-50/50 rounded-2xl border border-amber-100/50 flex items-center justify-center group-hover:bg-amber-500 transition-colors duration-500">
+                                            <Brain className="w-8 h-8 text-amber-500 group-hover:text-white transition-colors duration-500" />
                                         </div>
-                                        <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
-                                            <Clock className="w-3.5 h-3.5 text-orange-400" />
-                                            <span className="text-[10px] font-bold text-slate-500">{quiz.duration || 15} Min</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
-                                            <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
-                                            <span className="text-[10px] font-bold text-slate-500">{quiz.questionCount || 10} Qs</span>
+                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-100 bg-amber-50 text-[9px] font-black uppercase tracking-widest text-amber-600">
+                                            Daily Quiz
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="mt-8 relative z-10">
-                                    <Link
-                                        href={`/dashboard/exams/${quiz.id}`}
-                                        className="w-full py-5 bg-slate-900 hover:bg-amber-500 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-900/10 group-hover:shadow-amber-500/20 text-[10px] uppercase tracking-[0.2em]"
-                                    >
-                                        <Zap className="w-4 h-4 fill-current" /> Start Sprint
-                                    </Link>
-                                </div>
+                                    {/* Content */}
+                                    <div className="space-y-4 flex-1 relative z-10">
+                                        <div className="space-y-1">
+                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{quiz.category || 'General Knowledge'}</div>
+                                            <h3 className="text-xl font-black text-slate-800 tracking-tight leading-tight group-hover:text-amber-600 transition-colors">
+                                                {quiz.title}
+                                            </h3>
+                                        </div>
 
-                                {/* Decor */}
-                                <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-amber-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-3xl pointer-events-none" />
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </div>
+                                        <div className="flex flex-wrap gap-4 py-4">
+                                            <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
+                                                <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                                                <span className="text-[10px] font-bold text-slate-500">
+                                                    {new Date(quiz.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
+                                                <Clock className="w-3.5 h-3.5 text-orange-400" />
+                                                <span className="text-[10px] font-bold text-slate-500">{quiz.duration || 15} Min</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
+                                                <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
+                                                <span className="text-[10px] font-bold text-slate-500">{quiz.questionCount || 10} Qs</span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                {filteredQuizzes.length === 0 && (
+                                    <div className="mt-8 relative z-10">
+                                        <Link
+                                            href={`/dashboard/exams/${quiz.id}`}
+                                            className="w-full py-5 bg-slate-900 hover:bg-amber-500 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-900/10 group-hover:shadow-amber-500/20 text-[10px] uppercase tracking-[0.2em]"
+                                        >
+                                            <Zap className="w-4 h-4 fill-current" /> Start Sprint
+                                        </Link>
+                                    </div>
+
+                                    {/* Decor */}
+                                    <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-amber-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-3xl pointer-events-none" />
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+                ) : (
                     <PremiumEmptyState
                         icon={Activity}
                         title="No Quizzes Active"
@@ -194,6 +194,7 @@ export default function FreeQuizzesPage() {
                         onAction={() => window.location.href = '/dashboard/pyp'}
                     />
                 )}
+
             </div>
         </div>
     );

@@ -66,7 +66,7 @@ export default function ActivityPage() {
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-black uppercase tracking-widest mb-4">
                         <Activity className="w-4 h-4" /> Full History
                     </div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                         Your Activity <span className="text-blue-600">Log</span>
                     </h1>
                 </div>
@@ -101,8 +101,8 @@ export default function ActivityPage() {
                             >
                                 <div className="flex items-center gap-6">
                                     <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-3 ${item.score >= 80 ? 'bg-emerald-50 border-emerald-100 text-emerald-600 shadow-emerald-100' :
-                                            item.score >= 60 ? 'bg-blue-50 border-blue-100 text-blue-600 shadow-blue-100' :
-                                                'bg-orange-50 border-orange-100 text-orange-600 shadow-orange-100'
+                                        item.score >= 60 ? 'bg-blue-50 border-blue-100 text-blue-600 shadow-blue-100' :
+                                            'bg-orange-50 border-orange-100 text-orange-600 shadow-orange-100'
                                         }`}>
                                         <span className="text-xl font-black tracking-tight">{Math.round(item.score)}%</span>
                                         <span className="text-[10px] font-bold uppercase tracking-wide opacity-70">Score</span>

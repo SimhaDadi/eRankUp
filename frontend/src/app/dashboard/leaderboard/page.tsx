@@ -61,7 +61,7 @@ export default function LeaderboardPage() {
         <div className="space-y-8 max-w-5xl mx-auto">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-3 text-slate-900">
+                    <h1 className="text-3xl font-black flex items-center gap-3 text-slate-900 tracking-tight">
                         <Trophy className="text-yellow-500 w-8 h-8" />
                         Platform Leaderboard
                     </h1>

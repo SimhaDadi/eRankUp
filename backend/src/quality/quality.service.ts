@@ -118,4 +118,24 @@ export class QualityService {
             flag
         };
     }
+
+    async getUserFlags(userId: string) {
+        return this.flagRepository.find({
+            where: { reporter: { id: userId } },
+            relations: ['question'],
+            order: { createdAt: 'DESC' }
+        });
+    }
+
+    async flagQuestion(userId: string, questionId: string, type: any, description: string) {
+        const flag = this.flagRepository.create({
+            reporterId: userId,
+            questionId,
+            type,
+            description,
+            status: FlagStatus.PENDING
+        });
+
+        return this.flagRepository.save(flag);
+    }
 }

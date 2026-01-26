@@ -69,7 +69,7 @@ export default function ExamsPage() {
                 <div className="absolute bottom-[10%] right-[-10%] w-[40%] h-[40%] bg-emerald-50/50 rounded-full blur-[140px]" />
             </div>
 
-            <div className="relative z-10 space-y-12">
+            <div className="relative z-10 space-y-8">
                 {/* Hero Header Section - BREEZE ZEN */}
                 <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-10 border-b border-sky-50/50">
                     <div className="space-y-4 max-w-2xl">
@@ -84,7 +84,7 @@ export default function ExamsPage() {
                             <h4 className="font-bold text-[10px] text-sky-600 uppercase tracking-[0.4em]">Academy Discovery</h4>
                         </motion.div>
 
-                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none">
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
                             Test <span className="text-sky-600">Series</span> <span className="text-emerald-500">Hub</span>
                         </h1>
 

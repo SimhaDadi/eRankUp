@@ -77,15 +77,15 @@ export default function SavedQuestionsPage() {
     }
 
     return (
-        <div className="pb-24 space-y-12">
+        <div className="pb-12 space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 animate-in fade-in slide-in-from-top-4 duration-700">
-                <div className="space-y-5">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
+                <div className="space-y-3">
                     <div className="px-4 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase tracking-[0.2em] border border-blue-100 w-max shadow-sm shadow-blue-500/10">
                         Library
                     </div>
                     <div className="space-y-2">
-                        <h1 className="text-5xl font-black tracking-tighter leading-none">
+                        <h1 className="text-3xl font-black tracking-tighter leading-none">
                             <span className="text-gradient-ultra">SAVED</span> <span className="text-gradient-accent">QUESTIONS</span>
                         </h1>
                         <p className="text-slate-500 font-medium text-lg leading-snug tracking-tight max-w-xl">
@@ -99,7 +99,7 @@ export default function SavedQuestionsPage() {
             <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/50 p-1 relative overflow-hidden ring-1 ring-slate-900/5">
 
                 {/* Grid */}
-                <div className="p-4 md:p-6 space-y-4">
+                <div className="p-3 md:p-5 space-y-4">
                     <AnimatePresence mode="popLayout">
                         {filteredQuestions.map((sq, idx) => (
                             <motion.div
@@ -109,9 +109,9 @@ export default function SavedQuestionsPage() {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ delay: idx * 0.03, duration: 0.3 }}
                                 key={sq.id}
-                                className="ultra-card group p-6"
+                                className="ultra-card group p-5"
                             >
-                                <div className="flex flex-col gap-5 relative z-10">
+                                <div className="flex flex-col gap-4 relative z-10">
                                     {/* Compact Meta Header */}
                                     <div className="flex items-center justify-between w-full border-b border-slate-50 pb-4">
                                         <div className="flex items-center gap-4">

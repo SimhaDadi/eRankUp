@@ -95,7 +95,7 @@ export default function PlansPage() {
 
                 {/* Header */}
                 <div className="text-center space-y-4">
-                    <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                         Unlock Your <span className="text-[#00bfa5]">Potential</span>
                     </h1>
                     <p className="text-lg text-slate-500 font-medium max-w-2xl mx-auto">

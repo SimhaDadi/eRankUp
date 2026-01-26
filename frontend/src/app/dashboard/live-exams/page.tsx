@@ -96,7 +96,7 @@ export default function LiveExamsPage() {
                 <div className="absolute bottom-[20%] left-[-10%] w-[35%] h-[35%] bg-orange-50 rounded-full blur-[100px]" />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto space-y-12">
+            <div className="relative z-10 max-w-7xl mx-auto space-y-8">
                 {/* Header Section */}
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
@@ -108,7 +108,7 @@ export default function LiveExamsPage() {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <h1 className="text-4xl font-black text-slate-800 tracking-tight leading-none uppercase tracking-wider">
+                        <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none uppercase tracking-wider">
                             Live Arena
                         </h1>
                         <p className="text-slate-500 font-medium text-lg leading-snug tracking-tight max-w-2xl">
@@ -137,76 +137,76 @@ export default function LiveExamsPage() {
                 </div>
 
                 {/* Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <AnimatePresence mode="popLayout">
-                        {filteredExams.map((exam, idx) => {
-                            const status = getStatus(exam);
-                            return (
-                                <motion.div
-                                    layout
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ delay: idx * 0.05 }}
-                                    key={exam.id}
-                                    className="bg-white border border-red-50/50 rounded-[2.5rem] p-8 hover:border-red-200 hover:shadow-2xl hover:shadow-red-500/5 transition-all duration-500 group relative overflow-hidden flex flex-col h-full"
-                                >
-                                    {/* Status Badge */}
-                                    <div className="flex justify-between items-start mb-8 relative z-10">
-                                        <div className="w-16 h-16 bg-red-50/50 rounded-2xl border border-red-100/50 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-500">
-                                            <Trophy className="w-8 h-8 text-red-500 group-hover:text-white transition-colors duration-500" />
-                                        </div>
-                                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest ${status.color}`}>
-                                            {status.animate && <span className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" />}
-                                            {status.label}
-                                        </div>
-                                    </div>
-
-                                    {/* Content */}
-                                    <div className="space-y-4 flex-1 relative z-10">
-                                        <div className="space-y-1">
-                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{exam.category || 'General Assessment'}</div>
-                                            <h3 className="text-xl font-black text-slate-800 tracking-tight leading-tight group-hover:text-red-600 transition-colors">
-                                                {exam.title}
-                                            </h3>
-                                        </div>
-
-                                        <div className="flex flex-wrap gap-4 py-4">
-                                            <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
-                                                <Calendar className="w-3.5 h-3.5 text-red-400" />
-                                                <span className="text-[10px] font-bold text-slate-500">
-                                                    {exam.startTime ? new Date(exam.startTime).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'TBA'}
-                                                </span>
+                {filteredExams.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <AnimatePresence mode="popLayout">
+                            {filteredExams.map((exam, idx) => {
+                                const status = getStatus(exam);
+                                return (
+                                    <motion.div
+                                        layout
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        key={exam.id}
+                                        className="bg-white border border-red-50/50 rounded-[2.5rem] p-8 hover:border-red-200 hover:shadow-2xl hover:shadow-red-500/5 transition-all duration-500 group relative overflow-hidden flex flex-col h-full"
+                                    >
+                                        {/* Status Badge */}
+                                        <div className="flex justify-between items-start mb-8 relative z-10">
+                                            <div className="w-16 h-16 bg-red-50/50 rounded-2xl border border-red-100/50 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-500">
+                                                <Trophy className="w-8 h-8 text-red-500 group-hover:text-white transition-colors duration-500" />
                                             </div>
-                                            <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
-                                                <Clock className="w-3.5 h-3.5 text-orange-400" />
-                                                <span className="text-[10px] font-bold text-slate-500">{exam.duration} Min</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
-                                                <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
-                                                <span className="text-[10px] font-bold text-slate-500">{exam.questionCount || 0} Qs</span>
+                                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest ${status.color}`}>
+                                                {status.animate && <span className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" />}
+                                                {status.label}
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="mt-8 relative z-10">
-                                        <Link
-                                            href={`/dashboard/exams/${exam.id}`}
-                                            className="w-full py-5 bg-slate-900 hover:bg-red-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-900/10 group-hover:shadow-red-600/20 text-[10px] uppercase tracking-[0.2em]"
-                                        >
-                                            <Zap className="w-4 h-4 fill-current" /> Participate Now
-                                        </Link>
-                                    </div>
+                                        {/* Content */}
+                                        <div className="space-y-4 flex-1 relative z-10">
+                                            <div className="space-y-1">
+                                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{exam.category || 'General Assessment'}</div>
+                                                <h3 className="text-xl font-black text-slate-800 tracking-tight leading-tight group-hover:text-red-600 transition-colors">
+                                                    {exam.title}
+                                                </h3>
+                                            </div>
 
-                                    {/* Decorative Background Elements */}
-                                    <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-3xl pointer-events-none" />
-                                </motion.div>
-                            );
-                        })}
-                    </AnimatePresence>
-                </div>
+                                            <div className="flex flex-wrap gap-4 py-4">
+                                                <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
+                                                    <Calendar className="w-3.5 h-3.5 text-red-400" />
+                                                    <span className="text-[10px] font-bold text-slate-500">
+                                                        {exam.startTime ? new Date(exam.startTime).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'TBA'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
+                                                    <Clock className="w-3.5 h-3.5 text-orange-400" />
+                                                    <span className="text-[10px] font-bold text-slate-500">{exam.duration} Min</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-slate-50/50 px-3 py-1.5 rounded-xl border border-slate-100/50">
+                                                    <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
+                                                    <span className="text-[10px] font-bold text-slate-500">{exam.questionCount || 0} Qs</span>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                {filteredExams.length === 0 && (
+                                        <div className="mt-8 relative z-10">
+                                            <Link
+                                                href={`/dashboard/exams/${exam.id}`}
+                                                className="w-full py-5 bg-slate-900 hover:bg-red-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-900/10 group-hover:shadow-red-600/20 text-[10px] uppercase tracking-[0.2em]"
+                                            >
+                                                <Zap className="w-4 h-4 fill-current" /> Participate Now
+                                            </Link>
+                                        </div>
+
+                                        {/* Decorative Background Elements */}
+                                        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-3xl pointer-events-none" />
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
+                    </div>
+                ) : (
                     <PremiumEmptyState
                         icon={Trophy}
                         title="Arena Closed"
@@ -216,6 +216,7 @@ export default function LiveExamsPage() {
                         onAction={() => window.location.href = '/dashboard/results'}
                     />
                 )}
+
             </div>
         </div >
     );
