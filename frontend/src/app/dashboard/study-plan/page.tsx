@@ -138,7 +138,7 @@ export default function StudyPlanPage() {
                                 <Clock className="w-5 h-5" />
                             </div>
                             <div>
-                                <div className="text-2xl font-black text-slate-900">~45m</div>
+                                <div className="text-2xl font-black text-slate-900">~{Math.ceil(plan.totalQuestions * 1.5)}m</div>
                                 <div className="text-xs font-bold text-slate-500 uppercase">Est. Time</div>
                             </div>
                         </div>

@@ -147,7 +147,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto overflow-x-hidden z-30 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50"
         >
             {/* Larger Logo Area */}
-            <div className="px-6 py-6 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-20">
+            <div className="px-6 py-4 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-20">
                 <Link
                     href="/dashboard"
                     className="flex items-center gap-4 transition-transform hover:scale-105 cursor-pointer overflow-hidden group"
@@ -184,18 +184,18 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             </div>
 
             {/* Living Navigation */}
-            <div className="flex-1 py-4 px-4 space-y-6">
+            <div className="flex-1 py-2 px-3 space-y-2">
                 {sections.map((section, idx) => (
-                    <div key={idx} className={`space-y-3 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
+                    <div key={idx} className={`space-y-1 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
                         {section.title && (
                             <motion.div
                                 variants={textVariants}
-                                className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 opacity-60 whitespace-nowrap overflow-hidden"
+                                className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-60 whitespace-nowrap overflow-hidden"
                             >
                                 {section.title}
                             </motion.div>
                         )}
-                        <div className="space-y-3 w-full relative">
+                        <div className="space-y-1 w-full relative">
                             {section.items.map((item) => {
                                 const isActive = pathname === item.href;
                                 const gradient = getItemColor(item.label);
@@ -204,16 +204,16 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={`relative flex items-center gap-4 px-3 py-3 rounded-2xl transition-all duration-300 group ${isActive
-                                            ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 scale-[1.02]'
-                                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                                            } ${isCollapsed ? 'justify-center w-12 h-12 mx-auto p-0' : ''}`}
+                                        className={`relative flex items-center gap-4 px-3 py-2 rounded-2xl transition-all duration-300 group ${isActive
+                                            ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 scale-[1.02] z-10'
+                                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                                            } ${isCollapsed ? 'justify-center w-14 h-14 mx-auto p-0' : ''}`}
                                         title={isCollapsed ? item.label : ''}
                                     >
                                         {/* Living Icon Container */}
-                                        <div className={`relative z-10 w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 shadow-sm shrink-0 ${isActive
-                                            ? `bg-gradient-to-br ${gradient} text-white shadow-lg`
-                                            : 'bg-white border-2 border-slate-100 text-slate-400 group-hover:border-slate-200 group-hover:scale-110'
+                                        <div className={`relative z-10 w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-300 shadow-sm shrink-0 ${isActive
+                                            ? `bg-gradient-to-br ${gradient} text-white shadow-lg scale-105`
+                                            : 'bg-white border-2 border-slate-200 text-slate-500 group-hover:border-slate-300 group-hover:text-slate-700 group-hover:scale-110'
                                             }`}>
                                             <item.icon className="w-5 h-5" strokeWidth={isActive ? 3 : 2.5} />
                                         </div>
