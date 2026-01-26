@@ -70,7 +70,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, [isCollapsed]);
+    }, [isCollapsed, onToggle]);
 
     const defaultSections: NavSection[] = [
         {
@@ -103,7 +103,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                 { icon: AlertTriangle, label: 'Reported Questions', href: '/dashboard/reported' },
                 { icon: HelpCircle, label: 'Doubts', href: '/dashboard/doubts' },
             ]
-        }
+        },
     ];
 
     const sections = customNavSections || defaultSections;
@@ -127,11 +127,24 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
         return colors[label] || 'from-slate-700 to-slate-900';
     };
 
+    const sidebarVariants = {
+        expanded: { width: 290 },
+        collapsed: { width: 90 }
+    };
+
+    const textVariants = {
+        expanded: { opacity: 1, x: 0, width: "auto", display: "flex" },
+        collapsed: { opacity: 0, x: -10, width: 0, transition: { duration: 0.1 }, display: "none" }
+    };
+
     return (
         <motion.div
             ref={sidebarRef}
-            animate={{ width: isCollapsed ? 90 : 290 }}
-            className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto z-30 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+            initial={isCollapsed ? "collapsed" : "expanded"}
+            animate={isCollapsed ? "collapsed" : "expanded"}
+            variants={sidebarVariants}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto overflow-x-hidden z-30 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50"
         >
             {/* Larger Logo Area */}
             <div className="px-6 py-6 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-20">
@@ -143,17 +156,15 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                         <span className="relative z-10">e</span>
                     </div>
-                    {!isCollapsed && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="flex flex-col"
-                        >
-                            <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">
-                                eRankUp
-                            </span>
-                        </motion.div>
-                    )}
+
+                    <motion.div
+                        variants={textVariants}
+                        className="flex flex-col whitespace-nowrap"
+                    >
+                        <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">
+                            eRankUp
+                        </span>
+                    </motion.div>
                 </Link>
 
                 <button
@@ -176,10 +187,13 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             <div className="flex-1 py-4 px-4 space-y-6">
                 {sections.map((section, idx) => (
                     <div key={idx} className={`space-y-3 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
-                        {section.title && !isCollapsed && (
-                            <div className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 opacity-60">
+                        {section.title && (
+                            <motion.div
+                                variants={textVariants}
+                                className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 opacity-60 whitespace-nowrap overflow-hidden"
+                            >
                                 {section.title}
-                            </div>
+                            </motion.div>
                         )}
                         <div className="space-y-3 w-full relative">
                             {section.items.map((item) => {
@@ -197,27 +211,27 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                                         title={isCollapsed ? item.label : ''}
                                     >
                                         {/* Living Icon Container */}
-                                        <div className={`relative z-10 w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 shadow-sm ${isActive
+                                        <div className={`relative z-10 w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 shadow-sm shrink-0 ${isActive
                                             ? `bg-gradient-to-br ${gradient} text-white shadow-lg`
                                             : 'bg-white border-2 border-slate-100 text-slate-400 group-hover:border-slate-200 group-hover:scale-110'
                                             }`}>
                                             <item.icon className="w-5 h-5" strokeWidth={isActive ? 3 : 2.5} />
                                         </div>
 
-                                        {!isCollapsed && (
-                                            <motion.span
-                                                initial={{ opacity: 0, x: -5 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                className={`text-[15px] tracking-tight whitespace-nowrap font-black leading-none pt-0.5 ${isActive ? 'text-white' : ''}`}
-                                            >
-                                                {item.label}
-                                            </motion.span>
-                                        )}
+                                        <motion.span
+                                            variants={textVariants}
+                                            className={`text-[15px] tracking-tight whitespace-nowrap font-black leading-none pt-0.5 overflow-hidden ${isActive ? 'text-white' : ''}`}
+                                        >
+                                            {item.label}
+                                        </motion.span>
 
-                                        {item.badge && !isCollapsed && (
-                                            <span className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full text-white shadow-sm ${item.badgeColor || 'bg-blue-500'}`}>
+                                        {item.badge && (
+                                            <motion.span
+                                                variants={textVariants}
+                                                className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full text-white shadow-sm ${item.badgeColor || 'bg-blue-500'}`}
+                                            >
                                                 {item.badge}
-                                            </span>
+                                            </motion.span>
                                         )}
                                     </Link>
                                 );
@@ -228,19 +242,23 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             </div>
 
             {/* Larger Profile Area */}
-            {!isCollapsed && (
-                <div className="p-4 m-4 mt-auto bg-slate-50 border border-slate-100 rounded-2xl relative overflow-hidden group">
-                    <div className="relative z-10 flex items-center justify-between gap-3">
-                        <div>
-                            <h4 className="font-black text-sm text-slate-900">Pro Access</h4>
-                            <p className="text-[10px] text-slate-500 font-bold leading-tight">Unlock premium features.</p>
-                        </div>
-                        <button className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[11px] font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all hover:bg-black">
-                            UPGRADE
-                        </button>
+            <motion.div
+                variants={{
+                    expanded: { opacity: 1, scale: 1, height: "auto", marginTop: "auto", marginBottom: "1rem" },
+                    collapsed: { opacity: 0, scale: 0.8, height: 0, marginTop: 0, marginBottom: 0, transition: { duration: 0.2 } }
+                }}
+                className="mx-4 bg-slate-50 border border-slate-100 rounded-2xl relative overflow-hidden group"
+            >
+                <div className="p-4 relative z-10 flex items-center justify-between gap-3 min-w-[200px]">
+                    <div>
+                        <h4 className="font-black text-sm text-slate-900">Pro Access</h4>
+                        <p className="text-[10px] text-slate-500 font-bold leading-tight">Unlock premium features.</p>
                     </div>
+                    <button className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[11px] font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all hover:bg-black">
+                        UPGRADE
+                    </button>
                 </div>
-            )}
+            </motion.div>
         </motion.div>
     );
 }

@@ -112,6 +112,7 @@ async function seed() {
                         { id: '4', text: `Option D for question ${i}` }
                     ],
                     correctOptionId: '2',
+                    explanation: `**Detailed Solution:**\n\nThe correct answer is Option B.\n\nHere is the step-by-step reasoning for this ${topic} problem:\n1. Analyze the input parameters.\n2. Apply the standard formula for ${topic}.\n3. Verify the result against the constraints.\n\nTherefore, Option B is the logically consistent choice.`,
                     topic: topic,
                     models: [model],
                     difficultyWeight: Math.random() // Initialize with random difficulty

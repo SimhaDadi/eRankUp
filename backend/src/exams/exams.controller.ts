@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query, ForbiddenException, ClassSerializerInterceptor, SerializeOptions } from '@nestjs/common';
+import { instanceToPlain } from 'class-transformer';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { ExamsSeederService } from './exams-seeder.service';
@@ -217,9 +218,12 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get('attempts/:id')
-    @SerializeOptions({ groups: ['review'] })
-    findAttempt(@Param('id') id: string, @Request() req: any) {
-        return this.scorerService.getAttempt(id, req.user.userId);
+    async findAttempt(@Param('id') id: string, @Request() req: any) {
+        const attempt = await this.scorerService.getAttempt(id, req.user.userId);
+
+        const plain = instanceToPlain(attempt, { groups: ['review'] });
+
+        return plain;
     }
 
     @UseGuards(AuthGuard('jwt'))

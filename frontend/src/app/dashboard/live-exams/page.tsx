@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
+import PremiumEmptyState from '@/components/ui/PremiumEmptyState';
 
 interface Exam {
     id: string;
@@ -206,16 +207,14 @@ export default function LiveExamsPage() {
                 </div>
 
                 {filteredExams.length === 0 && (
-                    <div className="py-24 text-center bg-white border border-red-50 rounded-[3rem] shadow-sm relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-red-50 rounded-bl-full opacity-50" />
-                        <div className="relative z-10">
-                            <div className="w-24 h-24 bg-white border border-red-100 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-sm">
-                                <Calendar className="w-10 h-10 text-red-200" />
-                            </div>
-                            <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2 uppercase tracking-wider">No Active Challenges</h3>
-                            <p className="text-slate-400 font-medium max-w-sm mx-auto">The arena is currently silent. Check back soon for scheduled high-stakes competitions.</p>
-                        </div>
-                    </div>
+                    <PremiumEmptyState
+                        icon={Trophy}
+                        title="Arena Closed"
+                        description="The battleground is currently silent. Check back soon for scheduled high-stakes competitions and global tournaments."
+                        colorScheme="red"
+                        actionLabel="View Past Results"
+                        onAction={() => window.location.href = '/dashboard/results'}
+                    />
                 )}
             </div>
         </div >

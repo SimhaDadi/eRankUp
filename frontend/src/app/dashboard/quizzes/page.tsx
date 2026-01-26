@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
+import PremiumEmptyState from '@/components/ui/PremiumEmptyState';
 
 interface Exam {
     id: string;
@@ -184,16 +185,14 @@ export default function FreeQuizzesPage() {
                 </div>
 
                 {filteredQuizzes.length === 0 && (
-                    <div className="py-24 text-center bg-white border border-amber-50 rounded-[3rem] shadow-sm relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-amber-50 rounded-bl-full opacity-50" />
-                        <div className="relative z-10">
-                            <div className="w-24 h-24 bg-white border border-amber-100 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-sm">
-                                <Activity className="w-10 h-10 text-amber-200" />
-                            </div>
-                            <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2 uppercase tracking-wider">No Quizzes Today</h3>
-                            <p className="text-slate-400 font-medium max-w-sm mx-auto">New knowledge sprints are being curated. Return soon to test your limits.</p>
-                        </div>
-                    </div>
+                    <PremiumEmptyState
+                        icon={Activity}
+                        title="No Quizzes Active"
+                        description="New knowledge sprints are being curated by our experts. Return soon to test your limits against the clock."
+                        colorScheme="amber"
+                        actionLabel="Explore Study Material"
+                        onAction={() => window.location.href = '/dashboard/pyp'}
+                    />
                 )}
             </div>
         </div>

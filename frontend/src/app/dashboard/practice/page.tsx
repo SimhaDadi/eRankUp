@@ -19,6 +19,7 @@ import {
 import api from '@/lib/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import PremiumEmptyState from '@/components/ui/PremiumEmptyState';
 
 interface Chapter {
     id: string;
@@ -107,20 +108,14 @@ export default function PracticePage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <AnimatePresence mode="wait">
                         {hierarchy.length === 0 ? (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="col-span-full py-24 text-center bg-white border border-sky-50 rounded-[3rem] shadow-sm relative overflow-hidden group"
-                            >
-                                <div className="absolute top-0 right-0 w-48 h-48 bg-sky-50 rounded-bl-full opacity-50 transition-transform group-hover:scale-110" />
-                                <div className="relative z-10">
-                                    <div className="w-24 h-24 bg-white border border-sky-100 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-sm group-hover:rotate-6 transition-transform">
-                                        <Brain className="w-10 h-10 text-sky-400" />
-                                    </div>
-                                    <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2 uppercase tracking-wider">No Content Available</h3>
-                                    <p className="text-slate-400 font-medium max-w-sm mx-auto">Our academic team is currently curating practice sessions for your curriculum.</p>
-                                </div>
-                            </motion.div>
+                            <PremiumEmptyState
+                                icon={Brain}
+                                title="Curriculum Loading"
+                                description="Our academic team is currently structuring high-fidelity practice modules for your specific goals. Check back shortly."
+                                colorScheme="sky"
+                                actionLabel="Refresh Curriculum"
+                                onAction={() => window.location.reload()}
+                            />
                         ) : (
                             hierarchy.map((subject, idx) => (
                                 <motion.div
