@@ -4,6 +4,7 @@ export interface Stats {
     totalTimeTaken: number;
     accuracy: number;
     streak: number;
+    dailyQuestions?: number;
 }
 
 export interface RecentAttempt {

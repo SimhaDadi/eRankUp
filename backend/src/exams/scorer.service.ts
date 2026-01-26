@@ -384,12 +384,22 @@ export class ScorerService implements OnModuleInit {
             });
         }
 
+        // Calculate Daily Progress (Questions Attempted Today)
+        let dailyQuestions = 0;
+        attempts.forEach(a => {
+            const attemptDate = new Date(a.createdAt).toISOString().split('T')[0];
+            if (attemptDate === today) {
+                dailyQuestions += a.totalQuestions;
+            }
+        });
+
         return {
             totalAttempts,
             averageScore: Math.round(totalScore / totalAttempts),
             totalTimeTaken,
             accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0,
             streak,
+            dailyQuestions, // Return the count
             topicPerformance
         };
     }

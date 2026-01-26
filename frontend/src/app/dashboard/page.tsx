@@ -120,7 +120,7 @@ export default function DashboardPage() {
                                     {/* Progress Ring */}
                                     <motion.circle
                                         initial={{ pathLength: 0 }}
-                                        animate={{ pathLength: 0.75 }} // Mock 75%
+                                        animate={{ pathLength: Math.min((stats?.dailyQuestions || 0) / 100, 1) }}
                                         transition={{ duration: 2, ease: "easeOut" }}
                                         cx="50" cy="50" r="45"
                                         fill="none"
@@ -140,8 +140,9 @@ export default function DashboardPage() {
 
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                                     <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Daily Goal</div>
-                                    <div className="text-5xl font-black text-slate-900 tracking-tighter">75%</div>
-                                    <div className="text-xs font-bold text-teal-600 mt-2 bg-teal-50 px-3 py-1 rounded-full border border-teal-100">Keep pushing!</div>
+                                    <div className="text-5xl font-black text-slate-900 tracking-tighter">
+                                        {Math.round(Math.min(((stats?.dailyQuestions || 0) / 100) * 100, 100))}%
+                                    </div>
                                 </div>
                             </div>
                         </div>
