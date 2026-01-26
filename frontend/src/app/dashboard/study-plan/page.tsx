@@ -59,7 +59,10 @@ export default function StudyPlanPage() {
     const handleStartPractice = async () => {
         try {
             setIsLoading(true);
-            const res = await api.post('/adaptive/start-session');
+            // [FIX] Send the exact questions shown in the UI to ensure consistency
+            const questionIds = plan?.questions.map(q => q.id) || [];
+
+            const res = await api.post('/adaptive/start-session', { questionIds });
             const { sessionId } = res.data;
             // The Test page will handle fetching questions for this adaptive session
             router.push(`/dashboard/test/${sessionId}`);

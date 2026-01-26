@@ -21,6 +21,11 @@ export class PremiumGuard implements CanActivate {
 
         if (!testId) return true;
 
+        // [FIX] Skip check for Adaptive Sessions (generated for user) & Chapter Practice (handled separately)
+        if (testId.startsWith('adaptive') || testId.startsWith('chapter-')) {
+            return true;
+        }
+
         // Get the examId from the testId (Model ID)
         const model = await this.examsService.findModel(testId);
         if (!model) return true; // Let the controller handle 404

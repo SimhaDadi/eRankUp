@@ -12,17 +12,33 @@ export class AdaptiveLearningController {
     ) { }
 
     @Post('start-session')
-    async startSession(@Request() req: any) {
+    async startSession(@Request() req: any, @Body() body: { questionIds?: string[] }) {
         const userId = req.user.userId;
+        let questions: any[] = [];
+        console.log(`[Adaptive] startSession request. Body IDs: ${body.questionIds?.length || 0}`);
 
-        // 1. Get recommended questions based on learning path
-        const path = await this.adaptiveService.generateLearningPath(userId);
-        const topTopic = path.recommendedTopics[0]?.topic || 'General';
+        // 1. If explicit questions are provided (from "Recommended Practice" UI), use them
+        if (body.questionIds && body.questionIds.length > 0) {
+            questions = await this.adaptiveService.getQuestionsByIds(body.questionIds);
+            console.log(`[Adaptive] Fetched ${questions.length} questions by ID.`);
+        } else {
+            // 2. Otherwise, generate purely based on AI recommendation (Fallback)
+            console.log(`[Adaptive] No IDs provided. Generating from path...`);
+            const path = await this.adaptiveService.generateLearningPath(userId);
+            const topTopic = path.recommendedTopics[0]?.topic || 'General';
+            questions = await this.adaptiveService.getQuestionsForTopic(topTopic, 20);
+        }
 
-        // Fetch 20 questions for the top recommended topic
-        const questions = await this.adaptiveService.getQuestionsForTopic(topTopic, 20);
+        if (questions.length === 0) {
+            console.warn(`[Adaptive] Questions empty after primary fetch. Trying fallback...`);
+            // Final fallback if IDs were invalid or topic empty
+            const path = await this.adaptiveService.generateLearningPath(userId);
+            const topTopic = path.recommendedTopics[0]?.topic || 'General';
+            questions = await this.adaptiveService.getQuestionsForTopic(topTopic, 20);
+            console.log(`[Adaptive] Fallback fetched ${questions.length} questions.`);
+        }
 
-        // 2. Create a session with these questions
+        // 3. Create a session with these questions
         const session = await this.testSessionService.createAdaptiveSession(userId, questions);
 
         return {

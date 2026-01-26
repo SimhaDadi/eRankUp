@@ -98,9 +98,9 @@ Correct Answer: ${question.correctOptionId} - ${this.sanitizeInput(correctOption
 
 Provide a structured explanation with these sections:
 
-1. **Why it's correct**: Explain why option ${question.correctOptionId} is the right answer (2-3 sentences)
+1. **Correct Answer**: Explain why option ${question.correctOptionId} is the right answer (2-3 sentences)
 
-2. **Why others are wrong**: Briefly explain why each incorrect option is wrong (1 sentence per option)
+2. **Explore Other Options**: Briefly explain why each incorrect option is wrong (1 sentence per option)
 
 3. **Key concept**: State the main concept being tested (1 sentence)
 

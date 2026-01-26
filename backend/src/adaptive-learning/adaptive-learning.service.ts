@@ -304,4 +304,21 @@ export class AdaptiveLearningService {
         // Shuffle in memory
         return questions.sort(() => 0.5 - Math.random()).slice(0, limit);
     }
+
+    async getQuestionsByIds(questionIds: string[]): Promise<Question[]> {
+        if (!questionIds || questionIds.length === 0) {
+            console.log('[AdaptiveService] getQuestionsByIds: No IDs provided');
+            return [];
+        }
+
+        console.log(`[AdaptiveService] Fetching ${questionIds.length} questions: ${questionIds.join(', ')}`);
+
+        const questions = await this.questionRepo.createQueryBuilder('q')
+            .leftJoinAndSelect('q.subject', 's')
+            .where('q.id IN (:...ids)', { ids: questionIds })
+            .getMany();
+
+        console.log(`[AdaptiveService] Found ${questions.length} questions.`);
+        return questions;
+    }
 }

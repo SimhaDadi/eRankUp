@@ -75,30 +75,24 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
     }
 
     async startSession(userId: string, testId: string): Promise<TestSession> {
+        console.log(`[TestSessionService] startSession called for ${testId}`);
         const key = this.getSessionKey(userId, testId);
         const existingSession = await this.redis.get(key);
 
         if (existingSession) {
+            console.log(`[TestSessionService] Found existing session in Redis.`);
             const session: TestSession = JSON.parse(existingSession);
-            // If session is active, resume it. If completed, we allow a new session (Retake).
             if (session.status !== 'COMPLETED') {
                 return session;
             }
-            // If completed, we proceed to create a new one below (overwriting the key).
         }
 
-        // Adaptive sessions logic is arguably handled by createAdaptiveSession now, 
-        // but if someone tries to start an existing adaptive session by ID, 
-        // we might land here if existingSession was null (expired). 
-        // If it's expired, we can't really "restart" an adaptive session easily 
-        // without the original questions. 
-        // So we fallback to creating a generic empty one or error.
         if (testId.startsWith('adaptive')) {
-            // If we reach here, it means session not found/expired. 
-            // We cannot recreate it without questions.
+            console.warn(`[TestSessionService] Adaptive session requested but not found in Redis. ID: ${testId}`);
             throw new NotFoundException('Adaptive session not found or expired.');
         }
 
+        console.log(`[TestSessionService] Starting standard session for Model ID: ${testId}`);
         let durationSeconds = 60 * 60; // Default 1 hour
         try {
             const model = await this.examsService.findModel(testId);
@@ -110,11 +104,11 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
                         throw new Error(`This test is scheduled for ${scheduledTime.toLocaleString()}. Please wait.`);
                     }
                 }
-                // Use model duration + 1 hour buffer
                 durationSeconds = (model.duration * 60) + (60 * 60);
             }
         } catch (e) {
-            // If findModel fails, use default
+            console.error(`[TestSessionService] Error fetching model:`, e);
+            // Fallback continues
         }
 
         const newSession: TestSession = {

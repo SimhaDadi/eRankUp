@@ -24,7 +24,19 @@ export class TestSessionController {
     @UseGuards(AuthGuard('jwt'), PremiumGuard)
     @Get(':testId')
     async getSession(@Request() req: any, @Param('testId') testId: string) {
-        return this.sessionService.getSession(req.user.userId, testId);
+        console.log(`[TestSessionController] getSession called for ${testId}, User: ${req.user.userId}`);
+        const session = await this.sessionService.getSession(req.user.userId, testId);
+
+        if (!session) {
+            console.log(`[TestSessionController] Session not found in Redis. Attempting to start new session...`);
+            try {
+                return await this.sessionService.startSession(req.user.userId, testId);
+            } catch (e) {
+                console.error(`[TestSessionController] startSession failed:`, e);
+                throw e;
+            }
+        }
+        return session;
     }
 
     @Post(':testId/answer')
