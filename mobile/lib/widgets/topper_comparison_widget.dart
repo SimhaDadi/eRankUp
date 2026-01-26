@@ -28,24 +28,24 @@ class TopperComparisonWidget extends StatelessWidget {
     }).toList();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final stats = _generateTopperStats();
-    final screenWidth = MediaQuery.of(context).size.width;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.indigo.shade50,
-            Colors.blue.shade50,
-          ],
+          colors: isDark 
+            ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+            : [Colors.indigo.shade50, Colors.blue.shade50],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-        border: Border.all(color: Colors.blue.shade100, width: 1.5),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : Colors.blue.shade100, 
+          width: 1.5
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,13 +76,13 @@ class TopperComparisonWidget extends StatelessWidget {
                     Text(
                       'vs. Top Scorers',
                       style: AppTextStyles.h2.copyWith(
-                        color: AppColors.textPrimary,
+                        color: theme.textTheme.bodyLarge?.color,
                       ),
                     ),
                     Text(
                       'Benchmark your subject mastery against the top 1%.',
                       style: AppTextStyles.caption.copyWith(
-                        color: AppColors.textSecondary,
+                        color: isDark ? Colors.white60 : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -101,8 +101,8 @@ class TopperComparisonWidget extends StatelessWidget {
             child: Text(
               'Competitive Analytics',
               style: AppTextStyles.caption.copyWith(
-                fontWeight: FontWeight.black,
-                color: Colors.amber.shade800,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.amberAccent : Colors.amber.shade800,
                 letterSpacing: 0.5,
               ),
             ),
@@ -122,9 +122,9 @@ class TopperComparisonWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF0F172A).withOpacity(0.5) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.blue.shade100),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.blue.shade100),
             ),
             child: Row(
               children: [
@@ -133,10 +133,10 @@ class TopperComparisonWidget extends StatelessWidget {
                 Expanded(
                   child: Text(
                     _generateInsight(stats),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontStyle: FontStyle.italic,
-                      color: Colors.black87,
+                      color: isDark ? Colors.white60 : Colors.black87,
                       height: 1.4,
                     ),
                   ),
@@ -162,10 +162,10 @@ class TopperComparisonWidget extends StatelessWidget {
             children: [
               Text(
                 topic,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: theme.textTheme.bodyLarge?.color,
                 ),
               ),
               Container(
@@ -204,7 +204,7 @@ class TopperComparisonWidget extends StatelessWidget {
                 width: 40,
                 child: Text(
                   'You',
-                  style: TextStyle(fontSize: 11, color: Colors.black54),
+                  style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black54),
                 ),
               ),
               Expanded(
@@ -272,7 +272,7 @@ class TopperComparisonWidget extends StatelessWidget {
                 width: 40,
                 child: Text(
                   'Top',
-                  style: TextStyle(fontSize: 11, color: Colors.black54),
+                  style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black54),
                 ),
               ),
               Expanded(

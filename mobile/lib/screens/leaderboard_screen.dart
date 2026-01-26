@@ -63,12 +63,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.purple.shade400, Colors.blue.shade600],
+                  colors: Theme.of(context).brightness == Brightness.dark 
+                    ? [const Color(0xFF6B21A8), const Color(0xFF1E40AF)]
+                    : [Colors.purple.shade400, Colors.blue.shade600],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
+                boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : [
                   BoxShadow(
                     color: Colors.purple.shade200,
                     blurRadius: 10,
@@ -128,7 +130,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFF1E293B) 
+                      : Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -136,7 +140,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade700,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.blueAccent 
+                        : Colors.blue.shade700,
                     ),
                   ),
                 ),
@@ -153,11 +159,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.leaderboard, size: 64, color: Colors.grey.shade300),
+                        Icon(Icons.leaderboard, size: 64, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade300),
                         const SizedBox(height: 16),
                         Text(
                           'No data available',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.grey.shade600),
                         ),
                       ],
                     ),
@@ -206,17 +212,24 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       medalIcon = Icons.emoji_events;
     }
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isCurrentUser ? Colors.blue.shade50 : Colors.white,
+        color: isCurrentUser 
+          ? (isDark ? const Color(0xFF1E293B) : Colors.blue.shade50) 
+          : theme.cardTheme.color,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isCurrentUser ? Colors.blue.shade200 : Colors.grey.shade100,
+          color: isCurrentUser 
+            ? (isDark ? Colors.blueAccent.withOpacity(0.5) : Colors.blue.shade200) 
+            : (isDark ? const Color(0xFF334155) : Colors.grey.shade100),
           width: isCurrentUser ? 2 : 1,
         ),
-        boxShadow: isCurrentUser
+        boxShadow: (isCurrentUser && !isDark)
             ? [
                 BoxShadow(
                   color: Colors.blue.shade100,
@@ -233,7 +246,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: medalColor ?? Colors.grey.shade100,
+              color: medalColor ?? (isDark ? const Color(0xFF0F172A) : Colors.grey.shade100),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -244,7 +257,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.black,
-                        color: medalColor != null ? Colors.white : Colors.black87,
+                        color: medalColor != null ? Colors.white : (isDark ? Colors.white38 : Colors.black87),
                       ),
                     ),
             ),
@@ -264,7 +277,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: isCurrentUser ? Colors.blue.shade900 : Colors.black87,
+                          color: isCurrentUser 
+                            ? (isDark ? Colors.blueAccent : Colors.blue.shade900) 
+                            : theme.textTheme.bodyLarge?.color,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -296,7 +311,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   '$testsCompleted tests completed',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade600,
+                    color: isDark ? Colors.white60 : Colors.grey.shade600,
                   ),
                 ),
               ],

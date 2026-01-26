@@ -77,15 +77,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.all(16),
                 itemCount: _exams.length,
                 itemBuilder: (context, index) {
-                  final exam = _exams[index];
+                  final theme = Theme.of(context);
+                  final isDark = theme.brightness == Brightness.dark;
+                  
                   return Card(
                     margin: const EdgeInsets.only(bottom: 16),
-                    // Uses CardTheme from main.dart (White)
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(16),
                       title: Text(
                         exam.title,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                        style: TextStyle(
+                          fontSize: 18, 
+                          fontWeight: FontWeight.bold, 
+                          color: theme.textTheme.bodyLarge?.color
+                        ),
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,7 +100,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             exam.description,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Colors.slate.shade500),
+                            style: TextStyle(color: isDark ? Colors.white60 : Colors.slate.shade500),
                           ),
                           const SizedBox(height: 12),
                           Row(
@@ -104,33 +109,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.amber.shade50,
-                                    border: Border.all(color: Colors.amber.shade200),
+                                    color: isDark ? const Color(0xFF78350F).withOpacity(0.2) : Colors.amber.shade50,
+                                    border: Border.all(color: isDark ? const Color(0xFF78350F) : Colors.amber.shade200),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
                                     'PREMIUM',
-                                    style: TextStyle(color: Colors.amber.shade700, fontSize: 10, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      color: isDark ? Colors.amberAccent : Colors.amber.shade700, 
+                                      fontSize: 10, 
+                                      fontWeight: FontWeight.bold
+                                    ),
                                   ),
                                 )
                               else
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.emerald.shade50,
-                                    border: Border.all(color: Colors.emerald.shade200),
+                                    color: isDark ? const Color(0xFF064E3B).withOpacity(0.2) : Colors.emerald.shade50,
+                                    border: Border.all(color: isDark ? const Color(0xFF059669) : Colors.emerald.shade200),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
                                     'FREE',
-                                    style: TextStyle(color: Colors.emerald.shade700, fontSize: 10, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      color: isDark ? Colors.emeraldAccent : Colors.emerald.shade700, 
+                                      fontSize: 10, 
+                                      fontWeight: FontWeight.bold
+                                    ),
                                   ),
                                 ),
                             ],
                           ),
                         ],
                       ),
-                      trailing: Icon(Icons.chevron_right, color: Colors.slate.shade400),
+                      trailing: Icon(
+                        Icons.chevron_right, 
+                        color: isDark ? Colors.white38 : Colors.slate.shade400
+                      ),
                       onTap: () {
                         Navigator.push(
                           context,

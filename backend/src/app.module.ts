@@ -20,6 +20,7 @@ import { AIChatModule } from './ai-chat/ai-chat.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PassesModule } from './passes/passes.module';
 import { QualityModule } from './quality/quality.module';
+import { DoubtsModule } from './doubts/doubts.module';
 
 @Module({
     imports: [
@@ -64,6 +65,7 @@ import { QualityModule } from './quality/quality.module';
         NotificationsModule,
         PassesModule,
         QualityModule,
+        DoubtsModule,
     ],
     controllers: [AppController],
     providers: [AppService],

@@ -114,10 +114,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     children: [
                       Text(
                         examTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: theme.textTheme.bodyLarge?.color,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -125,7 +125,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         modelTitle,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: isDark ? Colors.white60 : Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -145,10 +145,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     ),
                     Text(
                       _formatDate(createdAt),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: theme.textTheme.bodyLarge?.color,
                       ),
                     ),
                   ],
@@ -238,8 +238,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.04),
-                  border: Border.all(color: Colors.blue.withOpacity(0.1)),
+                  color: isDark ? const Color(0xFF1E293B) : Colors.blue.withOpacity(0.04),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.blue.withOpacity(0.1)),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -250,7 +250,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     Expanded(
                       child: Text(
                         insights['recommendation'] ?? 'Keep practicing to improve your score!',
-                        style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.black87),
+                        style: TextStyle(
+                          fontSize: 15, 
+                          height: 1.5, 
+                          color: isDark ? Colors.white70 : Colors.black87
+                        ),
                       ),
                     ),
                   ],
@@ -295,10 +299,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: theme.cardTheme.color,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade100),
-                              boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4, offset: const Offset(0, 2))]
+                              border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
+                              boxShadow: isDark ? [] : [BoxShadow(color: Colors.grey.shade100, blurRadius: 4, offset: const Offset(0, 2))]
                           ),
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,10 +413,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget _buildMetricCard(IconData icon, String label, String value, Color color) {
       return Container(
           decoration: BoxDecoration(
-              color: AppColors.bgPrimary,
+              color: theme.cardTheme.color,
               borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: AppShadows.small,
+              border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
+              boxShadow: isDark ? [] : AppShadows.small,
           ),
           child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

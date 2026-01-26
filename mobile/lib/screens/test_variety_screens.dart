@@ -28,14 +28,14 @@ class GenericTestScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(emptyIcon, size: 80, color: Colors.grey.shade300),
+            Icon(emptyIcon, size: 80, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
               'Coming Soon',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.grey.shade700,
               ),
             ),
             const SizedBox(height: 8),
@@ -44,7 +44,7 @@ class GenericTestScreen extends StatelessWidget {
               child: Text(
                 emptyMessage,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade500),
+                style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.grey.shade500),
               ),
             ),
             const SizedBox(height: 24),
@@ -135,7 +135,9 @@ class PassScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.amber.shade600, Colors.orange.shade600],
+                  colors: Theme.of(context).brightness == Brightness.dark 
+                    ? [const Color(0xFFB45309), const Color(0xFF9A3412)]
+                    : [Colors.amber.shade600, Colors.orange.shade600],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -169,12 +171,12 @@ class PassScreen extends StatelessWidget {
             const SizedBox(height: 24),
             
             // Features List
-            _buildFeatureItem(Icons.check_circle, 'Unlimited test attempts', Colors.green),
-            _buildFeatureItem(Icons.check_circle, 'Access to all premium exams', Colors.green),
-            _buildFeatureItem(Icons.check_circle, 'Detailed performance analytics', Colors.green),
-            _buildFeatureItem(Icons.check_circle, 'Priority doubt resolution', Colors.green),
-            _buildFeatureItem(Icons.check_circle, 'Ad-free experience', Colors.green),
-            _buildFeatureItem(Icons.check_circle, 'Exclusive study materials', Colors.green),
+            _buildFeatureItem(context, Icons.check_circle, 'Unlimited test attempts', Colors.green),
+            _buildFeatureItem(context, Icons.check_circle, 'Access to all premium exams', Colors.green),
+            _buildFeatureItem(context, Icons.check_circle, 'Detailed performance analytics', Colors.green),
+            _buildFeatureItem(context, Icons.check_circle, 'Priority doubt resolution', Colors.green),
+            _buildFeatureItem(context, Icons.check_circle, 'Ad-free experience', Colors.green),
+            _buildFeatureItem(context, Icons.check_circle, 'Exclusive study materials', Colors.green),
             
             const SizedBox(height: 32),
             
@@ -182,9 +184,9 @@ class PassScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardTheme.color,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200, width: 2),
+                border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade200, width: 2),
               ),
               child: Column(
                 children: [
@@ -250,7 +252,7 @@ class PassScreen extends StatelessWidget {
                   // Navigate to payment
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber.shade600,
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFFB45309) : Colors.amber.shade600,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
@@ -272,19 +274,20 @@ class PassScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureItem(IconData icon, String text, Color color) {
+  Widget _buildFeatureItem(BuildContext context, IconData icon, String text, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 24),
+          Icon(icon, color: Theme.of(context).brightness == Brightness.dark ? Colors.emeraldAccent : color, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
           ),

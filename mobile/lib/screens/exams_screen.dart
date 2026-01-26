@@ -101,7 +101,7 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
               padding: const EdgeInsets.fromLTRB(AppSpacing.screenPadding, AppSpacing.screenPadding, AppSpacing.screenPadding, 0),
               child: Row(
                 children: [
-                  Text('Test Series', style: AppTextStyles.h1),
+                  Text('Test Series', style: AppTextStyles.h1.copyWith(color: Theme.of(context).textTheme.displayLarge?.color)),
                 ],
               ),
             ),
@@ -148,7 +148,7 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
                         )
                       : null,
                   filled: true,
-                  fillColor: AppColors.bgTertiary,
+                  fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : AppColors.bgTertiary,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                     borderSide: BorderSide.none,

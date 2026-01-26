@@ -19,14 +19,17 @@ class ImprovedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       margin: margin ?? const EdgeInsets.only(bottom: AppSpacing.cardMargin),
       padding: padding ?? const EdgeInsets.all(AppSpacing.cardPadding),
       decoration: BoxDecoration(
-        color: color ?? AppColors.bgPrimary,
+        color: color ?? theme.cardTheme.color,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: AppShadows.small,
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
+        boxShadow: isDark ? [] : AppShadows.small,
       ),
       child: child,
     );
@@ -182,6 +185,7 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxxl),
@@ -191,20 +195,22 @@ class EmptyState extends StatelessWidget {
             Icon(
               icon,
               size: 80,
-              color: iconColor ?? Colors.grey.shade300,
+              color: iconColor ?? (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
               title,
               style: AppTextStyles.h3.copyWith(
-                color: AppColors.textSecondary,
+                color: isDark ? Colors.white70 : AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               message,
-              style: AppTextStyles.bodySmall,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: isDark ? Colors.white54 : null,
+              ),
               textAlign: TextAlign.center,
             ),
           ],

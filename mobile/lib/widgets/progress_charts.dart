@@ -17,36 +17,40 @@ class ProgressChartWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (attempts.isEmpty) {
-      return _buildEmptyState();
+      return _buildEmptyState(context);
     }
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.bgPrimary,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: AppShadows.small,
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
+        boxShadow: isDark ? [] : AppShadows.small,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTextStyles.h3),
+          Text(title, style: AppTextStyles.h3.copyWith(color: theme.textTheme.bodyLarge?.color)),
           const SizedBox(height: AppSpacing.lg),
           SizedBox(
             height: 200,
             child: LineChart(
-              _buildLineChartData(),
+              _buildLineChartData(context),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          _buildLegend(),
+          _buildLegend(context),
         ],
       ),
     );
   }
 
-  LineChartData _buildLineChartData() {
+  LineChartData _buildLineChartData(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final spots = attempts.asMap().entries.map((entry) {
       return FlSpot(entry.key.toDouble(), entry.value.score.toDouble());
     }).toList();
@@ -58,7 +62,7 @@ class ProgressChartWidget extends StatelessWidget {
         horizontalInterval: 20,
         getDrawingHorizontalLine: (value) {
           return FlLine(
-            color: Colors.grey.shade200,
+            color: isDark ? const Color(0xFF334155) : Colors.grey.shade200,
             strokeWidth: 1,
           );
         },
@@ -125,7 +129,7 @@ class ProgressChartWidget extends StatelessWidget {
                 radius: 4,
                 color: AppColors.primaryBlue,
                 strokeWidth: 2,
-                strokeColor: Colors.white,
+                strokeColor: isDark ? const Color(0xFF0F172A) : Colors.white,
               );
             },
           ),
@@ -133,7 +137,7 @@ class ProgressChartWidget extends StatelessWidget {
             show: true,
             gradient: LinearGradient(
               colors: [
-                AppColors.primaryBlue.withOpacity(0.3),
+                AppColors.primaryBlue.withOpacity(isDark ? 0.4 : 0.3),
                 AppColors.primaryBlue.withOpacity(0.0),
               ],
               begin: Alignment.topCenter,
@@ -144,6 +148,7 @@ class ProgressChartWidget extends StatelessWidget {
       ],
       lineTouchData: LineTouchData(
         touchTooltipData: LineTouchTooltipData(
+          tooltipBgColor: isDark ? const Color(0xFF1E293B) : const Color(0xFF2E353C),
           getTooltipItems: (touchedSpots) {
             return touchedSpots.map((spot) {
               final attempt = attempts[spot.x.toInt()];
@@ -162,7 +167,8 @@ class ProgressChartWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildLegend() {
+  Widget _buildLegend(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final avgScore = attempts.isEmpty
         ? 0
         : attempts.map((a) => a.score).reduce((a, b) => a + b) ~/
@@ -182,13 +188,13 @@ class ProgressChartWidget extends StatelessWidget {
           'Avg Score',
           '$avgScore%',
           Icons.trending_up,
-          Colors.green,
+          isDark ? Colors.emeraldAccent : Colors.green,
         ),
         _buildLegendItem(
           'Trend',
           trend > 0 ? '+$trend%' : '$trend%',
           trend >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-          trend >= 0 ? Colors.green : Colors.red,
+          trend >= 0 ? (isDark ? Colors.emeraldAccent : Colors.green) : (isDark ? Colors.redAccent : Colors.red),
         ),
       ],
     );
@@ -242,11 +248,12 @@ class ProgressChartWidget extends StatelessWidget {
     return recentAvg - earlierAvg;
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xxl),
       decoration: BoxDecoration(
-        color: AppColors.bgTertiary,
+        color: isDark ? const Color(0xFF1E293B) : AppColors.bgTertiary,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
       ),
       child: Column(
@@ -254,13 +261,13 @@ class ProgressChartWidget extends StatelessWidget {
           Icon(
             Icons.show_chart,
             size: 60,
-            color: Colors.grey.shade400,
+            color: isDark ? const Color(0xFF334155) : Colors.grey.shade400,
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
             'No Data Yet',
             style: AppTextStyles.h4.copyWith(
-              color: AppColors.textSecondary,
+              color: isDark ? Colors.white70 : AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -303,22 +310,25 @@ class TopicPerformanceChart extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.bgPrimary,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Topic Performance', style: AppTextStyles.h3),
+          Text('Topic Performance', style: AppTextStyles.h3.copyWith(color: theme.textTheme.bodyLarge?.color)),
           const SizedBox(height: AppSpacing.lg),
           SizedBox(
             height: 200,
             child: BarChart(
-              _buildBarChartData(),
+              _buildBarChartData(context),
             ),
           ),
         ],
@@ -326,7 +336,8 @@ class TopicPerformanceChart extends StatelessWidget {
     );
   }
 
-  BarChartData _buildBarChartData() {
+  BarChartData _buildBarChartData(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final entries = topicScores.entries.toList();
 
     return BarChartData(
@@ -334,6 +345,7 @@ class TopicPerformanceChart extends StatelessWidget {
       maxY: 100,
       barTouchData: BarTouchData(
         touchTooltipData: BarTouchTooltipData(
+          tooltipBgColor: isDark ? const Color(0xFF1E293B) : const Color(0xFF2E353C),
           getTooltipItem: (group, groupIndex, rod, rodIndex) {
             return BarTooltipItem(
               '${entries[group.x.toInt()].key}\n${rod.toY.toInt()}%',
@@ -415,7 +427,7 @@ class TopicPerformanceChart extends StatelessWidget {
         horizontalInterval: 20,
         getDrawingHorizontalLine: (value) {
           return FlLine(
-            color: Colors.grey.shade200,
+            color: isDark ? const Color(0xFF334155) : Colors.grey.shade200,
             strokeWidth: 1,
           );
         },

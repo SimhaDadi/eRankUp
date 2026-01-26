@@ -42,7 +42,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          boxShadow: [
+          boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
@@ -53,7 +53,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         child: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: _onTabTapped,
-          backgroundColor: AppColors.bgPrimary,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           indicatorColor: AppColors.primaryBlue.withOpacity(0.1),
           height: 70,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,

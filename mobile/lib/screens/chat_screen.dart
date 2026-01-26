@@ -98,13 +98,24 @@ class _ChatScreenState extends State<ChatScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isMe ? const Color(0xFF2563EB) : const Color(0xFF1E293B),
+                      color: isMe 
+                        ? AppColors.primaryBlue 
+                        : (Theme.of(context).brightness == Brightness.dark 
+                            ? const Color(0xFF1E293B) 
+                            : Colors.grey.shade200),
                       borderRadius: BorderRadius.circular(16).copyWith(
                         bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(16),
                         bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(0),
                       ),
                     ),
-                    child: Text(msg['message'] ?? '', style: const TextStyle(color: Colors.white)),
+                    child: Text(
+                      msg['message'] ?? '', 
+                      style: TextStyle(
+                        color: isMe 
+                          ? Colors.white 
+                          : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87)
+                      )
+                    ),
                   ),
                 );
               },
@@ -120,7 +131,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     decoration: InputDecoration(
                       hintText: 'Type a message...',
                       filled: true,
-                      fillColor: const Color(0xFF1E293B),
+                      fillColor: Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF1E293B) 
+                        : Colors.grey.shade100,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
@@ -132,7 +145,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 IconButton.filled(
                   onPressed: _sendMessage,
                   icon: const Icon(Icons.send),
-                  style: IconButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
+                  style: IconButton.styleFrom(backgroundColor: AppColors.primaryBlue),
                 ),
               ],
             ),

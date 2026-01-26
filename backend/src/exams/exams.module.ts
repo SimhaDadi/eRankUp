@@ -24,6 +24,8 @@ import { GamificationModule } from '../gamification/gamification.module';
 import { AdaptiveLearningModule } from '../adaptive-learning/adaptive-learning.module';
 import { TestSessionModule } from '../test-session/test-session.module';
 import { PassesModule } from '../passes/passes.module';
+import { QualityModule } from '../quality/quality.module';
+import { StudentQuestionsController } from './student-questions.controller';
 
 @Module({
     imports: [
@@ -34,8 +36,9 @@ import { PassesModule } from '../passes/passes.module';
         GamificationModule,
         AdaptiveLearningModule,
         PassesModule,
+        QualityModule,
     ],
-    controllers: [ExamsController, SubjectsController, ChaptersController, ModelsController, QuestionsController],
+    controllers: [ExamsController, SubjectsController, ChaptersController, ModelsController, QuestionsController, StudentQuestionsController],
     providers: [ExamsService, ExamsSeederService, ScorerService, DifficultyService, QuestionsUploadService],
     exports: [ExamsService, ScorerService, DifficultyService]
 })

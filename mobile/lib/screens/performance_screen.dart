@@ -135,7 +135,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               const SizedBox(height: 8),
               Text(
                 'Your mastery vs. Toppers in key topics',
-                style: TextStyle(color: Colors.grey.shade600),
+                style: TextStyle(color: theme.brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600),
               ),
               const SizedBox(height: 24),
               _buildRadarChart(),
@@ -185,13 +185,16 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
+        boxShadow: isDark ? [] : [
           BoxShadow(
             color: Colors.grey.shade100,
             blurRadius: 4,
@@ -202,14 +205,14 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 32),
+          Icon(icon, color: isDark ? color.withOpacity(0.8) : color, size: 32),
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.black,
-              color: Colors.black87,
+              color: theme.textTheme.bodyLarge?.color,
             ),
           ),
           const SizedBox(height: 4),
@@ -218,7 +221,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: isDark ? Colors.white60 : Colors.grey.shade600,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -245,13 +248,16 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       ),
     ];
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       height: 300,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
       ),
       child: Column(
         children: [
@@ -264,14 +270,18 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 borderData: FlBorderData(show: false),
                 radarBorderData: const BorderSide(color: Colors.transparent),
                 titlePositionPercentageOffset: 0.2,
-                titleTextStyle: const TextStyle(color: Colors.black54, fontSize: 10, fontWeight: FontWeight.bold),
+                titleTextStyle: TextStyle(
+                  color: isDark ? Colors.white54 : Colors.black54, 
+                  fontSize: 10, 
+                  fontWeight: FontWeight.bold
+                ),
                 getTitle: (index, angle) {
                   final topic = _masteryData![index]['topic'] as String;
                   return RadarChartTitle(text: topic.length > 8 ? '${topic.substring(0, 7)}..' : topic);
                 },
                 tickCount: 5,
                 ticksTextStyle: const TextStyle(color: Colors.transparent),
-                gridBorderData: BorderSide(color: Colors.grey.shade200, width: 1),
+                gridBorderData: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200, width: 1),
               ),
             ),
           ),
@@ -307,13 +317,16 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     final correct = attempt['correctAnswers'] ?? 0;
     final total = attempt['totalQuestions'] ?? 0;
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
       ),
       child: Row(
         children: [
@@ -346,10 +359,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               children: [
                 Text(
                   modelTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: theme.textTheme.bodyLarge?.color,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -359,7 +372,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                   '$correct/$total Correct',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: isDark ? Colors.white60 : Colors.grey.shade600,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -367,7 +380,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                   _formatDate(createdAt),
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade400,
+                    color: isDark ? Colors.white38 : Colors.grey.shade400,
                   ),
                 ),
               ],

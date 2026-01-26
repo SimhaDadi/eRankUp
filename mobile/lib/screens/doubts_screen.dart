@@ -77,9 +77,9 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -114,7 +114,7 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade50,
                 ),
               ),
               const SizedBox(height: 16),
@@ -162,7 +162,7 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
         onPressed: _showAskDoubtDialog,
         icon: const Icon(Icons.add),
         label: const Text('Ask Doubt'),
-        backgroundColor: Colors.blue.shade600,
+        backgroundColor: AppColors.primaryBlue,
       ),
       body: _doubts == null || _doubts!.isEmpty
           ? Center(
@@ -205,17 +205,22 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
     final createdAt = doubt['createdAt'];
     final answeredAt = doubt['answeredAt'];
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: status == 'answered' ? Colors.green.shade200 : Colors.grey.shade200,
+          color: status == 'answered' 
+            ? (isDark ? Colors.greenAccent.withOpacity(0.5) : Colors.green.shade200) 
+            : (isDark ? const Color(0xFF334155) : Colors.grey.shade200),
           width: status == 'answered' ? 2 : 1,
         ),
-        boxShadow: [
+        boxShadow: isDark ? [] : [
           BoxShadow(
             color: Colors.grey.shade100,
             blurRadius: 4,
@@ -232,7 +237,9 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: status == 'answered' ? Colors.green.shade50 : Colors.orange.shade50,
+                  color: status == 'answered' 
+                    ? (isDark ? const Color(0xFF064E3B).withOpacity(0.2) : Colors.green.shade50) 
+                    : (isDark ? const Color(0xFF78350F).withOpacity(0.2) : Colors.orange.shade50),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -241,7 +248,9 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
                     Icon(
                       status == 'answered' ? Icons.check_circle : Icons.pending,
                       size: 14,
-                      color: status == 'answered' ? Colors.green.shade700 : Colors.orange.shade700,
+                      color: status == 'answered' 
+                        ? (isDark ? Colors.greenAccent : Colors.green.shade700) 
+                        : (isDark ? Colors.orangeAccent : Colors.orange.shade700),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -249,7 +258,9 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: status == 'answered' ? Colors.green.shade700 : Colors.orange.shade700,
+                        color: status == 'answered' 
+                          ? (isDark ? Colors.greenAccent : Colors.green.shade700) 
+                          : (isDark ? Colors.orangeAccent : Colors.orange.shade700),
                       ),
                     ),
                   ],
@@ -277,9 +288,9 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
               Expanded(
                 child: Text(
                   question,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Colors.black87,
+                    color: theme.textTheme.bodyLarge?.color,
                     height: 1.5,
                     fontWeight: FontWeight.w500,
                   ),
@@ -294,9 +305,9 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
+                color: isDark ? const Color(0xFF0F172A).withOpacity(0.5) : Colors.green.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.shade100),
+                border: Border.all(color: isDark ? const Color(0xFF064E3B) : Colors.green.shade100),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,7 +340,7 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
                     answer,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.green.shade900,
+                      color: isDark ? Colors.white70 : Colors.green.shade900,
                       height: 1.5,
                     ),
                   ),

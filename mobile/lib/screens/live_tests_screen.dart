@@ -56,20 +56,20 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.live_tv, size: 80, color: Colors.grey.shade300),
+                  Icon(Icons.live_tv, size: 80, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade300),
                   const SizedBox(height: 16),
                   Text(
                     'No live tests available',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.grey.shade600,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Check back later for live competitions',
-                    style: TextStyle(color: Colors.grey.shade500),
+                    style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.grey.shade500),
                   ),
                 ],
               ),
@@ -92,16 +92,20 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
     final endTime = test['endTime'];
     final participants = test['participants'] ?? 0;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.red.shade400, Colors.orange.shade600],
+          colors: isDark 
+            ? [const Color(0xFF7F1D1D), const Color(0xFF7C2D12)]
+            : [Colors.red.shade400, Colors.orange.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: isDark ? [] : [
           BoxShadow(
             color: Colors.red.shade200,
             blurRadius: 8,
@@ -210,7 +214,7 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.black,
-                          color: Colors.red.shade600,
+                          color: isDark ? const Color(0xFFDC2626) : Colors.red.shade600,
                         ),
                       ),
                     ),

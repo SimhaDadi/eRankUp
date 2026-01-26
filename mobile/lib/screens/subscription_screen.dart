@@ -161,12 +161,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Future<String?> _showCouponDialog() async {
     final controller = TextEditingController();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return showDialog<String>(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
         elevation: 10,
-        backgroundColor: AppColors.bgPrimary,
+        backgroundColor: theme.dialogTheme.backgroundColor ?? theme.scaffoldBackgroundColor,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Column(
@@ -193,9 +196,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 controller: controller,
                 decoration: InputDecoration(
                   hintText: 'COUPONCODE',
-                  hintStyle: TextStyle(color: AppColors.textTertiary.withOpacity(0.5)),
+                  hintStyle: TextStyle(color: isDark ? Colors.white24 : AppColors.textTertiary.withOpacity(0.5)),
                   filled: true,
-                  fillColor: AppColors.bgSecondary,
+                  fillColor: isDark ? const Color(0xFF1E293B) : AppColors.bgSecondary,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                     borderSide: BorderSide.none,
@@ -204,7 +207,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
                 textCapitalization: TextCapitalization.characters,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold, 
+                  letterSpacing: 2, 
+                  color: theme.textTheme.bodyLarge?.color
+                ),
               ),
               const SizedBox(height: AppSpacing.xxl),
               Row(
@@ -298,14 +305,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Widget _buildPassCard(Pass pass) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-        border: Border.all(color: pass.isPopular ? AppColors.primaryCyan : Colors.grey.shade100, width: 2),
-        boxShadow: AppShadows.small,
+        border: Border.all(
+          color: pass.isPopular 
+            ? AppColors.primaryCyan 
+            : (isDark ? const Color(0xFF334155) : Colors.grey.shade100), 
+          width: 2
+        ),
+        boxShadow: isDark ? [] : AppShadows.small,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,7 +354,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   children: [
                     const Icon(Icons.check_circle, color: AppColors.primaryCyan, size: 18),
                     const SizedBox(width: 12),
-                    Expanded(child: Text(f, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold))),
+                    Expanded(child: Text(f, style: AppTextStyles.bodySmall.copyWith(color: theme.textTheme.bodyMedium?.color, fontWeight: FontWeight.bold))),
                   ],
                 ),
               )),
@@ -349,7 +364,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             child: ElevatedButton(
               onPressed: () => _initiatePurchase(pass),
               style: ElevatedButton.styleFrom(
-                backgroundColor: pass.isPopular ? AppColors.primaryCyan : AppColors.darkNavy,
+                backgroundColor: pass.isPopular ? AppColors.primaryCyan : (isDark ? const Color(0xFF1E293B) : AppColors.darkNavy),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),

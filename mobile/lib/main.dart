@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_app_screen.dart';
 import 'services/api_service.dart';
+import 'services/theme_provider.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -11,6 +12,7 @@ void main() {
     MultiProvider(
       providers: [
         Provider(create: (_) => ApiService()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const ERankUpApp(),
     ),
@@ -22,21 +24,25 @@ class ERankUpApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'eRankUp',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme.copyWith(
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(
-          AppTheme.lightTheme.textTheme,
-        ),
-      ),
-      darkTheme: AppTheme.darkTheme.copyWith(
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(
-          AppTheme.darkTheme.textTheme,
-        ),
-      ),
-      themeMode: ThemeMode.light, // Can be made dynamic based on user preference
-      home: const AuthWrapper(),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'eRankUp',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme.copyWith(
+            textTheme: GoogleFonts.plusJakartaSansTextTheme(
+              AppTheme.lightTheme.textTheme,
+            ),
+          ),
+          darkTheme: AppTheme.darkTheme.copyWith(
+            textTheme: GoogleFonts.plusJakartaSansTextTheme(
+              AppTheme.darkTheme.textTheme,
+            ),
+          ),
+          themeMode: themeProvider.themeMode,
+          home: const AuthWrapper(),
+        );
+      },
     );
   }
 }

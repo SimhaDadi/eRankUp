@@ -1,5 +1,7 @@
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/theme_provider.dart';
+import '../theme/app_theme.dart';
 import 'subscription_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -13,7 +15,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _emailNotifications = true;
   bool _pushNotifications = true;
-  bool _darkMode = false;
   Map<String, dynamic>? _currentPass;
   bool _isLoadingPass = true;
 
@@ -41,6 +42,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -71,7 +75,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 : Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _currentPass != null ? Colors.teal.shade100 : Colors.amber.shade100,
+                      color: _currentPass != null 
+                        ? (theme.brightness == Brightness.dark ? Colors.teal.shade900 : Colors.teal.shade100) 
+                        : (theme.brightness == Brightness.dark ? Colors.amber.shade900 : Colors.amber.shade100),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -79,7 +85,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.black,
-                        color: _currentPass != null ? Colors.teal.shade700 : Colors.amber.shade700,
+                        color: _currentPass != null 
+                          ? (theme.brightness == Brightness.dark ? Colors.teal.shade100 : Colors.teal.shade700) 
+                          : (theme.brightness == Brightness.dark ? Colors.amber.shade100 : Colors.amber.shade700),
                       ),
                     ),
                   ),
@@ -127,8 +135,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.dark_mode,
             title: 'Dark Mode',
             subtitle: 'Switch to dark theme',
-            value: _darkMode,
-            onChanged: (val) => setState(() => _darkMode = val),
+            value: themeProvider.isDarkMode,
+            onChanged: (val) => themeProvider.toggleTheme(),
           ),
           
           const SizedBox(height: 24),
@@ -207,21 +215,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Widget? trailing,
     VoidCallback? onTap,
   }) {
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color ?? Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade200),
       ),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: theme.colorScheme.primary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: Colors.blue.shade600, size: 24),
+          child: Icon(icon, color: theme.colorScheme.primary, size: 24),
         ),
         title: Text(
           title,
@@ -234,10 +243,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey.shade600,
+            color: theme.brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600,
           ),
         ),
-        trailing: trailing ?? Icon(Icons.chevron_right, color: Colors.grey.shade400),
+        trailing: trailing ?? Icon(Icons.chevron_right, color: theme.brightness == Brightness.dark ? Colors.white24 : Colors.grey.shade400),
         onTap: onTap,
       ),
     );
@@ -250,21 +259,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color ?? Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade200),
       ),
       child: SwitchListTile(
         secondary: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: theme.colorScheme.primary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: Colors.blue.shade600, size: 24),
+          child: Icon(icon, color: theme.colorScheme.primary, size: 24),
         ),
         title: Text(
           title,
@@ -277,12 +287,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey.shade600,
+            color: theme.brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600,
           ),
         ),
         value: value,
         onChanged: onChanged,
-        activeColor: Colors.blue.shade600,
+        activeColor: theme.colorScheme.primary,
       ),
     );
   }
@@ -379,7 +389,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
-                        colors: [Colors.blue.shade400, Colors.blue.shade600],
+                        colors: Theme.of(context).brightness == Brightness.dark 
+                          ? [const Color(0xFF1E40AF), const Color(0xFF1E3A8A)]
+                          : [Colors.blue.shade400, Colors.blue.shade600],
                       ),
                     ),
                     child: Center(
@@ -399,9 +411,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade600,
+                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2563EB) : Colors.blue.shade600,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
+                        border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 3),
                       ),
                       child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                     ),
@@ -432,7 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: const Icon(Icons.edit),
                 label: const Text('Edit Profile'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade600,
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2563EB) : Colors.blue.shade600,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -447,24 +459,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInfoTile(String label, String value, IconData icon) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: isDark ? const Color(0xFF1E293B) : Colors.blue.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: Colors.blue.shade600, size: 20),
+            child: Icon(icon, color: isDark ? const Color(0xFF60A5FA) : Colors.blue.shade600, size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -475,16 +489,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: isDark ? Colors.white60 : Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
+                    color: theme.textTheme.bodyLarge?.color,
                   ),
                 ),
               ],

@@ -75,28 +75,24 @@ class AppTextStyles {
     fontSize: 24,
     fontWeight: FontWeight.bold,
     height: 1.3,
-    color: AppColors.textPrimary,
   );
   
   static const h2 = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
     height: 1.4,
-    color: AppColors.textPrimary,
   );
   
   static const h3 = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.bold,
     height: 1.4,
-    color: AppColors.textPrimary,
   );
   
   static const h4 = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.5,
-    color: AppColors.textPrimary,
   );
   
   // Body Text
@@ -111,7 +107,6 @@ class AppTextStyles {
     fontSize: 15,
     fontWeight: FontWeight.normal,
     height: 1.6,
-    color: AppColors.textPrimary,
   );
   
   static const bodySmall = TextStyle(

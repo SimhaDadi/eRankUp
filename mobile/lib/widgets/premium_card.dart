@@ -75,6 +75,7 @@ class _PremiumCardState extends State<PremiumCard> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
@@ -85,9 +86,11 @@ class _PremiumCardState extends State<PremiumCard> with SingleTickerProviderStat
           margin: widget.margin,
           padding: widget.padding,
           decoration: BoxDecoration(
-            color: widget.color ?? Colors.white,
+            color: widget.color ?? theme.cardTheme.color ?? Colors.white,
             borderRadius: widget.borderRadius ?? BorderRadius.circular(16),
-            border: widget.border,
+            border: widget.border ?? (theme.brightness == Brightness.dark 
+              ? Border.all(color: const Color(0xFF334155)) 
+              : null),
             boxShadow: widget.boxShadow,
           ),
           child: widget.child,

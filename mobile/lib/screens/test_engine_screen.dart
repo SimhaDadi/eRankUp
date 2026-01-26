@@ -237,17 +237,18 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
     return '${h > 0 ? '$h:' : ''}${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
   
-  Color _getStatusColor(int index, String id) {
-       bool isAnswered = _userAnswers.containsKey(id);
-       bool isFlagged = _flaggedIds.contains(id);
-       bool isVisited = _visitedIds.contains(id) || index == _currentIndex; // Current counts as visited
-       
-       if (isFlagged && isAnswered) return const Color(0xFF7C3AED); // Purple
-       if (isFlagged) return const Color(0xFFA855F7); // Lighter Purple
-       if (isAnswered) return const Color(0xFF22C55E); // Green
-       if (isVisited) return const Color(0xFFEF4444); // Red (Not Answered)
-       return Colors.white; // Not Visited
-  }
+    Color _getStatusColor(int index, String id) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        bool isAnswered = _userAnswers.containsKey(id);
+        bool isFlagged = _flaggedIds.contains(id);
+        bool isVisited = _visitedIds.contains(id) || index == _currentIndex;
+
+        if (isFlagged && isAnswered) return const Color(0xFF7C3AED);
+        if (isFlagged) return const Color(0xFFA855F7);
+        if (isAnswered) return isDark ? const Color(0xFF059669) : const Color(0xFF22C55E);
+        if (isVisited) return isDark ? const Color(0xFFB91C1C) : const Color(0xFFEF4444);
+        return isDark ? const Color(0xFF1E293B) : Colors.white;
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -263,35 +264,36 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
     return Scaffold(
       drawer: Drawer(
           width: MediaQuery.of(context).size.width * 0.85,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           child: Column(
               children: [
-                  Container(
-                      padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 50, AppSpacing.xl, AppSpacing.xl),
-                      color: AppColors.infoBg,
-                      child: Column(
-                          children: [
-                             Row(
-                                 children: [
-                                     const CircleAvatar(backgroundColor: AppColors.primaryBlue, child: Icon(Icons.person, color: Colors.white)),
-                                     const SizedBox(width: AppSpacing.md),
-                                     Column(
-                                         crossAxisAlignment: CrossAxisAlignment.start,
-                                         children: [
-                                             const Text("Demo User", style: TextStyle(fontWeight: FontWeight.bold)),
-                                             Text(widget.model.title, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                                         ],
-                                     )
-                                 ],
-                             ),
+                   Container(
+                       padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 50, AppSpacing.xl, AppSpacing.xl),
+                       color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : AppColors.infoBg,
+                       child: Column(
+                           children: [
+                               Row(
+                                   children: [
+                                       const CircleAvatar(backgroundColor: AppColors.primaryBlue, child: Icon(Icons.person, color: Colors.white)),
+                                       const SizedBox(width: AppSpacing.md),
+                                       Column(
+                                           crossAxisAlignment: CrossAxisAlignment.start,
+                                           children: [
+                                               Text("Demo User", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                                               Text(widget.model.title, style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600)),
+                                           ],
+                                       )
+                                   ],
+                               ),
                              const SizedBox(height: 20),
                              // Legend
                              Row(
                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                                  children: [
-                                     _buildLegendItem(const Color(0xFF22C55E), "Ans"),
-                                     _buildLegendItem(const Color(0xFFEF4444), "Skip"),
+                                     _buildLegendItem(Theme.of(context).brightness == Brightness.dark ? const Color(0xFF059669) : const Color(0xFF22C55E), "Ans"),
+                                     _buildLegendItem(Theme.of(context).brightness == Brightness.dark ? const Color(0xFFB91C1C) : const Color(0xFFEF4444), "Skip"),
                                      _buildLegendItem(const Color(0xFF7C3AED), "Mark"),
-                                     _buildLegendItem(Colors.white, "New", border: true),
+                                     _buildLegendItem(Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white, "New", border: true),
                                  ]
                              )
                           ],
@@ -320,14 +322,16 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                                                       height: 40,
                                                       decoration: BoxDecoration(
                                                           color: _getStatusColor(idx, qId),
-                                                          border: Border.all(color: Colors.grey.shade300),
+                                                          border: Border.all(color: isDark ? const Color(0xFF475569) : Colors.grey.shade300),
                                                           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                                                       ),
                                                       child: Stack(
                                                           children: [
                                                               Center(child: Text('${idx+1}', style: TextStyle(
                                                                   fontWeight: FontWeight.bold,
-                                                                  color: _getStatusColor(idx, qId) == Colors.white ? Colors.black87 : Colors.white
+                                                                  color: (_getStatusColor(idx, qId) == Colors.white || _getStatusColor(idx, qId) == const Color(0xFF1E293B)) 
+                                                                    ? (Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.black87) 
+                                                                    : Colors.white
                                                               ))),
                                                               if (_currentIndex == idx)
                                                                   Positioned.fill(
@@ -381,12 +385,16 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                      color: _timeLeft < 300 ? AppColors.errorBg : AppColors.infoBg,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-                      border: Border.all(color: _timeLeft < 300 ? AppColors.errorBorder : AppColors.infoBorder)
-                  ),
+                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                   decoration: BoxDecoration(
+                       color: _timeLeft < 300 
+                          ? (isDark ? const Color(0xFF7F1D1D).withOpacity(0.2) : AppColors.errorBg)
+                          : (isDark ? const Color(0xFF1E293B) : AppColors.infoBg),
+                       borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
+                       border: Border.all(color: _timeLeft < 300 
+                          ? (isDark ? const Color(0xFF7F1D1D) : AppColors.errorBorder)
+                          : (isDark ? const Color(0xFF334155) : AppColors.infoBorder))
+                   ),
                   child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -431,8 +439,13 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                                       });
                                   }
                               },
-                              selectedColor: AppColors.infoBg,
-                              labelStyle: TextStyle(color: isActive ? AppColors.primaryBlue : AppColors.textSecondary, fontWeight: FontWeight.bold),
+                               selectedColor: isDark ? const Color(0xFF1E293B) : AppColors.infoBg,
+                               labelStyle: TextStyle(
+                                 color: isActive 
+                                    ? AppColors.primaryBlue 
+                                    : (isDark ? Colors.white60 : AppColors.textSecondary), 
+                                 fontWeight: FontWeight.bold
+                               ),
                           ),
                       );
                   }).toList(),
@@ -499,17 +512,21 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppColors.infoBg : AppColors.bgPrimary,
-                              border: Border.all(
-                                color: isSelected ? AppColors.primaryBlue : Colors.grey.shade200,
-                                width: isSelected ? 2 : 1,
-                              ),
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                              boxShadow: [
-                                  if (isSelected) BoxShadow(color: AppColors.primaryBlue.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))
-                              ]
-                            ),
+                             decoration: BoxDecoration(
+                               color: isSelected 
+                                  ? (isDark ? AppColors.primaryBlue.withOpacity(0.15) : AppColors.infoBg)
+                                  : theme.cardTheme.color,
+                               border: Border.all(
+                                 color: isSelected 
+                                    ? AppColors.primaryBlue 
+                                    : (isDark ? const Color(0xFF334155) : Colors.grey.shade200),
+                                 width: isSelected ? 2 : 1,
+                               ),
+                               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                               boxShadow: [
+                                   if (isSelected && !isDark) BoxShadow(color: AppColors.primaryBlue.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))
+                               ]
+                             ),
                             child: Row(
                               children: [
                                 Container(
@@ -540,12 +557,17 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
               ),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
-            ),
+           Container(
+             padding: const EdgeInsets.all(AppSpacing.lg),
+             decoration: BoxDecoration(
+               color: theme.scaffoldBackgroundColor,
+               boxShadow: isDark ? [] : [
+                 BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))
+               ],
+               border: Border.all(
+                 color: isDark ? const Color(0xFF334155) : Colors.transparent,
+               ),
+             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -563,7 +585,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                 Builder(
                     builder: (context) => IconButton(
                         onPressed: () => Scaffold.of(context).openDrawer(), 
-                        icon: const Icon(Icons.grid_view, color: Colors.grey)
+                        icon: Icon(Icons.grid_view, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.grey)
                     )
                 ),
 
@@ -617,70 +639,12 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                   decoration: BoxDecoration(
                       color: color,
                       shape: BoxShape.circle,
-                      border: border ? Border.all(color: Colors.grey) : null
+                      border: border ? Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF475569) : Colors.grey) : null
                   ),
               ),
               const SizedBox(width: 4),
-              Text(label, style: const TextStyle(fontSize: 10))
+              Text(label, style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodySmall?.color))
           ],
       );
-  }
-}
-
-class MathRichText extends StatelessWidget {
-  final String text;
-  final TextStyle style;
-
-  const MathRichText({super.key, required this.text, required this.style});
-
-  @override
-  Widget build(BuildContext context) {
-    // Regex to split text by $...$ (LaTeX blocks)
-    final regex = RegExp(r'\$((?:\\\$|[^$])*)\$');
-    final List<InlineSpan> children = [];
-    
-    int lastMatchEnd = 0;
-    for (final match in regex.allMatches(text)) {
-      // Add plain text before match
-      if (match.start > lastMatchEnd) {
-        children.add(TextSpan(
-          text: text.substring(lastMatchEnd, match.start),
-          style: style,
-        ));
-      }
-      
-      // Add LaTeX content
-      final formula = match.group(1)!;
-      children.add(WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Math.tex(
-            formula,
-            mathStyle: MathStyle.text,
-            textStyle: style,
-            onErrorFallback: (err) => Text('\$$formula\$', style: style.copyWith(color: Colors.red)),
-          ),
-        ),
-      ));
-      
-      lastMatchEnd = match.end;
-    }
-    
-    // Add remaining plain text
-    if (lastMatchEnd < text.length) {
-      children.add(TextSpan(
-        text: text.substring(lastMatchEnd),
-        style: style,
-      ));
-    }
-
-    if (children.isEmpty) {
-       return Text(text, style: style);
-    }
-
-    return RichText(
-      text: TextSpan(children: children),
-    );
   }
 }

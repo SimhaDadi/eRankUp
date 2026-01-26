@@ -148,10 +148,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildShimmerCard({required double height}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade200,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
       ),
     );
@@ -180,7 +181,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             '$greeting $emoji',
             style: AppTextStyles.h3.copyWith(
-              color: AppColors.textSecondary,
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.white60 
+                  : AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 4),
@@ -197,7 +200,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.orange.shade400, Colors.red.shade400],
+                  colors: Theme.of(context).brightness == Brightness.dark 
+                    ? [const Color(0xFFC2410C), const Color(0xFF991B1B)]
+                    : [Colors.orange.shade400, Colors.red.shade400],
                 ),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               ),
@@ -253,19 +258,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Avg Score',
                 '$avgScore%',
                 Icons.trending_up,
-                Colors.green.shade600,
+                Theme.of(context).brightness == Brightness.dark ? Colors.emeraldAccent : Colors.green.shade600,
               ),
               _buildStatCard(
                 'Best Score',
                 '$bestScore%',
                 Icons.emoji_events,
-                Colors.amber.shade600,
+                Theme.of(context).brightness == Brightness.dark ? Colors.amberAccent : Colors.amber.shade600,
               ),
               _buildStatCard(
                 'Global Rank',
                 '#$rank',
                 Icons.leaderboard,
-                Colors.purple.shade600,
+                Theme.of(context).brightness == Brightness.dark ? const Color(0xFFA855F7) : Colors.purple.shade600,
               ),
             ],
           ),
@@ -275,9 +280,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return PremiumCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      border: Border.all(color: Colors.grey.shade200),
+      border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
       boxShadow: AppShadows.small,
       onTap: () {
           // Navigating to performance from any stat card for a fluid feel
@@ -295,7 +301,11 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.caption.copyWith(
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.white60 
+                  : AppColors.textSecondary,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -382,8 +392,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppColors.primaryBlue,
+                      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      foregroundColor: isDark ? Colors.white : AppColors.primaryBlue,
+                      elevation: isDark ? 0 : 2,
                     ),
                     child: const Text('View Performance'),
                   ),

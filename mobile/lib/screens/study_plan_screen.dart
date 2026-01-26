@@ -131,9 +131,9 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.psychology_outlined, size: 80, color: Colors.grey),
+                Icon(Icons.psychology_outlined, size: 80, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey),
                 const SizedBox(height: 16),
-                Text(_error!, textAlign: TextAlign.center, style: AppTextStyles.body),
+                Text(_error!, textAlign: TextAlign.center, style: AppTextStyles.body.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color)),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _fetchPlan,
@@ -187,8 +187,9 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
       bottomSheet: Container(
         padding: const EdgeInsets.all(AppSpacing.screenPadding),
         decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: AppShadows.large,
+          color: Theme.of(context).scaffoldBackgroundColor,
+          boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : AppShadows.large,
+          border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.transparent),
         ),
         child: SizedBox(
           width: double.infinity,
@@ -213,16 +214,18 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
     );
   }
 
-  Widget _buildHeader() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.all(AppSpacing.screenPadding),
       padding: const EdgeInsets.all(AppSpacing.xxl),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-        boxShadow: AppShadows.medium,
-        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: isDark ? [] : AppShadows.medium,
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,7 +253,7 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: AppColors.bgSecondary,
+              color: isDark ? const Color(0xFF0F172A).withOpacity(0.5) : AppColors.bgSecondary,
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               border: Border.all(color: AppColors.primaryCyan.withOpacity(0.2)),
             ),
@@ -278,6 +281,7 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
                   style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w500,
                     height: 1.5,
+                    color: theme.textTheme.bodyMedium?.color,
                   ),
                 ),
               ],
@@ -298,24 +302,28 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
   }
 
   Widget _buildSimpleStat(String label, String value, IconData icon) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Icon(icon, size: 20, color: AppColors.textTertiary),
         const SizedBox(height: 4),
-        Text(value, style: AppTextStyles.h4),
-        Text(label, style: AppTextStyles.overline.copyWith(fontSize: 9)),
+        Text(value, style: AppTextStyles.h4.copyWith(color: theme.textTheme.bodyLarge?.color)),
+        Text(label, style: AppTextStyles.overline.copyWith(fontSize: 9, color: theme.textTheme.bodySmall?.color)),
       ],
     );
   }
 
   Widget _buildQuestionCard(int index, dynamic q) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,7 +332,7 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.bgSecondary,
+              color: isDark ? const Color(0xFF0F172A) : AppColors.bgSecondary,
               borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             ),
             child: Center(
@@ -357,7 +365,7 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
                   q['content'],
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
+                  style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500, color: theme.textTheme.bodyLarge?.color),
                 ),
               ],
             ),

@@ -93,9 +93,10 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
   }
 
   Widget _buildFilterBar() {
+    final theme = Theme.of(context);
     return Container(
       height: 60,
-      color: Colors.white,
+      color: theme.appBarTheme.backgroundColor,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -141,13 +142,16 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
     final options = question['options'] as List? ?? [];
     final explanation = question['explanation'];
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: AppShadows.small,
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
+        boxShadow: isDark ? [] : AppShadows.small,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,17 +184,17 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
             final isCorrectOpt = opt['id'] == correctId;
             
             Color bgColor = Colors.transparent;
-            Color borderColor = Colors.grey.shade100;
+            Color borderColor = isDark ? const Color(0xFF334155) : Colors.grey.shade100;
             Widget? icon;
 
             if (isCorrectOpt) {
-              bgColor = Colors.green.shade50;
-              borderColor = Colors.green.shade200;
-              icon = const Icon(Icons.check_circle, color: Colors.green, size: 20);
+              bgColor = isDark ? const Color(0xFF064E3B).withOpacity(0.3) : Colors.green.shade50;
+              borderColor = isDark ? const Color(0xFF059669) : Colors.green.shade200;
+              icon = Icon(Icons.check_circle, color: isDark ? Colors.greenAccent : Colors.green, size: 20);
             } else if (isSelected && !isCorrect) {
-              bgColor = Colors.red.shade50;
-              borderColor = Colors.red.shade200;
-              icon = const Icon(Icons.cancel, color: Colors.red, size: 20);
+              bgColor = isDark ? const Color(0xFF7F1D1D).withOpacity(0.2) : Colors.red.shade50;
+              borderColor = isDark ? const Color(0xFFDC2626) : Colors.red.shade200;
+              icon = Icon(Icons.cancel, color: isDark ? Colors.redAccent : Colors.red, size: 20);
             }
 
             return Container(
@@ -207,7 +211,9 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                      child: MathRichText(
                        text: opt['text'] ?? '',
                        style: TextStyle(
-                         color: isCorrectOpt ? Colors.green.shade900 : (isSelected ? Colors.red.shade900 : AppColors.textPrimary),
+                         color: isCorrectOpt 
+                            ? (isDark ? Colors.greenAccent : Colors.green.shade900) 
+                            : (isSelected ? (isDark ? Colors.redAccent : Colors.red.shade900) : theme.textTheme.bodyMedium?.color),
                          fontWeight: (isSelected || isCorrectOpt) ? FontWeight.bold : FontWeight.normal,
                        ),
                      ),
@@ -225,7 +231,7 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.bgTertiary,
+              color: isDark ? const Color(0xFF0F172A).withOpacity(0.5) : AppColors.bgTertiary,
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
             ),
             child: Column(
@@ -256,7 +262,7 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                 if (explanation != null && explanation.toString().isNotEmpty)
                   MathRichText(
                     text: explanation,
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary),
+                    style: AppTextStyles.bodySmall.copyWith(color: isDark ? Colors.white70 : AppColors.textPrimary),
                   )
                 else
                   Text(
@@ -311,9 +317,9 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           children: [
@@ -358,8 +364,8 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
 
   Widget _buildStatusBadge(bool skipped, bool correct) {
     if (skipped) return _badge('SKIPPED', Colors.grey);
-    if (correct) return _badge('CORRECT', Colors.green);
-    return _badge('INCORRECT', Colors.red);
+    if (correct) return _badge('CORRECT', Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green);
+    return _badge('INCORRECT', Theme.of(context).brightness == Brightness.dark ? Colors.redAccent : Colors.red);
   }
 
   Widget _badge(String text, Color color) {
@@ -381,9 +387,12 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.filter_list_off, size: 64, color: Colors.grey.shade300),
+          Icon(Icons.filter_list_off, size: 64, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade300),
           const SizedBox(height: 16),
-          Text('No questions match this filter', style: AppTextStyles.bodySmall),
+          Text(
+            'No questions match this filter', 
+            style: AppTextStyles.bodySmall.copyWith(color: Theme.of(context).textTheme.bodySmall?.color)
+          ),
         ],
       ),
     );
