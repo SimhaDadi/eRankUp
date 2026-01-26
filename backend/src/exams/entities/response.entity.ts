@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, Index } from 'typeorm';
-import { Type } from 'class-transformer';
+import { Type, Expose } from 'class-transformer';
 import { Attempt } from './attempt.entity';
 import { Question } from './question.entity';
 
@@ -12,6 +12,7 @@ export class Response {
     @ManyToOne(() => Attempt, (attempt) => attempt.responses)
     attempt: Attempt;
 
+    @Expose()
     @Index()
     @ManyToOne(() => Question)
     @Type(() => Question)

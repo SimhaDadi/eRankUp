@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn, Index } from 'typeorm';
-import { Type } from 'class-transformer';
+import { Type, Expose } from 'class-transformer';
 import { User } from '../../users/user.entity';
 import { Model } from './model.entity';
 import { Exam } from './exam.entity';
@@ -24,6 +24,7 @@ export class Attempt {
     @Column({ nullable: true })
     examId: string;
 
+    @Expose()
     @OneToMany(() => Response, (response) => response.attempt, { cascade: true })
     @Type(() => Response)
     responses: Response[];

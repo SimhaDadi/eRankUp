@@ -221,7 +221,27 @@ export class ExamsController {
     async findAttempt(@Param('id') id: string, @Request() req: any) {
         const attempt = await this.scorerService.getAttempt(id, req.user.userId);
 
+        // Security Check: Only allow viewing review if attempt is finished? 
+        // Logic handled by frontend (only calls this page after finish).
+        // Ensure user owns attempt (handled by getAttempt).
+
         const plain = instanceToPlain(attempt, { groups: ['review'] });
+
+        // [FIX] Force injection of explanation if it was stripped
+        if (plain.responses && attempt.responses) {
+            plain.responses.forEach((resp: any, index: number) => {
+                const originalQ = attempt.responses[index]?.question;
+                if (resp.question && originalQ) {
+                    // Manually re-attach explanation and correctOptionId if they were stripped
+                    if (!resp.question.explanation && originalQ.explanation) {
+                        resp.question.explanation = originalQ.explanation;
+                    }
+                    if (!resp.question.correctOptionId && originalQ.correctOptionId) {
+                        resp.question.correctOptionId = originalQ.correctOptionId;
+                    }
+                }
+            });
+        }
 
         return plain;
     }

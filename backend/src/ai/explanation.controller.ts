@@ -335,6 +335,24 @@ export class ExplanationController {
     }
 
     /**
+     * Trigger sync of explanations to Question table
+     * Admin only
+     */
+    @Post('admin/sync')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async syncExplanations() {
+        try {
+            return await this.explanationService.syncExplanations();
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to sync explanations',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
      * Get explanation statistics
      * Admin only
      */

@@ -129,6 +129,10 @@ export class ExplanationService {
             });
             await this.explanationRepository.save(newExplanation);
 
+            // [FIX] Sync to Question entity for frontend compatibility
+            question.explanation = explanation;
+            await this.questionRepository.save(question);
+
             return explanation;
         } catch (error) {
             console.error('AI generation failed:', error);
@@ -362,6 +366,11 @@ Write a concise, high-impact explanation using the following Markdown structure 
 
         await this.explanationRepository.save(explanation);
 
+        // [FIX] Sync to Question entity
+        await this.questionRepository.update(explanation.questionId, {
+            explanation: explanation.adminApprovedExplanation
+        });
+
         return {
             success: true,
             message: 'Explanation approved',
@@ -401,6 +410,11 @@ Write a concise, high-impact explanation using the following Markdown structure 
         explanation.isVerified = true;
 
         await this.explanationRepository.save(explanation);
+
+        // [FIX] Sync to Question entity
+        await this.questionRepository.update(explanation.questionId, {
+            explanation: explanation.adminApprovedExplanation
+        });
 
         return {
             success: true,
@@ -483,5 +497,25 @@ Write a concise, high-impact explanation using the following Markdown structure 
                 notHelpful: parseInt(totalNotHelpful.totalNotHelpful) || 0
             }
         };
+    }
+
+    /**
+     * Backfill/Sync explanations from QuestionExplanation table to Question table
+     * This fixes the "split brain" issue where frontend doesn't see AI explanations
+     */
+    async syncExplanations(): Promise<{ updated: number }> {
+        const explanations = await this.explanationRepository.find();
+        let updated = 0;
+
+        for (const exp of explanations) {
+            const question = await this.questionRepository.findOne({ where: { id: exp.questionId } });
+            if (question && !question.explanation) {
+                question.explanation = exp.adminApprovedExplanation || exp.aiExplanation;
+                await this.questionRepository.save(question);
+                updated++;
+            }
+        }
+        console.log(`[ExplanationService] Synced ${updated} explanations to Question table.`);
+        return { updated };
     }
 }
