@@ -10,6 +10,7 @@ import 'live_tests_screen.dart';
 import 'performance_screen.dart';
 import 'doubts_screen.dart';
 import 'saved_questions_screen.dart';
+import 'study_plan_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -522,7 +523,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Practice',
                 Icons.fitness_center,
                 Colors.teal,
-                () {},
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const StudyPlanScreen()),
+                  );
+                },
               ),
               _buildQuickActionCard(
                 'Doubts',

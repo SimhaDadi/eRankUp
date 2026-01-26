@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../widgets/topper_comparison_widget.dart';
 import '../theme/app_theme.dart';
+import 'solution_explorer_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
   final String attemptId;
@@ -350,11 +351,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
-                    icon: const Icon(Icons.grid_view),
-                    label: const Text('Choose Another'),
+                    onPressed: () {
+                       Navigator.push(
+                         context,
+                         MaterialPageRoute(
+                           builder: (_) => SolutionExplorerScreen(attemptId: widget.attemptId),
+                         ),
+                       );
+                    },
+                    icon: const Icon(Icons.reviews_outlined),
+                    label: const Text('Review Questions'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade900,
+                      backgroundColor: AppColors.primaryBlue,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
@@ -362,6 +370,21 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+                icon: const Icon(Icons.grid_view),
+                label: const Text('Choose Another'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade900,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
+                ),
+              ),
             ),
             
             const SizedBox(height: 24),

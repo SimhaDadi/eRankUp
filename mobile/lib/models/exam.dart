@@ -5,6 +5,7 @@ class Exam {
   final bool isPremium;
   final double price;
   final bool hasPurchased;
+  final String type;
 
   Exam({
     required this.id,
@@ -12,6 +13,7 @@ class Exam {
     required this.description,
     required this.isPremium,
     required this.price,
+    this.type = 'real_exam',
     this.hasPurchased = false,
   });
 
@@ -22,6 +24,7 @@ class Exam {
       description: json['description'] ?? '',
       isPremium: json['isPremium'] ?? false,
       price: (json['price'] ?? 0).toDouble(),
+      type: json['type'] ?? 'real_exam',
       hasPurchased: json['hasPurchased'] ?? false,
     );
   }

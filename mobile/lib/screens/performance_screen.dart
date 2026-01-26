@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../services/api_service.dart';
 
 class PerformanceScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class PerformanceScreen extends StatefulWidget {
 class _PerformanceScreenState extends State<PerformanceScreen> {
   Map<String, dynamic>? _stats;
   List<dynamic>? _recentAttempts;
+  List<dynamic>? _masteryData;
   bool _isLoading = true;
 
   @override
@@ -25,13 +27,19 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   Future<void> _fetchPerformanceData() async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
-      final statsResponse = await apiService.get('/exams/user/stats');
-      final attemptsResponse = await apiService.get('/exams/user/recent');
+      final results = await Future.wait([
+        apiService.get('/exams/user/stats'),
+        apiService.get('/exams/user/recent'),
+        apiService.get('/adaptive/mastery'),
+      ]);
       
-      if (statsResponse.statusCode == 200 && attemptsResponse.statusCode == 200) {
+      if (mounted) {
         setState(() {
-          _stats = jsonDecode(statsResponse.body);
-          _recentAttempts = jsonDecode(attemptsResponse.body) as List;
+          _stats = jsonDecode(results[0].body);
+          _recentAttempts = jsonDecode(results[1].body) as List;
+          if (results[2].statusCode == 200) {
+            _masteryData = jsonDecode(results[2].body) as List;
+          }
           _isLoading = false;
         });
       }
@@ -118,6 +126,22 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             
             const SizedBox(height: 32),
             
+            // AI Benchmarking (Radar Chart)
+            if (_masteryData != null && _masteryData!.isNotEmpty) ...[
+              const Text(
+                'AI Benchmarking',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your mastery vs. Toppers in key topics',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 24),
+              _buildRadarChart(),
+              const SizedBox(height: 32),
+            ],
+
             // Recent Attempts
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -200,6 +224,78 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRadarChart() {
+    final List<RadarDataSet> dataSets = [
+      // Topper Data
+      RadarDataSet(
+        fillColor: Colors.blue.withOpacity(0.2),
+        borderColor: Colors.blue,
+        entryRadius: 3,
+        dataEntries: _masteryData!.map((m) => RadarEntry(value: (m['topperScore'] as num).toDouble())).toList(),
+      ),
+      // User Data
+      RadarDataSet(
+        fillColor: Colors.teal.withOpacity(0.4),
+        borderColor: Colors.teal,
+        entryRadius: 3,
+        dataEntries: _masteryData!.map((m) => RadarEntry(value: (m['yourScore'] as num).toDouble())).toList(),
+      ),
+    ];
+
+    return Container(
+      height: 300,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: RadarChart(
+              RadarChartData(
+                dataSets: dataSets,
+                radarShape: RadarShape.polygon,
+                radarBackgroundColor: Colors.transparent,
+                borderData: FlBorderData(show: false),
+                radarBorderData: const BorderSide(color: Colors.transparent),
+                titlePositionPercentageOffset: 0.2,
+                titleTextStyle: const TextStyle(color: Colors.black54, fontSize: 10, fontWeight: FontWeight.bold),
+                getTitle: (index, angle) {
+                  final topic = _masteryData![index]['topic'] as String;
+                  return RadarChartTitle(text: topic.length > 8 ? '${topic.substring(0, 7)}..' : topic);
+                },
+                tickCount: 5,
+                ticksTextStyle: const TextStyle(color: Colors.transparent),
+                gridBorderData: BorderSide(color: Colors.grey.shade200, width: 1),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildLegend('Topper', Colors.blue),
+              const SizedBox(width: 20),
+              _buildLegend('You', Colors.teal),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegend(String label, Color color) {
+    return Row(
+      children: [
+        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 

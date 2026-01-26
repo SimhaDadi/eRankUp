@@ -178,12 +178,14 @@ export class ExamsService implements OnApplicationBootstrap {
     private async invalidateCache(examId?: string) {
         // Clear all list variations
         const keys = [
-            'exams:all:all',
-            'exams:all:real_exam',
-            'exams:all:question_bank',
-            'exams:all:admin:all',
-            'exams:all:admin:real_exam',
-            'exams:all:admin:question_bank'
+            'exams:all:all:v5',
+            'exams:all:real_exam:v5',
+            'exams:all:previous_year_paper:v5',
+            'exams:all:question_bank:v5',
+            'exams:all:admin:all:v5',
+            'exams:all:admin:real_exam:v5',
+            'exams:all:admin:previous_year_paper:v5',
+            'exams:all:admin:question_bank:v5'
         ];
 
         for (const key of keys) {
@@ -987,11 +989,12 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     async getPracticeQuestions(chapterId: string, limit: number = 10) {
+        const take = typeof limit === 'string' ? parseInt(limit) : limit;
         return this.questionRepository
             .createQueryBuilder('question')
             .where('question.chapterId = :chapterId', { chapterId })
             .orderBy('RANDOM()')
-            .take(limit)
+            .take(take)
             .getMany();
     }
 

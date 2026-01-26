@@ -13,18 +13,22 @@ class ExamsScreen extends StatefulWidget {
   State<ExamsScreen> createState() => _ExamsScreenState();
 }
 
-class _ExamsScreenState extends State<ExamsScreen> {
+class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin {
   List<Exam> _allExams = [];
   List<Exam> _filteredExams = [];
   bool _isLoading = true;
   String _searchQuery = '';
-  String _selectedFilter = 'all';
+  late TabController _tabController;
   
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      _applyFilters();
+    });
     _fetchExams();
   }
 
@@ -57,7 +61,6 @@ class _ExamsScreenState extends State<ExamsScreen> {
   void _applyFilters() {
     setState(() {
       _filteredExams = _allExams.where((exam) {
-        // Search filter
         if (_searchQuery.isNotEmpty) {
           final query = _searchQuery.toLowerCase();
           if (!exam.title.toLowerCase().contains(query) &&
@@ -66,22 +69,17 @@ class _ExamsScreenState extends State<ExamsScreen> {
           }
         }
 
-        // Category filter
-        if (_selectedFilter != 'all') {
-          if (_selectedFilter == 'free' && exam.isPremium) return false;
-          if (_selectedFilter == 'premium' && !exam.isPremium) return false;
-          // Add more category filters as needed
+        String typeFilter = 'all';
+        switch (_tabController.index) {
+          case 1: typeFilter = 'real_exam'; break;
+          case 2: typeFilter = 'previous_year_paper'; break;
+          case 3: typeFilter = 'question_bank'; break;
         }
+
+        if (typeFilter != 'all' && exam.type != typeFilter) return false;
 
         return true;
       }).toList();
-    });
-  }
-
-  void _setFilter(String filter) {
-    setState(() {
-      _selectedFilter = filter;
-      _applyFilters();
     });
   }
 
@@ -92,71 +90,6 @@ class _ExamsScreenState extends State<ExamsScreen> {
     });
   }
 
-  void _showFilterSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        decoration: const BoxDecoration(
-          color: AppColors.bgPrimary,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppSpacing.radiusXxl),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Filter Exams', style: AppTextStyles.h2),
-            const SizedBox(height: AppSpacing.xl),
-            
-            Text('Type', style: AppTextStyles.h4),
-            const SizedBox(height: AppSpacing.md),
-            Wrap(
-              spacing: AppSpacing.sm,
-              children: [
-                ChoiceChip(
-                  label: const Text('All'),
-                  selected: _selectedFilter == 'all',
-                  onSelected: (val) {
-                    _setFilter('all');
-                    Navigator.pop(context);
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Free'),
-                  selected: _selectedFilter == 'free',
-                  onSelected: (val) {
-                    _setFilter('free');
-                    Navigator.pop(context);
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Premium'),
-                  selected: _selectedFilter == 'premium',
-                  onSelected: (val) {
-                    _setFilter('premium');
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: AppSpacing.xxl),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Apply Filters'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,13 +98,31 @@ class _ExamsScreenState extends State<ExamsScreen> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.all(AppSpacing.screenPadding),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.screenPadding, AppSpacing.screenPadding, AppSpacing.screenPadding, 0),
               child: Row(
                 children: [
                   Text('Test Series', style: AppTextStyles.h1),
                 ],
               ),
             ),
+
+            // Tab Bar
+            TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              indicatorColor: AppColors.primaryBlue,
+              labelColor: AppColors.primaryBlue,
+              unselectedLabelColor: AppColors.textTertiary,
+              tabs: const [
+                Tab(text: 'All'),
+                Tab(text: 'Mock Tests'),
+                Tab(text: 'PYPs'),
+                Tab(text: 'Banks'),
+              ],
+            ),
+            
+            const SizedBox(height: AppSpacing.lg),
             
             // Search Bar
             Padding(
@@ -195,10 +146,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             _onSearchChanged('');
                           },
                         )
-                      : IconButton(
-                          icon: const Icon(Icons.tune),
-                          onPressed: _showFilterSheet,
-                        ),
+                      : null,
                   filled: true,
                   fillColor: AppColors.bgTertiary,
                   border: OutlineInputBorder(
@@ -210,37 +158,6 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     vertical: AppSpacing.md,
                   ),
                 ),
-              ),
-            ),
-            
-            const SizedBox(height: AppSpacing.lg),
-            
-            // Filter Chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenPadding,
-              ),
-              child: Row(
-                children: [
-                  FilterChip(
-                    label: const Text('All'),
-                    selected: _selectedFilter == 'all',
-                    onSelected: (val) => _setFilter('all'),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  FilterChip(
-                    label: const Text('Free'),
-                    selected: _selectedFilter == 'free',
-                    onSelected: (val) => _setFilter('free'),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  FilterChip(
-                    label: const Text('Premium'),
-                    selected: _selectedFilter == 'premium',
-                    onSelected: (val) => _setFilter('premium'),
-                  ),
-                ],
               ),
             ),
             

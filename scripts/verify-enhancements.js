@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:3001';
 let authToken = '';
 
 async function login() {
@@ -9,9 +9,9 @@ async function login() {
         // Assuming default admin credentials or a test user
         const res = await axios.post(`${API_URL}/auth/login`, {
             email: 'admin@erankup.com',
-            password: 'password123'
+            password: 'adminpassword'
         });
-        authToken = res.data.accessToken;
+        authToken = res.data.access_token;
         console.log('✅ Login successful');
     } catch (error) {
         console.log('❌ Login failed:', error.response?.data || error.message);

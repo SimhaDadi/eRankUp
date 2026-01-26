@@ -1,10 +1,14 @@
 import { Controller, Get, Post, Body, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { PassesService } from './passes.service';
+import { PaymentsService } from '../payments/payments.service';
 
 @Controller('passes')
 export class PassesController {
-    constructor(private readonly passesService: PassesService) { }
+    constructor(
+        private readonly passesService: PassesService,
+        private readonly paymentsService: PaymentsService,
+    ) { }
 
     @Get()
     async getPasses() {
@@ -13,8 +17,8 @@ export class PassesController {
 
     @UseGuards(AuthGuard('jwt'))
     @Post('create-order')
-    async createOrder(@Request() req, @Body() body: { passId: string }) {
-        return this.passesService.createOrder(req.user, body.passId);
+    async createOrder(@Request() req, @Body() body: { passId: string, couponCode?: string }) {
+        return this.paymentsService.createPassOrder(req.user, body.passId, body.couponCode);
     }
 
     @UseGuards(AuthGuard('jwt'))

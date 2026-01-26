@@ -311,7 +311,13 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
                 console.error('[TestSession] Kafka sync error:', kafkaErr);
             }
 
-            return { ...session, attemptId: attempt.id };
+            return {
+                ...session,
+                attemptId: attempt.id,
+                score: attempt.score,
+                correctAnswers: attempt.correctAnswers,
+                totalQuestions: attempt.totalQuestions
+            };
         } catch (err: any) {
             console.error(`[TestSession] Error during grading/saving:`, err);
             throw new InternalServerErrorException(err.message || 'Error during grading/saving');

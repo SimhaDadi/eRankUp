@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../models/exam.dart';
+import 'exam_detail_screen.dart';
 
 class LiveTestsScreen extends StatefulWidget {
   const LiveTestsScreen({super.key});
@@ -112,7 +114,12 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () {
-            // Navigate to test
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ExamDetailScreen(exam: Exam.fromJson(test)),
+              ),
+            );
           },
           child: Padding(
             padding: const EdgeInsets.all(20),

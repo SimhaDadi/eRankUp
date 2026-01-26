@@ -498,8 +498,9 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get('practice/:chapterId/start')
-    async startPractice(@Param('chapterId') chapterId: string, @Query('limit') limit: number = 20) {
-        const questions = await this.examsService.getPracticeQuestions(chapterId, limit);
+    async startPractice(@Param('chapterId') chapterId: string, @Query('limit') limit: any = 20) {
+        const numericLimit = isNaN(parseInt(limit)) ? 20 : parseInt(limit);
+        const questions = await this.examsService.getPracticeQuestions(chapterId, numericLimit);
         return {
             id: `practice-${chapterId}-${Date.now()}`, // Virtual Exam ID
             title: 'Chapter Practice',

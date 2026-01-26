@@ -1,12 +1,16 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassesService } from './passes.service';
 import { PassesController } from './passes.controller';
 import { Pass } from './entities/pass.entity';
 import { UserPass } from './entities/user-pass.entity';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Pass, UserPass])],
+  imports: [
+    TypeOrmModule.forFeature([Pass, UserPass]),
+    forwardRef(() => PaymentsModule),
+  ],
   providers: [PassesService],
   controllers: [PassesController],
   exports: [PassesService],
