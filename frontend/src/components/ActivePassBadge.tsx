@@ -52,9 +52,9 @@ export default function ActivePassBadge() {
     const isLifetime = activePass.pass.passType === 'LIFETIME';
 
     return (
-        <div className={`relative overflow-hidden rounded-xl p-4 ${isExpiringSoon
-                ? 'bg-gradient-to-r from-yellow-600 to-orange-600'
-                : 'bg-gradient-to-r from-blue-600 to-purple-600'
+        <div className={`relative overflow-hidden rounded-xl p-3 ${isExpiringSoon
+            ? 'bg-gradient-to-r from-yellow-600 to-orange-600'
+            : 'bg-gradient-to-r from-blue-600 to-purple-600'
             } text-white shadow-lg`}>
             {/* Background decoration */}
             <div className="absolute top-0 right-0 opacity-10">

@@ -53,38 +53,38 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="space-y-6 pb-12 max-w-7xl mx-auto">
+        <div className="space-y-4 pb-12 max-w-7xl mx-auto">
             {/* Welcome Section - SPLIT LAYOUT */}
             <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="relative p-1 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#00bfa5]/30 via-teal-500/5 to-cyan-500/20 shadow-xl shadow-teal-500/10"
             >
-                <div className="bg-white/90 backdrop-blur-3xl rounded-[1.9rem] p-6 md:p-8 relative overflow-hidden group border border-white/60">
+                <div className="bg-white/90 backdrop-blur-3xl rounded-[1.9rem] p-5 md:p-6 relative overflow-hidden group border border-white/60">
                     {/* Mesh Gradient Background Layer */}
                     <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-teal-100/60 via-cyan-50/30 to-transparent rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 group-hover:scale-105 transition-transform duration-1000" />
                     <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-cyan-100/40 to-transparent rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
 
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
                         {/* Left Content */}
                         <div className="flex-1 max-w-2xl">
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.2 }}
-                                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00bfa5]/10 text-[#00bfa5] text-[10px] font-black uppercase tracking-widest mb-6 border border-[#00bfa5]/20 shadow-sm"
+                                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00bfa5]/10 text-[#00bfa5] text-[10px] font-black uppercase tracking-widest mb-4 border border-[#00bfa5]/20 shadow-sm"
                             >
                                 <Sparkles className="w-3.5 h-3.5" /> Preparation Status: Elite
                             </motion.div>
 
-                            <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-slate-900 leading-[1.05]">
+                            <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tighter text-slate-900 leading-[1.05]">
                                 Welcome back, <br />
                                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00bfa5] via-teal-600 to-cyan-600">
                                     {user?.fullName?.split(' ')[0] || 'Aspirant'}
                                 </span>! 🚀
                             </h1>
 
-                            <p className="text-slate-500 max-w-lg font-bold text-lg leading-relaxed mb-10">
+                            <p className="text-slate-500 max-w-lg font-bold text-lg leading-relaxed mb-6">
                                 You've mastered <span className="text-slate-900 font-extrabold text-xl">{stats?.totalAttempts || 0}</span> test cycles.
                                 Your streak is heating up at <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-xl font-black border border-orange-200">{stats?.streak || 0} days</span>.
                             </p>
@@ -92,7 +92,7 @@ export default function DashboardPage() {
                             <div className="flex flex-wrap gap-4">
                                 <Link
                                     href="/dashboard/exams"
-                                    className="group/btn relative inline-flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-[1.25rem] font-bold transition-all hover:scale-[1.03] active:scale-95 shadow-xl shadow-slate-900/20 overflow-hidden"
+                                    className="group/btn relative inline-flex items-center gap-3 bg-slate-900 text-white px-8 py-3 rounded-[1.25rem] font-bold transition-all hover:scale-[1.03] active:scale-95 shadow-xl shadow-slate-900/20 overflow-hidden"
                                 >
                                     <span className="relative z-10 flex items-center gap-2 text-sm uppercase tracking-wider">
                                         Start Practice <ChevronRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
@@ -102,7 +102,7 @@ export default function DashboardPage() {
 
                                 <Link
                                     href="/dashboard/study-plan"
-                                    className="relative inline-flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-4 rounded-[1.25rem] font-bold transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95 text-sm uppercase tracking-wider"
+                                    className="relative inline-flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-[1.25rem] font-bold transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95 text-sm uppercase tracking-wider"
                                 >
                                     Personalized Path
                                 </Link>
@@ -110,9 +110,9 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Right Visualization - Daily Goal Ring */}
-                        <div className="relative w-full md:w-[320px] aspect-square flex-shrink-0">
+                        <div className="relative w-full md:w-[280px] aspect-square flex-shrink-0">
                             <div className="absolute inset-0 bg-gradient-to-br from-teal-50 to-white rounded-full opacity-50 blur-3xl" />
-                            <div className="relative h-full bg-white/40 backdrop-blur-md rounded-full border border-white/60 shadow-2xl flex items-center justify-center p-8">
+                            <div className="relative h-full bg-white/40 backdrop-blur-md rounded-full border border-white/60 shadow-2xl flex items-center justify-center p-6">
                                 {/* Rings */}
                                 <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
                                     {/* Background Ring */}
@@ -234,16 +234,16 @@ export default function DashboardPage() {
                         className="group relative"
                     >
                         <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl -z-10 bg-white/50" />
-                        <div className="bg-white p-5 rounded-[1.5rem] border border-slate-200/60 shadow-lg shadow-slate-200/20 relative overflow-hidden h-full flex flex-col justify-between ring-1 ring-slate-900/5 hover:border-slate-300 transition-all">
+                        <div className="bg-white p-4 rounded-[1.5rem] border border-slate-200/60 shadow-lg shadow-slate-200/20 relative overflow-hidden h-full flex flex-col justify-between ring-1 ring-slate-900/5 hover:border-slate-300 transition-all">
                             <div className="flex items-start justify-between mb-4">
-                                <div className={`w-12 h-12 rounded-2xl ${stat.bgColor} ${stat.textColor} flex items-center justify-center shadow-inner`}>
+                                <div className={`w-10 h-10 rounded-2xl ${stat.bgColor} ${stat.textColor} flex items-center justify-center shadow-inner`}>
                                     {stat.icon}
                                 </div>
                                 {stat.chart}
                             </div>
 
                             <div className="relative z-10">
-                                <div className="text-3xl font-black text-slate-900 tracking-tighter mb-1 leading-none">
+                                <div className="text-2xl font-black text-slate-900 tracking-tighter mb-1 leading-none">
                                     {stat.value}
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -260,7 +260,7 @@ export default function DashboardPage() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
                 {/* Recent Activity */}
                 <div className="lg:col-span-3 space-y-4">
                     <div className="flex items-center justify-between px-2">
@@ -291,14 +291,14 @@ export default function DashboardPage() {
                                         >
                                             <Link
                                                 href={attempt.id ? `/dashboard/results/${attempt.id}` : '#'}
-                                                className="group flex items-center justify-between p-4 rounded-[1.8rem] hover:bg-slate-50 transition-all duration-300 relative overflow-hidden border border-transparent hover:border-slate-100"
+                                                className="group flex items-center justify-between p-3 rounded-[1.8rem] hover:bg-slate-50 transition-all duration-300 relative overflow-hidden border border-transparent hover:border-slate-100"
                                             >
                                                 <div className="flex items-center gap-4 relative z-10">
-                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center border border-white shadow-md transition-all duration-500 group-hover:scale-105 group-hover:rotate-3 ${isExcellent ? 'bg-emerald-50 text-emerald-600 shadow-emerald-200/50' :
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border border-white shadow-md transition-all duration-500 group-hover:scale-105 group-hover:rotate-3 ${isExcellent ? 'bg-emerald-50 text-emerald-600 shadow-emerald-200/50' :
                                                         isAverage ? 'bg-blue-50 text-blue-600 shadow-blue-200/50' :
                                                             'bg-orange-50 text-orange-600 shadow-orange-200/50'
                                                         }`}>
-                                                        <BookOpen className="w-5 h-5" />
+                                                        <BookOpen className="w-4 h-4" />
                                                     </div>
                                                     <div>
                                                         <div className="font-bold text-sm text-slate-900 group-hover:text-[#00bfa5] transition-colors uppercase tracking-tight mb-0.5 max-w-[180px] truncate">
@@ -375,10 +375,10 @@ export default function DashboardPage() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.8 }}
-                            className="bg-gradient-to-br from-[#1a237e] via-[#311b92] to-[#4527a0] p-8 rounded-[2.5rem] text-white relative overflow-hidden group shadow-xl shadow-indigo-500/30 border border-white/10"
+                            className="bg-gradient-to-br from-[#1a237e] via-[#311b92] to-[#4527a0] p-6 rounded-[2.5rem] text-white relative overflow-hidden group shadow-xl shadow-indigo-500/30 border border-white/10"
                         >
                             <div className="relative z-10">
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-2xl text-white text-[9px] font-black uppercase tracking-[0.15em] mb-6 border border-white/20 shadow-lg">
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-2xl text-white text-[9px] font-black uppercase tracking-[0.15em] mb-4 border border-white/20 shadow-lg">
                                     <Sparkles className="w-3 h-3 text-yellow-300" /> Focus Recommendation
                                 </div>
                                 <h3 className="text-2xl font-black mb-3 leading-[1.2] tracking-tight">Master Geometry <br />Properties</h3>
@@ -410,7 +410,7 @@ export default function DashboardPage() {
                                 className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,transparent_0%,transparent_40%,#fbbf24_50%,transparent_60%,transparent_100%)] opacity-40 group-hover:opacity-100 transition-opacity duration-1000"
                             />
 
-                            <div className="relative bg-[#0b0f1a] backdrop-blur-3xl p-8 rounded-[2.4rem] h-full transition-colors duration-700 group-hover:bg-[#0f1424]">
+                            <div className="relative bg-[#0b0f1a] backdrop-blur-3xl p-6 rounded-[2.4rem] h-full transition-colors duration-700 group-hover:bg-[#0f1424]">
                                 <div className="relative z-10 font-inter">
                                     <div className="flex items-center justify-between mb-8">
                                         <div className="relative overflow-hidden px-4 py-2 rounded-xl bg-white/5 border border-white/10 group/badge shadow-xl">
