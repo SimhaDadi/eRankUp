@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import MathRenderer from '@/components/MathRenderer';
+import { useSearchParams } from 'next/navigation';
 
 interface ReportedQuestion {
     id: string;
@@ -38,7 +39,8 @@ interface ReportedQuestion {
 export default function ReportedQuestionsPage() {
     const [reportedQuestions, setReportedQuestions] = useState<ReportedQuestion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [filterStatus, setFilterStatus] = useState<string>('ALL');
 

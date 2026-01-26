@@ -32,6 +32,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import MathRenderer from '@/components/MathRenderer';
 import Link from 'next/link';
+import { prettifyMathText } from '@/utils/textFormatter';
 
 interface QuestionResponse {
     id: string;
@@ -337,7 +338,7 @@ export default function SolutionPage() {
                                         </button>
                                     </div>
                                     <div className="text-slate-900 text-sm leading-relaxed font-medium">
-                                        <MathRenderer content={question.explanation || 'No explanation provided.'} />
+                                        <MathRenderer content={prettifyMathText(question.explanation) || 'No explanation provided.'} />
                                     </div>
                                 </div>
                             )}

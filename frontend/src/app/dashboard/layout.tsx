@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Sidebar from '../../components/Sidebar';
@@ -55,10 +55,14 @@ export default function DashboardLayout({
                 onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             />
             <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${isSidebarCollapsed ? 'ml-[86px]' : 'ml-[280px]'}`}>
-                <Topbar />
+                <Suspense fallback={<div className="h-20 bg-white/80 border-b border-white/50" />}>
+                    <Topbar />
+                </Suspense>
                 <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
                     <div className="max-w-[1600px] mx-auto animate-in fade-in duration-500">
-                        {children}
+                        <Suspense fallback={<div className="p-8">Loading dashboard...</div>}>
+                            {children}
+                        </Suspense>
                     </div>
                 </main>
                 <ChatSupport />

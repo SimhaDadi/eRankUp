@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState';
 
 interface Exam {
@@ -35,6 +36,8 @@ export default function FreeQuizzesPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
 
     useEffect(() => {
         const fetchQuizzes = async () => {
@@ -58,7 +61,9 @@ export default function FreeQuizzesPage() {
     const categories = ['All', ...Array.from(new Set(exams.map(e => e.category || 'Uncategorized')))];
 
     const filteredQuizzes = exams.filter(quiz => {
-        return selectedCategory === 'All' || (quiz.category || 'Uncategorized') === selectedCategory;
+        const matchesCategory = selectedCategory === 'All' || (quiz.category || 'Uncategorized') === selectedCategory;
+        const matchesSearch = quiz.title.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
     });
 
     if (isLoading) {

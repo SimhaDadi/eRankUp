@@ -18,6 +18,7 @@ import {
 import api from '@/lib/api';
 import MathRenderer from '@/components/MathRenderer';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface SavedQuestion {
     id: string;
@@ -35,7 +36,8 @@ interface SavedQuestion {
 export default function SavedQuestionsPage() {
     const [savedQuestions, setSavedQuestions] = useState<SavedQuestion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const fetchSavedQuestions = async () => {

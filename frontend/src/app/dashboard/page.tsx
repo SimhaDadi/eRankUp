@@ -12,10 +12,12 @@ import {
     Zap,
     CheckCircle2,
     Sparkles,
+    Search,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import ActivePassBadge from '@/components/ActivePassBadge';
 
 import { Stats, RecentAttempt } from '@/types/dashboard.types';
@@ -25,17 +27,22 @@ export default function DashboardPage() {
     const { user } = useAuthStore();
     const [stats, setStats] = useState<Stats | null>(null);
     const [recentAttempts, setRecentAttempts] = useState<RecentAttempt[]>([]);
+    const [allExams, setAllExams] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [statsRes, recentRes] = await Promise.all([
+                const [statsRes, recentRes, examsRes] = await Promise.all([
                     api.get('/exams/user/stats'),
-                    api.get('/exams/user/recent')
+                    api.get('/exams/user/recent'),
+                    api.get('/exams')
                 ]);
                 setStats(statsRes.data);
                 setRecentAttempts(recentRes.data);
+                setAllExams(examsRes.data || []);
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);
             } finally {
@@ -275,87 +282,141 @@ export default function DashboardPage() {
                         </Link>
                     </div>
 
-                    <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-lg shadow-slate-200/30 p-2">
-                        {recentAttempts.length > 0 ? (
-                            <div className="space-y-1">
-                                {recentAttempts.map((attempt, idx) => {
-                                    const isExcellent = attempt.score > 80;
-                                    const isAverage = attempt.score > 60;
-
-                                    return (
-                                        <motion.div
-                                            key={attempt.id}
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: 0.1 * idx + 0.5 }}
+                    {searchQuery && (
+                        <div className="space-y-4 mb-8">
+                            <h2 className="text-xl font-black flex items-center gap-3 text-slate-800 tracking-tight px-2">
+                                <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                                    <Search className="w-4 h-4 text-blue-600" />
+                                </div>
+                                Global Matches
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {allExams.filter(exam =>
+                                    exam.title.toLowerCase().includes(searchQuery.toLowerCase())
+                                ).slice(0, 3).map((exam) => (
+                                    <motion.div
+                                        key={exam.id}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all group"
+                                    >
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                <Zap className="w-4 h-4" />
+                                            </div>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{exam.category || 'General'}</span>
+                                        </div>
+                                        <h3 className="font-bold text-slate-800 text-sm mb-3 line-clamp-1">{exam.title}</h3>
+                                        <Link
+                                            href={`/dashboard/exams/${exam.id}`}
+                                            className="w-full flex items-center justify-center py-2 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-[#00bfa5] rounded-xl hover:bg-[#00bfa5] hover:text-white transition-all"
                                         >
-                                            <Link
-                                                href={attempt.id ? `/dashboard/results/${attempt.id}` : '#'}
-                                                className="group flex items-center justify-between p-3 rounded-[1.8rem] hover:bg-slate-50 transition-all duration-300 relative overflow-hidden border border-transparent hover:border-slate-100"
-                                            >
-                                                <div className="flex items-center gap-4 relative z-10">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border border-white shadow-md transition-all duration-500 group-hover:scale-105 group-hover:rotate-3 ${isExcellent ? 'bg-emerald-50 text-emerald-600 shadow-emerald-200/50' :
-                                                        isAverage ? 'bg-blue-50 text-blue-600 shadow-blue-200/50' :
-                                                            'bg-orange-50 text-orange-600 shadow-orange-200/50'
-                                                        }`}>
-                                                        <BookOpen className="w-4 h-4" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-sm text-slate-900 group-hover:text-[#00bfa5] transition-colors uppercase tracking-tight mb-0.5 max-w-[180px] truncate">
-                                                            {attempt.exam?.title || attempt.model?.title || 'Practice Module'}
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                                {new Date(attempt.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                            </div>
-                                                            <span className="w-0.5 h-0.5 bg-slate-300 rounded-full" />
-                                                            <div className="text-[9px] font-black text-[#00bfa5] uppercase tracking-widest">Mock Test</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                            Take Now
+                                        </Link>
+                                    </motion.div>
+                                ))}
+                                {allExams.filter(exam =>
+                                    exam.title.toLowerCase().includes(searchQuery.toLowerCase())
+                                ).length === 0 && (
+                                        <div className="col-span-full py-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No global matches found for "{searchQuery}"</p>
+                                        </div>
+                                    )}
+                            </div>
+                        </div>
+                    )}
 
-                                                <div className="flex items-center gap-6 relative z-10">
-                                                    <div className="text-right hidden sm:block">
-                                                        <div className="flex items-baseline gap-0.5 justify-end">
-                                                            <span className={`text-xl font-black tracking-tighter ${isExcellent ? 'text-emerald-600' : isAverage ? 'text-blue-600' : 'text-orange-600'
+                    <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-lg shadow-slate-200/30 p-2">
+                        {(() => {
+                            const filtered = recentAttempts.filter(attempt => {
+                                const title = (attempt.exam?.title || attempt.model?.title || '').toLowerCase();
+                                return title.includes(searchQuery.toLowerCase());
+                            });
+
+                            if (filtered.length > 0) {
+                                return (
+                                    <div className="space-y-1">
+                                        {filtered.map((attempt, idx) => {
+                                            const isExcellent = attempt.score > 80;
+                                            const isAverage = attempt.score > 60;
+
+                                            return (
+                                                <motion.div
+                                                    key={attempt.id}
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: 0.1 * idx + 0.5 }}
+                                                >
+                                                    <Link
+                                                        href={attempt.id ? `/dashboard/results/${attempt.id}` : '#'}
+                                                        className="group flex items-center justify-between p-3 rounded-[1.8rem] hover:bg-slate-50 transition-all duration-300 relative overflow-hidden border border-transparent hover:border-slate-100"
+                                                    >
+                                                        <div className="flex items-center gap-4 relative z-10">
+                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border border-white shadow-md transition-all duration-500 group-hover:scale-105 group-hover:rotate-3 ${isExcellent ? 'bg-emerald-50 text-emerald-600 shadow-emerald-200/50' :
+                                                                isAverage ? 'bg-blue-50 text-blue-600 shadow-blue-200/50' :
+                                                                    'bg-orange-50 text-orange-600 shadow-orange-200/50'
                                                                 }`}>
-                                                                {Math.round(attempt.score)}
-                                                            </span>
-                                                            <span className="text-[10px] font-bold text-slate-400">%</span>
+                                                                <BookOpen className="w-4 h-4" />
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-bold text-sm text-slate-900 group-hover:text-[#00bfa5] transition-colors uppercase tracking-tight mb-0.5 max-w-[180px] truncate">
+                                                                    {attempt.exam?.title || attempt.model?.title || 'Practice Module'}
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                                        {new Date(attempt.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                                    </div>
+                                                                    <span className="w-0.5 h-0.5 bg-slate-300 rounded-full" />
+                                                                    <div className="text-[9px] font-black text-[#00bfa5] uppercase tracking-widest">Mock Test</div>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        {/* Activity Micro-Sparkline Mockup */}
-                                                        <div className="w-12 h-1 mt-1 bg-slate-100 rounded-full overflow-hidden ml-auto">
-                                                            <motion.div
-                                                                initial={{ width: 0 }}
-                                                                animate={{ width: `${attempt.score}%` }}
-                                                                transition={{ duration: 1, delay: 0.8 + idx * 0.1 }}
-                                                                className={`h-full rounded-full ${isExcellent ? 'bg-emerald-500' : isAverage ? 'bg-blue-500' : 'bg-orange-500'}`}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="w-8 h-8 bg-slate-50 group-hover:bg-[#00bfa5] rounded-lg flex items-center justify-center transition-all group-hover:scale-110">
-                                                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
-                                                    </div>
-                                                </div>
 
-                                                {/* Hover Background Accent */}
-                                                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-l from-[#00bfa5]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </Link>
-                                        </motion.div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="p-20 text-center">
-                                <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                                    <BookOpen className="w-8 h-8" />
-                                </div>
-                                <div className="text-sm font-black text-slate-400 uppercase tracking-widest">
-                                    No activity found
-                                </div>
-                                <p className="text-slate-300 text-xs mt-2">Start your preparation by taking your first mock test.</p>
-                            </div>
-                        )}
+                                                        <div className="flex items-center gap-6 relative z-10">
+                                                            <div className="text-right hidden sm:block">
+                                                                <div className="flex items-baseline gap-0.5 justify-end">
+                                                                    <span className={`text-xl font-black tracking-tighter ${isExcellent ? 'text-emerald-600' : isAverage ? 'text-blue-600' : 'text-orange-600'
+                                                                        }`}>
+                                                                        {Math.round(attempt.score)}
+                                                                    </span>
+                                                                    <span className="text-[10px] font-bold text-slate-400">%</span>
+                                                                </div>
+                                                                <div className="w-12 h-1 mt-1 bg-slate-100 rounded-full overflow-hidden ml-auto">
+                                                                    <motion.div
+                                                                        initial={{ width: 0 }}
+                                                                        animate={{ width: `${attempt.score}%` }}
+                                                                        transition={{ duration: 1, delay: 0.8 + idx * 0.1 }}
+                                                                        className={`h-full rounded-full ${isExcellent ? 'bg-emerald-500' : isAverage ? 'bg-blue-500' : 'bg-orange-500'}`}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="w-8 h-8 bg-slate-50 group-hover:bg-[#00bfa5] rounded-lg flex items-center justify-center transition-all group-hover:scale-110">
+                                                                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-l from-[#00bfa5]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    </Link>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            } else {
+                                return (
+                                    <div className="p-20 text-center">
+                                        <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                                            <Search className="w-8 h-8" />
+                                        </div>
+                                        <div className="text-sm font-black text-slate-400 uppercase tracking-widest">
+                                            {searchQuery ? `No results for "${searchQuery}"` : 'No activity found'}
+                                        </div>
+                                        <p className="text-slate-300 text-xs mt-2">
+                                            {searchQuery ? 'Try a different search term.' : 'Start your preparation by taking your first mock test.'}
+                                        </p>
+                                    </div>
+                                );
+                            }
+                        })()}
                     </div>
                 </div>
 

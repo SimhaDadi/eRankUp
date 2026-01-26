@@ -27,12 +27,15 @@ import PerformanceHeatmap from '@/components/dashboard/PerformanceHeatmap';
 import TopperComparison from '@/components/dashboard/TopperComparison';
 import MacroAIInsights from '@/components/dashboard/MacroAIInsights';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
 
 export default function PerformancePage() {
     const [trendData, setTrendData] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [topperStats, setTopperStats] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
 
 
 
@@ -229,7 +232,9 @@ export default function PerformancePage() {
                         </h2>
                     </div>
                     <div className="divide-y divide-gray-50">
-                        {trendData.slice().reverse().slice(0, 5).map((item, idx) => (
+                        {trendData.slice().reverse().filter(item =>
+                            item.title.toLowerCase().includes(searchQuery.toLowerCase())
+                        ).slice(0, 5).map((item, idx) => (
                             <div
                                 key={idx}
                                 className="p-4 hover:bg-slate-50 transition-colors group relative border-b border-gray-50 last:border-0"

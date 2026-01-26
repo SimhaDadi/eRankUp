@@ -616,7 +616,30 @@ export class ExamsService implements OnApplicationBootstrap {
 
 
     async onApplicationBootstrap() {
-        // Repair orphaned questions (created via faulty seed script)
+        // 1. Sync Model Question Counts (Self-Healing)
+        console.log('[BOOTSTRAP] Syncing model question counts...');
+
+        try {
+            const counts = await this.modelRepository.createQueryBuilder('model')
+                .leftJoin('model.questions', 'question')
+                .select('model.id', 'modelId')
+                .addSelect('COUNT(question.id)', 'count')
+                .groupBy('model.id')
+                .getRawMany();
+
+            if (counts && counts.length > 0) {
+                // Bulk update or loop? Loop is safer for TypeORM logic, but slower. 
+                // Using raw update for speed on bootstrap.
+                for (const row of counts) {
+                    await this.modelRepository.update(row.modelId, { totalQuestions: parseInt(row.count) });
+                }
+                console.log(`[BOOTSTRAP] Updated question counts for ${counts.length} models.`);
+            }
+        } catch (error) {
+            console.error('[BOOTSTRAP] Failed to sync model counts:', error);
+        }
+
+        // 2. Repair orphaned questions (created via faulty seed script)
         const orphanedQuestions = await this.questionRepository
             .createQueryBuilder('question')
             .leftJoinAndSelect('question.models', 'models')
@@ -641,12 +664,28 @@ export class ExamsService implements OnApplicationBootstrap {
             }
             console.log(`[REPAIR] Successfully linked ${fixedCount} questions to models.`);
 
+            // Re-sync counts for these models if we just added questions
+            if (fixedCount > 0) {
+                const newCounts = await this.modelRepository.createQueryBuilder('model')
+                    .leftJoin('model.questions', 'question')
+                    .select('model.id', 'modelId')
+                    .addSelect('COUNT(question.id)', 'count')
+                    .groupBy('model.id')
+                    .getRawMany();
+
+                for (const row of newCounts) {
+                    await this.modelRepository.update(row.modelId, { totalQuestions: parseInt(row.count) });
+                }
+            }
+
             // Invalidate cache
             await this.cacheService.del('question-bank:stats');
             await this.cacheService.del('exams:all');
         } else {
             console.log('[REPAIR] No orphaned questions found.');
         }
+
+        await this.invalidateCache();
     }
 
     /**

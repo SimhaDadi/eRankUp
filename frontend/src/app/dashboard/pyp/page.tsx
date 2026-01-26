@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface Exam {
     id: string;
@@ -35,6 +36,8 @@ export default function PreviousYearPapersPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
 
 
     useEffect(() => {
@@ -58,7 +61,9 @@ export default function PreviousYearPapersPage() {
     const categories = ['All', ...Array.from(new Set(exams.map(e => e.category || 'Uncategorized')))];
 
     const filteredExams = exams.filter(exam => {
-        return selectedCategory === 'All' || (exam.category || 'Uncategorized') === selectedCategory;
+        const matchesCategory = selectedCategory === 'All' || (exam.category || 'Uncategorized') === selectedCategory;
+        const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
     });
 
 

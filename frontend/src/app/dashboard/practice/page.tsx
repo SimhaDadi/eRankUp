@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState';
 
 interface Chapter {
@@ -40,6 +40,8 @@ export default function PracticePage() {
     const [hierarchy, setHierarchy] = useState<Subject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
 
     useEffect(() => {
         const fetchHierarchy = async () => {
@@ -55,6 +57,28 @@ export default function PracticePage() {
 
         fetchHierarchy();
     }, []);
+
+    const filteredHierarchy = hierarchy.filter(subject => {
+        const subjectMatches = subject.title.toLowerCase().includes(searchQuery.toLowerCase());
+        const chapterMatches = subject.chapters?.some(chapter =>
+            chapter.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        return subjectMatches || chapterMatches;
+    });
+
+    // Automatically expand subject if search query matches a chapter
+    useEffect(() => {
+        if (searchQuery) {
+            const firstMatchingSubject = hierarchy.find(subject =>
+                subject.chapters?.some(chapter =>
+                    chapter.title.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+            );
+            if (firstMatchingSubject && expandedSubject !== firstMatchingSubject.id) {
+                setExpandedSubject(firstMatchingSubject.id);
+            }
+        }
+    }, [searchQuery, hierarchy]);
 
     const startChapterPractice = async (chapterId: string) => {
         try {
@@ -107,17 +131,17 @@ export default function PracticePage() {
                 {/* Content Area */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <AnimatePresence mode="wait">
-                        {hierarchy.length === 0 ? (
+                        {filteredHierarchy.length === 0 ? (
                             <PremiumEmptyState
                                 icon={Brain}
-                                title="Curriculum Loading"
-                                description="Our academic team is currently structuring high-fidelity practice modules for your specific goals. Check back shortly."
+                                title={searchQuery ? "No matches found" : "Curriculum Loading"}
+                                description={searchQuery ? `No subjects or chapters found for "${searchQuery}".` : "Our academic team is currently structuring high-fidelity practice modules for your specific goals. Check back shortly."}
                                 colorScheme="sky"
-                                actionLabel="Refresh Curriculum"
-                                onAction={() => window.location.reload()}
+                                actionLabel={searchQuery ? "Clear Search" : "Refresh Curriculum"}
+                                onAction={() => searchQuery ? window.history.pushState({}, '', window.location.pathname) : window.location.reload()}
                             />
                         ) : (
-                            hierarchy.map((subject, idx) => (
+                            filteredHierarchy.map((subject, idx) => (
                                 <motion.div
                                     key={subject.id}
                                     initial={{ opacity: 0, scale: 0.98 }}

@@ -241,23 +241,34 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                 ))}
             </div>
 
-            {/* Larger Profile Area */}
+            {/* Upgrade / Pro Access Area */}
             <motion.div
                 variants={{
-                    expanded: { opacity: 1, scale: 1, height: "auto", marginTop: "auto", marginBottom: "1rem" },
-                    collapsed: { opacity: 0, scale: 0.8, height: 0, marginTop: 0, marginBottom: 0, transition: { duration: 0.2 } }
+                    expanded: { opacity: 1, scale: 1, height: "auto", margin: "1rem" },
+                    collapsed: { opacity: 1, scale: 1, height: "auto", margin: "0.5rem" }
                 }}
-                className="mx-4 bg-slate-50 border border-slate-100 rounded-2xl relative overflow-hidden group"
+                className="mt-auto bg-slate-50 border border-slate-100 rounded-2xl relative overflow-hidden group mb-4 transition-all duration-300"
             >
-                <div className="p-4 relative z-10 flex items-center justify-between gap-3 min-w-[200px]">
-                    <div>
-                        <h4 className="font-black text-sm text-slate-900">Pro Access</h4>
-                        <p className="text-[10px] text-slate-500 font-bold leading-tight">Unlock premium features.</p>
-                    </div>
-                    <button className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[11px] font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all hover:bg-black">
-                        UPGRADE
-                    </button>
-                </div>
+                {isCollapsed ? (
+                    <Link
+                        href="/dashboard/plans"
+                        className="w-14 h-14 mx-auto flex items-center justify-center bg-slate-900 text-white rounded-2xl shadow-lg relative overflow-hidden group/mini"
+                        title="Upgrade to Pro"
+                    >
+                        <Crown className="w-6 h-6 z-10" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover/mini:opacity-100 transition-opacity" />
+                    </Link>
+                ) : (
+                    <Link href="/dashboard/plans" className="p-4 relative z-10 flex items-center justify-between gap-3 min-w-[200px]">
+                        <div>
+                            <h4 className="font-black text-sm text-slate-900 leading-none mb-1">Pro Access</h4>
+                            <p className="text-[10px] text-slate-500 font-bold leading-tight uppercase tracking-tight">Unlock premium</p>
+                        </div>
+                        <div className="px-3 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all hover:bg-black">
+                            UPGRADE
+                        </div>
+                    </Link>
+                )}
             </motion.div>
         </motion.div>
     );
