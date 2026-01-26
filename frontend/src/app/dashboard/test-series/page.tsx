@@ -15,7 +15,8 @@ import {
     Shield,
     Trophy,
     Activity,
-    Clock
+    Clock,
+    CheckCircle2
 } from 'lucide-react';
 
 import api from '@/lib/api';
@@ -31,6 +32,7 @@ interface Exam {
     createdAt: string;
     questionCount?: number;
     duration?: number;
+    attempts?: any;
 }
 
 export default function TestSeriesPage() {
@@ -161,12 +163,26 @@ export default function TestSeriesPage() {
                                             </div>
                                         </div>
 
-                                        <Link
-                                            href={`/dashboard/exams/${exam.id}`}
-                                            className="w-full btn-ultra-primary justify-center text-xs tracking-[0.15em] group-hover:shadow-indigo-900/20"
-                                        >
-                                            <Zap className="w-4 h-4 text-purple-400 fill-purple-400" /> Start Test
-                                        </Link>
+                                        {exam.attempts && exam.attempts.count > 0 ? (
+                                            <div className="space-y-3 w-full">
+                                                <div className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-50 border border-emerald-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-600 shadow-sm shadow-emerald-500/5">
+                                                    <CheckCircle2 className="w-3.5 h-3.5" /> Attempted
+                                                </div>
+                                                <Link
+                                                    href={`/dashboard/results/${exam.attempts.latestAttemptId}`}
+                                                    className="w-full btn-ultra-primary justify-center text-xs tracking-[0.15em] bg-slate-900 group-hover:shadow-indigo-900/20"
+                                                >
+                                                    <Activity className="w-4 h-4 text-emerald-400" /> View Analysis
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            <Link
+                                                href={`/dashboard/exams/${exam.id}`}
+                                                className="w-full btn-ultra-primary justify-center text-xs tracking-[0.15em] group-hover:shadow-indigo-900/20"
+                                            >
+                                                <Zap className="w-4 h-4 text-purple-400 fill-purple-400" /> Start Test
+                                            </Link>
+                                        )}
                                     </div>
 
                                     {/* Card Decor */}

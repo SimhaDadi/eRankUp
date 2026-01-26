@@ -412,7 +412,7 @@ export class ScorerService implements OnModuleInit {
 
         console.log(`[Stats] Found ${attempts.length} attempts for user ${userId}`);
 
-        const stats: Record<string, { count: number; latestScore: number; bestScore: number; attemptedModelIds: string[] }> = {};
+        const stats: Record<string, { count: number; latestScore: number; bestScore: number; attemptedModelIds: string[]; latestAttemptId?: string }> = {};
 
         for (const attempt of attempts) {
             const examId = attempt.exam?.id || attempt.model?.exams?.[0]?.id;
@@ -420,20 +420,23 @@ export class ScorerService implements OnModuleInit {
             if (!examId) continue;
 
             if (!stats[examId]) {
-                stats[examId] = { count: 0, latestScore: attempt.score, bestScore: 0, attemptedModelIds: [] };
+                stats[examId] = {
+                    count: 0,
+                    latestScore: attempt.score,
+                    bestScore: attempt.score,
+                    attemptedModelIds: [],
+                    latestAttemptId: attempt.id
+                };
             }
             stats[examId].count++;
             stats[examId].bestScore = Math.max(stats[examId].bestScore, attempt.score);
 
-            if (attempt.model?.id) {
-                if (!stats[examId].attemptedModelIds.includes(attempt.model.id)) {
-                    stats[examId].attemptedModelIds.push(attempt.model.id);
-                }
-            } else if (attempt.exam?.id) {
-                // Direct exam attempt. Treat the exam itself as a "model" for progress tracking
-                if (!stats[examId].attemptedModelIds.includes(attempt.exam.id)) {
-                    stats[examId].attemptedModelIds.push(attempt.exam.id);
-                }
+            // Since attempts are DESC, the latestAttemptId is already the first one found
+            // No need to update it for subsequent older attempts in the loop
+
+            const refId = attempt.model?.id || attempt.exam?.id;
+            if (refId && !stats[examId].attemptedModelIds.includes(refId)) {
+                stats[examId].attemptedModelIds.push(refId);
             }
         }
 

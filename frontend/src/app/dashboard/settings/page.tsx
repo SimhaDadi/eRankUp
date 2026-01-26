@@ -150,14 +150,14 @@ export default function SettingsPage() {
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-slate-200/50 space-y-12 relative overflow-hidden"
+                    className="bg-white border border-slate-200 rounded-[2.5rem] p-6 md:p-8 shadow-2xl shadow-slate-200/50 space-y-6 relative overflow-hidden"
                 >
                     <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-400 to-[#00bfa5]" />
 
-                    <div className="max-w-4xl space-y-10">
+                    <div className="max-w-4xl space-y-6">
                         {/* Profile Picture Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-8 items-center">
-                            <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] md:text-left">
+                        <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6 items-center">
+                            <label className="text-[13px] font-black text-slate-800 uppercase tracking-[0.2em] md:text-left">
                                 Profile Picture
                             </label>
                             <div className="flex items-center gap-8">
@@ -173,20 +173,20 @@ export default function SettingsPage() {
                                     <button className="px-5 py-2 bg-slate-50 text-slate-600 rounded-xl text-sm font-black border border-slate-200 hover:bg-slate-100 hover:text-slate-900 transition-all shadow-sm">
                                         Upload New
                                     </button>
-                                    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider">JPG, PNG or GIF. Max size 2MB.</p>
+                                    <p className="text-xs text-slate-500 mt-2 font-bold uppercase tracking-wider">JPG, PNG or GIF. Max size 2MB.</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Form Fields Grid */}
-                        <div className="space-y-8">
+                        <div className="space-y-5">
                             {/* Full Name */}
                             <FormRow label="Full Name" icon={<UserIcon className="w-4 h-4" />}>
                                 <input
                                     type="text"
                                     value={formData.fullName}
                                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                    className="w-full max-w-md h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none transition-all placeholder:text-slate-300 placeholder:font-normal focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
+                                    className="w-full max-w-md h-11 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-extrabold text-base text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
                                     placeholder="Enter your full name"
                                 />
                             </FormRow>
@@ -197,7 +197,7 @@ export default function SettingsPage() {
                                     type="date"
                                     value={formData.dob}
                                     onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                                    className="w-full max-w-[240px] h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none transition-all focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm cursor-pointer"
+                                    className="w-full max-w-[240px] h-11 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-extrabold text-base text-slate-900 outline-none transition-all focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm cursor-pointer"
                                 />
                             </FormRow>
 
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                                     type="text"
                                     value={formData.education}
                                     onChange={(e) => setFormData({ ...formData, education: e.target.value })}
-                                    className="w-full max-w-md h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none transition-all placeholder:text-slate-400 placeholder:font-black placeholder:uppercase placeholder:tracking-[0.1em] placeholder:text-[10px] focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
+                                    className="w-full max-w-md h-11 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-extrabold text-base text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-black placeholder:uppercase placeholder:tracking-[0.1em] placeholder:text-xs focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
                                     placeholder="Add Education"
                                 />
                             </FormRow>
@@ -218,7 +218,7 @@ export default function SettingsPage() {
                                     <select
                                         value={formData.category}
                                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                        className="w-full h-12 pl-5 pr-10 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none transition-all appearance-none cursor-pointer focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
+                                        className="w-full h-11 pl-5 pr-10 bg-slate-50 border border-slate-200 rounded-2xl font-extrabold text-base text-slate-900 outline-none transition-all appearance-none cursor-pointer focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
                                     >
                                         <option value="" disabled>Select Category</option>
                                         <option value="General">General</option>
@@ -237,7 +237,7 @@ export default function SettingsPage() {
                                     type="text"
                                     value={formData.location}
                                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    className="w-full max-w-md h-12 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none transition-all placeholder:text-slate-400 placeholder:font-black placeholder:uppercase placeholder:tracking-[0.1em] placeholder:text-[10px] focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
+                                    className="w-full max-w-md h-11 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-extrabold text-base text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-black placeholder:uppercase placeholder:tracking-[0.1em] placeholder:text-xs focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
                                     placeholder="Add Location"
                                 />
                             </FormRow>
@@ -248,7 +248,7 @@ export default function SettingsPage() {
                                     <select
                                         value={formData.defaultLanguage}
                                         onChange={(e) => setFormData({ ...formData, defaultLanguage: e.target.value })}
-                                        className="w-full h-12 pl-5 pr-10 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none transition-all appearance-none cursor-pointer focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
+                                        className="w-full h-11 pl-5 pr-10 bg-slate-50 border border-slate-200 rounded-2xl font-extrabold text-base text-slate-900 outline-none transition-all appearance-none cursor-pointer focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
                                     >
                                         <option value="English">English</option>
                                         <option value="Hindi">Hindi</option>
@@ -261,7 +261,7 @@ export default function SettingsPage() {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="pt-10 flex justify-end">
+                        <div className="pt-6 flex justify-end">
                             <button
                                 onClick={handleSave}
                                 disabled={isSaving}
@@ -307,8 +307,8 @@ export default function SettingsPage() {
 
 function FormRow({ label, children, icon }: { label: string; children: React.ReactNode; icon: React.ReactNode }) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 md:gap-8 items-center group">
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] md:text-left group-hover:text-slate-600 transition-colors">
+        <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-2 md:gap-6 items-center group">
+            <label className="text-[13px] font-black text-slate-800 uppercase tracking-[0.2em] md:text-left group-hover:text-slate-600 transition-colors">
                 {label} :
             </label>
             <div className="flex items-center gap-4">

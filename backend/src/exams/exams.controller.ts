@@ -36,6 +36,7 @@ export class ExamsController {
             includeUnpublished: isAdmin,
             type
         });
+        const cacheKey = isAdmin ? `exams:all:admin:${type || 'all'}:v5` : `exams:all:${type || 'all'}:v5`;
         const userId = req.user.userId;
 
         const attemptStats = await this.scorerService.getUserExamStats(userId);
@@ -46,25 +47,42 @@ export class ExamsController {
                 (exam as any).hasPurchased = await this.paymentsService.hasPurchased(userId, exam.id);
             }
 
-            // Calculate aggregated stats
-            const questionCount = exam.models?.reduce((acc, m) => acc + (m.totalQuestions || 0), 0) || 0;
-            (exam as any).questionCount = questionCount;
+            // Calculate aggregated stats correctly
+            const modelCount = exam.models?.reduce((acc, m) => acc + (m.totalQuestions || 0), 0) || 0;
+            const directCount = (exam as any).directQuestionCount || 0;
+            const questionCount = Math.max(modelCount, directCount); // Often questions are linked both ways, but use max as safeguard
+            (exam as any).questionCount = questionCount || modelCount || directCount;
 
             const uniqueChapters = new Set(exam.models?.map(m => m.chapter?.id).filter(id => !!id));
-            (exam as any).chapters = Array.from(uniqueChapters).map(id => ({ id })); // Mock for length count
+            (exam as any).chapters = Array.from(uniqueChapters).map(id => ({ id }));
 
-            // Attached cached attempts and calculate progress
+            // Attach attempts stats
             if (attemptStats[exam.id]) {
-                (exam as any).attempts = attemptStats[exam.id];
+                const stats = attemptStats[exam.id];
+                (exam as any).attempts = {
+                    count: stats.count,
+                    latestAttemptId: stats.latestAttemptId,
+                    bestScore: stats.bestScore,
+                    latestScore: stats.latestScore
+                };
             }
 
-            // Check if any model in this exam OR the exam itself is currently active
+            // If questionCount is still 0, we do a last-ditch effort to find questions
+            if ((exam as any).questionCount === 0) {
+                const dCount = await this.examsService['questionRepository']
+                    .createQueryBuilder('q')
+                    .innerJoin('q.exams', 'e')
+                    .where('e.id = :id', { id: exam.id })
+                    .getCount();
+                (exam as any).questionCount = dCount;
+            }
+
+            // [RESTORED] Check if any model in this exam OR the exam itself is currently active
             const examModelIds = exam.models?.map(m => m.id) || [];
             const allRelevantIds = [...examModelIds, exam.id];
             (exam as any).activeSession = activeTestIds.find(id => allRelevantIds.includes(id)) || null;
 
-            // Calculate total models for progress. 
-            // If it's a REAL_EXAM but has no models, we treat it as 1 unit of progress if it has questions.
+            // [RESTORED] Calculate total models for progress tracking
             let totalModels = examModelIds.length;
             if (totalModels === 0 && (exam as any).type === 'real_exam') {
                 totalModels = 1;

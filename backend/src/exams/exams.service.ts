@@ -44,22 +44,32 @@ export class ExamsService implements OnApplicationBootstrap {
 
     async findAll(options: { includeUnpublished?: boolean; type?: string } = {}) {
         const { includeUnpublished = false, type } = options;
-        const cacheKey = includeUnpublished ? `exams:all:admin:${type || 'all'}` : `exams:all:${type || 'all'}`;
+        const cacheKey = includeUnpublished ? `exams:all:admin:${type || 'all'}:v5` : `exams:all:${type || 'all'}:v5`;
         const cached = await this.cacheService.get<Exam[]>(cacheKey);
         if (cached) return cached;
 
-        const where: any = {};
+        const query = this.examsRepository.createQueryBuilder('exam')
+            .leftJoinAndSelect('exam.models', 'models')
+            .leftJoinAndSelect('models.chapter', 'chapter')
+            .leftJoinAndSelect('chapter.subject', 'subject');
+
         if (!includeUnpublished) {
-            where.isPublished = true;
+            query.andWhere('exam.isPublished = :isPublished', { isPublished: true });
         }
         if (type) {
-            where.type = type;
+            query.andWhere('exam.type = :type', { type });
         }
 
-        const exams = await this.examsRepository.find({
-            where,
-            relations: ['models', 'models.chapter', 'models.chapter.subject']
-        });
+        const exams = await query.getMany();
+
+        // Populate direct question count reliably
+        for (const exam of exams) {
+            (exam as any).directQuestionCount = await this.questionRepository
+                .createQueryBuilder('q')
+                .innerJoin('q.exams', 'e')
+                .where('e.id = :id', { id: exam.id })
+                .getCount();
+        }
 
         await this.cacheService.set(cacheKey, exams, 3600);
         return exams;

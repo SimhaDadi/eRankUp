@@ -77,4 +77,6 @@ export class Exam {
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    directQuestionCount?: number;
 }
