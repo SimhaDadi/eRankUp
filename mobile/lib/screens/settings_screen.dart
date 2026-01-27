@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../services/theme_provider.dart';
 import '../theme/app_theme.dart';
 import 'subscription_screen.dart';
+import 'edit_profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -368,6 +369,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final fullName = _user?['fullName'] ?? 'Guest User';
     final email = _user?['email'] ?? 'No email';
     final phone = _user?['phone'] ?? 'Not provided';
+    final dob = _user?['dob'] ?? 'Not provided';
+    final education = _user?['education'] ?? 'Not provided';
+    final category = _user?['category'] ?? 'Not provided';
+    final location = _user?['location'] ?? 'Not provided';
+    final language = _user?['defaultLanguage'] ?? 'English';
     final role = _user?['role'] ?? 'STUDENT';
 
     return Scaffold(
@@ -396,26 +402,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        fullName[0].toUpperCase(),
+                        fullName.isNotEmpty ? fullName[0].toUpperCase() : 'G',
                         style: const TextStyle(
                           fontSize: 48,
                           fontWeight: FontWeight.black,
                           color: Colors.white,
                         ),
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2563EB) : Colors.blue.shade600,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 3),
-                      ),
-                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -428,7 +421,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildInfoTile('Full Name', fullName, Icons.person),
             _buildInfoTile('Email', email, Icons.email),
             _buildInfoTile('Phone', phone, Icons.phone),
-            _buildInfoTile('Role', role, Icons.school),
+            _buildInfoTile('Date of Birth', dob, Icons.calendar_today),
+            _buildInfoTile('Education', education, Icons.school),
+            _buildInfoTile('Category', category, Icons.tag),
+            _buildInfoTile('Location', location, Icons.location_on),
+            _buildInfoTile('Language', language, Icons.language),
+            _buildInfoTile('Role', role, Icons.admin_panel_settings),
             
             const SizedBox(height: 24),
             
@@ -436,10 +434,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Profile editing coming soon!')),
+                onPressed: () async {
+                  if (_user == null) return;
+                  final refresh = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EditProfileScreen(user: _user!),
+                    ),
                   );
+                  if (refresh == true) {
+                    _fetchProfile();
+                  }
                 },
                 icon: const Icon(Icons.edit),
                 label: const Text('Edit Profile'),

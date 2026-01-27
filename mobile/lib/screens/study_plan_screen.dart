@@ -15,7 +15,7 @@ class StudyPlanScreen extends StatefulWidget {
 }
 
 class _StudyPlanScreenState extends State<StudyPlanScreen> {
-  Map<String, dynamic>? _plan;
+  Map<String, dynamic>? _data;
   bool _isLoading = true;
   String? _error;
 
@@ -37,18 +37,17 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
       if (response.statusCode == 200) {
         if (mounted) {
           setState(() {
-            _plan = jsonDecode(response.body);
+            _data = jsonDecode(response.body);
             _isLoading = false;
           });
         }
       } else {
         setState(() {
-          _error = "Failed to load plan. Please try taking some tests first.";
+          _error = "Failed to load plan. Take more tests to build your profile.";
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('Error fetching study plan: $e');
       if (mounted) {
         setState(() {
           _error = "An error occurred. Please check your connection.";
@@ -58,43 +57,42 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
     }
   }
 
-  Future<void> _startPractice() async {
-    if (_plan == null) return;
-
+  Future<void> _startTask(String topic) async {
     setState(() => _isLoading = true);
     final apiService = Provider.of<ApiService>(context, listen: false);
 
     try {
-      final List<String> questionIds = (_plan!['questions'] as List)
-          .map((q) => q['id'] as String)
-          .toList();
-
-      final response = await apiService.post('/adaptive/start-session', {
-        'questionIds': questionIds,
+      // Fetch questions specifically for this topic
+      final response = await apiService.get('/adaptive/learning-path'); // Re-fetching is fine, but ideally we'd have a topic specific start
+      // For now, if it's the top topic, we use the pre-fetched questions. 
+      // If not, we trigger a generic adaptive session start.
+      
+      final sessionResponse = await apiService.post('/adaptive/start-session', {
+        'topic': topic,
+        'limit': 15
       });
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      if (sessionResponse.statusCode == 201 || sessionResponse.statusCode == 200) {
+        final data = jsonDecode(sessionResponse.body);
         final sessionId = data['sessionId'];
+        final questions = data['questions'] as List;
         
         if (mounted) {
-          // Wrap in a virtual TestModel
           final virtualModel = TestModel(
             id: sessionId,
-            title: 'Adaptive AI Practice',
-            totalQuestions: questionIds.length,
+            title: 'Adaptive Practice: $topic',
+            totalQuestions: questions.length,
           );
 
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => TestEngineScreen(model: virtualModel),
             ),
-          );
+          ).then((value) => _fetchPlan()); // Refresh on return
         }
       }
     } catch (e) {
-      debugPrint('Error starting adaptive practice: $e');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -106,271 +104,218 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading && _plan == null) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    if (_isLoading && _data == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('AI Study Plan')),
-        body: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 20),
-              Text('Analyzing your mastery...', style: AppTextStyles.h4),
-            ],
-          ),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('AI Study Plan')),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.psychology_outlined, size: 80, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey),
-                const SizedBox(height: 16),
-                Text(_error!, textAlign: TextAlign.center, style: AppTextStyles.body.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color)),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _fetchPlan,
-                  child: const Text('Retry'),
-                )
-              ],
-            ),
-          ),
-        ),
+        body: _buildErrorState(),
       );
     }
 
-    final questions = _plan!['questions'] as List;
+    final tasks = _data!['tasks'] as List;
+    final stats = _data!['stats'];
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Personalized Learning Path'),
-        elevation: 0,
+        title: const Text('Daily Study Plan'),
+        actions: [
+          IconButton(onPressed: _fetchPlan, icon: const Icon(Icons.refresh)),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            const SizedBox(height: AppSpacing.xxl),
+            _buildProgressHeader(stats),
+            _buildInsightBanner(),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
-              child: Row(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.book_outlined, color: AppColors.textTertiary),
-                  const SizedBox(width: 8),
-                  Text('Recommended Practice', style: AppTextStyles.h3),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Recommended Tasks', style: AppTextStyles.h3),
+                      Text('${tasks.length} Total', style: AppTextStyles.caption),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ...tasks.map((task) => _buildTaskCard(task)),
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
-              itemCount: questions.length,
-              itemBuilder: (context, index) {
-                final q = questions[index];
-                return _buildQuestionCard(index + 1, q);
-              },
-            ),
-            const SizedBox(height: 100), // Spacing for bottom button
           ],
-        ),
-      ),
-      bottomSheet: Container(
-        padding: const EdgeInsets.all(AppSpacing.screenPadding),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : AppShadows.large,
-          border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.transparent),
-        ),
-        child: SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: _startPractice,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryCyan,
-              foregroundColor: Colors.white,
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('START ADAPTIVE PRACTICE', style: TextStyle(fontWeight: FontWeight.black)),
-                SizedBox(width: 12),
-                Icon(Icons.arrow_forward),
-              ],
-            ),
-          ),
         ),
       ),
     );
   }
 
+  Widget _buildProgressHeader(dynamic stats) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final completed = stats['completedToday'] ?? 0;
+    final total = stats['totalTasks'] ?? 5;
+    final progress = total > 0 ? (completed / total).toDouble() : 0.0;
+    final mastery = stats['overallMastery'] ?? 0;
 
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.all(AppSpacing.screenPadding),
-      padding: const EdgeInsets.all(AppSpacing.xxl),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-        boxShadow: isDark ? [] : AppShadows.medium,
-        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  gradient: AppColors.heroGradient,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                ),
-                child: const Icon(Icons.psychology, color: Colors.white),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Text(
-                  'Your AI Insights',
-                  style: AppTextStyles.h2,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A).withOpacity(0.5) : AppColors.bgSecondary,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              border: Border.all(color: AppColors.primaryCyan.withOpacity(0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.auto_awesome, size: 16, color: AppColors.primaryCyan),
-                    SizedBox(width: 8),
-                    Text(
-                      'RATIONALE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.black,
-                        letterSpacing: 1.2,
-                        color: AppColors.primaryCyan,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _plan!['rationale'] ?? 'Analyzing your current level...',
-                  style: AppTextStyles.body.copyWith(
-                    fontWeight: FontWeight.w500,
-                    height: 1.5,
-                    color: theme.textTheme.bodyMedium?.color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildSimpleStat('QUESTIONS', _plan!['totalQuestions'].toString(), Icons.target_outlined),
-              _buildSimpleStat('TIME', '${(_plan!['totalQuestions'] * 1.5).ceil()}m', Icons.timer_outlined),
-              _buildSimpleStat('MODE', 'Adaptive', Icons.bar_chart),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('DAILY GOAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: AppColors.primaryBlue)),
+                  const SizedBox(height: 4),
+                  Text('$completed of $total Tasks Done', style: AppTextStyles.h2),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: AppColors.primaryBlue.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: Text('$mastery% Mastery', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue, fontSize: 12)),
+              ),
             ],
+          ),
+          const SizedBox(height: 20),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 12,
+              backgroundColor: theme.brightness == Brightness.dark ? Colors.white10 : Colors.grey.shade100,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryCyan),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSimpleStat(String label, String value, IconData icon) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        Icon(icon, size: 20, color: AppColors.textTertiary),
-        const SizedBox(height: 4),
-        Text(value, style: AppTextStyles.h4.copyWith(color: theme.textTheme.bodyLarge?.color)),
-        Text(label, style: AppTextStyles.overline.copyWith(fontSize: 9, color: theme.textTheme.bodySmall?.color)),
-      ],
-    );
-  }
-
-  Widget _buildQuestionCard(int index, dynamic q) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+  Widget _buildInsightBanner() {
+    final rationale = _data!['rationale'] ?? 'Target your weakest topics for maximum score improvement.';
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      margin: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
+        gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF06B6D4)]),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : AppColors.bgSecondary,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-            ),
-            child: Center(
-              child: Text(
-                '$index',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textSecondary),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.lg),
+          const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      q['subject'].toString().toUpperCase(),
-                      style: AppTextStyles.overline.copyWith(fontSize: 10, color: AppColors.primaryBlue),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      q['chapter'].toString().toUpperCase(),
-                      style: AppTextStyles.overline.copyWith(fontSize: 10),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  q['content'],
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500, color: theme.textTheme.bodyLarge?.color),
-                ),
+                const Text('AI RECOMMENDATION', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1)),
+                const SizedBox(height: 4),
+                Text(rationale, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13, height: 1.4)),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTaskCard(dynamic task) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final String topic = task['topic'] ?? 'Unknown';
+    final String reason = task['reason'] ?? 'Needs practice';
+    final String advice = task['advice'] ?? '';
+    final bool isCompleted = task['isCompleted'] ?? false;
+    final int time = task['estimatedTime'] ?? 30;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isCompleted ? Colors.green.withOpacity(0.5) : (isDark ? const Color(0xFF334155) : Colors.grey.shade100)),
+      ),
+      child: ExpansionTile(
+        shape: const RoundedRectangleBorder(side: BorderSide.none),
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: isCompleted ? Colors.green.withOpacity(0.1) : AppColors.primaryBlue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            isCompleted ? Icons.check_circle : Icons.psychology,
+            color: isCompleted ? Colors.green : AppColors.primaryBlue,
+          ),
+        ),
+        title: Text(topic, style: AppTextStyles.h4),
+        subtitle: Text('$time min • $reason', style: AppTextStyles.caption),
+        trailing: const Icon(Icons.keyboard_arrow_down),
+        childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        children: [
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Icon(Icons.lightbulb_outline, size: 16, color: Colors.amber),
+              const SizedBox(width: 8),
+              const Text('INSIGHT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.amber)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(advice, style: AppTextStyles.bodySmall.copyWith(color: isDark ? Colors.white70 : AppColors.textPrimary)),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () => _startTask(topic),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isCompleted ? Colors.green.shade600 : AppColors.primaryBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(isCompleted ? 'PRACTICE AGAIN' : 'START PRACTICE'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.psychology_outlined, size: 80, color: Colors.grey),
+            const SizedBox(height: 24),
+            Text(_error!, textAlign: TextAlign.center, style: AppTextStyles.body),
+            const SizedBox(height: 32),
+            ElevatedButton(onPressed: _fetchPlan, child: const Text('Retry Analysis')),
+          ],
+        ),
       ),
     );
   }

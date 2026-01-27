@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/haptic_service.dart';
 import '../theme/app_theme.dart';
 import 'test_engine_screen.dart'; // For MathRichText
+import 'ai_chat_conversation_screen.dart';
 
 class SolutionExplorerScreen extends StatefulWidget {
   final String attemptId;
@@ -248,9 +249,20 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                       ],
                     ),
                     TextButton.icon(
-                      onPressed: () => _generateBetterExplanation(question['id']),
+                      onPressed: () {
+                        HapticService.lightImpact();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AIChatConversationScreen(
+                              questionId: question['id'],
+                              title: 'Question Doubt',
+                            ),
+                          ),
+                        );
+                      },
                       icon: const Icon(Icons.auto_awesome, size: 14),
-                      label: Text(explanation == null ? 'Generate AI' : 'Ask AI', style: const TextStyle(fontSize: 10)),
+                      label: const Text('Ask AI Tutor', style: TextStyle(fontSize: 10)),
                       style: TextButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                         foregroundColor: AppColors.primaryBlue,

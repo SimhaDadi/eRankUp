@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import 'ai_chat_screen.dart';
+import 'ai_chat_conversation_screen.dart';
 
 class DoubtsScreen extends StatefulWidget {
   const DoubtsScreen({super.key});
@@ -152,49 +155,151 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-
     return Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Doubts & Q/A'),
         elevation: 0,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAskDoubtDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('Ask Doubt'),
-        backgroundColor: AppColors.primaryBlue,
+        icon: const Icon(Icons.history),
+        label: const Text('Expert Review'),
+        backgroundColor: Colors.grey.shade700,
       ),
-      body: _doubts == null || _doubts!.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.question_answer, size: 80, color: Colors.grey.shade300),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No doubts yet',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Ask your first doubt to get help',
-                    style: TextStyle(color: Colors.grey.shade500),
-                  ),
-                ],
+      body: RefreshIndicator(
+        onRefresh: _fetchDoubts,
+        child: CustomScrollView(
+          slivers: [
+            // AI Tutor Promo
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _buildAITutorPromo(),
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(20).copyWith(bottom: 80),
-              itemCount: _doubts!.length,
-              itemBuilder: (context, index) {
-                final doubt = _doubts![index];
-                return _buildDoubtCard(doubt);
-              },
             ),
+
+            // Section Header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Text('Expert Review History', style: AppTextStyles.h3),
+                    const Spacer(),
+                    if (_doubts != null) Text('${_doubts!.length} Records', style: AppTextStyles.captionSmall),
+                  ],
+                ),
+              ),
+            ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+            // List of Experts Doubts
+            if (_doubts == null || _doubts!.isEmpty)
+              SliverFillRemaining(
+                child: _buildEmptyState(),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => _buildDoubtCard(_doubts![index]),
+                    childCount: _doubts!.length,
+                  ),
+                ),
+              ),
+            
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAITutorPromo() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6366F1).withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Instant AI Tutoring',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Don\'t wait for an expert. Get your doubts cleared instantly by our AI Tutor, 24/7.',
+            style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5, fontWeight: FontWeight.w400),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AIChatScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF6366F1),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Speak to AI Tutor', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 48),
+          Icon(Icons.question_answer, size: 80, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          const Text('No expert reviews yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 

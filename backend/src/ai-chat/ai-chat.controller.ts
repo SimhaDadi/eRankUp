@@ -10,13 +10,14 @@ export class AIChatController {
     @Post('message')
     async sendMessage(
         @Request() req: any,
-        @Body() body: { conversationId?: string; message: string },
+        @Body() body: { conversationId?: string; message: string; questionId?: string },
     ) {
         return this.aiChatService.sendMessage(
             req.user.userId,
             req.user.role,
             body.conversationId || null,
             body.message,
+            body.questionId,
         );
     }
 
