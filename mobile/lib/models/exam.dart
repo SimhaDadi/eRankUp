@@ -9,7 +9,7 @@ class Exam {
   final int? duration;
   final int? totalQuestions;
   final String? activeSession;
-  final int? totalModels;
+  final String? category;
 
   Exam({
     required this.id,
@@ -23,6 +23,7 @@ class Exam {
     this.totalQuestions,
     this.activeSession,
     this.totalModels,
+    this.category,
   });
 
   factory Exam.fromJson(Map<String, dynamic> json) {
@@ -38,6 +39,7 @@ class Exam {
       totalQuestions: json['questionCount'] ?? json['totalQuestions'],
       activeSession: json['activeSession'],
       totalModels: json['totalModels'],
+      category: json['category'],
     );
   }
 }

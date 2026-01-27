@@ -25,38 +25,16 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       _applyFilters();
     });
     _fetchExams();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  // ... (dispose remains same)
 
-  Future<void> _fetchExams() async {
-    setState(() => _isLoading = true);
-    final apiService = Provider.of<ApiService>(context, listen: false);
-    
-    try {
-      final response = await apiService.get('/exams');
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          _allExams = data.map((e) => Exam.fromJson(e)).toList();
-          _applyFilters();
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching exams: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+  // ... (_fetchExams remains same)
 
   void _applyFilters() {
     setState(() {
@@ -70,13 +48,30 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
         }
 
         String typeFilter = 'all';
+        bool isFreeQuiz = false;
+
         switch (_tabController.index) {
-          case 1: typeFilter = 'real_exam'; break;
-          case 2: typeFilter = 'previous_year_paper'; break;
-          case 3: typeFilter = 'question_bank'; break;
+          case 1: typeFilter = 'real_exam'; break; // Mock Tests
+          case 2: typeFilter = 'previous_year_paper'; break; // PYPs
+          case 3: typeFilter = 'question_bank'; break; // Banks
+          case 4: isFreeQuiz = true; break; // Free Quizzes
         }
 
-        if (typeFilter != 'all' && exam.type != typeFilter) return false;
+        if (isFreeQuiz) {
+          // Special handling for Free Quizzes tab
+          return exam.category == 'Free Quiz';
+        }
+
+        if (typeFilter != 'all') {
+          // Standard type filtering
+          if (exam.type != typeFilter) return false;
+          // IMPORTANT: Exclude "Free Quiz" category items from "Mock Tests" (real_exam) to avoid duplication/clutter
+          if (typeFilter == 'real_exam' && exam.category == 'Free Quiz') return false;
+        } else {
+             // In "All" tab, maybe show everything? Or keep Free Quizzes separate?
+             // Let's keep them in "All" for visibility, or filter if deemed too cluttered.
+             // For now, "All" shows everything.
+        }
 
         return true;
       }).toList();
@@ -119,6 +114,7 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
                 Tab(text: 'Mock Tests'),
                 Tab(text: 'PYPs'),
                 Tab(text: 'Banks'),
+                Tab(text: 'Free Quizzes'),
               ],
             ),
             

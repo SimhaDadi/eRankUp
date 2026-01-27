@@ -132,8 +132,24 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
         collapsed: { width: 90 }
     };
 
+    const navContainerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.05,
+                delayChildren: 0.1
+            }
+        }
+    };
+
+    const navItemVariants = {
+        hidden: { opacity: 0, x: -10 },
+        visible: { opacity: 1, x: 0 }
+    };
+
     const textVariants = {
-        expanded: { opacity: 1, x: 0, width: "auto", display: "flex" },
+        expanded: { opacity: 1, x: 0, width: "auto", display: "flex", transition: { delay: 0.2 } },
         collapsed: { opacity: 0, x: -10, width: 0, transition: { duration: 0.1 }, display: "none" }
     };
 
@@ -195,48 +211,59 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                                 {section.title}
                             </motion.div>
                         )}
-                        <div className="space-y-1 w-full relative">
+                        <motion.div
+                            variants={navContainerVariants}
+                            initial="hidden"
+                            animate="visible"
+                            className="space-y-1 w-full relative"
+                        >
                             {section.items.map((item) => {
                                 const isActive = pathname === item.href;
                                 const gradient = getItemColor(item.label);
 
                                 return (
-                                    <Link
+                                    <motion.div
                                         key={item.href}
-                                        href={item.href}
-                                        className={`relative flex items-center gap-4 px-3 py-2 rounded-2xl transition-all duration-200 group ${isActive
-                                            ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 z-10'
-                                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                                            } ${isCollapsed ? 'justify-center w-14 h-14 mx-auto p-0' : ''}`}
-                                        title={isCollapsed ? item.label : ''}
+                                        variants={navItemVariants}
+                                        whileHover={{ x: 5 }}
+                                        className="w-full"
                                     >
-                                        {/* Living Icon Container */}
-                                        <div className={`relative z-10 w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-300 shadow-sm shrink-0 ${isActive
-                                            ? `bg-gradient-to-br ${gradient} text-white shadow-lg scale-105`
-                                            : 'bg-white border-2 border-slate-200 text-slate-500 group-hover:border-slate-300 group-hover:text-slate-700 group-hover:scale-110'
-                                            }`}>
-                                            <item.icon className="w-5 h-5" strokeWidth={isActive ? 3 : 2.5} />
-                                        </div>
-
-                                        <motion.span
-                                            variants={textVariants}
-                                            className={`text-[15px] tracking-tight whitespace-nowrap font-black leading-none pt-0.5 overflow-hidden ${isActive ? 'text-white' : ''}`}
+                                        <Link
+                                            href={item.href}
+                                            className={`relative flex items-center gap-4 px-3 py-2 transition-all duration-200 group active:scale-95 ${isActive
+                                                ? isCollapsed ? 'z-10' : 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 z-10 rounded-2xl'
+                                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-2xl'
+                                                } ${isCollapsed ? 'justify-center w-14 h-14 mx-auto p-0 rounded-xl' : ''}`}
+                                            title={isCollapsed ? item.label : ''}
                                         >
-                                            {item.label}
-                                        </motion.span>
+                                            {/* Living Icon Container */}
+                                            <div className={`relative z-10 w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-300 shadow-sm shrink-0 ${isActive
+                                                ? `bg-gradient-to-br ${gradient} text-white shadow-lg scale-105`
+                                                : 'bg-white border-2 border-slate-200 text-slate-500 group-hover:border-slate-300 group-hover:text-slate-700 group-hover:scale-110'
+                                                }`}>
+                                                <item.icon className="w-5 h-5" strokeWidth={isActive ? 3 : 2.5} />
+                                            </div>
 
-                                        {item.badge && (
                                             <motion.span
                                                 variants={textVariants}
-                                                className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full text-white shadow-sm ${item.badgeColor || 'bg-blue-500'}`}
+                                                className={`text-[15px] tracking-tight whitespace-nowrap font-black leading-none pt-0.5 overflow-hidden ${isActive ? 'text-white' : ''}`}
                                             >
-                                                {item.badge}
+                                                {item.label}
                                             </motion.span>
-                                        )}
-                                    </Link>
+
+                                            {item.badge && (
+                                                <motion.span
+                                                    variants={textVariants}
+                                                    className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full text-white shadow-sm ${item.badgeColor || 'bg-blue-500'}`}
+                                                >
+                                                    {item.badge}
+                                                </motion.span>
+                                            )}
+                                        </Link>
+                                    </motion.div>
                                 );
                             })}
-                        </div>
+                        </motion.div>
                     </div>
                 ))}
             </div>
@@ -270,6 +297,6 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                     </Link>
                 )}
             </motion.div>
-        </motion.div>
+        </motion.div >
     );
 }

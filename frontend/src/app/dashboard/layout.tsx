@@ -6,6 +6,8 @@ import { useAuthStore } from '@/store/authStore';
 import Sidebar from '../../components/Sidebar';
 import Topbar from '../../components/Topbar';
 import ChatSupport from '../../components/ChatSupport';
+import PageTransition from '../../components/PageTransition';
+import DashboardSkeleton from '../../components/DashboardSkeleton';
 
 export default function DashboardLayout({
     children,
@@ -31,7 +33,14 @@ export default function DashboardLayout({
     }, [user, isLoading, router, isMounted]);
 
     if (!isMounted || isLoading) {
-        return <div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading...</div>;
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col">
+                <div className="h-16 bg-white border-b border-slate-200 animate-pulse" />
+                <div className="flex-1 p-6">
+                    <DashboardSkeleton />
+                </div>
+            </div>
+        );
     }
 
     if (!user) {
@@ -59,10 +68,12 @@ export default function DashboardLayout({
                     <Topbar />
                 </Suspense>
                 <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-                    <div className="max-w-[1600px] mx-auto animate-in fade-in duration-500">
-                        <Suspense fallback={<div className="p-8">Loading dashboard...</div>}>
-                            {children}
-                        </Suspense>
+                    <div className="max-w-[1600px] mx-auto">
+                        <PageTransition>
+                            <Suspense fallback={<DashboardSkeleton />}>
+                                {children}
+                            </Suspense>
+                        </PageTransition>
                     </div>
                 </main>
                 <ChatSupport />

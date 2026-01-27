@@ -42,10 +42,12 @@ export default function FreeQuizzesPage() {
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
-                // Fetch quizzes - assuming type 'quiz' in backend
-                const response = await api.get('/exams?type=quiz');
+                // Fetch exams and filter for Free Quiz category
+                const response = await api.get('/exams', {
+                    params: { type: 'real_exam' }
+                });
                 const quizzes = Array.isArray(response.data)
-                    ? response.data.filter((e: Exam) => e.type === 'quiz')
+                    ? response.data.filter((e: Exam) => e.category === 'Free Quiz')
                     : [];
                 setExams(quizzes);
             } catch (error) {

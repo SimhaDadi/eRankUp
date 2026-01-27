@@ -6,6 +6,7 @@ import { Zap, Search, Sparkles, Trophy, Users, Globe, ChevronRight, Bookmark, Ro
 import api from '@/lib/api';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import DashboardSkeleton from '@/components/DashboardSkeleton';
 
 interface Exam {
     id: string;
@@ -13,6 +14,7 @@ interface Exam {
     description: string;
     isPremium: boolean;
     price: number;
+    category?: string; // Added category
     chapters?: any[];
     attempts?: {
         count: number;
@@ -50,68 +52,139 @@ export default function ExamsPage() {
 
     const filteredExams = exams.filter(e => e.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center h-[60vh] bg-[#fbfdff]">
-                <div className="relative">
-                    <div className="w-10 h-10 border-[2px] border-sky-100 border-t-sky-500 rounded-full animate-spin" />
-                </div>
-                <p className="mt-4 text-sky-400 font-bold uppercase tracking-[0.2em] text-[9px]">Calming Spectrum...</p>
-            </div>
-        );
-    }
+    // Group by Category
+    const groupedExams = filteredExams.reduce((groups, exam) => {
+        const category = exam.category || 'General';
+        if (!groups[category]) {
+            groups[category] = [];
+        }
+        groups[category].push(exam);
+        return groups;
+    }, {} as Record<string, Exam[]>);
+
+    // Sort categories (optional: prioritize Free Quiz or specific ones)
+    const sortedCategories = Object.keys(groupedExams).sort((a, b) => {
+        // Example: Put "Free Quiz" first, then "Scholarship", then others alphabetically
+        if (a === 'Free Quiz') return -1;
+        if (b === 'Free Quiz') return 1;
+        if (a === 'Scholarship') return -1;
+        if (b === 'Scholarship') return 1;
+        return a.localeCompare(b);
+    });
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                type: 'spring',
+                stiffness: 100,
+                damping: 15
+            }
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-[#fbfdff] pb-24 relative overflow-hidden text-slate-900">
+        <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="min-h-screen bg-[#fbfdff] pb-24 relative overflow-hidden text-slate-900"
+        >
             {/* Ambient Breeze Glows */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-30">
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-100/50 rounded-full blur-[160px]" />
                 <div className="absolute bottom-[10%] right-[-10%] w-[40%] h-[40%] bg-emerald-50/50 rounded-full blur-[140px]" />
             </div>
 
-            <div className="relative z-10 space-y-8">
-                {/* Hero Header Section - BREEZE ZEN */}
-                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-10 border-b border-sky-50/50">
-                    <div className="space-y-4 max-w-2xl">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="flex items-center gap-2.5"
-                        >
-                            <div className="w-8 h-8 bg-sky-50 rounded-lg flex items-center justify-center border border-sky-100">
-                                <Rocket className="w-4 h-4 text-sky-500" />
+            <AnimatePresence mode="wait">
+                {isLoading ? (
+                    <motion.div
+                        key="skeleton"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="relative z-10"
+                    >
+                        <DashboardSkeleton />
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="content"
+                        initial={{ opacity: 0, scale: 0.99 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="relative z-10 space-y-12"
+                    >
+                        {/* Hero Header Section - BREEZE ZEN */}
+                        <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-10 border-b border-sky-50/50">
+                            <div className="space-y-4 max-w-2xl">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 bg-sky-50 rounded-lg flex items-center justify-center border border-sky-100">
+                                        <Rocket className="w-4 h-4 text-sky-500" />
+                                    </div>
+                                    <h4 className="font-bold text-[10px] text-sky-600 uppercase tracking-[0.4em]">Academy Discovery</h4>
+                                </div>
+
+                                <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
+                                    Test <span className="text-sky-600">Series</span> <span className="text-emerald-500">Hub</span>
+                                </h1>
+
+                                <p className="text-slate-500 font-medium text-lg tracking-tight leading-snug">
+                                    Premium simulations architected for <span className="text-sky-600 font-bold">maximum performance</span>.
+                                </p>
                             </div>
-                            <h4 className="font-bold text-[10px] text-sky-600 uppercase tracking-[0.4em]">Academy Discovery</h4>
                         </motion.div>
 
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
-                            Test <span className="text-sky-600">Series</span> <span className="text-emerald-500">Hub</span>
-                        </h1>
+                        {/* Grouped Grids by Category */}
+                        {sortedCategories.map(category => (
+                            <div key={category} className="space-y-6">
+                                <motion.div variants={itemVariants} className="flex items-center gap-3">
+                                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                        {category === 'Free Quiz' ? <Zap className="w-5 h-5 text-emerald-500 fill-emerald-500" /> :
+                                            category === 'Scholarship' ? <Trophy className="w-5 h-5 text-amber-500 fill-amber-500" /> :
+                                                <Bookmark className="w-5 h-5 text-slate-400" />}
+                                        {category}
+                                    </h2>
+                                    <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                </motion.div>
 
-                        <p className="text-slate-500 font-medium text-lg tracking-tight leading-snug">
-                            Premium simulations architected for <span className="text-sky-600 font-bold">maximum performance</span>.
-                        </p>
-                    </div>
-
-
-                </div>
-
-
-
-                {/* Grid - BREEZE CARDS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <AnimatePresence>
-                        {filteredExams.map((exam, index) => (
-                            <ExamCard key={exam.id} exam={exam} index={index} />
+                                <motion.div
+                                    variants={containerVariants}
+                                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                                >
+                                    {groupedExams[category].map((exam, index) => (
+                                        <ExamCard key={exam.id} exam={exam} index={index} itemVariants={itemVariants} />
+                                    ))}
+                                </motion.div>
+                            </div>
                         ))}
-                    </AnimatePresence>
-                </div>
-            </div>
-        </div>
+
+                        {sortedCategories.length === 0 && (
+                            <div className="text-center py-20 opacity-50">
+                                <Search className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+                                <p className="text-lg font-bold text-slate-400">No exams found matching your search.</p>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
     );
 }
 
-function ExamCard({ exam, index }: { exam: Exam, index: number }) {
+function ExamCard({ exam, index, itemVariants }: { exam: Exam, index: number, itemVariants: any }) {
     // Breeze Palette: alternating light blue and mint
     const themes = [
         { accent: "text-sky-600", bg: "bg-sky-50", border: "border-sky-100", light: "bg-sky-50/50", icon: "text-sky-500", glow: "shadow-sky-600/5" },
@@ -128,9 +201,7 @@ function ExamCard({ exam, index }: { exam: Exam, index: number }) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.03 }}
+            variants={itemVariants}
             className="group relative h-full"
         >
             <div className={`bg-white border border-slate-100 rounded-2xl p-6 shadow-sm transition-all duration-300 h-full flex flex-col relative overflow-hidden hover:shadow-md hover:border-sky-100/50 hover:bg-slate-50/30`}>
