@@ -347,7 +347,7 @@ export default function ExamDetailsPage() {
                                             </Link>
                                         )}
                                         <Link
-                                            href={`/dashboard/test/${exam.id}`}
+                                            href={`/dashboard/exam-start/${exam.id}`}
                                             className={`px-8 py-4 ${attempts.length > 0 ? 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20'} font-black uppercase tracking-[0.2em] text-xs rounded-xl shadow-lg transition-all hover:shadow-xl hover:-translate-y-1 flex items-center gap-3`}
                                         >
                                             {attempts.length > 0 ? 'Retake Exam' : 'Start Practice'}
@@ -395,7 +395,7 @@ function TestUnit({ model, isUnlocked, index }: { model: Model, isUnlocked: bool
 
     return (
         <Link
-            href={ready ? `/dashboard/test/${model.id}` : '#'}
+            href={ready ? `/dashboard/exam-start/${model.id}` : '#'}
             className={`group p-6 bg-white border border-slate-100 rounded-2xl relative overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-md hover:border-sky-100/50 hover:-translate-y-1 ${!ready ? 'cursor-not-allowed opacity-60' : ''}`}
         >
             {/* Midnight Silk Lining - Architecture Detail */}

@@ -97,6 +97,17 @@ export class ExamsService implements OnApplicationBootstrap {
             if (exam.models) {
                 exam.models.forEach(model => {
                     console.log(`[DEBUG] Exam ${exam.id} Model ${model.id} totalQuestions: ${model.totalQuestions}`);
+
+                    // Enhance model with calculated fields and exam defaults
+                    const positiveMarks = model.positiveMarks ?? exam.defaultPositiveMarks ?? 1;
+                    const negativeMarks = model.negativeMarks ?? exam.defaultNegativeMarks ?? 0;
+                    const totalMarks = model.totalQuestions * positiveMarks;
+
+                    // Add calculated fields to model
+                    (model as any).positiveMarks = positiveMarks;
+                    (model as any).negativeMarks = negativeMarks;
+                    (model as any).totalMarks = totalMarks;
+
                     if (model.chapter) {
                         if (!chaptersMap.has(model.chapter.id)) {
                             chaptersMap.set(model.chapter.id, {

@@ -6,6 +6,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../services/api_service.dart';
 import '../models/chapter.dart';
 import '../models/exam.dart';
+import 'exam_start_screen.dart';
 import 'test_engine_screen.dart';
 
 class ExamDetailScreen extends StatefulWidget {
@@ -218,7 +219,7 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => TestEngineScreen(model: model),
+                                        builder: (_) => ExamStartScreen(model: model),
                                       ),
                                     );
                                   } : null,

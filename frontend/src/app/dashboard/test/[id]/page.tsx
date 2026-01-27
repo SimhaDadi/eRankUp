@@ -490,15 +490,20 @@ export default function TestPage() {
         };
     }, [isStarted, isSubmitting, isPaused]);
 
-
-    const startTest = async () => {
-        try {
-            await document.documentElement.requestFullscreen();
-        } catch (err) {
-            console.error("Fullscreen denied:", err);
+    // Auto-start test on mount
+    useEffect(() => {
+        if (!isLoading && questions.length > 0 && !isStarted) {
+            const startTest = async () => {
+                try {
+                    await document.documentElement.requestFullscreen();
+                } catch (err) {
+                    console.error("Fullscreen denied:", err);
+                }
+                setIsStarted(true);
+            };
+            startTest();
         }
-        setIsStarted(true);
-    };
+    }, [isLoading, questions.length, isStarted]);
 
     const reEnterFullscreen = async () => {
         handleResume();
@@ -507,31 +512,6 @@ export default function TestPage() {
 
     if (isLoading) return <div className="flex h-screen items-center justify-center">Loading Assessment...</div>;
     if (questions.length === 0) return <div>No Questions Found</div>;
-
-    if (!isStarted) {
-        return (
-            <div className="flex flex-col h-screen bg-slate-50 items-center justify-center p-4 select-none">
-                <div className="bg-white p-8 rounded-3xl shadow-xl max-w-lg w-full text-center space-y-6">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                        <Shield className="w-8 h-8 text-blue-600" />
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-black text-slate-900 mb-2">Secure Exam Environment</h2>
-                        <p className="text-slate-500 font-medium">
-                            To maintain integrity, this exam must be taken in full-screen mode.
-                            Click below to enter the secure environment and begin.
-                        </p>
-                    </div>
-                    <button
-                        onClick={startTest}
-                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg shadow-blue-600/20 uppercase tracking-widest transition-all hover:scale-105"
-                    >
-                        Start Test
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
 
 
