@@ -20,6 +20,12 @@ export class AuthController {
         return this.authService.login(loginDto);
     }
 
+    @HttpCode(HttpStatus.OK)
+    @Post('google/mobile')
+    async googleMobileLogin(@Body('token') token: string) {
+        return this.authService.verifyMobileGoogleToken(token);
+    }
+
     @Get('google')
     @UseGuards(AuthGuard('google'))
     async googleAuth(@Req() _req) {

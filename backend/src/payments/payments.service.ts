@@ -112,7 +112,8 @@ export class PaymentsService implements OnModuleInit {
         };
     }
 
-    async createPassOrder(user: User, passId: string, couponCode?: string) {
+    async createPassOrder(user: any, passId: string, couponCode?: string) {
+        // console.error('DEBUG: createPassOrder user:', JSON.stringify(user));
         const pass = await this.passRepository.findOneBy({ id: passId });
         if (!pass) {
             throw new Error('Pass not found');
@@ -123,7 +124,7 @@ export class PaymentsService implements OnModuleInit {
 
         if (couponCode) {
             try {
-                const coupon = await this.marketingService.validateCoupon(couponCode, user.id);
+                const coupon = await this.marketingService.validateCoupon(couponCode, user.userId || user.id);
                 if (coupon) {
                     if (coupon.discountType === 'percentage') {
                         discountAmount = (pass.price * coupon.discountValue) / 100;
@@ -138,7 +139,54 @@ export class PaymentsService implements OnModuleInit {
             }
         }
 
-        if (finalPrice < 1 && finalPrice > 0) finalPrice = 1;
+        if (finalPrice <= 0) {
+            try {
+                // Free Pass Logic
+                const startDate = new Date();
+                const expiryDate = new Date(startDate);
+                expiryDate.setDate(expiryDate.getDate() + pass.durationDays);
+
+                if (!this.userPassRepository) {
+                    throw new Error('UserPassRepository is not initialized');
+                }
+
+                console.log('Creating free pass for user:', user.userId, 'pass:', pass.id);
+
+                const userPass = this.userPassRepository.create({
+                    // user, // REMOVED: Do not pass plain object as relation
+                    pass,
+                    userId: user.userId || user.id,
+                    passId: pass.id,
+                    purchaseDate: startDate,
+                    expiryDate: expiryDate,
+                    amount: 0,
+                    razorpayOrderId: `FREE_${Date.now()}`,
+                    couponCode: couponCode || null,
+                    discountAmount: discountAmount,
+                    paymentStatus: 'COMPLETED',
+                    status: 'ACTIVE'
+                });
+
+                console.log('Saving free userPass...');
+                await this.userPassRepository.save(userPass);
+                console.log('Saved free userPass:', userPass.id);
+
+                return {
+                    orderId: userPass.razorpayOrderId,
+                    amount: 0,
+                    currency: 'INR',
+                    keyId: null,
+                    user: { name: user.fullName, email: user.email },
+                    discountApplied: discountAmount,
+                    isFree: true
+                };
+            } catch (err) {
+                console.error('CRITICAL ERROR in createPassOrder (Free):', err);
+                throw err;
+            }
+        }
+
+        if (finalPrice < 1) finalPrice = 1;
 
         const options = {
             amount: Math.round(finalPrice * 100), // amount in paise

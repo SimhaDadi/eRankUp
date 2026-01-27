@@ -1,16 +1,25 @@
-
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { LoginCredentialsDto, SignupDto } from '@erankup/shared';
+import { OAuth2Client } from 'google-auth-library';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
+    private googleClient: OAuth2Client;
+
     constructor(
         private usersService: UsersService,
         private jwtService: JwtService,
-    ) { }
+        private configService: ConfigService,
+    ) {
+        // Client ID should be in env, but can be passed during verify too
+        this.googleClient = new OAuth2Client(
+            this.configService.get('GOOGLE_CLIENT_ID')
+        );
+    }
 
     async register(registerDto: SignupDto) {
         const existingUser = await this.usersService.findOneByEmail(registerDto.email);
@@ -74,6 +83,23 @@ export class AuthService {
                 role: user.role
             }
         };
+    }
+
+    async verifyMobileGoogleToken(token: string) {
+        try {
+            const ticket = await this.googleClient.verifyIdToken({ idToken: token });
+            const payload = ticket.getPayload();
+            if (!payload || !payload.email) throw new UnauthorizedException('Invalid Google Token Payload');
+
+            return this.validateGoogleUser({
+                email: payload.email,
+                fullName: payload.name || payload.email.split('@')[0],
+                picture: payload.picture
+            });
+        } catch (error) {
+            console.error('Google Verify Error:', error);
+            throw new UnauthorizedException('Invalid Google Token');
+        }
     }
 
     async validateGoogleUser(googleUser: any) {

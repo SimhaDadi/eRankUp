@@ -83,6 +83,21 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             console.log(`[TestSessionService] Found existing session in Redis.`);
             const session: TestSession = JSON.parse(existingSession);
             if (session.status !== 'COMPLETED') {
+                // If it's a standard test (not adaptive), we need to re-attach questions
+                // because they are not stored in Redis to save space.
+                if (!testId.startsWith('adaptive')) {
+                    try {
+                        const model = await this.examsService.findModel(testId);
+                        if (model && model.questions) {
+                            return {
+                                ...session,
+                                questions: model.questions
+                            };
+                        }
+                    } catch (e) {
+                        console.error(`[TestSessionService] Error fetching questions for existing session:`, e);
+                    }
+                }
                 return session;
             }
         }
@@ -94,7 +109,10 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
 
         console.log(`[TestSessionService] Starting standard session for Model ID: ${testId}`);
         let durationSeconds = 60 * 60; // Default 1 hour
+        let questions: any[] = [];
+
         try {
+            // Find model with questions
             const model = await this.examsService.findModel(testId);
             if (model) {
                 if (model.scheduledAt) {
@@ -105,6 +123,11 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
                     }
                 }
                 durationSeconds = (model.duration * 60) + (60 * 60);
+
+                // Assuming model.questions are loaded by findModel (which they are, per ExamsService)
+                if (model.questions) {
+                    questions = model.questions;
+                }
             }
         } catch (e) {
             console.error(`[TestSessionService] Error fetching model:`, e);
@@ -122,7 +145,12 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         };
 
         await this.redis.set(key, JSON.stringify(newSession), 'EX', durationSeconds);
-        return newSession;
+
+        // return session WITH questions (but don't store questions in Redis for standard tests)
+        return {
+            ...newSession,
+            questions: questions
+        };
     }
 
     /**

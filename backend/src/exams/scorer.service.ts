@@ -141,9 +141,17 @@ export class ScorerService implements OnModuleInit {
         const timeTaken = Math.floor((Date.now() - startTime) / 1000);
         const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
 
+        const topicAnalysis: Record<string, { correct: number, total: number }> = {};
+        questions.forEach(q => {
+            const topic = q.topic || 'General';
+            if (!topicAnalysis[topic]) topicAnalysis[topic] = { correct: 0, total: 0 };
+            topicAnalysis[topic].total++;
+            if (userAnswers[q.id] === q.correctOptionId) {
+                topicAnalysis[topic].correct++;
+            }
+        });
+
         // 3. Save Attempt
-        // We use IDs instead of objects where possible to prevent TypeORM from trying to "update" related entities
-        // Ensure user ID is valid UUID
         const attempt = this.attemptRepository.create({
             user: { id: user.id } as User,
             model: model ? ({ id: model.id } as Model) : undefined,
@@ -155,7 +163,13 @@ export class ScorerService implements OnModuleInit {
             timeTaken,
             userAnswers: userAnswers,
             questionTimings: questionTimings,
-            responses: []
+            responses: [],
+            insights: {
+                strengths: score > 70 ? ['Strong overall performance'] : ['Keep practicing!'],
+                weaknesses: score < 50 ? ['Improve speed and accuracy'] : [],
+                recommendation: score > 80 ? 'Great job! Try a harder test.' : 'Review the topics you missed.',
+                topicAnalysis: topicAnalysis
+            }
         });
 
         // 4. Create Response Entities (Granular)
@@ -274,15 +288,16 @@ export class ScorerService implements OnModuleInit {
         }
 
         const leaderboard = await this.attemptRepository.createQueryBuilder('attempt')
-            .leftJoinAndSelect('attempt.user', 'user')
+            .innerJoin('attempt.user', 'user')
             .select([
-                'user.id',
-                'user.name',
-                'MAX(attempt.score) as max_score',
-                'AVG(attempt.accuracy) as avg_accuracy'
+                'user.id AS userId',
+                'user.fullName AS fullName',
+                'MAX(attempt.score) AS maxScore',
+                'AVG(attempt.accuracy) AS avgAccuracy'
             ])
             .groupBy('user.id')
-            .orderBy('max_score', 'DESC')
+            .addGroupBy('user.fullName')
+            .orderBy('maxScore', 'DESC')
             .limit(10)
             .getRawMany();
 
@@ -393,14 +408,21 @@ export class ScorerService implements OnModuleInit {
             }
         });
 
+        // Get AI recommendation for Home Screen
+        const weakAreas = await this.adaptiveLearningService.getWeakAreas(userId, 1);
+        const topTopicRecommendation = weakAreas.length > 0
+            ? `${weakAreas[0].topic}: Focus on this to boost your score`
+            : 'Take a diagnostic test now';
+
         return {
             totalAttempts,
             averageScore: Math.round(totalScore / totalAttempts),
             totalTimeTaken,
             accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0,
             streak,
-            dailyQuestions, // Return the count
-            topicPerformance
+            dailyQuestions,
+            topicPerformance,
+            topTopicRecommendation
         };
     }
     async getUserExamStats(userId: string) {

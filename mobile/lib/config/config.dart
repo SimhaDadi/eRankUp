@@ -6,6 +6,7 @@ class Config {
   static const Map<String, String> _apiBaseUrls = {
     'dev': 'http://10.0.2.2:3001',        // Android Emulator
     // 'dev': 'http://localhost:3001',     // iOS Simulator / Desktop
+    // 'dev': 'http://192.168.1.X:3001',   // Physical Device (Replace X with your PC's IP)
     'staging': 'https://staging-api.erankup.com',
     'prod': 'https://api.erankup.com',
   };

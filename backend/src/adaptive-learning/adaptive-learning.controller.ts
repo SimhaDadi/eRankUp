@@ -12,15 +12,14 @@ export class AdaptiveLearningController {
     ) { }
 
     @Post('start-session')
-    async startSession(@Request() req: any, @Body() body: { questionIds?: string[] }) {
+    async startSession(@Request() req: any, @Body() body: { questionIds?: string[], topic?: string, limit?: number }) {
         const userId = req.user.userId;
         let questions: any[] = [];
-        console.log(`[Adaptive] startSession request. Body IDs: ${body.questionIds?.length || 0}`);
 
-        // 1. If explicit questions are provided (from "Recommended Practice" UI), use them
-        if (body.questionIds && body.questionIds.length > 0) {
+        if (body.topic) {
+            questions = await this.adaptiveService.getQuestionsForTopic(body.topic, body.limit || 20);
+        } else if (body.questionIds && body.questionIds.length > 0) {
             questions = await this.adaptiveService.getQuestionsByIds(body.questionIds);
-            console.log(`[Adaptive] Fetched ${questions.length} questions by ID.`);
         } else {
             // 2. Otherwise, generate purely based on AI recommendation (Fallback)
             console.log(`[Adaptive] No IDs provided. Generating from path...`);
@@ -83,28 +82,45 @@ export class AdaptiveLearningController {
         const userId = req.user.userId;
         const path = await this.adaptiveService.generateLearningPath(userId);
 
-        // Frontend expects questions immediately. Let's auto-generate a practice set based on the top recommendation.
-        const topTopic = path.recommendedTopics[0];
-        const topicName = topTopic?.topic || 'General';
+        // Get user's mastery for these topics to check status
+        const mastery = await this.adaptiveService.getWeakAreas(userId, 20);
+        const today = new Date().setHours(0, 0, 0, 0);
 
-        // Fetch questions for this topic
-        // We'll use a new service method or repurpose generateAdaptiveQuestionSet if we can pass a topic filter
-        // For now, let's fetch questions via repo in service or add a helper.
-        // Since we are in controller, let's ask service to "getQuestionsForTopic(topic)"
+        const tasks = path.recommendedTopics.map(rec => {
+            const topicMastery = mastery.find(m => m.topic === rec.topic);
+            const practicedToday = topicMastery?.lastPracticedAt
+                ? new Date(topicMastery.lastPracticedAt).setHours(0, 0, 0, 0) === today
+                : false;
 
-        const questions = await this.adaptiveService.getQuestionsForTopic(topicName, 10);
+            return {
+                ...rec,
+                isCompleted: practicedToday,
+                masteryScore: topicMastery?.masteryScore || 0,
+                advice: topicMastery?.cognitiveAdvice || "Practice this topic to improve your overall score."
+            };
+        });
+
+        // Current questions for the top task
+        const topTopic = path.recommendedTopics[0]?.topic || 'General';
+        const questions = await this.adaptiveService.getQuestionsForTopic(topTopic, 10);
 
         return {
             userId,
-            rationale: topTopic?.reason || "General improvement based on initial assessment.",
-            totalQuestions: questions.length,
+            rationale: path.recommendedTopics[0]?.reason || "Personalized plan based on your recent performance.",
+            tasks,
             questions: questions.map(q => ({
                 id: q.id,
                 content: q.content,
                 subject: q.subject?.title || 'General',
                 chapter: q.topic || 'General',
-                difficulty: q.difficultyWeight || 0.5
-            }))
+            })),
+            stats: {
+                totalTasks: tasks.length,
+                completedToday: tasks.filter(t => t.isCompleted).length,
+                overallMastery: mastery.length > 0
+                    ? Math.round((mastery.reduce((acc, current) => acc + current.masteryScore, 0) / mastery.length) * 100)
+                    : 0
+            }
         };
     }
 }

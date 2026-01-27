@@ -16,6 +16,7 @@ export default function SettingsPage() {
     // Form State
     const [formData, setFormData] = useState({
         fullName: '',
+        phone: '',
         dob: '',
         education: '',
         category: '',
@@ -55,6 +56,7 @@ export default function SettingsPage() {
 
                         setFormData({
                             fullName: cleanName,
+                            phone: res.data.phone || '',
                             dob: formatDateForInput(res.data.dob),
                             education: res.data.education || '',
                             category: res.data.category || '',
