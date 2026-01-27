@@ -193,6 +193,17 @@ export default function SettingsPage() {
                                 />
                             </FormRow>
 
+                            {/* Mobile Number */}
+                            <FormRow label="Mobile Number" icon={<Mail className="w-4 h-4" />}>
+                                <input
+                                    type="tel"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    className="w-full max-w-md h-11 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-extrabold text-base text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm"
+                                    placeholder="Enter your mobile number"
+                                />
+                            </FormRow>
+
                             {/* Date of Birth */}
                             <FormRow label="Date of Birth" icon={<Calendar className="w-4 h-4" />}>
                                 <input
