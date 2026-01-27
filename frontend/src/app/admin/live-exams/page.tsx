@@ -40,8 +40,8 @@ export default function LiveExamsPage() {
     const fetchExams = async () => {
         setLoading(true);
         try {
-            // Fetch all exams to allow scheduling any exam
-            const res = await api.get('/admin/exams');
+            // Fetch only live exams to allow scheduling
+            const res = await api.get('/exams?type=live_exam');
             setExams(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
             console.error('Failed to fetch exams', error);
@@ -56,6 +56,7 @@ export default function LiveExamsPage() {
 
         try {
             await api.put(`/admin/live-exams/${selectedExam.id}`, {
+                isLive: true,
                 startTime: new Date(schedule.startTime).toISOString(),
                 endTime: new Date(schedule.endTime).toISOString()
             });

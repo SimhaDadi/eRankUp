@@ -95,7 +95,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 1.3,
+              childAspectRatio: 1.0,
               children: [
                 _buildStatCard(
                   'Total Tests',

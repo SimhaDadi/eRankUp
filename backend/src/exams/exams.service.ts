@@ -759,19 +759,23 @@ export class ExamsService implements OnApplicationBootstrap {
         return exams.map(exam => ({
             id: exam.id,
             name: exam.title,
+            title: exam.title,
             description: exam.description,
             subjects: (exam.subjects || []).map(subject => ({
                 id: subject.id,
                 name: subject.title,
+                title: subject.title,
                 examId: exam.id,
                 chapters: (subject.chapters || []).map(chapter => ({
                     id: chapter.id,
                     name: chapter.title,
+                    title: chapter.title,
                     subjectId: subject.id,
                     questionCount: countsMap.get(chapter.id) || 0,
                     models: (chapter.models || []).map(model => ({
                         id: model.id,
                         name: model.title,
+                        title: model.title,
                         totalQuestions: modelCountsMap.get(model.id) || 0,
                         chapterId: chapter.id,
                         examIds: model.exams?.map(e => e.id) || []

@@ -5,6 +5,7 @@ import 'home_screen.dart';
 import 'exams_screen.dart';
 import 'performance_screen.dart';
 import 'settings_screen.dart';
+import 'ai_chat_screen.dart';
 
 class MainAppScreen extends StatefulWidget {
   const MainAppScreen({super.key});
@@ -19,6 +20,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   final List<Widget> _screens = const [
     HomeScreen(),
     ExamsScreen(),
+    AIChatScreen(),
     PerformanceScreen(),
     SettingsScreen(),
   ];
@@ -68,6 +70,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
               icon: Icon(Icons.quiz_outlined),
               selectedIcon: Icon(Icons.quiz),
               label: 'Tests',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.auto_awesome_outlined),
+              selectedIcon: Icon(Icons.auto_awesome),
+              label: 'AI Tutor',
             ),
             NavigationDestination(
               icon: Icon(Icons.trending_up_outlined),

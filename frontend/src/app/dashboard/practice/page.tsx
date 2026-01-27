@@ -23,14 +23,16 @@ import PremiumEmptyState from '@/components/ui/PremiumEmptyState';
 
 interface Chapter {
     id: string;
-    title: string;
+    title?: string;
+    name?: string;
     description?: string;
     modelCount?: number;
 }
 
 interface Subject {
     id: string;
-    title: string;
+    title?: string;
+    name?: string;
     icon?: string;
     chapters: Chapter[];
 }
@@ -59,10 +61,12 @@ export default function PracticePage() {
     }, []);
 
     const filteredHierarchy = hierarchy.filter(subject => {
-        const subjectMatches = subject.title.toLowerCase().includes(searchQuery.toLowerCase());
-        const chapterMatches = subject.chapters?.some(chapter =>
-            chapter.title.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        const subjectTitle = subject.title || subject.name || '';
+        const subjectMatches = subjectTitle.toLowerCase().includes(searchQuery.toLowerCase());
+        const chapterMatches = subject.chapters?.some(chapter => {
+            const chapterTitle = chapter.title || chapter.name || '';
+            return chapterTitle.toLowerCase().includes(searchQuery.toLowerCase());
+        });
         return subjectMatches || chapterMatches;
     });
 
@@ -70,9 +74,10 @@ export default function PracticePage() {
     useEffect(() => {
         if (searchQuery) {
             const firstMatchingSubject = hierarchy.find(subject =>
-                subject.chapters?.some(chapter =>
-                    chapter.title.toLowerCase().includes(searchQuery.toLowerCase())
-                )
+                subject.chapters?.some(chapter => {
+                    const chapterTitle = chapter.title || chapter.name || '';
+                    return chapterTitle.toLowerCase().includes(searchQuery.toLowerCase());
+                })
             );
             if (firstMatchingSubject && expandedSubject !== firstMatchingSubject.id) {
                 setExpandedSubject(firstMatchingSubject.id);
@@ -164,7 +169,7 @@ export default function PracticePage() {
                                                 </div>
                                                 <div className="space-y-1">
                                                     <h3 className="text-xl font-black text-slate-800 tracking-tight group-hover:text-sky-600 transition-colors">
-                                                        {subject.title}
+                                                        {subject.title || subject.name}
                                                     </h3>
                                                     <div className="flex items-center gap-4">
                                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -206,7 +211,7 @@ export default function PracticePage() {
                                                                 </div>
                                                                 <div className="flex flex-col">
                                                                     <span className="font-bold text-slate-700 tracking-tight group-hover/chapter:text-sky-600 transition-colors">
-                                                                        {chapter.title}
+                                                                        {chapter.title || chapter.name}
                                                                     </span>
                                                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Practice Module</span>
                                                                 </div>

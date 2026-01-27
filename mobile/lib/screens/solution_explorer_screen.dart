@@ -171,10 +171,13 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                MathRichText(
-                  text: question['content'] ?? '',
-                  style: AppTextStyles.body.copyWith(fontWeight: FontWeight.bold),
-                ),
+                  MathRichText(
+                    text: question['content'] ?? '',
+                    style: AppTextStyles.body.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.textTheme.bodyLarge?.color ?? Colors.black87
+                    ),
+                  ),
               ],
             ),
           ),

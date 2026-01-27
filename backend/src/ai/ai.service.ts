@@ -44,34 +44,72 @@ export class AIService {
     ) { }
 
     /**
-     * Generate text using Gemini AI API
+     * Generate text using Gemini AI API (Multimodal support)
      */
-    async generateText(prompt: string): Promise<string> {
+    async generateText(prompt: string, images: { data: string; mimeType: string }[] = []): Promise<string> {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-
-        if (!apiKey) {
-            throw new Error('GEMINI_API_KEY not configured');
-        }
+        if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
         return this.queueService.add(async () => {
             try {
-                // Use the SDK which handles endpoints robustly
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
-                return response.text();
+                const parts: any[] = [prompt];
+                if (images.length > 0) {
+                    images.forEach(img => {
+                        parts.push({
+                            inlineData: {
+                                data: img.data,
+                                mimeType: img.mimeType
+                            }
+                        });
+                    });
+                }
+
+                const result = await model.generateContent(parts);
+                return (await result.response).text();
             } catch (error) {
                 console.error('[AIService] Gemini API error:', error);
-                // Fallback message if AI fails
-                if (error.status === 503) {
-                    return "I am currently overloaded. Please try again in a moment.";
-                }
                 throw error;
             }
         });
+    }
+
+    /**
+     * Generate streaming text using Gemini AI API (Multimodal support)
+     */
+    async *generateStream(prompt: string, images: { data: string; mimeType: string }[] = []): AsyncIterableIterator<string> {
+        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+        const { GoogleGenerativeAI } = require("@google/generative-ai");
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+        const parts: any[] = [prompt];
+        if (images.length > 0) {
+            images.forEach(img => {
+                parts.push({
+                    inlineData: {
+                        data: img.data,
+                        mimeType: img.mimeType
+                    }
+                });
+            });
+        }
+
+        try {
+            const result = await model.generateContentStream(parts);
+            for await (const chunk of result.stream) {
+                const text = chunk.text();
+                if (text) yield text;
+            }
+        } catch (error) {
+            console.error('[AIService] Gemini Streaming error:', error);
+            yield " [Communication interrupted. Please try again.]";
+        }
     }
 
     /**

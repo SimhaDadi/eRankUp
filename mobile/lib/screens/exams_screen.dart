@@ -391,30 +391,39 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
   }
 
   Widget _buildStat(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.white70),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: AppTextStyles.caption.copyWith(
-            color: Colors.white70,
-            fontWeight: FontWeight.w500,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: AppTextStyles.caption.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   List<Color> _getGradientColors(String title) {
-    // Simple hash-based color selection for variety
+    // Vibrant modern gradients
     final hash = title.hashCode.abs();
     final gradients = [
-      [const Color(0xFF2563EB), const Color(0xFF00BFA5)], // Blue to Cyan
-      [const Color(0xFF7C3AED), const Color(0xFF2563EB)], // Purple to Blue
-      [const Color(0xFFEF4444), const Color(0xFFF59E0B)], // Red to Amber
-      [const Color(0xFF10B981), const Color(0xFF059669)], // Green to Teal
-      [const Color(0xFFF59E0B), const Color(0xFFEF4444)], // Amber to Red
+      [const Color(0xFF4F46E5), const Color(0xFF7C3AED)], // Indigo to Violet
+      [const Color(0xFF2563EB), const Color(0xFF06B6D4)], // Blue to Cyan
+      [const Color(0xFF059669), const Color(0xFF34D399)], // Emerald to Teal
+      [const Color(0xFFDC2626), const Color(0xFFF59E0B)], // Red to Amber
+      [const Color(0xFFDB2777), const Color(0xFFF472B6)], // Pink to Rose
+      [const Color(0xFFea580c), const Color(0xFFfb923c)], // Orange
     ];
     
     return gradients[hash % gradients.length];

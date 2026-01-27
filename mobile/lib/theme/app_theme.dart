@@ -4,66 +4,74 @@ import 'package:flutter/material.dart';
 /// Ensures consistency and accessibility across all screens
 
 class AppColors {
-  // Primary Colors
-  static const primaryBlue = Color(0xFF2563EB);
-  static const primaryCyan = Color(0xFF00BFA5);
-  static const darkNavy = Color(0xFF0F172A);
+  // Premium Palette (Deep Royal Blue & Gold)
+  static const primaryBlue = Color(0xFF0F172A); // Slate 900
+  static const primaryCyan = Color(0xFF0EA5E9); // Sky 500 (keeping for accents)
+  static const primaryGold = Color(0xFFD97706); // Amber 600
   
-  // Neutrals (IMPROVED CONTRAST)
-  static const textPrimary = Color(0xFF1F2937);    // Gray 800 - Contrast 14:1
-  static const textSecondary = Color(0xFF4B5563);  // Gray 600 - Contrast 7:1
-  static const textTertiary = Color(0xFF6B7280);   // Gray 500 - Contrast 5:1
-  static const textDisabled = Color(0xFF9CA3AF);   // Gray 400
+  static const darkNavy = Color(0xFF020617); // Slate 950
+  
+  // Neutrals 
+  static const textPrimary = Color(0xFF0F172A);    // Slate 900
+  static const textSecondary = Color(0xFF475569);  // Slate 600
+  static const textTertiary = Color(0xFF94A3B8);   // Slate 400
+  static const textDisabled = Color(0xFFCBD5E1);   // Slate 300
   
   // Backgrounds
   static const bgPrimary = Color(0xFFFFFFFF);
-  static const bgSecondary = Color(0xFFF9FAFB);    // Gray 50
-  static const bgTertiary = Color(0xFFF3F4F6);     // Gray 100
+  static const bgSecondary = Color(0xFFF1F5F9);    // Slate 100
+  static const bgTertiary = Color(0xFFE2E8F0);     // Slate 200
   
-  // Success (IMPROVED)
-  static const successBg = Color(0xFFD1FAE5);      // Green 100
-  static const successText = Color(0xFF065F46);    // Green 800 - Contrast 8:1
-  static const successBorder = Color(0xFF6EE7B7);  // Green 300
-  static const successDark = Color(0xFF047857);    // Green 700
+  // Success
+  static const successBg = Color(0xFFDCFCE7);      // Emerald 100
+  static const successText = Color(0xFF166534);    // Emerald 800
+  static const successBorder = Color(0xFF86EFAC);  // Emerald 300
+  static const successDark = Color(0xFF059669);    // Emerald 600
   
-  // Warning (IMPROVED)
+  // Warning
   static const warningBg = Color(0xFFFEF3C7);      // Amber 100
-  static const warningText = Color(0xFF92400E);    // Amber 800 - Contrast 7:1
+  static const warningText = Color(0xFF92400E);    // Amber 800
   static const warningBorder = Color(0xFFFCD34D);  // Amber 300
   static const warningDark = Color(0xFFB45309);    // Amber 700
   
-  // Error (IMPROVED)
+  // Error
   static const errorBg = Color(0xFFFEE2E2);        // Red 100
-  static const errorText = Color(0xFF991B1B);      // Red 800 - Contrast 8:1
+  static const errorText = Color(0xFF991B1B);      // Red 800
   static const errorBorder = Color(0xFFFCA5A5);    // Red 300
   static const errorDark = Color(0xFFDC2626);      // Red 600
-  
+
   // Info
-  static const infoBg = Color(0xFFDBEAFE);         // Blue 100
-  static const infoText = Color(0xFF1E40AF);       // Blue 800 - Contrast 8:1
-  static const infoBorder = Color(0xFF93C5FD);     // Blue 300
+  static const infoBg = Color(0xFFE0F2FE);         // Sky 100
+  static const infoText = Color(0xFF0369A1);       // Sky 700
+  static const infoBorder = Color(0xFF7DD3FC);     // Sky 300
   
   // Gradients
   static const heroGradient = LinearGradient(
-    colors: [primaryBlue, primaryCyan],
+    colors: [Color(0xFF0F172A), Color(0xFF334155)], // Slate 900 -> Slate 700
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const goldGradient = LinearGradient(
+    colors: [Color(0xFFF59E0B), Color(0xFFD97706)], // Amber 500 -> Amber 600
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   
   static const liveGradient = LinearGradient(
-    colors: [Color(0xFFEF4444), Color(0xFFF97316)], // Red to Orange
+    colors: [Color(0xFF1E293B), Color(0xFF0F172A)], // Slate 800 -> Slate 900
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   
   static const premiumGradient = LinearGradient(
-    colors: [Color(0xFFF59E0B), Color(0xFFEA580C)], // Amber to Orange
+    colors: [Color(0xFF1E1E1E), Color(0xFF000000)], 
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
+
   static const rankGradient = LinearGradient(
-    colors: [Color(0xFF9333EA), Color(0xFF2563EB)], // Purple to Blue
+    colors: [Color(0xFF6366F1), Color(0xFF4338CA)], // Indigo
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

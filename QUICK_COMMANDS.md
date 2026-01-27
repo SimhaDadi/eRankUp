@@ -4,7 +4,7 @@
 
 ### Option 1: Complete Fresh Start (Recommended)
 ```powershell
-cd C:\Users\dadim\OneDrive\Desktop\eRankUp
+cd D:\eRankUp
 .\fresh-start.ps1
 ```
 This will:
@@ -17,7 +17,7 @@ This will:
 
 ### Option 2: Manual Cleanup Only
 ```powershell
-cd C:\Users\dadim\OneDrive\Desktop\eRankUp
+cd D:\eRankUp
 .\cleanup.ps1
 ```
 Then manually start services.
@@ -91,7 +91,7 @@ npm run migration:run
 
 ### 2. Start Frontend (New Terminal)
 ```powershell
-cd C:\Users\dadim\OneDrive\Desktop\eRankUp\frontend
+cd D:\eRankUp\frontend
 npm run dev
 ```
 

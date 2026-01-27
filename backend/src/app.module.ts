@@ -43,7 +43,7 @@ import { DoubtsModule } from './doubts/doubts.module';
                     database: config.get<string>('DB_NAME', 'erankup_db'),
                     // entities: [__dirname + '/**/*.entity{.ts,.js}'],
                     autoLoadEntities: true,
-                    synchronize: false,
+                    synchronize: true,
                     ssl: false,
                 };
                 console.log('DB Config:', { ...dbConfig, password: '***' });

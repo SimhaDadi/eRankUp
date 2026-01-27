@@ -230,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickStats() {
-    final totalTests = _stats?['totalTests'] ?? 0;
+    final totalTests = _stats?['totalAttempts'] ?? 0;
     final avgScore = (_stats?['averageScore'] as num?)?.round() ?? 0;
     final bestScore = (_stats?['bestScore'] as num?)?.round() ?? 0;
     final rank = _stats?['rank'] ?? '-';
@@ -248,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: AppSpacing.md,
             crossAxisSpacing: AppSpacing.md,
-            childAspectRatio: 1.3,
+            childAspectRatio: 1.0,
             children: [
               _buildStatCard(
                 'Tests Taken',
@@ -588,7 +588,14 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Personalized Study Plan', style: AppTextStyles.h2),
+              Expanded(
+                child: Text(
+                  'Personalized Study Plan', 
+                  style: AppTextStyles.h2,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               TextButton(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudyPlanScreen())),
                 child: const Text('View Full Plan'),

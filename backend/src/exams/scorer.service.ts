@@ -25,6 +25,8 @@ export class ScorerService implements OnModuleInit {
         private examRepository: Repository<Exam>,
         @InjectRepository(Response)
         private responseRepository: Repository<Response>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
         private difficultyService: DifficultyService,
         private cacheService: CacheService,
         private gamificationService: GamificationService,
@@ -316,6 +318,12 @@ export class ScorerService implements OnModuleInit {
     }
 
     async getUserStats(userId: string) {
+        // Fetch user to get signup date
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new Error('User not found');
+        }
+
         const attempts = await this.attemptRepository.find({
             where: { user: { id: userId } },
             order: { createdAt: 'DESC' }
@@ -337,9 +345,14 @@ export class ScorerService implements OnModuleInit {
         const totalCorrect = attempts.reduce((acc, curr) => acc + curr.correctAnswers, 0);
         const totalQuestions = attempts.reduce((acc, curr) => acc + curr.totalQuestions, 0);
 
-        // Calculate Streak
-        // 1. Get unique dates of attempts (YYYY-MM-DD)
-        const uniqueDates = Array.from(new Set(attempts.map(a => new Date(a.createdAt).toISOString().split('T')[0]))).sort((a, b) => b.localeCompare(a)); // Descending order
+        // Calculate Streak - ONLY count attempts after user signup
+        const userSignupDate = new Date(user.createdAt);
+        const attemptsAfterSignup = attempts.filter(a => new Date(a.createdAt) >= userSignupDate);
+
+        // Get unique dates of attempts AFTER signup (YYYY-MM-DD)
+        const uniqueDates = Array.from(
+            new Set(attemptsAfterSignup.map(a => new Date(a.createdAt).toISOString().split('T')[0]))
+        ).sort((a, b) => b.localeCompare(a)); // Descending order
 
         let streak = 0;
         const today = new Date().toISOString().split('T')[0];
@@ -414,9 +427,15 @@ export class ScorerService implements OnModuleInit {
             ? `${weakAreas[0].topic}: Focus on this to boost your score`
             : 'Take a diagnostic test now';
 
+        // Calculate Best Score
+        const bestScore = attempts.length > 0
+            ? Math.max(...attempts.map(a => a.score))
+            : 0;
+
         return {
             totalAttempts,
             averageScore: Math.round(totalScore / totalAttempts),
+            bestScore,
             totalTimeTaken,
             accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0,
             streak,

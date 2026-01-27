@@ -14,6 +14,7 @@ import { Question } from './entities/question.entity';
 import { Attempt } from './entities/attempt.entity';
 import { Response } from './entities/response.entity';
 import { Purchase } from './entities/purchase.entity';
+import { User } from '../users/user.entity';
 import { ExamsSeederService } from './exams-seeder.service';
 import { ScorerService } from './scorer.service';
 import { DifficultyService } from './difficulty.service';
@@ -29,7 +30,7 @@ import { StudentQuestionsController } from './student-questions.controller';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Exam, Subject, Chapter, Model, Question, Attempt, Response, Purchase]),
+        TypeOrmModule.forFeature([Exam, Subject, Chapter, Model, Question, Attempt, Response, Purchase, User]),
         forwardRef(() => PaymentsModule),
         forwardRef(() => TestSessionModule),
         AIModule,

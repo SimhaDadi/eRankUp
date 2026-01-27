@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
-import 'dashboard_screen.dart';
+import 'main_app_screen.dart';
 import 'signup_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -34,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
            
            if (success && mounted) {
              Navigator.of(context).pushReplacement(
-               MaterialPageRoute(builder: (_) => const DashboardScreen()),
+               MaterialPageRoute(builder: (_) => const MainAppScreen()),
              );
            } else if (mounted) {
              ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        MaterialPageRoute(builder: (_) => const MainAppScreen()),
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

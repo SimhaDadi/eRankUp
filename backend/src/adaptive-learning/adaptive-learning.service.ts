@@ -79,8 +79,8 @@ export class AdaptiveLearningService {
             topicStats.set(topic, stats);
         }
 
-        // Update each topic
-        for (const [topic, stats] of topicStats.entries()) {
+        // Update each topic in parallel
+        await Promise.all(Array.from(topicStats.entries()).map(async ([topic, stats]) => {
             let mastery = await this.masteryRepo.findOne({
                 where: { userId, topic },
             });
@@ -114,7 +114,7 @@ export class AdaptiveLearningService {
             }
 
             await this.masteryRepo.save(mastery);
-        }
+        }));
     }
 
     async generateAdaptiveQuestionSet(

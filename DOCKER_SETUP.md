@@ -5,7 +5,7 @@
 ### 1. Start Docker Services
 ```powershell
 # Navigate to project root
-cd C:\Users\dadim\OneDrive\Desktop\eRankUp
+cd D:\eRankUp
 
 # Start PostgreSQL and Redis
 docker-compose up -d

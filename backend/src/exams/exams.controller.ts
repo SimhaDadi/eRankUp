@@ -28,6 +28,7 @@ export class ExamsController {
         private readonly passesService: PassesService,
     ) { }
 
+
     @UseGuards(AuthGuard('jwt'))
     @Get()
     async findAll(@Request() req: any, @Query('type') type?: string) {
@@ -124,6 +125,7 @@ export class ExamsController {
     async seed2030() {
         return this.seederService.seed2030Exams();
     }
+
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)

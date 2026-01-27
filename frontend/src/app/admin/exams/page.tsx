@@ -12,7 +12,9 @@ import {
     ExternalLink,
     BookOpen,
     Layers,
-    HelpCircle
+    HelpCircle,
+    Zap,
+    FileText
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
@@ -28,7 +30,7 @@ interface Exam {
     isPublished: boolean;
     createdAt: string;
     chapters: any[];
-    type: 'real_exam' | 'question_bank';
+    type: 'real_exam' | 'question_bank' | 'live_exam' | 'previous_year_paper';
     questionCount?: number;
 }
 
@@ -77,7 +79,7 @@ export default function AdminExamsPage() {
         }
     };
 
-    const [filterType, setFilterType] = useState<'all' | 'real_exam' | 'question_bank'>('real_exam');
+    const [filterType, setFilterType] = useState<'all' | 'real_exam' | 'question_bank' | 'live_exam' | 'previous_year_paper'>('all');
 
     const filteredExams = exams.filter(exam => {
         const matchesType = filterType === 'all' || exam.type === filterType;
@@ -122,6 +124,18 @@ export default function AdminExamsPage() {
                     className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${filterType === 'question_bank' ? 'bg-slate-800 text-purple-400 border-b-2 border-purple-500' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                 >
                     Question Banks
+                </button>
+                <button
+                    onClick={() => setFilterType('live_exam')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${filterType === 'live_exam' ? 'bg-slate-800 text-rose-400 border-b-2 border-rose-500' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                >
+                    Live Exams
+                </button>
+                <button
+                    onClick={() => setFilterType('previous_year_paper')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${filterType === 'previous_year_paper' ? 'bg-slate-800 text-amber-400 border-b-2 border-amber-500' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                >
+                    Previous Papers
                 </button>
             </div>
 
@@ -169,9 +183,16 @@ export default function AdminExamsPage() {
                             className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-slate-700 transition-all group"
                         >
                             <div className="flex justify-between items-start mb-4">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${exam.type === 'question_bank' ? 'bg-purple-600/10' : 'bg-blue-600/10'}`}>
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${exam.type === 'question_bank' ? 'bg-purple-600/10' :
+                                    exam.type === 'live_exam' ? 'bg-rose-600/10' :
+                                        exam.type === 'previous_year_paper' ? 'bg-amber-600/10' :
+                                            'bg-blue-600/10'}`}>
                                     {exam.type === 'question_bank' ? (
                                         <Database className="w-6 h-6 text-purple-500" />
+                                    ) : exam.type === 'live_exam' ? (
+                                        <Zap className="w-6 h-6 text-rose-500" />
+                                    ) : exam.type === 'previous_year_paper' ? (
+                                        <FileText className="w-6 h-6 text-amber-500" />
                                     ) : (
                                         <BookOpen className="w-6 h-6 text-blue-500" />
                                     )}
@@ -200,11 +221,19 @@ export default function AdminExamsPage() {
 
                             <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                                 {exam.title}
-                                {exam.type === 'question_bank' && (
+                                {exam.type === 'question_bank' ? (
                                     <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
                                         BANK
                                     </span>
-                                )}
+                                ) : exam.type === 'live_exam' ? (
+                                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                        LIVE
+                                    </span>
+                                ) : exam.type === 'previous_year_paper' ? (
+                                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                        PYP
+                                    </span>
+                                ) : null}
                             </h3>
                             <p className="text-slate-400 text-sm line-clamp-2 mb-6">
                                 {exam.description || 'No description provided for this examination.'}

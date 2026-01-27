@@ -34,9 +34,16 @@ export class ExamsSeederService implements OnApplicationBootstrap {
 
     async onApplicationBootstrap() {
         const count = await this.examsRepository.count();
-        if (count > 0) return;
+        if (count === 0) {
+            console.log('Seeding Global Content Bank...');
+            await this.seedInitialContent();
+        }
 
-        console.log('Seeding Global Content Bank...');
+        await this.seedRRBNTPC2024();
+        await this.seedSSC2024Refinement();
+    }
+
+    private async seedInitialContent() {
 
         const subject = await this.subjectRepository.save({
             title: 'Quantitative Aptitude',
@@ -336,5 +343,139 @@ export class ExamsSeederService implements OnApplicationBootstrap {
 
         await this.invalidateCache();
         return results;
+    }
+
+    async seedRRBNTPC2024() {
+        const title = 'RRB NTPC 2024';
+        let exam = await this.examsRepository.findOne({ where: { title } });
+        if (exam) return { message: 'Exam already exists', id: exam.id };
+
+        console.log(`Seeding ${title}...`);
+
+        exam = this.examsRepository.create({
+            title,
+            description: 'Previous Year Paper Mock for RRB NTPC 2024. Includes Mathematics, Reasoning, and GA.',
+            isPremium: false,
+            type: 'previous_year_paper' as any
+        });
+        exam = await this.examsRepository.save(exam);
+
+        const subjectsData = [
+            { name: 'Mathematics', chapter: 'Arithmetic' },
+            { name: 'General Intelligence & Reasoning', chapter: 'Logical Reasoning' },
+            { name: 'General Awareness', chapter: 'Static GK' }
+        ];
+
+        for (const sData of subjectsData) {
+            const subject = await this.getOrCreateSubject(sData.name);
+            const chapter = await this.getOrCreateChapter(subject, sData.chapter);
+
+            const model = this.modelRepository.create({
+                title: `${title} - ${sData.name} Section`,
+                chapter,
+                totalQuestions: 30,
+                exams: [exam]
+            });
+            await this.modelRepository.save(model);
+
+            const questionsBatch = [];
+            for (let i = 1; i <= 30; i++) {
+                questionsBatch.push({
+                    content: `[${title}] ${sData.name} Question #${i}: Practice question based on 2024 railway pattern.`,
+                    options: [
+                        { id: 'a', text: 'Option A' },
+                        { id: 'b', text: 'Option B' },
+                        { id: 'c', text: 'Option C' },
+                        { id: 'd', text: 'Option D' }
+                    ],
+                    correctOptionId: 'b',
+                    explanation: `Explanation for ${sData.name} question #${i}.`,
+                    topic: sData.chapter,
+                    models: [model],
+                    exams: [exam],
+                    subject,
+                    chapter
+                });
+            }
+            const qEntities = this.questionRepository.create(questionsBatch);
+            await this.questionRepository.save(qEntities);
+        }
+
+        await this.invalidateCache(exam.id);
+        console.log(`${title} seeded successfully.`);
+        return { message: 'Seeded RRB NTPC 2024', examId: exam.id };
+    }
+
+    async seedSSC2024Refinement() {
+        const title = 'SSC CGL Tier I - 2024';
+        let exam = await this.examsRepository.findOne({ where: { title } });
+
+        // If it doesn't exist, it might be named differently in seed.ts ('SSC CGL 2024 (Full Prep)')
+        if (!exam) {
+            exam = await this.examsRepository.findOne({ where: { title: 'SSC CGL 2024 (Full Prep)' } });
+        }
+
+        if (!exam) {
+            console.log('SSC CGL 2024 not found for refinement, creating new...');
+            exam = this.examsRepository.create({
+                title,
+                description: 'Official-style mock for SSC CGL 2024 Tier I aspirants.',
+                isPremium: false,
+                type: 'previous_year_paper' as any
+            });
+            exam = await this.examsRepository.save(exam);
+        } else {
+            // Update title and type if needed
+            exam.title = title;
+            exam.type = 'previous_year_paper' as any;
+            await this.examsRepository.save(exam);
+        }
+
+        const subjects = ['General Intelligence', 'General Awareness', 'Quantitative Aptitude', 'English Comprehension'];
+        for (const sName of subjects) {
+            const subject = await this.getOrCreateSubject(sName);
+            const chapter = await this.getOrCreateChapter(subject, 'Mixed Practice');
+
+            // Check if model already exists for this subject in this exam
+            let model = await this.modelRepository.createQueryBuilder('m')
+                .innerJoin('m.exams', 'e')
+                .where('e.id = :examId', { examId: exam.id })
+                .andWhere('m.title LIKE :title', { title: `%${sName}%` })
+                .getOne();
+
+            if (!model) {
+                model = this.modelRepository.create({
+                    title: `SSC CGL 2024 - ${sName}`,
+                    chapter,
+                    totalQuestions: 25,
+                    exams: [exam]
+                });
+                await this.modelRepository.save(model);
+
+                const questions = [];
+                for (let i = 1; i <= 25; i++) {
+                    questions.push({
+                        content: `[SSC CGL 2024] ${sName} Q#${i}: Sample question for 2024 Tier I exam.`,
+                        options: [
+                            { id: 'a', text: 'Option A' },
+                            { id: 'b', text: 'Option B' },
+                            { id: 'c', text: 'Option C' },
+                            { id: 'd', text: 'Option D' }
+                        ],
+                        correctOptionId: 'a',
+                        explanation: `Logic explanation for ${sName} Q#${i}.`,
+                        topic: 'Mixed',
+                        models: [model],
+                        exams: [exam],
+                        subject,
+                        chapter
+                    });
+                }
+                await this.questionRepository.save(this.questionRepository.create(questions));
+            }
+        }
+
+        await this.invalidateCache(exam.id);
+        console.log('SSC CGL 2024 refinement complete.');
     }
 }

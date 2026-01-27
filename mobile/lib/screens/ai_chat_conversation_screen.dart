@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -35,6 +37,8 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
   IO.Socket? _socket;
   bool _isStreaming = false;
   String _streamingText = '';
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -156,20 +160,42 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
     }
   }
 
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+        setState(() {
+            _selectedImage = File(image.path);
+        });
+    }
+  }
+
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _isStreaming) return;
+    if ((text.isEmpty && _selectedImage == null) || _isStreaming) return;
+    
+    String? base64Image;
+    String? mimeType;
+    
+    if (_selectedImage != null) {
+        final bytes = await _selectedImage!.readAsBytes();
+        base64Image = base64Encode(bytes);
+        String ext = _selectedImage!.path.split('.').last.toLowerCase();
+        mimeType = ext == 'png' ? 'image/png' : (ext == 'webp' ? 'image/webp' : 'image/jpeg');
+    }
 
     final apiService = Provider.of<ApiService>(context, listen: false);
     final userId = await apiService.getUserId();
     final profile = await apiService.getUserProfile();
     _messageController.clear();
+    final sentImage = _selectedImage; // Keep ref for local display
+    setState(() => _selectedImage = null); // clear state immediately
 
     setState(() {
       _messages.add({
         'role': 'user',
-        'content': text,
+        'content': text + (sentImage != null ? '\n[Image Sent]' : ''),
         'createdAt': DateTime.now().toIso8601String(),
+        'localImage': sentImage // Custom field for local display
       });
     });
     _scrollToBottom();
@@ -182,6 +208,7 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
         'message': text,
         if (_currentConversationId != null) 'conversationId': _currentConversationId,
         if (widget.questionId != null && _messages.length <= 2) 'questionId': widget.questionId,
+        if (base64Image != null) 'image': { 'data': base64Image, 'mimeType': mimeType },
       });
     } else {
       // Fallback to REST if socket is down
@@ -190,6 +217,7 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
           'message': text,
           if (_currentConversationId != null) 'conversationId': _currentConversationId,
           if (widget.questionId != null && _messages.length <= 2) 'questionId': widget.questionId,
+          if (base64Image != null) 'image': { 'data': base64Image, 'mimeType': mimeType },
         });
 
         if (response.statusCode == 201) {
@@ -251,6 +279,7 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
     final bool isUser = message['role'] == 'user';
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final localImage = message['localImage'];
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -289,7 +318,20 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
                       BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2)),
                     ],
                   ),
-                  child: _buildMessageBody(message['content'] ?? '', isUser, isDark),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                          if (localImage != null)
+                              Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.file(localImage, height: 150, fit: BoxFit.cover),
+                                  ),
+                              ),
+                          _buildMessageBody(message['content'] ?? '', isUser, isDark),
+                      ]
+                  ),
                 ),
               ),
             ],
@@ -426,10 +468,42 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
         ],
       ),
       child: SafeArea(
-        child: Row(
+        child: Column(
           children: [
-            Expanded(
-              child: TextField(
+            if (_selectedImage != null)
+                Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                        children: [
+                            Stack(
+                                children: [
+                                    ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.file(_selectedImage!, width: 60, height: 60, fit: BoxFit.cover),
+                                    ),
+                                    Positioned(
+                                        top: -5, right: -5,
+                                        child: GestureDetector(
+                                            onTap: () => setState(() => _selectedImage = null),
+                                            child: Container(
+                                                color: Colors.black54,
+                                                child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                            ),
+                                        )
+                                    )
+                                ]
+                            ),
+                        ],
+                    ),
+                ),
+            Row(
+              children: [
+                IconButton(
+                    onPressed: _pickImage,
+                    icon: Icon(Icons.image, color: isDark ? Colors.white70 : AppColors.primaryBlue),
+                ),
+                Expanded(
+                  child: TextField(
                 controller: _messageController,
                 decoration: InputDecoration(
                   hintText: 'Type your doubt...',
@@ -455,6 +529,7 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
             ),
           ],
         ),
+      ]),
       ),
     );
   }
@@ -546,7 +621,7 @@ class _InteractiveQuizState extends State<_InteractiveQuiz> {
                 ),
                 child: Row(
                   children: [
-                    Expanded(child: MathRichText(text: options[index], style: const TextStyle(fontSize: 14))),
+                    Expanded(child: MathRichText(text: options[index], style: TextStyle(fontSize: 14, color: isDark ? Colors.white87 : Colors.black87))),
                     if (icon != null) icon,
                   ],
                 ),

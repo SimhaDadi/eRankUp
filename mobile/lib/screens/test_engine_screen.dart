@@ -503,7 +503,12 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                     const SizedBox(height: 16),
                     MathRichText(
                       text: question.content,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500, height: 1.5),
+                      style: TextStyle(
+                        fontSize: 18, 
+                        fontWeight: FontWeight.w500, 
+                        height: 1.5,
+                        color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87
+                      ),
                     ),
                     const SizedBox(height: 32),
                     ...question.options.map((option) {

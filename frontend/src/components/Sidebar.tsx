@@ -88,7 +88,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
         {
             items: [
                 { icon: Layers, label: 'Test Series', href: '/dashboard/test-series' },
-                { icon: Activity, label: 'Live Tests & Quizzes', href: '/dashboard/live-exams' },
+                { icon: Activity, label: 'Live Tests', href: '/dashboard/live-exams' },
                 { icon: FileText, label: 'Previous Year Papers', href: '/dashboard/pyp' },
                 { icon: Crosshair, label: 'Practice', href: '/dashboard/practice' },
                 { icon: Clock, label: 'Free Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },
@@ -113,7 +113,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
         const colors: Record<string, string> = {
             'Home': 'from-blue-500 to-indigo-600',
             'Test Series': 'from-violet-500 to-purple-600',
-            'Live Tests & Quizzes': 'from-rose-500 to-pink-600',
+            'Live Tests': 'from-rose-500 to-pink-600',
             'Previous Year Papers': 'from-amber-400 to-orange-500',
             'Practice': 'from-emerald-400 to-teal-500',
             'Free Quizzes': 'from-cyan-400 to-blue-500',

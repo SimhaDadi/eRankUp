@@ -328,7 +328,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                       ),
                                   ),
                                   const SizedBox(height: 8),
-                                  Text('$tCorrect / $tTotal Correct', style: const TextStyle(fontSize: 12, color: Colors.grey))
+                                  Text('$tCorrect / $tTotal Correct', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600))
                               ],
                           ),
                       );

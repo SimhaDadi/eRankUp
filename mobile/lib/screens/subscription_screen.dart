@@ -101,7 +101,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Future<void> _initiatePurchase(Pass pass) async {
     // Show coupon dialog first if it's not a free trial
     String? couponCode;
-    if (int.parse(pass.price) > 0) {
+    if ((double.tryParse(pass.price) ?? 0) > 0) {
       couponCode = await _showCouponDialog();
     }
 
@@ -341,7 +341,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             children: [
               Text('₹${pass.price}', style: AppTextStyles.h1.copyWith(color: AppColors.primaryCyan, fontSize: 32)),
               const SizedBox(width: 8),
-              if (int.parse(pass.price) > 0)
+              if ((double.tryParse(pass.price) ?? 0) > 0)
                 Text('/ ${pass.durationDays} days', style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold)),
             ],
           ),
@@ -368,7 +368,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: Text(int.parse(pass.price) == 0 ? 'START FREE TRIAL' : 'GET ACCESS NOW'),
+              child: Text((double.tryParse(pass.price) ?? 0) == 0 ? 'START FREE TRIAL' : 'GET ACCESS NOW'),
             ),
           ),
         ],

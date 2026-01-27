@@ -117,12 +117,17 @@ export class PassesService implements OnModuleInit {
     }
 
     async completePayment(razorpayOrderId: string, razorpayPaymentId: string): Promise<UserPass> {
+        this.logger.log(`[CompletePayment] Searching for UserPass with OrderId: ${razorpayOrderId}`);
         const userPass = await this.userPassRepository.findOne({
             where: { razorpayOrderId }
         });
 
-        if (!userPass) throw new NotFoundException('User pass not found');
+        if (!userPass) {
+            this.logger.error(`[CompletePayment] UserPass NOT FOUND for OrderId: ${razorpayOrderId}`);
+            throw new NotFoundException('User pass not found');
+        }
 
+        this.logger.log(`[CompletePayment] UserPass found: ${userPass.id}. Updating to COMPLETED.`);
         userPass.paymentStatus = 'COMPLETED';
         userPass.razorpayPaymentId = razorpayPaymentId;
 
@@ -130,11 +135,15 @@ export class PassesService implements OnModuleInit {
     }
 
     async failPayment(razorpayOrderId: string): Promise<UserPass> {
+        this.logger.log(`[FailPayment] Marking failure for OrderId: ${razorpayOrderId}`);
         const userPass = await this.userPassRepository.findOne({
             where: { razorpayOrderId }
         });
 
-        if (!userPass) throw new NotFoundException('User pass not found');
+        if (!userPass) {
+            this.logger.error(`[FailPayment] UserPass NOT FOUND for OrderId: ${razorpayOrderId}`);
+            throw new NotFoundException('User pass not found');
+        }
 
         userPass.paymentStatus = 'FAILED';
         userPass.status = 'CANCELLED';
@@ -278,22 +287,29 @@ export class PassesService implements OnModuleInit {
     }
 
     async verifyPayment(user: any, payload: { razorpayOrderId: string, razorpayPaymentId: string, razorpaySignature: string }) {
-        // This method is kept for backward compatibility
-        // New code should use PaymentsService.handleWebhook instead
-        this.logger.warn('verifyPayment is deprecated, use PaymentsService.handleWebhook instead');
+        this.logger.log(`[VerifyPayment] Verifying for User: ${user.userId || user.id}, Order: ${payload.razorpayOrderId}`);
 
         const crypto = require('crypto');
         const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
+
+        if (!secret) {
+            this.logger.error('[VerifyPayment] RAZORPAY_KEY_SECRET is missing in config!');
+            throw new Error('Server misconfiguration: Missing Secret');
+        }
 
         const generated_signature = crypto
             .createHmac('sha256', secret)
             .update(payload.razorpayOrderId + "|" + payload.razorpayPaymentId)
             .digest('hex');
 
+        this.logger.log(`[VerifyPayment] Sig Generated: ${generated_signature}, Received: ${payload.razorpaySignature}`);
+
         if (generated_signature === payload.razorpaySignature) {
             await this.completePayment(payload.razorpayOrderId, payload.razorpayPaymentId);
+            this.logger.log('[VerifyPayment] Signature Verified & Payment Completed');
             return { success: true, message: 'Pass Activated Successfully' };
         } else {
+            this.logger.error('[VerifyPayment] Signature Verification Failed');
             throw new Error('Invalid Signature');
         }
     }
