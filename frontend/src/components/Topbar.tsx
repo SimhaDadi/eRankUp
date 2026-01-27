@@ -242,6 +242,9 @@ export default function Topbar() {
                                 <div className="px-4 py-4 border-b border-slate-50 mb-1 bg-slate-50/50 rounded-2xl">
                                     <p className="text-sm font-black text-slate-900">{user?.fullName}</p>
                                     <p className="text-xs text-slate-500 truncate font-medium">{user?.email}</p>
+                                    {user?.phone && (
+                                        <p className="text-[10px] text-slate-400 mt-1 font-bold uppercase tracking-wider">{user.phone}</p>
+                                    )}
                                 </div>
                                 <Link
                                     href="/dashboard/settings"
