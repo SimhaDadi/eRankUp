@@ -8,6 +8,8 @@ import '../services/haptic_service.dart';
 import '../models/chapter.dart';
 import '../models/question.dart';
 import 'results_screen.dart';
+import '../widgets/math_rich_text.dart';
+import '../theme/app_theme.dart';
 
 class TestEngineScreen extends StatefulWidget {
   final TestModel model;
@@ -257,6 +259,8 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
 
     final question = _allQuestions[_currentIndex];
     final bool isFlagged = _flaggedIds.contains(question.id);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     // Ensure current question is marked visited
     _visitedIds.add(question.id);
@@ -611,7 +615,6 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
                       ),
-                      child: const Text('Save & Next'),
                     )
                   : ElevatedButton(
                       onPressed: _submitTest,

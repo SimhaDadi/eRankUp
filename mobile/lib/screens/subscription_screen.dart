@@ -289,7 +289,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             children: [
               Icon(Icons.stars, color: Colors.white, size: 28),
               SizedBox(width: 12),
-              Text('ACTIVE PASS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.black, letterSpacing: 1.2)),
+              Text('ACTIVE PASS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
             ],
           ),
           const SizedBox(height: 20),
@@ -333,7 +333,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 color: AppColors.primaryCyan.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text('MOST POPULAR', style: TextStyle(color: AppColors.primaryCyan, fontSize: 10, fontWeight: FontWeight.black)),
+              child: const Text('MOST POPULAR', style: TextStyle(color: AppColors.primaryCyan, fontSize: 10, fontWeight: FontWeight.w900)),
             ),
           Text(pass.title, style: AppTextStyles.h2),
           const SizedBox(height: 8),

@@ -82,6 +82,19 @@ class ApiService {
     return response;
   }
 
+  Future<http.Response> delete(String endpoint) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    final headers = await _getHeaders();
+    final response = await http.delete(url, headers: headers);
+    
+    if (response.statusCode == 401) {
+      await logout();
+      throw Exception('Session expired. Please login again.');
+    }
+    
+    return response;
+  }
+
   Future<bool> updateProfile(Map<String, dynamic> data) async {
     try {
       final response = await patch('/users/profile', data);

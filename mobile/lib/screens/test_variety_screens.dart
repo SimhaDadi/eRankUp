@@ -151,7 +151,7 @@ class PassScreen extends StatelessWidget {
                     'eRankUp Pass',
                     style: TextStyle(
                       fontSize: 28,
-                      fontWeight: FontWeight.black,
+                      fontWeight: FontWeight.w900,
                       color: Colors.white,
                     ),
                   ),
@@ -214,7 +214,7 @@ class PassScreen extends StatelessWidget {
                         '999',
                         style: TextStyle(
                           fontSize: 48,
-                          fontWeight: FontWeight.black,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -263,7 +263,7 @@ class PassScreen extends StatelessWidget {
                   'Subscribe Now',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.black,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
@@ -279,7 +279,7 @@ class PassScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: Theme.of(context).brightness == Brightness.dark ? Colors.emeraldAccent : color, size: 24),
+          Icon(icon, color: Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : color, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

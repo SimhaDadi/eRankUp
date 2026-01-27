@@ -1,9 +1,12 @@
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
 import '../services/api_service.dart';
 import '../services/theme_provider.dart';
 import '../theme/app_theme.dart';
 import 'subscription_screen.dart';
 import 'edit_profile_screen.dart';
+import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -85,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _currentPass != null ? 'PREMIUM' : 'FREE',
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.black,
+                        fontWeight: FontWeight.w900,
                         color: _currentPass != null 
                           ? (theme.brightness == Brightness.dark ? Colors.teal.shade100 : Colors.teal.shade700) 
                           : (theme.brightness == Brightness.dark ? Colors.amber.shade100 : Colors.amber.shade700),
@@ -317,7 +320,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.pop(context);
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => const ERankUpApp()),
+                  MaterialPageRoute(builder: (_) => ERankUpApp()),
                   (route) => false,
                 );
               }
@@ -405,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fullName.isNotEmpty ? fullName[0].toUpperCase() : 'G',
                         style: const TextStyle(
                           fontSize: 48,
-                          fontWeight: FontWeight.black,
+                          fontWeight: FontWeight.w900,
                           color: Colors.white,
                         ),
                       ),
@@ -464,6 +467,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildInfoTile(String label, String value, IconData icon) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

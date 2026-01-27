@@ -66,7 +66,7 @@ class DailyGoalWidget extends StatelessWidget {
                   Text(
                     '$percentage%',
                     style: AppTextStyles.h3.copyWith(
-                      fontWeight: FontWeight.black,
+                      fontWeight: FontWeight.w900,
                       height: 1.0,
                       color: theme.textTheme.bodyLarge?.color,
                     ),

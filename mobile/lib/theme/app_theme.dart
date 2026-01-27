@@ -255,26 +255,12 @@ class AppTheme {
       elevation: 0,
       centerTitle: false,
     ),
-    cardTheme: CardTheme(
-      color: AppColors.bgPrimary,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-    ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: AppColors.darkNavy,
       contentTextStyle: AppTextStyles.bodySmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
       elevation: 6,
-    ),
-    dialogTheme: DialogTheme(
-      backgroundColor: AppColors.bgPrimary,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
-      titleTextStyle: AppTextStyles.h2,
-      contentTextStyle: AppTextStyles.body,
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -336,14 +322,6 @@ class AppTheme {
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: false,
-    ),
-    cardTheme: CardTheme(
-      color: const Color(0xFF1E293B),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        side: const BorderSide(color: Color(0xFF334155)),
-      ),
     ),
     textTheme: TextTheme(
       displayLarge: AppTextStyles.h1.copyWith(color: Colors.white),

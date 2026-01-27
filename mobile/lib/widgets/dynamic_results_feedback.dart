@@ -224,7 +224,7 @@ class _DynamicResultsFeedbackState extends State<DynamicResultsFeedback>
                         '${widget.score}%',
                         style: const TextStyle(
                           fontSize: 64,
-                          fontWeight: FontWeight.black,
+                          fontWeight: FontWeight.w900,
                           color: Colors.white,
                           height: 1,
                         ),
@@ -348,7 +348,7 @@ class _AnimatedScoreCounterState extends State<AnimatedScoreCounter>
           '${_scoreAnimation.value}%',
           style: const TextStyle(
             fontSize: 64,
-            fontWeight: FontWeight.black,
+            fontWeight: FontWeight.w900,
             color: Colors.white,
           ),
         );

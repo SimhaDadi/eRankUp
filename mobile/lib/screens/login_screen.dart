@@ -5,6 +5,7 @@ import 'dashboard_screen.dart';
 import 'signup_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -99,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 60),
-                const Text(
+                Text(
                   'eRankUp',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -114,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   'AI-Driven Exam Prep',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: isDark ? Colors.white60 : Colors.slate.shade500,
+                    color: isDark ? Colors.white60 : Colors.blueGrey.shade500,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -214,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       },
-                      child: const Text(
+                      child: Text(
                         'Sign Up',
                         style: TextStyle(
                           color: AppColors.primaryBlue,

@@ -106,7 +106,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 32,
-                            fontWeight: FontWeight.black,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ],
@@ -256,7 +256,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       '$rank',
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.black,
+                        fontWeight: FontWeight.w900,
                         color: medalColor != null ? Colors.white : (isDark ? Colors.white38 : Colors.black87),
                       ),
                     ),
@@ -297,7 +297,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           'YOU',
                           style: TextStyle(
                             fontSize: 9,
-                            fontWeight: FontWeight.black,
+                            fontWeight: FontWeight.w900,
                             color: Colors.white,
                             letterSpacing: 0.5,
                           ),
@@ -331,7 +331,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               '$score%',
               style: const TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.black,
+                fontWeight: FontWeight.w900,
                 color: Colors.white,
               ),
             ),

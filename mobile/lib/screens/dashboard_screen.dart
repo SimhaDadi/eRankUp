@@ -80,6 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final theme = Theme.of(context);
                   final isDark = theme.brightness == Brightness.dark;
                   
+                  final exam = _exams[index];
                   return Card(
                     margin: const EdgeInsets.only(bottom: 16),
                     child: ListTile(
@@ -100,7 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             exam.description,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: isDark ? Colors.white60 : Colors.slate.shade500),
+                            style: TextStyle(color: isDark ? Colors.white60 : Colors.blueGrey.shade500),
                           ),
                           const SizedBox(height: 12),
                           Row(
@@ -126,14 +127,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF064E3B).withOpacity(0.2) : Colors.emerald.shade50,
-                                    border: Border.all(color: isDark ? const Color(0xFF059669) : Colors.emerald.shade200),
+                                    color: isDark ? const Color(0xFF064E3B).withOpacity(0.2) : Colors.green.shade50,
+                                    border: Border.all(color: isDark ? const Color(0xFF059669) : Colors.green.shade200),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
                                     'FREE',
                                     style: TextStyle(
-                                      color: isDark ? Colors.emeraldAccent : Colors.emerald.shade700, 
+                                      color: isDark ? Colors.greenAccent : Colors.green.shade700, 
                                       fontSize: 10, 
                                       fontWeight: FontWeight.bold
                                     ),
@@ -145,7 +146,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       trailing: Icon(
                         Icons.chevron_right, 
-                        color: isDark ? Colors.white38 : Colors.slate.shade400
+                        color: isDark ? Colors.white38 : Colors.blueGrey.shade400
                       ),
                       onTap: () {
                         Navigator.push(

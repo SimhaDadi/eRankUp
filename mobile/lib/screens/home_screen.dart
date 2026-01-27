@@ -260,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Avg Score',
                 '$avgScore%',
                 Icons.trending_up,
-                Theme.of(context).brightness == Brightness.dark ? Colors.emeraldAccent : Colors.green.shade600,
+                Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green.shade600,
               ),
               _buildStatCard(
                 'Best Score',
@@ -298,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: AppSpacing.sm),
           Text(
             value,
-            style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.black),
+            style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
           Text(
@@ -316,6 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildContinueLearning() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final lastAttempt = _recentAttempts!.first;
     final model = lastAttempt['model'] as Map<String, dynamic>?;
     final modelTitle = model?['title'] ?? 'Test';
@@ -576,6 +577,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+  
   Widget _buildAIStudyPlanSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),

@@ -257,7 +257,7 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
             OutlinedButton(
               onPressed: () {
                 _searchController.clear();
-                _setFilter('all');
+                _tabController.index = 0;
                 _onSearchChanged('');
               },
               child: const Text('Clear Filters'),

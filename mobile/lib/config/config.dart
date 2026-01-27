@@ -4,15 +4,16 @@ class Config {
 
   // API Base URLs for different environments
   static const Map<String, String> _apiBaseUrls = {
-    'dev': 'http://10.0.2.2:3001',        // Android Emulator
-    // 'dev': 'http://localhost:3001',     // iOS Simulator / Desktop
-    // 'dev': 'http://192.168.1.X:3001',   // Physical Device (Replace X with your PC's IP)
+    'dev': 'http://127.0.0.1:3001',       // Use with 'adb reverse tcp:3001 tcp:3001'
+    // 'dev': 'http://192.168.1.3:3001',     // Local Machine IP for Physical Device (Wi-Fi)
+    // 'dev': 'http://10.0.2.2:3001',        // Android Emulator
     'staging': 'https://staging-api.erankup.com',
     'prod': 'https://api.erankup.com',
   };
 
   // Get current API base URL
   static String get apiBaseUrl => _apiBaseUrls[environment] ?? _apiBaseUrls['dev']!;
+  static String get aiChatSocketUrl => apiBaseUrl.replaceFirst('http', 'ws');
 
   // App Configuration
   static const String appName = 'eRankUp';

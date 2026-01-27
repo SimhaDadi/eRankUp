@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/haptic_service.dart';
 import '../theme/app_theme.dart';
-import 'test_engine_screen.dart'; // For MathRichText
+import '../widgets/math_rich_text.dart';
 import 'ai_chat_conversation_screen.dart';
 
 class SolutionExplorerScreen extends StatefulWidget {
@@ -245,12 +245,12 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                       children: [
                         Icon(Icons.lightbulb_outline, size: 16, color: AppColors.primaryCyan),
                         SizedBox(width: 8),
-                        Text('EXPLANATION', style: TextStyle(fontSize: 11, fontWeight: FontWeight.black, color: AppColors.primaryCyan, letterSpacing: 1)),
+                        Text('EXPLANATION', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.primaryCyan, letterSpacing: 1)),
                       ],
                     ),
                     TextButton.icon(
                       onPressed: () {
-                        HapticService.lightImpact();
+                        HapticService.light();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -330,7 +330,7 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
         decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
+          color: Theme.of(context).scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(

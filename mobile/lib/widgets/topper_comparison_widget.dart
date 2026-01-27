@@ -13,11 +13,8 @@ class TopperComparisonWidget extends StatelessWidget {
     final topics = ['Algebra', 'Geometry', 'Arithmetic', 'Reasoning'];
     
     return topics.map((topic) {
-      // Simulate user score for this topic based on overall score + random variance
       final variance = (DateTime.now().millisecondsSinceEpoch % 20) - 10;
       final yourScore = (userScore + variance).clamp(0, 100);
-      
-      // Topper is usually 10-15% ahead, capped at 100
       final topperScore = (yourScore + 5 + (DateTime.now().millisecondsSinceEpoch % 15)).clamp(0, 100);
       
       return {
@@ -26,6 +23,8 @@ class TopperComparisonWidget extends StatelessWidget {
         'topperScore': topperScore,
       };
     }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final stats = _generateTopperStats();
@@ -37,7 +36,7 @@ class TopperComparisonWidget extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: Theme.of(context).brightness == Brightness.dark 
+          colors: isDark 
             ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
             : [Colors.indigo.shade50, Colors.blue.shade50],
           begin: Alignment.topLeft,
@@ -45,24 +44,23 @@ class TopperComparisonWidget extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
         border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.blue.shade100, 
+          color: isDark ? const Color(0xFF334155) : Colors.blue.shade100, 
           width: 1.5
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2563EB) : Colors.blue.shade600,
+                  color: isDark ? const Color(0xFF2563EB) : Colors.blue.shade600,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2563EB) : Colors.blue.shade600).withOpacity(0.3),
+                      color: (isDark ? const Color(0xFF2563EB) : Colors.blue.shade600).withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -71,7 +69,7 @@ class TopperComparisonWidget extends StatelessWidget {
                 child: const Icon(Icons.emoji_events, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 16),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -104,15 +102,15 @@ class TopperComparisonWidget extends StatelessWidget {
               'Competitive Analytics',
               style: AppTextStyles.caption.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.amberAccent : Colors.amber.shade800,
+                color: isDark ? Colors.amberAccent : Colors.amber.shade800,
                 letterSpacing: 0.5,
               ),
             ),
           ),
           const SizedBox(height: 24),
           
-          // Topic Comparisons
           ...stats.map((stat) => _buildTopicComparison(
+            context,
             stat['topic'] as String,
             stat['yourScore'] as int,
             stat['topperScore'] as int,
@@ -120,7 +118,6 @@ class TopperComparisonWidget extends StatelessWidget {
           
           const SizedBox(height: 16),
           
-          // Insight
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -150,9 +147,11 @@ class TopperComparisonWidget extends StatelessWidget {
       ),
     );
   }
-  }
 
-  Widget _buildTopicComparison(String topic, int yourScore, int topperScore) {
+  Widget _buildTopicComparison(BuildContext context, String topic, int yourScore, int topperScore) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
     final gap = topperScore - yourScore;
     
     return Container(
@@ -206,14 +205,13 @@ class TopperComparisonWidget extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           
-          // Progress bars
           Row(
             children: [
               const SizedBox(
                 width: 40,
                 child: Text(
                   'You',
-                  style: TextStyle(fontSize: 11, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54),
+                  style: TextStyle(fontSize: 11),
                 ),
               ),
               Expanded(
@@ -241,27 +239,6 @@ class TopperComparisonWidget extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Label with boundary check
-                    if (yourScore > 5 && yourScore < 95)
-                      Positioned(
-                        left: ((yourScore / 100) * (screenWidth - 120)).clamp(30.0, screenWidth - 150),
-                        top: -24,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF2563EB) : Colors.blue.shade700,
-                            borderRadius: BorderRadius.circular(6),
-                            boxShadow: isDark ? [] : AppShadows.small,
-                          ),
-                          child: Text(
-                            'You: $yourScore%',
-                            style: AppTextStyles.captionSmall.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -283,7 +260,7 @@ class TopperComparisonWidget extends StatelessWidget {
                 width: 40,
                 child: Text(
                   'Top',
-                  style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black54),
+                  style: TextStyle(fontSize: 11),
                 ),
               ),
               Expanded(
@@ -310,25 +287,6 @@ class TopperComparisonWidget extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Positioned(
-                      left: (topperScore / 100) * MediaQuery.of(context as BuildContext).size.width * 0.6,
-                      top: -20,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFFD97706) : Colors.amber.shade600,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'Top: $topperScore%',
-                          style: const TextStyle(
-                            fontSize: 9,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -349,7 +307,7 @@ class TopperComparisonWidget extends StatelessWidget {
   }
 
   String _generateInsight(List<Map<String, dynamic>> stats) {
-    // Find topic with smallest gap
+    if (stats.isEmpty) return "No data available";
     var bestTopic = stats[0];
     var smallestGap = (stats[0]['topperScore'] as int) - (stats[0]['yourScore'] as int);
     

@@ -211,7 +211,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             value,
             style: TextStyle(
               fontSize: 24,
-              fontWeight: FontWeight.black,
+              fontWeight: FontWeight.w900,
               color: theme.textTheme.bodyLarge?.color,
             ),
           ),
@@ -348,7 +348,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 '$score%',
                 style: const TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.black,
+                  fontWeight: FontWeight.w900,
                   color: Colors.white,
                 ),
               ),

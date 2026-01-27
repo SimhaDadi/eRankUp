@@ -328,7 +328,7 @@ class AchievementCard extends StatelessWidget {
                   color: achievement.unlocked
                       ? achievement.color
                       : AppColors.textTertiary,
-                  fontWeight: FontWeight.black,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
@@ -422,7 +422,7 @@ class AchievementsScreen extends StatelessWidget {
           value,
           style: AppTextStyles.h2.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.black,
+            fontWeight: FontWeight.w900,
           ),
         ),
         Text(

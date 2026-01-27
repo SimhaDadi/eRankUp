@@ -35,4 +35,9 @@ class HapticService {
         await Future.delayed(const Duration(milliseconds: 80));
     }
   }
+
+  /// Subtle pulsing for AI typing
+  static Future<void> aiTyping() async {
+    await HapticFeedback.selectionClick();
+  }
 }

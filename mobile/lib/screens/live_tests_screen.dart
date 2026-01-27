@@ -147,7 +147,7 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
                             'LIVE',
                             style: TextStyle(
                               fontSize: 11,
-                              fontWeight: FontWeight.black,
+                              fontWeight: FontWeight.w900,
                               color: Colors.white,
                               letterSpacing: 1,
                             ),
@@ -213,7 +213,7 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
                         'Join Now',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.black,
+                          fontWeight: FontWeight.w900,
                           color: isDark ? const Color(0xFFDC2626) : Colors.red.shade600,
                         ),
                       ),

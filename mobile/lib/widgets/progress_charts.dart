@@ -188,13 +188,13 @@ class ProgressChartWidget extends StatelessWidget {
           'Avg Score',
           '$avgScore%',
           Icons.trending_up,
-          isDark ? Colors.emeraldAccent : Colors.green,
+          isDark ? Colors.greenAccent : Colors.green,
         ),
         _buildLegendItem(
           'Trend',
           trend > 0 ? '+$trend%' : '$trend%',
           trend >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-          trend >= 0 ? (isDark ? Colors.emeraldAccent : Colors.green) : (isDark ? Colors.redAccent : Colors.red),
+          trend >= 0 ? (isDark ? Colors.greenAccent : Colors.green) : (isDark ? Colors.redAccent : Colors.red),
         ),
       ],
     );

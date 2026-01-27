@@ -53,6 +53,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -185,7 +188,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         '${value.round()}%',
                         style: AppTextStyles.whiteWithShadow.copyWith(
                           fontSize: 64,
-                          fontWeight: FontWeight.black,
+                          fontWeight: FontWeight.w900,
                           height: 1.1,
                         ),
                       );
@@ -411,9 +414,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
   
   Widget _buildMetricCard(IconData icon, String label, String value, Color color) {
-      return Container(
-          decoration: BoxDecoration(
-              color: theme.cardTheme.color,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
               borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
               border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
               boxShadow: isDark ? [] : AppShadows.small,
@@ -429,7 +435,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   )),
                   const SizedBox(height: 2),
                   Text(value, style: AppTextStyles.h3.copyWith(
-                    fontWeight: FontWeight.black,
+                    fontWeight: FontWeight.w900,
                   )),
               ],
           ),

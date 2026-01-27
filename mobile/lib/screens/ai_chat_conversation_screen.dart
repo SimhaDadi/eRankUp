@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../config/config.dart';
 import '../services/api_service.dart';
+import '../services/haptic_service.dart';
 import '../theme/app_theme.dart';
-import 'test_engine_screen.dart'; // For MathRichText
+import '../widgets/math_rich_text.dart';
 
 class AIChatConversationScreen extends StatefulWidget {
   final String? conversationId;
@@ -29,6 +32,9 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
   String? _currentConversationId;
+  IO.Socket? _socket;
+  bool _isStreaming = false;
+  String _streamingText = '';
 
   @override
   void initState() {
@@ -39,6 +45,85 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
     } else if (widget.questionId != null) {
       _addInitialMessage();
     }
+    _initSocket();
+  }
+
+  void _initSocket() async {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    final token = await apiService.getToken();
+
+    _socket = IO.io('${Config.aiChatSocketUrl}/ai-chat', IO.OptionBuilder()
+      .setTransports(['websocket'])
+      .setExtraHeaders({'Authorization': 'Bearer $token'})
+      .build());
+
+    _socket!.onConnect((_) => debugPrint('[Socket] Connected'));
+    _socket!.onDisconnect((_) => debugPrint('[Socket] Disconnected'));
+
+    _socket!.on('streamStart', (data) {
+      setState(() {
+        _currentConversationId = data['conversationId'];
+        _isStreaming = true;
+        _streamingText = '';
+        _messages.add({
+          'role': 'assistant',
+          'content': '',
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+      });
+      _scrollToBottom();
+    });
+
+    _socket!.on('streamChunk', (data) {
+      if (mounted) {
+        setState(() {
+          _streamingText += data['chunk'];
+          _messages.last['content'] = _streamingText;
+        });
+        
+        // Throttle haptics to prevent excessive vibration
+        _handleStreamingHaptic();
+        _scrollToBottom();
+      }
+    });
+
+    _socket!.on('streamEnd', (data) {
+      setState(() {
+        _isStreaming = false;
+        _messages.last['content'] = data['fullText'];
+      });
+      _scrollToBottom();
+    });
+
+    _socket!.on('error', (data) {
+      debugPrint('[Socket] Error: ${data['message']}');
+      setState(() => _isStreaming = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Streaming failed. Please try again.'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+  }
+
+  DateTime? _lastHapticTime;
+  void _handleStreamingHaptic() {
+    final now = DateTime.now();
+    if (_lastHapticTime == null || now.difference(_lastHapticTime!) > const Duration(milliseconds: 100)) {
+      HapticService.aiTyping();
+      _lastHapticTime = now;
+    }
+  }
+
+  @override
+  void dispose() {
+    _socket?.disconnect();
+    _socket?.dispose();
+    super.dispose();
   }
 
   void _addInitialMessage() {
@@ -73,9 +158,11 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isStreaming) return;
 
     final apiService = Provider.of<ApiService>(context, listen: false);
+    final userId = await apiService.getUserId();
+    final profile = await apiService.getUserProfile();
     _messageController.clear();
 
     setState(() {
@@ -87,27 +174,39 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
     });
     _scrollToBottom();
 
-    try {
-      final response = await apiService.post('/ai-chat/message', {
+    // Use Socket for streaming
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('sendMessage', {
+        'userId': userId,
+        'role': profile?['role'] ?? 'STUDENT',
         'message': text,
         if (_currentConversationId != null) 'conversationId': _currentConversationId,
         if (widget.questionId != null && _messages.length <= 2) 'questionId': widget.questionId,
       });
-
-      if (response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _currentConversationId = data['conversationId'];
-          _messages.add({
-            'role': 'assistant',
-            'content': data['response'],
-            'createdAt': DateTime.now().toIso8601String(),
-          });
+    } else {
+      // Fallback to REST if socket is down
+      try {
+        final response = await apiService.post('/ai-chat/message', {
+          'message': text,
+          if (_currentConversationId != null) 'conversationId': _currentConversationId,
+          if (widget.questionId != null && _messages.length <= 2) 'questionId': widget.questionId,
         });
-        _scrollToBottom();
+
+        if (response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+          setState(() {
+            _currentConversationId = data['conversationId'];
+            _messages.add({
+              'role': 'assistant',
+              'content': data['response'],
+              'createdAt': DateTime.now().toIso8601String(),
+            });
+          });
+          _scrollToBottom();
+        }
+      } catch (e) {
+        debugPrint('Error sending message: $e');
       }
-    } catch (e) {
-      debugPrint('Error sending message: $e');
     }
   }
 
@@ -253,21 +352,40 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
           final quizData = jsonDecode(block.content)['interactive_quiz'];
           children.add(_InteractiveQuiz(data: quizData));
         } catch (e) {
-          debugPrint('Error parsing quiz JSON: $e');
+           children.add(const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('[Note: A practice question failed to load. Please ask the tutor to regenerate it.]', 
+              style: TextStyle(color: Colors.redAccent, fontSize: 12, fontStyle: FontStyle.italic)),
+          ));
         }
       } else if (block.type == _BlockType.svg) {
-        children.add(Container(
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue.withOpacity(0.1)),
-          ),
-          child: SvgPicture.string(
-            block.content,
-            placeholderBuilder: (BuildContext context) => const CircularProgressIndicator(),
-          ),
+        children.add(TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 1200),
+          builder: (context, value, child) {
+            return Opacity(
+              opacity: value,
+              child: Transform.translate(
+                offset: Offset(0, 30 * (1 - value)),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.withOpacity(0.1)),
+                  ),
+                  child: SvgPicture.string(
+                    block.content,
+                    placeholderBuilder: (BuildContext context) => const SizedBox(
+                      height: 100, 
+                      child: Center(child: CircularProgressIndicator(strokeWidth: 2))
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ));
       }
 
@@ -422,7 +540,7 @@ class _InteractiveQuizState extends State<_InteractiveQuiz> {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: bgColor ?? (isDark ? Colors.white05 : Colors.white),
+                  color: bgColor ?? (isDark ? Colors.white.withOpacity(0.05) : Colors.white),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: borderColor ?? (isDark ? Colors.white10 : Colors.grey.shade200)),
                 ),
