@@ -14,9 +14,11 @@ export class Attempt {
     @ManyToOne(() => User)
     user: User;
 
+    @Index()
     @ManyToOne(() => Model, { nullable: true })
     model: Model;
 
+    @Index()
     @ManyToOne(() => Exam, { nullable: true })
     exam: Exam;
 

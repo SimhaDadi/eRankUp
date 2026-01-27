@@ -24,7 +24,7 @@ import { Stats, RecentAttempt } from '@/types/dashboard.types';
 
 
 export default function DashboardPage() {
-    const { user } = useAuthStore();
+    const { user, setActivePass } = useAuthStore();
     const [stats, setStats] = useState<Stats | null>(null);
     const [recentAttempts, setRecentAttempts] = useState<RecentAttempt[]>([]);
     const [allExams, setAllExams] = useState<any[]>([]);
@@ -35,14 +35,16 @@ export default function DashboardPage() {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [statsRes, recentRes, examsRes] = await Promise.all([
+                const [statsRes, recentRes, examsRes, passRes] = await Promise.all([
                     api.get('/exams/user/stats'),
                     api.get('/exams/user/recent'),
-                    api.get('/exams')
+                    api.get('/exams'),
+                    api.get('/passes/current').catch(() => ({ data: null }))
                 ]);
                 setStats(statsRes.data);
                 setRecentAttempts(recentRes.data);
                 setAllExams(examsRes.data || []);
+                setActivePass(passRes.data);
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);
             } finally {
@@ -51,7 +53,7 @@ export default function DashboardPage() {
         };
 
         fetchDashboardData();
-    }, []);
+    }, [setActivePass]);
 
     const formatTime = (seconds: number) => {
         const hours = Math.floor(seconds / 3600);

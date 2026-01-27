@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useAuthStore } from '@/store/authStore';
 import { Shield, Calendar, Sparkles } from 'lucide-react';
-import api from '@/lib/api';
 
 interface ActivePass {
     id: string;
@@ -15,26 +14,9 @@ interface ActivePass {
 }
 
 export default function ActivePassBadge() {
-    const [activePass, setActivePass] = useState<ActivePass | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { activePass, isLoading: authLoading } = useAuthStore();
 
-    useEffect(() => {
-        fetchActivePass();
-    }, []);
-
-    const fetchActivePass = async () => {
-        try {
-            const response = await api.get('/passes/current');
-            setActivePass(response.data);
-        } catch (error) {
-            // No active pass or error
-            setActivePass(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading) {
+    if (authLoading) {
         return (
             <div className="bg-slate-800 rounded-lg p-4 animate-pulse">
                 <div className="h-6 bg-slate-700 rounded w-3/4 mb-2"></div>

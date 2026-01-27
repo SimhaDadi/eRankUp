@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany, JoinTable, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 import { Model } from './model.entity';
 import { Subject } from './subject.entity';
 import { Question } from './question.entity';
@@ -15,6 +15,7 @@ export class Exam {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
+    @Index()
     @Column({
         type: 'enum',
         enum: ExamType,
@@ -31,12 +32,15 @@ export class Exam {
     @Column({ nullable: true })
     category: string;
 
+    @Index()
     @Column({ default: true })
     isActive: boolean;
 
+    @Index()
     @Column({ default: false })
     isPremium: boolean;
 
+    @Index()
     @Column({ default: false })
     isPublished: boolean;
 

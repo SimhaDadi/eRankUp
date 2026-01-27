@@ -7,6 +7,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
     isLoading: false,
     error: null,
+    activePass: null,
 
     login: async (credentials) => {
         set({ isLoading: true, error: null });
@@ -48,9 +49,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        set({ user: null, token: null });
+        set({ user: null, token: null, activePass: null });
     },
 
     setUser: (user) => set({ user }),
+    setActivePass: (activePass) => set({ activePass }),
 }));
 

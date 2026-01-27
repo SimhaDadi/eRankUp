@@ -28,22 +28,8 @@ async function bootstrap() {
     const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.1.3:3000', 'http://192.168.1.3:3001'];
 
     app.enableCors({
-        origin: true, // Allow all for debugging
+        origin: allowedOrigins,
         credentials: true,
-    });
-
-    // Logging middleware
-    const fs = require('fs');
-    const logFile = 'c:\\Users\\dadim\\OneDrive\\Desktop\\eRankUp\\backend\\debug.log';
-    app.use((req, res, next) => {
-        const start = Date.now();
-        res.on('finish', () => {
-            const duration = Date.now() - start;
-            const logMsg = `[${new Date().toISOString()}] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)\n`;
-            console.log(logMsg.trim());
-            fs.appendFileSync(logFile, logMsg);
-        });
-        next();
     });
 
     await app.listen(3001, '0.0.0.0');

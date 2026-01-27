@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Request, UseGuards } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport';
 import { PassesService } from './passes.service';
 import { PaymentsService } from '../payments/payments.service';
+import { User } from '../users/user.entity';
 
 @Controller('passes')
 export class PassesController {
@@ -13,6 +14,23 @@ export class PassesController {
     @Get()
     async getPasses() {
         return this.passesService.getAvailablePasses();
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get('eligibility')
+    async checkEligibility(@Request() req) {
+        const userId = req.user.userId || req.user.id;
+        const isTrialAvailable = await this.passesService.isTrialAvailable(userId);
+
+        // Also check if phone is missing for free trial binding
+        const user = await this.passesService.getActivePass(userId).then(() =>
+            this.passesService['userPassRepository'].manager.getRepository(User).findOneBy({ id: userId })
+        );
+
+        return {
+            isTrialAvailable,
+            hasPhone: !!user?.phone
+        };
     }
 
     @UseGuards(AuthGuard('jwt'))

@@ -21,6 +21,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PassesModule } from './passes/passes.module';
 import { QualityModule } from './quality/quality.module';
 import { DoubtsModule } from './doubts/doubts.module';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
     imports: [
@@ -28,6 +30,10 @@ import { DoubtsModule } from './doubts/doubts.module';
             isGlobal: true,
             envFilePath: ['.env', 'backend/.env', '../.env'],
         }),
+        ThrottlerModule.forRoot([{
+            ttl: 60000,
+            limit: 10,
+        }]),
         ScheduleModule.forRoot(),
         CommonModule,
         TypeOrmModule.forRootAsync({
@@ -68,7 +74,13 @@ import { DoubtsModule } from './doubts/doubts.module';
         DoubtsModule,
     ],
     controllers: [AppController],
-    providers: [AppService],
+    providers: [
+        AppService,
+        {
+            provide: APP_GUARD,
+            useClass: ThrottlerGuard,
+        },
+    ],
 })
 export class AppModule { }
 

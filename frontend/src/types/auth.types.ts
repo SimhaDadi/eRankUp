@@ -13,10 +13,12 @@ export interface AuthState {
     token: string | null;
     isLoading: boolean;
     error: string | null;
+    activePass: any | null;
 
     // Actions
     login: (credentials: LoginCredentialsDto) => Promise<void>;
     signup: (data: SignupDto) => Promise<void>;
     logout: () => void;
     setUser: (user: User | null) => void;
+    setActivePass: (pass: any | null) => void;
 }

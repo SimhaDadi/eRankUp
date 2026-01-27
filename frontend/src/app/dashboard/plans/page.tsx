@@ -18,20 +18,27 @@ interface Pass {
 export default function PlansPage() {
     const [plans, setPlans] = useState<Pass[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isTrialAvailable, setIsTrialAvailable] = useState(true);
+    const [hasPhone, setHasPhone] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
-        const fetchPlans = async () => {
+        const fetchPlansAndEligibility = async () => {
             try {
-                const res = await api.get('/passes');
-                setPlans(res.data);
+                const [plansRes, eligibilityRes] = await Promise.all([
+                    api.get('/passes'),
+                    api.get('/passes/eligibility').catch(() => ({ data: { isTrialAvailable: true, hasPhone: true } }))
+                ]);
+                setPlans(plansRes.data);
+                setIsTrialAvailable(eligibilityRes.data.isTrialAvailable);
+                setHasPhone(eligibilityRes.data.hasPhone);
             } catch (err) {
-                console.error('Failed to fetch plans', err);
+                console.error('Failed to fetch data', err);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchPlans();
+        fetchPlansAndEligibility();
     }, []);
 
     const handleSelectPlan = async (plan: Pass) => {
@@ -147,13 +154,24 @@ export default function PlansPage() {
                             </ul>
 
                             <button
-                                onClick={() => handleSelectPlan(plan)}
+                                onClick={() => {
+                                    if (parseFloat(plan.price) === 0 && !hasPhone) {
+                                        alert('Please add your mobile number in Settings to claim your free trial. This helps us prevent misuse.');
+                                        router.push('/dashboard/settings');
+                                        return;
+                                    }
+                                    handleSelectPlan(plan);
+                                }}
+                                disabled={parseFloat(plan.price) === 0 && !isTrialAvailable}
                                 className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95
                                     ${plan.isPopular
                                         ? 'bg-[#00bfa5] hover:bg-[#00a891] text-white shadow-lg shadow-teal-500/20'
-                                        : 'bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10'}`}
+                                        : 'bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10'}
+                                    ${(parseFloat(plan.price) === 0 && !isTrialAvailable) ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                             >
-                                {parseFloat(plan.price) === 0 ? 'Start Free Trial' : 'Get Access Now'}
+                                {parseFloat(plan.price) === 0
+                                    ? (isTrialAvailable ? 'Start Free Trial' : 'Trial Already Claimed')
+                                    : 'Get Access Now'}
                             </button>
                         </div>
                     ))}

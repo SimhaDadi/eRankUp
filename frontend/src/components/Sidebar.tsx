@@ -150,9 +150,9 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             <div className="px-5 py-4 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-20">
                 <Link
                     href="/dashboard"
-                    className="flex items-center gap-3 transition-transform hover:scale-105 cursor-pointer overflow-hidden group"
+                    className="flex items-center gap-3 cursor-pointer overflow-hidden group z-50 transition-opacity hover:opacity-90"
                 >
-                    <div className="w-11 h-11 min-w-[44px] bg-slate-900 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-xl shadow-slate-900/20 ring-1 ring-slate-900/10 relative overflow-hidden">
+                    <div className="w-11 h-11 min-w-[44px] bg-slate-900 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-xl shadow-slate-900/20 ring-1 ring-slate-900/10 relative overflow-hidden transition-transform group-hover:scale-105">
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                         <span className="relative z-10">e</span>
                     </div>
@@ -169,7 +169,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
 
                 <button
                     onClick={handleToggle}
-                    className={`w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'hidden' : ''}`}
+                    className={`z-50 w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'hidden' : ''}`}
                 >
                     <ChevronLeft className="w-6 h-6" />
                 </button>
@@ -177,14 +177,14 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                 {isCollapsed && (
                     <button
                         onClick={handleToggle}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-40"
                         title="Expand Sidebar"
                     />
                 )}
             </div>
 
             {/* Living Navigation */}
-            <div className="flex-1 py-2 px-3 space-y-2">
+            <div className="flex-1 py-2 px-3 space-y-2 overflow-y-auto scrollbar-none">
                 {sections.map((section, idx) => (
                     <div key={idx} className={`space-y-1 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
                         {section.title && (
@@ -204,8 +204,8 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={`relative flex items-center gap-4 px-3 py-2 rounded-2xl transition-all duration-300 group ${isActive
-                                            ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 scale-[1.02] z-10'
+                                        className={`relative flex items-center gap-4 px-3 py-2 rounded-2xl transition-all duration-200 group ${isActive
+                                            ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 z-10'
                                             : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                                             } ${isCollapsed ? 'justify-center w-14 h-14 mx-auto p-0' : ''}`}
                                         title={isCollapsed ? item.label : ''}

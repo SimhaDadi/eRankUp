@@ -19,6 +19,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   List<Pass> _passes = [];
   Map<String, dynamic>? _activePass;
   bool _isLoading = true;
+  bool _isTrialAvailable = true;
+  bool _hasPhone = true;
 
   @override
   void initState() {
@@ -44,6 +46,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       final results = await Future.wait([
         apiService.get('/passes'),
         apiService.get('/passes/current'),
+        apiService.get('/passes/eligibility'),
       ]);
 
       if (mounted) {
@@ -54,6 +57,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           }
           if (results[1].statusCode == 200 && results[1].body.isNotEmpty) {
             _activePass = jsonDecode(results[1].body);
+          }
+          if (results[2].statusCode == 200) {
+            final eligibility = jsonDecode(results[2].body);
+            _isTrialAvailable = eligibility['isTrialAvailable'] ?? true;
+            _hasPhone = eligibility['hasPhone'] ?? true;
           }
           _isLoading = false;
         });
@@ -110,6 +118,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     try {
       final payload = {'passId': pass.id};
+      
+      // Check for phone number if it's a free trial
+      if ((double.tryParse(pass.price) ?? 0) == 0 && !_hasPhone) {
+        if (mounted) {
+          _showPhoneRequiredDialog();
+        }
+        return;
+      }
+
       if (couponCode != null && couponCode.isNotEmpty) {
         payload['couponCode'] = couponCode;
       }
@@ -244,6 +261,31 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
+  void _showPhoneRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Phone Number Required'),
+        content: const Text(
+            'To claim your free trial, please add your mobile number in your profile settings. This helps us ensure one trial per user.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/profile'); 
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
+            child: const Text('GO TO PROFILE'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -362,13 +404,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => _initiatePurchase(pass),
+              onPressed: (double.tryParse(pass.price) ?? 0) == 0 && !_isTrialAvailable 
+                ? null 
+                : () => _initiatePurchase(pass),
               style: ElevatedButton.styleFrom(
                 backgroundColor: pass.isPopular ? AppColors.primaryCyan : (isDark ? const Color(0xFF1E293B) : AppColors.darkNavy),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
+                disabledBackgroundColor: Colors.grey.withOpacity(0.3),
               ),
-              child: Text((double.tryParse(pass.price) ?? 0) == 0 ? 'START FREE TRIAL' : 'GET ACCESS NOW'),
+              child: Text(
+                (double.tryParse(pass.price) ?? 0) == 0 
+                  ? (_isTrialAvailable ? 'START FREE TRIAL' : 'TRIAL ALREADY CLAIMED') 
+                  : 'GET ACCESS NOW'
+              ),
             ),
           ),
         ],

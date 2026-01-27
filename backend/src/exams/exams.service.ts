@@ -1,6 +1,7 @@
-import { Injectable, BadRequestException, Inject, forwardRef, OnApplicationBootstrap, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef, OnApplicationBootstrap, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, In } from 'typeorm';
+import { User } from '../users/user.entity';
 import { Exam, ExamType } from './entities/exam.entity';
 import { Subject } from './entities/subject.entity';
 import { Chapter } from './entities/chapter.entity';
@@ -10,6 +11,7 @@ import { Purchase } from './entities/purchase.entity';
 import { Attempt } from './entities/attempt.entity';
 import { Response } from './entities/response.entity';
 import { PaymentsService } from '../payments/payments.service';
+import { PassesService } from '../passes/passes.service';
 import { CacheService } from '../common/cache.service';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
@@ -38,6 +40,8 @@ export class ExamsService implements OnApplicationBootstrap {
         private responseRepository: Repository<Response>,
         @Inject(forwardRef(() => PaymentsService))
         private paymentsService: PaymentsService,
+        @Inject(forwardRef(() => PassesService))
+        private passesService: PassesService,
         private cacheService: CacheService,
         private explanationService: ExplanationService,
     ) { }
@@ -207,6 +211,9 @@ export class ExamsService implements OnApplicationBootstrap {
         if (examId) {
             await this.cacheService.del(`exam:${examId}`);
         }
+
+        // Clear hierarchy caches
+        await this.cacheService.invalidatePattern('exams:hierarchy:*');
     }
 
     async updateExam(id: string, updateExamDto: UpdateExamDto) {
@@ -277,8 +284,35 @@ export class ExamsService implements OnApplicationBootstrap {
     /**
      * Get all questions for a specific chapter
      * Used for Chapter Wise Practice
+     * Security: Verifies user has access if the chapter belongs to a premium exam.
      */
-    async getQuestionsByChapter(chapterId: string) {
+    async getQuestionsByChapter(chapterId: string, userId: string) {
+        // 1. Fetch chapter with its subject and exam hierarchy
+        const chapter = await this.chapterRepository.findOne({
+            where: { id: chapterId },
+            relations: ['subject', 'subject.exam']
+        });
+
+        if (!chapter) throw new BadRequestException('Chapter not found');
+
+        const exam = chapter.subject?.exam;
+
+        // 2. Perform security check if exam is premium
+        if (exam?.isPremium) {
+            const user = await this.examsRepository.manager.getRepository(User).findOneBy({ id: userId });
+            const isAdmin = user?.role === 'admin';
+
+            if (!isAdmin) {
+                const hasPurchased = await this.paymentsService.hasPurchased(userId, exam.id);
+                const hasPass = await this.passesService.getCurrentPass(userId);
+
+                if (!hasPurchased && !hasPass) {
+                    throw new ForbiddenException('Access Denied. This chapter belongs to a premium exam.');
+                }
+            }
+        }
+
+        // 3. Return questions if allowed
         return this.questionRepository.find({
             where: { chapter: { id: chapterId } },
             relations: ['subject', 'chapter', 'models'],
@@ -719,6 +753,10 @@ export class ExamsService implements OnApplicationBootstrap {
      * Optimized to avoid N+1 queries.
      */
     async getFullHierarchy(type?: ExamType) {
+        const cacheKey = `exams:hierarchy:${type || 'all'}:v1`;
+        const cachedData = await this.cacheService.get(cacheKey);
+        if (cachedData) return cachedData;
+
         // 1. Fetch entire hierarchy in one query
         const exams = await this.examsRepository.find({
             where: type ? { type } : {},
@@ -756,7 +794,7 @@ export class ExamsService implements OnApplicationBootstrap {
         modelQuestionCounts.forEach(m => modelCountsMap.set(m.modelId, parseInt(m.count || '0')));
 
         // 3. Transform data in memory
-        return exams.map(exam => ({
+        const hierarchy = exams.map(exam => ({
             id: exam.id,
             name: exam.title,
             title: exam.title,
@@ -783,6 +821,10 @@ export class ExamsService implements OnApplicationBootstrap {
                 }))
             }))
         }));
+
+        // Cache for 10 minutes
+        await this.cacheService.set(cacheKey, hierarchy, 600);
+        return hierarchy;
     }
 
     async deleteExam(id: string) {

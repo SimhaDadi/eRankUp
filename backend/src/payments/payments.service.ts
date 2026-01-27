@@ -141,6 +141,23 @@ export class PaymentsService implements OnModuleInit {
 
         if (finalPrice <= 0) {
             try {
+                const uid = user.userId || user.id;
+                // Fetch full user to get phone
+                const fullUser = await this.userPassRepository.manager.getRepository(User).findOneBy({ id: uid });
+
+                // Restricted Free Trial Logic: check if already claimed by user OR phone
+                const existingTrial = await this.userPassRepository.findOne({
+                    where: [
+                        { userId: uid, amount: 0 },
+                        ...(fullUser?.phone ? [{ user: { phone: fullUser.phone }, amount: 0 }] : [])
+                    ],
+                    relations: ['user']
+                });
+
+                if (existingTrial) {
+                    throw new Error('You (or another account with your phone number) have already claimed a free trial.');
+                }
+
                 // Free Pass Logic
                 const startDate = new Date();
                 const expiryDate = new Date(startDate);
@@ -286,5 +303,17 @@ export class PaymentsService implements OnModuleInit {
             status: 'COMPLETED'
         });
         return !!purchase;
+    }
+
+    async getPurchasedExamIds(userId: string): Promise<string[]> {
+        const rawResults = await this.purchaseRepository
+            .createQueryBuilder('purchase')
+            .leftJoin('purchase.exam', 'exam')
+            .where('purchase.user.id = :userId', { userId })
+            .andWhere('purchase.status = :status', { status: 'COMPLETED' })
+            .select('exam.id', 'examId')
+            .getRawMany();
+
+        return rawResults.map(r => r.examId).filter(id => !!id);
     }
 }

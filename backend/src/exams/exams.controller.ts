@@ -33,26 +33,28 @@ export class ExamsController {
     @Get()
     async findAll(@Request() req: any, @Query('type') type?: string) {
         const isAdmin = req.user.role === 'admin';
-        const exams = await this.examsService.findAll({
-            includeUnpublished: isAdmin,
-            type
-        });
-        const cacheKey = isAdmin ? `exams:all:admin:${type || 'all'}:v5` : `exams:all:${type || 'all'}:v5`;
         const userId = req.user.userId;
 
-        const attemptStats = await this.scorerService.getUserExamStats(userId);
-        const activeTestIds = await this.testSessionService.getUserActiveTestIds(userId);
+        // Concurrent fetching of base data
+        const [exams, attemptStats, activeTestIds, purchasedExamIds] = await Promise.all([
+            this.examsService.findAll({ includeUnpublished: isAdmin, type }),
+            this.scorerService.getUserExamStats(userId),
+            this.testSessionService.getUserActiveTestIds(userId),
+            this.paymentsService.getPurchasedExamIds(userId)
+        ]);
+
+        const purchasedSet = new Set(purchasedExamIds);
+        const activeSet = new Set(activeTestIds);
 
         for (const exam of exams) {
             if (exam.isPremium) {
-                (exam as any).hasPurchased = await this.paymentsService.hasPurchased(userId, exam.id);
+                (exam as any).hasPurchased = purchasedSet.has(exam.id);
             }
 
-            // Calculate aggregated stats correctly
+            // Calculate aggregated stats
             const modelCount = exam.models?.reduce((acc, m) => acc + (m.totalQuestions || 0), 0) || 0;
             const directCount = (exam as any).directQuestionCount || 0;
-            const questionCount = Math.max(modelCount, directCount); // Often questions are linked both ways, but use max as safeguard
-            (exam as any).questionCount = questionCount || modelCount || directCount;
+            (exam as any).questionCount = Math.max(modelCount, directCount);
 
             const uniqueChapters = new Set(exam.models?.map(m => m.chapter?.id).filter(id => !!id));
             (exam as any).chapters = Array.from(uniqueChapters).map(id => ({ id }));
@@ -68,22 +70,12 @@ export class ExamsController {
                 };
             }
 
-            // If questionCount is still 0, we do a last-ditch effort to find questions
-            if ((exam as any).questionCount === 0) {
-                const dCount = await this.examsService['questionRepository']
-                    .createQueryBuilder('q')
-                    .innerJoin('q.exams', 'e')
-                    .where('e.id = :id', { id: exam.id })
-                    .getCount();
-                (exam as any).questionCount = dCount;
-            }
-
-            // [RESTORED] Check if any model in this exam OR the exam itself is currently active
+            // Check for active session
             const examModelIds = exam.models?.map(m => m.id) || [];
             const allRelevantIds = [...examModelIds, exam.id];
-            (exam as any).activeSession = activeTestIds.find(id => allRelevantIds.includes(id)) || null;
+            (exam as any).activeSession = allRelevantIds.find(id => activeSet.has(id)) || null;
 
-            // [RESTORED] Calculate total models for progress tracking
+            // Calculate total models for progress tracking
             let totalModels = examModelIds.length;
             if (totalModels === 0 && (exam as any).type === 'real_exam') {
                 totalModels = 1;
@@ -321,8 +313,8 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get('chapters/:chapterId/questions')
-    getQuestionsByChapter(@Param('chapterId') chapterId: string) {
-        return this.examsService.getQuestionsByChapter(chapterId);
+    getQuestionsByChapter(@Param('chapterId') chapterId: string, @Request() req: any) {
+        return this.examsService.getQuestionsByChapter(chapterId, req.user.userId);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)

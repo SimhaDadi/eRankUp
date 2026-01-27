@@ -179,6 +179,35 @@ export class PassesService implements OnModuleInit {
         });
     }
 
+    async isTrialAvailable(userId: string): Promise<boolean> {
+        // 1. Fetch current user to get their phone number
+        const user = await this.userPassRepository.manager.getRepository(User).findOne({
+            where: { id: userId }
+        });
+
+        if (!user) return false;
+
+        // 2. Check if THIS user has already claimed a trial
+        const directTrial = await this.userPassRepository.findOne({
+            where: { userId, amount: 0 }
+        });
+        if (directTrial) return false;
+
+        // 3. Check if any OTHER user with the SAME PHONE has claimed a trial
+        if (user.phone) {
+            const phoneTrial = await this.userPassRepository.findOne({
+                where: {
+                    user: { phone: user.phone },
+                    amount: 0
+                },
+                relations: ['user']
+            });
+            if (phoneTrial) return false;
+        }
+
+        return true;
+    }
+
     async canAccessExam(userId: string, examId: string, examType: string): Promise<boolean> {
         const activePass = await this.getActivePass(userId);
         if (!activePass) return false;

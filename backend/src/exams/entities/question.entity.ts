@@ -35,15 +35,19 @@ export class Question {
     @ManyToOne(() => Subject, { nullable: true })
     subject: Subject;
 
+    @Index()
     @ManyToOne(() => Chapter, { nullable: true })
     chapter: Chapter;
 
+    @Index()
     @Column({ nullable: true })
     chapterId: string;
 
+    @Index()
     @ManyToOne(() => Exam, { nullable: true })
     exam: Exam;
 
+    @Index()
     @Column({ nullable: true })
     examId: string;
 
