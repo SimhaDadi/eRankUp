@@ -7,6 +7,7 @@ import { AIService } from '../ai/ai.service';
 import { AIUsageService } from '../ai/ai-usage.service';
 import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
 import { UserRole } from '../users/user.entity';
+import { StudentInsight } from './entities/student-insight.entity';
 
 export interface SendMessageResponse {
     response: string;
@@ -20,6 +21,8 @@ export class AIChatService {
         private conversationRepo: Repository<ChatConversation>,
         @InjectRepository(AIChatMessage)
         private messageRepo: Repository<AIChatMessage>,
+        @InjectRepository(StudentInsight)
+        private insightRepo: Repository<StudentInsight>,
         private aiService: AIService,
         private aiUsageService: AIUsageService,
         private adaptiveLearningService: AdaptiveLearningService,
@@ -96,11 +99,19 @@ export class AIChatService {
             }
         }
 
+        // Get long-term insights (Memory)
+        const insights = await this.insightRepo.find({
+            where: { userId },
+            order: { updatedAt: 'DESC' },
+            take: 3
+        });
+
         const context = {
             weakAreas: weakAreas.map(w => ({ topic: w.topic, mastery: w.masteryScore })),
             timestamp: new Date().toISOString(),
             questionContext,
-            preferredLanguage: user?.defaultLanguage || 'English'
+            preferredLanguage: user?.defaultLanguage || 'English',
+            historicalInsights: insights.map(i => `${i.topic}: ${i.coreStruggle}`)
         };
 
         // Save user message
@@ -119,8 +130,15 @@ export class AIChatService {
             take: 10,
         });
 
-        // Build contextual prompt
-        const prompt = this.buildContextualPrompt(message, context, history);
+        // Build contextual prompt with temperament data
+        const hour = new Date().getHours();
+        const temperamentContext = {
+            isLateNight: hour >= 23 || hour <= 4,
+            isEarlyMorning: hour >= 5 && hour <= 7,
+            currentTime: new Date().toLocaleTimeString(),
+        };
+
+        const prompt = this.buildContextualPrompt(message, { ...context, temperament: temperamentContext }, history);
 
         // Get AI response with error handling
         let aiResponse: string;
@@ -145,10 +163,45 @@ export class AIChatService {
         conversation.updatedAt = new Date();
         await this.conversationRepo.save(conversation);
 
+        // Asynchronously extract insights to not block the response
+        this.extractAndSaveInsight(userId, message, aiResponse).catch(err =>
+            console.error('[AIChat] Insight extraction failed:', err)
+        );
+
         return {
             response: aiResponse,
             conversationId: conversation.id,
         };
+    }
+
+    private async extractAndSaveInsight(userId: string, userMsg: string, aiResp: string) {
+        // Only extract if the conversation seems to deal with a specific concept
+        const extractionPrompt = `Analyze this exchange between a student and a tutor. 
+        If the student shows a specific conceptual struggle (e.g. "Struggles with fractions", "Confuses Sine and Cosine"), 
+        output a JSON object: {"topic": "Concept Name", "struggle": "Description of struggle", "severity": 0.1-1.0}.
+        Otherwise, output "NONE".
+        
+        Student: ${userMsg}
+        Tutor: ${aiResp}`;
+
+        try {
+            const result = await this.aiService.generateText(extractionPrompt);
+            if (result && result !== 'NONE' && result.includes('{')) {
+                const jsonStr = result.match(/\{[\s\S]*\}/)?.[0];
+                if (jsonStr) {
+                    const data = JSON.parse(jsonStr);
+                    const insight = this.insightRepo.create({
+                        userId,
+                        topic: data.topic,
+                        coreStruggle: data.struggle,
+                        severity: data.severity || 0.5
+                    });
+                    await this.insightRepo.save(insight);
+                }
+            }
+        } catch (e) {
+            // Silently fail for insights
+        }
     }
 
     private buildContextualPrompt(
@@ -205,6 +258,8 @@ INSTRUCTION: Use the above Ground Truth as your primary reference. You must NOT 
 
 Student's Current Weak Areas: ${weakAreasText}
 Student's Preferred Language: ${context.preferredLanguage}
+Temperament Context: ${context.temperament?.isLateNight ? 'LATE NIGHT (High fatigue risk)' : 'Standard Hours'} (${context.temperament?.currentTime})
+Historical Insights (Memory): ${context.historicalInsights?.length > 0 ? context.historicalInsights.join(' | ') : 'None yet'}
 
 ${questionPrompt}
 
@@ -219,8 +274,10 @@ ${this.aiService.sanitizeInput(message)}
 [USER_DATA_END]
 
 Instructions:
-1. Provide clear, encouraging, and helpful responses.
-2. **PRACTICE QUESTIONS**: If they ask for practice, generate 1-3 interactive multiple-choice questions. You MUST use this exact JSON format within a code block for EACH question:
+1. **SOCRATIC PERSONA**: Act as a world-class mentor. Do NOT just give the final answer immediately. If the student is struggling, ask 1 leading question to help them find the answer themselves first.
+2. **PSYCHOLOGICAL COACH**: If it is Late Night, or if the student seems frustrated, provide extra encouragement. If they've made multiple mistakes, suggest a 5-minute break.
+3. **WHITEBOARDING (SVG)**: If a visual diagram would help (Geometry, Optics, Logic Gates, etc.), generate a clean, responsive <svg> block within your response. Use #3B82F6 (blue) for primary lines and #94A3B8 for grid/background.
+4. **PRACTICE QUESTIONS**: If they ask for practice, generate 1-3 interactive multiple-choice questions. You MUST use this exact JSON format within a code block for EACH question:
    \`\`\`json
    {
      "interactive_quiz": {
