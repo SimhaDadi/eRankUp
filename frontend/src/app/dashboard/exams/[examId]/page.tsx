@@ -269,6 +269,14 @@ export default function ExamDetailsPage() {
                                                 <ShieldCheck className="w-8 h-8" />
                                             </div>
                                             <h3 className="text-lg font-black text-slate-700 tracking-tight leading-none">Access Granted</h3>
+
+                                            <Link
+                                                href={`/dashboard/exam-start/${exam.id}`}
+                                                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-[10px]"
+                                            >
+                                                Start Now
+                                                <ChevronRight className="w-4 h-4" />
+                                            </Link>
                                         </div>
                                     )}
                                 </div>
@@ -372,7 +380,7 @@ function TestUnit({ model, isUnlocked, index }: { model: Model, isUnlocked: bool
 
     const ready = isReady(model.scheduledAt);
     const accentColor = index % 2 === 0 ? "bg-sky-600" : "bg-emerald-500";
-    const lightColor = index % 2 === 0 ? "bg-sky-50" : "bg-emerald-50";
+    // const lightColor = index % 2 === 0 ? "bg-sky-50" : "bg-emerald-50";
 
     if (!isUnlocked) {
         return (
@@ -394,9 +402,8 @@ function TestUnit({ model, isUnlocked, index }: { model: Model, isUnlocked: bool
     }
 
     return (
-        <Link
-            href={ready ? `/dashboard/exam-start/${model.id}` : '#'}
-            className={`group p-6 bg-white border border-slate-100 rounded-2xl relative overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-md hover:border-sky-100/50 hover:-translate-y-1 ${!ready ? 'cursor-not-allowed opacity-60' : ''}`}
+        <div
+            className={`group p-6 bg-white border border-slate-100 rounded-2xl relative overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-md hover:border-sky-100/50 ${!ready ? 'cursor-not-allowed opacity-60' : ''}`}
         >
             {/* Midnight Silk Lining - Architecture Detail */}
             <div className="absolute inset-x-0 bottom-0 h-[1.5px] bg-slate-900/5 group-hover:bg-sky-600/20 transition-colors" />
@@ -423,17 +430,15 @@ function TestUnit({ model, isUnlocked, index }: { model: Model, isUnlocked: bool
 
             <div className="mt-8 pt-4 border-t border-sky-50 flex items-center justify-between">
                 {ready ? (
-                    <>
-                        <span className="text-[10px] font-black text-sky-600/70 uppercase tracking-[0.2em]">Start Unit</span>
-                        <div className={`w-9 h-9 ${accentColor} text-white rounded-xl flex items-center justify-center transform group-hover:translate-x-1 transition-all shadow-sm`}>
-                            <ChevronRight className="w-5 h-5" />
-                        </div>
-                    </>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.1em] flex items-center gap-2">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        Included in Full Exam
+                    </span>
                 ) : (
                     <span className="text-[9px] text-sky-400 font-bold uppercase tracking-[0.1em]">{new Date(model.scheduledAt!).toLocaleDateString()}</span>
                 )}
             </div>
-        </Link>
+        </div>
     );
 }
 

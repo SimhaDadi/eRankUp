@@ -36,25 +36,35 @@ export default function PreviousYearPapersPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
+    const [error, setError] = useState<string | null>(null);
     const searchParams = useSearchParams();
     const searchQuery = searchParams.get('search') || '';
 
 
-    useEffect(() => {
-        const fetchExams = async () => {
-            try {
-                const response = await api.get('/exams?type=previous_year_paper');
-                const pypExams = Array.isArray(response.data)
-                    ? response.data.filter((e: Exam) => e.type === 'previous_year_paper')
-                    : [];
-                setExams(pypExams);
-            } catch (error) {
-                console.error("Failed to fetch PYP exams", error);
-            } finally {
-                setIsLoading(false);
+    const fetchExams = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await api.get('/exams?type=previous_year_paper');
+            const pypExams = Array.isArray(response.data)
+                ? response.data.filter((e: Exam) => e.type === 'previous_year_paper')
+                : [];
+            setExams(pypExams);
+        } catch (error: any) {
+            console.error("Failed to fetch PYP exams", error);
+            if (error.response?.status === 401) {
+                setError("Session expired. Please login again.");
+            } else if (error.message === 'Network Error') {
+                setError("Unable to connect to server. Check your internet.");
+            } else {
+                setError("Failed to load papers. Please try again later.");
             }
-        };
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchExams();
     }, []);
 
@@ -72,6 +82,24 @@ export default function PreviousYearPapersPage() {
             <div className="flex flex-col items-center justify-center min-h-[60vh] bg-[#fbfdff]">
                 <div className="w-12 h-12 border-[3px] border-blue-100 border-t-blue-500 rounded-full animate-spin" />
                 <p className="mt-4 text-blue-400 font-black uppercase tracking-[0.2em] text-[10px]">Retrieving Archives...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <div className="bg-red-50 p-6 rounded-2xl border border-red-100 flex flex-col items-center text-center max-w-md">
+                    <Activity className="w-12 h-12 text-red-500 mb-4" />
+                    <h3 className="text-xl font-black text-slate-900 mb-2">Connection Error</h3>
+                    <p className="text-slate-500 text-sm mb-6">{error}</p>
+                    <button
+                        onClick={() => fetchExams()}
+                        className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors flex items-center gap-2 text-sm uppercase tracking-wide"
+                    >
+                        <History className="w-4 h-4" /> Retry Connection
+                    </button>
+                </div>
             </div>
         );
     }
@@ -160,7 +188,7 @@ export default function PreviousYearPapersPage() {
                                         </div>
 
                                         <Link
-                                            href={`/dashboard/exams/${exam.id}`}
+                                            href={`/dashboard/exam-start/${exam.id}`}
                                             className="w-full btn-ultra-primary justify-center text-xs tracking-[0.15em] group-hover:shadow-blue-900/20"
                                         >
                                             <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" /> Attempt Now

@@ -34,7 +34,35 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
 
   // ... (dispose remains same)
 
-  // ... (_fetchExams remains same)
+  Future<void> _fetchExams() async {
+    setState(() => _isLoading = true);
+    try {
+      final api = ApiService();
+      // Fetch all list variations concurrently or just fetch 'all' and filter client side?
+      // Since backend supports filtering, let's fetch all generic exams first.
+      // But we want everything to filter locally as per _applyFilters logic.
+      final response = await api.get('/exams?type=all'); // Use 'all' or empty type to get everything if supported
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _allExams = data.map((json) => Exam.fromJson(json)).toList();
+          _isLoading = false;
+        });
+        _applyFilters();
+      } else {
+        throw Exception('Failed to load exams');
+      }
+    } catch (e) {
+      print('Error fetching exams: $e');
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading exams: $e')),
+        );
+      }
+    }
+  }
 
   void _applyFilters() {
     setState(() {

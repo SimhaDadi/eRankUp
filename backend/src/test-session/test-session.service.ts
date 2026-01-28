@@ -113,7 +113,24 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
 
         try {
             // Find model with questions
-            const model = await this.examsService.findModel(testId);
+            let model: any = await this.examsService.findModel(testId);
+
+            // [FIX] Fallback: If not found as Model, try finding as Exam (Full Mock)
+            if (!model) {
+                console.log(`[TestSessionService] Model not found for ${testId}, trying as Exam...`);
+                // Use the update findOne which now aggregates questions
+                const exam = await this.examsService.findOne(testId);
+                if (exam) {
+                    console.log(`[TestSessionService] Found Exam: ${exam.title} with ${exam.questions?.length} questions`);
+                    model = {
+                        ...exam,
+                        // Map Exam properties to Model-like structure for consistency
+                        duration: exam.duration || 60, // Default or from exam
+                        totalQuestions: exam.questions?.length || 0
+                    };
+                }
+            }
+
             if (model) {
                 if (model.scheduledAt) {
                     const now = new Date();
@@ -128,9 +145,11 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
                 if (model.questions) {
                     questions = model.questions;
                 }
+            } else {
+                console.warn(`[TestSessionService] No Model or Exam found for ID: ${testId}`);
             }
         } catch (e) {
-            console.error(`[TestSessionService] Error fetching model:`, e);
+            console.error(`[TestSessionService] Error fetching model/exam:`, e);
             // Fallback continues
         }
 

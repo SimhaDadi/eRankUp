@@ -4,8 +4,8 @@ class Config {
 
   // API Base URLs for different environments
   static const Map<String, String> _apiBaseUrls = {
-    'dev': 'http://127.0.0.1:3001',       // Use with 'adb reverse tcp:3001 tcp:3001'
-    // 'dev': 'http://192.168.1.3:3001',     // Local Machine IP for Physical Device (Wi-Fi)
+    'dev': 'http://192.168.1.2:3001',     // Local Machine IP for Physical Device (Wi-Fi)
+    // 'dev': 'http://127.0.0.1:3001',       // Use with 'adb reverse tcp:3001 tcp:3001'
     // 'dev': 'http://10.0.2.2:3001',        // Android Emulator
     'staging': 'https://staging-api.erankup.com',
     'prod': 'https://api.erankup.com',

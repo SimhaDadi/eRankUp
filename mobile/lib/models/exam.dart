@@ -10,6 +10,7 @@ class Exam {
   final int? totalQuestions;
   final String? activeSession;
   final String? category;
+  final int? totalModels;
 
   Exam({
     required this.id,

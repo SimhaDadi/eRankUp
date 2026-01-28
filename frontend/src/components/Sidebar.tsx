@@ -246,6 +246,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
 
                                             <motion.span
                                                 variants={textVariants}
+                                                animate={isCollapsed ? "collapsed" : "expanded"}
                                                 className={`text-[15px] tracking-tight whitespace-nowrap font-black leading-none pt-0.5 overflow-hidden ${isActive ? 'text-white' : ''}`}
                                             >
                                                 {item.label}
@@ -254,6 +255,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                                             {item.badge && (
                                                 <motion.span
                                                     variants={textVariants}
+                                                    animate={isCollapsed ? "collapsed" : "expanded"}
                                                     className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full text-white shadow-sm ${item.badgeColor || 'bg-blue-500'}`}
                                                 >
                                                     {item.badge}

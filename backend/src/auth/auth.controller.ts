@@ -39,7 +39,7 @@ export class AuthController {
 
         // Securely pass token to frontend via redirect (using a script to avoid URL exposure if possible, 
         // or just standard query param for simplicity in localhost)
-        const frontendUrl = 'http://localhost:3000/auth/callback';
+        const frontendUrl = process.env.FRONTEND_URL || 'http://192.168.1.2:3000/auth/callback';
         const data = encodeURIComponent(JSON.stringify(result));
 
         res.redirect(`${frontendUrl}?data=${data}`);

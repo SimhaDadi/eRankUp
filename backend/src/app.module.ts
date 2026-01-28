@@ -49,7 +49,7 @@ import { APP_GUARD } from '@nestjs/core';
                     database: config.get<string>('DB_NAME', 'erankup_db'),
                     // entities: [__dirname + '/**/*.entity{.ts,.js}'],
                     autoLoadEntities: true,
-                    synchronize: true,
+                    synchronize: config.get<boolean>('DB_SYNCHRONIZE', false),
                     ssl: false,
                 };
                 console.log('DB Config:', { ...dbConfig, password: '***' });

@@ -129,7 +129,7 @@ export default function Login() {
 
                 <div className="mt-6">
                     <button
-                        onClick={() => window.location.href = 'http://localhost:3001/auth/google'}
+                        onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/google`}
                         className="w-full py-4 border-2 border-slate-100 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all font-bold group"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">

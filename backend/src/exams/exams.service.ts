@@ -48,7 +48,7 @@ export class ExamsService implements OnApplicationBootstrap {
 
     async findAll(options: { includeUnpublished?: boolean; type?: string } = {}) {
         const { includeUnpublished = false, type } = options;
-        const cacheKey = includeUnpublished ? `exams:all:admin:${type || 'all'}:v5` : `exams:all:${type || 'all'}:v5`;
+        const cacheKey = includeUnpublished ? `exams:all:admin:${type || 'all'}:v6` : `exams:all:${type || 'all'}:v6`;
         const cached = await this.cacheService.get<Exam[]>(cacheKey);
         if (cached) return cached;
 
@@ -75,26 +75,50 @@ export class ExamsService implements OnApplicationBootstrap {
                 .getCount();
         }
 
-        await this.cacheService.set(cacheKey, exams, 3600);
+        // [FIX] Reduced TTL to 5m (300s) to avoid stale data issues
+        await this.cacheService.set(cacheKey, exams, 300);
         return exams;
     }
 
     async findOne(id: string, includeUnpublished: boolean = false) {
         const cacheKey = `exam:${id}`;
-        const cached = await this.cacheService.get<any>(cacheKey);
-        if (cached) {
-            console.log('Cache HIT for', id);
-            return cached;
-        }
+        // const cached = await this.cacheService.get<any>(cacheKey);
+        // if (cached) {
+        //     console.log('Cache HIT for', id);
+        //     return cached;
+        // }
 
         console.log('Cache MISS for', id);
         const exam = await this.examsRepository.findOne({
             where: includeUnpublished ? { id } : { id, isPublished: true },
-            relations: ['models', 'models.chapter', 'models.chapter.subject', 'questions']
+            relations: [
+                'models',
+                'models.chapter',
+                'models.chapter.subject',
+                'models.questions', // [FIX] Fetch nested questions
+                'questions' // Fetch direct questions
+            ]
         });
 
         if (exam) {
             console.log('Exam found:', exam.id, 'Models:', exam.models?.length);
+
+            // [FIX] Aggregate questions from all models if direct questions are empty
+            if ((!exam.questions || exam.questions.length === 0) && exam.models) {
+                const aggregatedQuestions = new Map<string, Question>();
+
+                for (const model of exam.models) {
+                    if (model.questions) {
+                        model.questions.forEach(q => aggregatedQuestions.set(q.id, q));
+                    }
+                }
+
+                if (aggregatedQuestions.size > 0) {
+                    console.log(`[FIX] Aggregated ${aggregatedQuestions.size} questions from models for Exam ${exam.id}`);
+                    exam.questions = Array.from(aggregatedQuestions.values());
+                }
+            }
+
             // Transform structure to match frontend expectation (group models by chapter)
             const chaptersMap = new Map();
 
@@ -193,14 +217,14 @@ export class ExamsService implements OnApplicationBootstrap {
     private async invalidateCache(examId?: string) {
         // Clear all list variations
         const keys = [
-            'exams:all:all:v5',
-            'exams:all:real_exam:v5',
-            'exams:all:previous_year_paper:v5',
-            'exams:all:question_bank:v5',
-            'exams:all:admin:all:v5',
-            'exams:all:admin:real_exam:v5',
-            'exams:all:admin:previous_year_paper:v5',
-            'exams:all:admin:question_bank:v5'
+            'exams:all:all:v6',
+            'exams:all:real_exam:v6',
+            'exams:all:previous_year_paper:v6',
+            'exams:all:question_bank:v6',
+            'exams:all:admin:all:v6',
+            'exams:all:admin:real_exam:v6',
+            'exams:all:admin:previous_year_paper:v6',
+            'exams:all:admin:question_bank:v6'
         ];
 
         for (const key of keys) {
