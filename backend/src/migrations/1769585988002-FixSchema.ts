@@ -1,0 +1,133 @@
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+export class FixSchema1769585988002 implements MigrationInterface {
+    name = 'FixSchema1769585988002'
+
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "saved_question" DROP CONSTRAINT "FK_saved_question_user"`);
+        await queryRunner.query(`ALTER TABLE "saved_question" DROP CONSTRAINT "FK_saved_question_question"`);
+        await queryRunner.query(`ALTER TABLE "saved_question" DROP CONSTRAINT "UQ_saved_question_user_question"`);
+        await queryRunner.query(`CREATE TYPE "public"."report_status_enum" AS ENUM('pending', 'resolved', 'rejected')`);
+        await queryRunner.query(`CREATE TABLE "report" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "userId" uuid NOT NULL, "questionId" uuid NOT NULL, "reason" text NOT NULL, "status" "public"."report_status_enum" NOT NULL DEFAULT 'pending', "adminNotes" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_99e4d0bea58cba73c57f935a546" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TYPE "public"."doubt_status_enum" AS ENUM('pending', 'answered')`);
+        await queryRunner.query(`CREATE TABLE "doubt" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "userId" uuid NOT NULL, "question" text NOT NULL, "answer" text, "status" "public"."doubt_status_enum" NOT NULL DEFAULT 'pending', "answeredBy" character varying, "answeredAt" TIMESTAMP, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_8f23d800a75d09d4e139a40b998" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "student_insight" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "userId" uuid NOT NULL, "topic" character varying NOT NULL, "coreStruggle" text NOT NULL, "severity" double precision NOT NULL DEFAULT '0', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_f9a933be1bff20bc2d316f3ab8e" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_a361a1826167ec8e516d288d9a" ON "student_insight" ("userId") `);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "scheduledAt"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "recipientCount"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "successCount"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "failureCount"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "updatedAt"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "content"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "targetAudience"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "sentCount"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "name"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "body"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "recipientType"`);
+        await queryRunner.query(`ALTER TABLE "model" ADD "positiveMarks" double precision`);
+        await queryRunner.query(`ALTER TABLE "model" ADD "negativeMarks" double precision`);
+        await queryRunner.query(`CREATE TYPE "public"."model_difficulty_enum" AS ENUM('easy', 'medium', 'hard')`);
+        await queryRunner.query(`ALTER TABLE "model" ADD "difficulty" "public"."model_difficulty_enum" NOT NULL DEFAULT 'medium'`);
+        await queryRunner.query(`ALTER TABLE "model" ADD "allowCalculator" boolean NOT NULL DEFAULT false`);
+        await queryRunner.query(`ALTER TABLE "model" ADD "allowReview" boolean NOT NULL DEFAULT true`);
+        await queryRunner.query(`ALTER TABLE "model" ADD "allowSkip" boolean NOT NULL DEFAULT true`);
+        await queryRunner.query(`ALTER TABLE "model" ADD "showResultsImmediately" boolean NOT NULL DEFAULT false`);
+        await queryRunner.query(`ALTER TABLE "model" ADD "customInstructions" text`);
+        await queryRunner.query(`ALTER TABLE "model" ADD "warningTimeMinutes" integer NOT NULL DEFAULT '5'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "name" character varying NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "body" text NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "recipientType" character varying NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "sentCount" integer NOT NULL DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "content" text NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "scheduledAt" TIMESTAMP`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "recipientCount" integer NOT NULL DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "successCount" integer NOT NULL DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "failureCount" integer NOT NULL DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "targetAudience" text`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "status"`);
+        await queryRunner.query(`DROP TYPE "public"."email_campaign_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "status" character varying NOT NULL DEFAULT 'DRAFT'`);
+
+        await queryRunner.query(`CREATE INDEX "IDX_e6c05c3186174d7a778c8ce72a" ON "exam" ("type") `);
+        await queryRunner.query(`CREATE INDEX "IDX_1cc9898ca0c41660028221a639" ON "exam" ("isActive") `);
+        await queryRunner.query(`CREATE INDEX "IDX_ba1d8c54cb64ef0ce31df02150" ON "exam" ("isPremium") `);
+        await queryRunner.query(`CREATE INDEX "IDX_d6e7cd2fdfea3c6d983a00fe6f" ON "exam" ("isPublished") `);
+        await queryRunner.query(`CREATE INDEX "IDX_5c2654a2f9b6631a764a6ce2a0" ON "question" ("chapterId") `);
+        await queryRunner.query(`CREATE INDEX "IDX_286bbf761d3af4e2fcac4a634d" ON "question" ("examId") `);
+        await queryRunner.query(`CREATE INDEX "IDX_c99a73cb570a472226c0bd17e2" ON "attempt" ("modelId") `);
+        await queryRunner.query(`ALTER TABLE "saved_question" ADD CONSTRAINT "UQ_542528ee2f15a2002e33060bbf0" UNIQUE ("userId", "questionId")`);
+        await queryRunner.query(`ALTER TABLE "saved_question" ADD CONSTRAINT "FK_f672a6d80bad4c3c6f08ba903c9" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "saved_question" ADD CONSTRAINT "FK_1a45b4e31ba665535ac8182f58b" FOREIGN KEY ("questionId") REFERENCES "question"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "report" ADD CONSTRAINT "FK_e347c56b008c2057c9887e230aa" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "report" ADD CONSTRAINT "FK_1344c8c43af982b5576e4a47a7d" FOREIGN KEY ("questionId") REFERENCES "question"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "doubt" ADD CONSTRAINT "FK_27c26bcb97a60831f5cf996adc5" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "student_insight" ADD CONSTRAINT "FK_a361a1826167ec8e516d288d9a8" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "student_insight" DROP CONSTRAINT "FK_a361a1826167ec8e516d288d9a8"`);
+        await queryRunner.query(`ALTER TABLE "doubt" DROP CONSTRAINT "FK_27c26bcb97a60831f5cf996adc5"`);
+        await queryRunner.query(`ALTER TABLE "report" DROP CONSTRAINT "FK_1344c8c43af982b5576e4a47a7d"`);
+        await queryRunner.query(`ALTER TABLE "report" DROP CONSTRAINT "FK_e347c56b008c2057c9887e230aa"`);
+        await queryRunner.query(`ALTER TABLE "saved_question" DROP CONSTRAINT "FK_1a45b4e31ba665535ac8182f58b"`);
+        await queryRunner.query(`ALTER TABLE "saved_question" DROP CONSTRAINT "FK_f672a6d80bad4c3c6f08ba903c9"`);
+        await queryRunner.query(`ALTER TABLE "saved_question" DROP CONSTRAINT "UQ_542528ee2f15a2002e33060bbf0"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_c99a73cb570a472226c0bd17e2"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_286bbf761d3af4e2fcac4a634d"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_286bbf761d3af4e2fcac4a634d"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_5c2654a2f9b6631a764a6ce2a0"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_5c2654a2f9b6631a764a6ce2a0"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_d6e7cd2fdfea3c6d983a00fe6f"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_ba1d8c54cb64ef0ce31df02150"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_1cc9898ca0c41660028221a639"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_e6c05c3186174d7a778c8ce72a"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "status"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "status" character varying NOT NULL DEFAULT 'DRAFT'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "status"`);
+        await queryRunner.query(`CREATE TYPE "public"."email_campaign_status_enum" AS ENUM('DRAFT', 'SCHEDULED', 'SENDING', 'SENT', 'FAILED')`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "status" "public"."email_campaign_status_enum" NOT NULL DEFAULT 'DRAFT'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "updatedAt"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "targetAudience"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "failureCount"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "successCount"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "recipientCount"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "scheduledAt"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "content"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "sentCount"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "recipientType"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "body"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" DROP COLUMN "name"`);
+        await queryRunner.query(`ALTER TABLE "model" DROP COLUMN "warningTimeMinutes"`);
+        await queryRunner.query(`ALTER TABLE "model" DROP COLUMN "customInstructions"`);
+        await queryRunner.query(`ALTER TABLE "model" DROP COLUMN "showResultsImmediately"`);
+        await queryRunner.query(`ALTER TABLE "model" DROP COLUMN "allowSkip"`);
+        await queryRunner.query(`ALTER TABLE "model" DROP COLUMN "allowReview"`);
+        await queryRunner.query(`ALTER TABLE "model" DROP COLUMN "allowCalculator"`);
+        await queryRunner.query(`ALTER TABLE "model" DROP COLUMN "difficulty"`);
+        await queryRunner.query(`DROP TYPE "public"."model_difficulty_enum"`);
+        await queryRunner.query(`ALTER TABLE "model" DROP COLUMN "negativeMarks"`);
+        await queryRunner.query(`ALTER TABLE "model" DROP COLUMN "positiveMarks"`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "recipientType" character varying NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "body" text NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "name" character varying NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "sentCount" integer NOT NULL DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "targetAudience" text`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "content" text NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "failureCount" integer NOT NULL DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "successCount" integer NOT NULL DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "recipientCount" integer NOT NULL DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "email_campaign" ADD "scheduledAt" TIMESTAMP`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_a361a1826167ec8e516d288d9a"`);
+        await queryRunner.query(`DROP TABLE "student_insight"`);
+        await queryRunner.query(`DROP TABLE "doubt"`);
+        await queryRunner.query(`DROP TYPE "public"."doubt_status_enum"`);
+        await queryRunner.query(`DROP TABLE "report"`);
+        await queryRunner.query(`DROP TYPE "public"."report_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "saved_question" ADD CONSTRAINT "UQ_saved_question_user_question" UNIQUE ("userId", "questionId")`);
+        await queryRunner.query(`ALTER TABLE "saved_question" ADD CONSTRAINT "FK_saved_question_question" FOREIGN KEY ("questionId") REFERENCES "question"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "saved_question" ADD CONSTRAINT "FK_saved_question_user" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+    }
+
+}

@@ -41,10 +41,168 @@ export class ExamsSeederService implements OnApplicationBootstrap {
 
         await this.seedRRBNTPC2024();
         await this.seedSSC2024Refinement();
+        await this.seedManualTestingData();
+    }
+
+    private async seedManualTestingData() {
+        console.log('Seeding Manual Testing Data (2 tests per category)...');
+        // Live Tests
+        await this.seedLiveTest('Sample Live Test 1', 'Arithmetic & Reasoning', new Date(Date.now() + 3600000)); // Starts in 1 hour
+        await this.seedLiveTest('Sample Live Test 2', 'General Awareness', new Date(Date.now() - 3600000)); // Started 1 hour ago (Active)
+
+        // Previous Year Papers
+        await this.seedPYP('Sample PYP 1', 'SSC CGL 2022 Shift 1');
+        await this.seedPYP('Sample PYP 2', 'RRB NTPC 2021 Shift 2');
+
+        // Model Tests (Mock)
+        await this.seedModelTest('Sample Model Test 1', 'Full Length Mock A');
+        await this.seedModelTest('Sample Model Test 2', 'Full Length Mock B');
+
+        // Quizzes
+        await this.seedQuiz('Daily Quiz 1', 'Current Affairs');
+        await this.seedQuiz('Daily Quiz 2', 'Science Quiz');
+    }
+
+    private async createDummyQuestions(model: Model, exam: Exam, subject: Subject, chapter: Chapter, count: number, prefix: string) {
+        const questions = [];
+        for (let i = 1; i <= count; i++) {
+            questions.push({
+                content: `[${prefix}] Question ${i}: This is a sample question for manual testing.`,
+                options: [
+                    { id: 'a', text: 'Option A' },
+                    { id: 'b', text: 'Option B' },
+                    { id: 'c', text: 'Option C' },
+                    { id: 'd', text: 'Option D' }
+                ],
+                correctOptionId: ['a', 'b', 'c', 'd'][Math.floor(Math.random() * 4)],
+                explanation: `Explanation for ${prefix} Q${i}.`,
+                topic: 'General',
+                models: [model],
+                exams: [exam],
+                subject,
+                chapter
+            });
+        }
+        await this.questionRepository.save(this.questionRepository.create(questions));
+    }
+
+    private async seedLiveTest(title: string, subjectName: string, startTime: Date) {
+        let exam = await this.examsRepository.findOne({ where: { title } });
+        if (exam) return;
+
+        const subject = await this.getOrCreateSubject(subjectName);
+        const chapter = await this.getOrCreateChapter(subject, 'Live Test Chapter');
+
+        exam = this.examsRepository.create({
+            title,
+            description: 'Live Test for Manual Testing',
+            type: 'live_exam' as any,
+            isLive: true,
+            isActive: true,
+            startTime: startTime, // dynamic start time
+            endTime: new Date(startTime.getTime() + 7200000) // +2 hours
+        });
+        exam = await this.examsRepository.save(exam);
+
+        const model = await this.modelRepository.save({
+            title: `${title} - Paper`,
+            chapter,
+            exams: [exam],
+            totalQuestions: 10,
+            duration: 60
+        });
+
+        await this.createDummyQuestions(model, exam, subject, chapter, 10, title);
+        console.log(`Seeded Live Test: ${title}`);
+    }
+
+    private async seedPYP(title: string, subjectName: string) {
+        let exam = await this.examsRepository.findOne({ where: { title } });
+        if (exam) return;
+
+        const subject = await this.getOrCreateSubject(subjectName);
+        const chapter = await this.getOrCreateChapter(subject, 'PYP Chapter');
+
+        exam = this.examsRepository.create({
+            title,
+            description: 'Previous Year Paper for Manual Testing',
+            type: 'previous_year_paper' as any,
+            isActive: true
+        });
+        exam = await this.examsRepository.save(exam);
+
+        const model = await this.modelRepository.save({
+            title: `${title} - Paper`,
+            chapter,
+            exams: [exam],
+            totalQuestions: 10,
+            duration: 90
+        });
+
+        await this.createDummyQuestions(model, exam, subject, chapter, 10, title);
+        console.log(`Seeded PYP: ${title}`);
+    }
+
+    private async seedModelTest(title: string, subjectName: string) {
+        let exam = await this.examsRepository.findOne({ where: { title } });
+        if (exam) return;
+
+        const subject = await this.getOrCreateSubject(subjectName);
+        const chapter = await this.getOrCreateChapter(subject, 'Mock Chapter');
+
+        exam = this.examsRepository.create({
+            title,
+            description: 'Model Test for Manual Testing',
+            type: 'real_exam' as any,
+            isActive: true
+        });
+        exam = await this.examsRepository.save(exam);
+
+        const model = await this.modelRepository.save({
+            title: `${title} - Paper`,
+            chapter,
+            exams: [exam],
+            totalQuestions: 10,
+            duration: 60
+        });
+
+        await this.createDummyQuestions(model, exam, subject, chapter, 10, title);
+        console.log(`Seeded Model Test: ${title}`);
+    }
+
+    private async seedQuiz(title: string, subjectName: string) {
+        // Quizzes are often just exams with category='Quiz' or specific type if defined.
+        // Assuming 'real_exam' with category 'Quiz' based on typical structure, or 'question_bank'
+        // But requested as a category. Let's use 'real_exam' and mark category.
+        let exam = await this.examsRepository.findOne({ where: { title } });
+        if (exam) return;
+
+        const subject = await this.getOrCreateSubject(subjectName);
+        const chapter = await this.getOrCreateChapter(subject, 'Quiz Chapter');
+
+        exam = this.examsRepository.create({
+            title,
+            description: 'Daily Quiz for Manual Testing',
+            type: 'real_exam' as any,
+            category: 'Quiz',
+            isActive: true,
+            duration: 15
+        });
+        exam = await this.examsRepository.save(exam);
+
+        const model = await this.modelRepository.save({
+            title: `${title} - Paper`,
+            chapter,
+            exams: [exam],
+            totalQuestions: 10,
+            duration: 15
+        });
+
+        await this.createDummyQuestions(model, exam, subject, chapter, 10, title);
+        console.log(`Seeded Quiz: ${title}`);
     }
 
     private async seedInitialContent() {
-
         const subject = await this.subjectRepository.save({
             title: 'Quantitative Aptitude',
             description: 'Numerical ability and mathematical skills.',
