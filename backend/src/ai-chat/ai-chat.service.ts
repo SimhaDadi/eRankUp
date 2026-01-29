@@ -164,12 +164,13 @@ export class AIChatService {
     }
 
     async saveAssistantMessage(conversationId: string, content: string, userId: string, userMsg: string) {
+        const cleanContent = this.sanitizeResponse(content);
         // Save assistant response
         await this.messageRepo.save(
             this.messageRepo.create({
                 conversationId,
                 role: 'assistant',
-                content,
+                content: cleanContent,
             })
         );
 
@@ -301,6 +302,7 @@ export class AIChatService {
         let aiResponse: string;
         try {
             aiResponse = await this.aiService.generateText(prompt, image ? [image] : []);
+            aiResponse = this.sanitizeResponse(aiResponse); // Mechanically strip unwanted symbols
             await this.aiUsageService.trackUsage(userId, prompt, aiResponse);
 
             if (questionContext && this.shouldAudit(aiResponse, questionContext)) {
@@ -327,6 +329,21 @@ export class AIChatService {
         );
 
         return { response: aiResponse, conversationId: conversation.id };
+    }
+
+    private sanitizeResponse(text: string): string {
+        if (!text) return text;
+        return text
+            .replace(/\$\$[\s\S]*?\$\$/g, (match) => match.replace(/\$\$/g, '')) // Remove double $ but keep content
+            .replace(/\$|\$\$/g, '') // Strip all remaining $ symbols
+            .replace(/\\text\{([\s\S]*?)\}/g, '$1') // Strip \text{...}
+            .replace(/\\frac\{([\s\S]*?)\}\{([\s\S]*?)\}/g, '($1 / $2)') // Simple fraction
+            .replace(/\\times/g, 'x')
+            .replace(/---/g, '') // Strip horizontal rules
+            .replace(/\*\*\*/g, '') // Strip triple stars
+            .replace(/\\Delta/g, 'change in ')
+            .replace(/\\approx/g, 'approx.')
+            .trim();
     }
 
     private shouldAudit(response: string, groundTruth: any): boolean {
@@ -424,18 +441,15 @@ ${questionPrompt}
 HISTORY:
 ${historyText}
 
-NEW REQUEST:
-${message}
-
 INSTRUCTIONS:
-1. CALIBRATED TONE: <30% mastery = simple analogies. >80% = expert shortcuts.
-2. SOCRATIC: Ask 1 leading question before revealing everything.
-3. EMPATHY: If frustrated or late, suggest a 5-min break.
-4. WHITEBOARD: Generate <svg> if visual help (Geometry/Physics) is needed.
-5. PRACTICE: Generate JSON quiz block if asked for practice.
-6. MATH: Use LaTeX $formula$.
-7. SCOPE: Educational only. Polite refusal otherwise.
-8. RESPOND in ${context.preferredLanguage}.
+- NO SYMBOLS: Never use $, $$, ---, or ***.
+- NO MATH NOTATION: Use plain English for formulas (e.g. Force = Mass x Acceleration).
+- CLEAN STYLE: Use empty lines for spacing. No weird dividers.
+- HUMAN TONE: Helpful, encouraging, and brief.
+- SOCRATIC: Ask a leading question before the full answer.
+- WHITEBOARD: Use <svg> for physics/geometry diagrams if helpful.
+- MATH: Use plain text, never LaTeX.
+- RESPOND in ${context.preferredLanguage}.
 
 Response:`;
     }

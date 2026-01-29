@@ -500,7 +500,7 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
               children: [
                 IconButton(
                     onPressed: _pickImage,
-                    icon: Icon(Icons.image, color: isDark ? Colors.white70 : AppColors.primaryBlue),
+                    icon: Icon(Icons.add, color: isDark ? Colors.white70 : AppColors.primaryBlue),
                 ),
                 Expanded(
                   child: TextField(

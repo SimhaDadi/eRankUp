@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, X, Image as ImageIcon } from 'lucide-react';
 import api from '@/lib/api';
 
 interface Message {
     role: 'user' | 'assistant';
     content: string;
+    image?: string; // Base64 or URL for display
 }
 
 const SUGGESTED_PROMPTS = [
@@ -23,8 +25,11 @@ export default function AIChatInterface() {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [conversationId, setConversationId] = useState<string | null>(null);
+    const [selectedImage, setSelectedImage] = useState<{ file: File; preview: string } | null>(null);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -32,18 +37,61 @@ export default function AIChatInterface() {
 
     useEffect(scrollToBottom, [messages]);
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setSelectedImage({
+                    file,
+                    preview: reader.result as string
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const convertToBase64 = (file: File): Promise<{ data: string; mimeType: string }> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const base64String = (reader.result as string).split(',')[1];
+                resolve({
+                    data: base64String,
+                    mimeType: file.type
+                });
+            };
+            reader.onerror = error => reject(error);
+        });
+    };
+
     const sendMessage = async () => {
-        if (!input.trim() || loading) return;
+        if ((!input.trim() && !selectedImage) || loading) return;
 
         const userMessage = input.trim();
+        const currentImage = selectedImage;
+
         setInput('');
-        setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+        setSelectedImage(null);
+
+        setMessages(prev => [...prev, {
+            role: 'user',
+            content: userMessage,
+            image: currentImage?.preview
+        }]);
         setLoading(true);
 
         try {
+            let imageData = undefined;
+            if (currentImage) {
+                imageData = await convertToBase64(currentImage.file);
+            }
+
             const response = await api.post('/ai-chat/message', {
                 conversationId,
-                message: userMessage,
+                message: userMessage || (currentImage ? "Analyze this image" : ""),
+                image: imageData,
             });
 
             setConversationId(response.data.conversationId);
@@ -76,16 +124,16 @@ export default function AIChatInterface() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="flex flex-col h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 font-inter">
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 shadow-2xl">
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 shadow-2xl shrink-0">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex items-center gap-3 mb-2">
                         <span className="text-4xl">🤖</span>
                         <div>
                             <h1 className="text-3xl font-bold text-white">Tutor</h1>
                             <p className="text-sm text-purple-100">
-                                Personalized to your learning needs
+                                Personalization & Intelligence for Aspirants
                             </p>
                         </div>
                     </div>
@@ -93,7 +141,7 @@ export default function AIChatInterface() {
             </div>
 
             {/* Messages Container */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                 <div className="max-w-4xl mx-auto space-y-6">
                     {messages.length === 0 && (
                         <motion.div
@@ -109,7 +157,7 @@ export default function AIChatInterface() {
                                 I can help you understand concepts, practice questions, and create study plans
                             </p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl mx-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
                                 {SUGGESTED_PROMPTS.map((suggestion, idx) => (
                                     <motion.button
                                         key={suggestion}
@@ -117,13 +165,13 @@ export default function AIChatInterface() {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.1 }}
                                         onClick={() => handleUseSuggestion(suggestion)}
-                                        className="bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-purple-500 text-white p-4 rounded-xl text-left transition-all group"
+                                        className="bg-slate-800/40 hover:bg-slate-800/80 backdrop-blur-md border border-white/10 hover:border-purple-500/50 text-white p-5 rounded-3xl text-left transition-all group shadow-xl"
                                     >
-                                        <div className="flex items-start gap-3">
-                                            <span className="text-2xl group-hover:scale-110 transition-transform">
-                                                💡
-                                            </span>
-                                            <span className="text-sm">{suggestion}</span>
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <span className="text-xl">💡</span>
+                                            </div>
+                                            <span className="text-sm font-semibold leading-snug">{suggestion}</span>
                                         </div>
                                     </motion.button>
                                 ))}
@@ -142,18 +190,30 @@ export default function AIChatInterface() {
                                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div
-                                    className={`max-w-[80%] p-5 rounded-2xl shadow-lg ${msg.role === 'user'
-                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                                        : 'bg-slate-800/80 text-slate-100 border border-slate-700'
+                                    className={`max-w-[80%] p-5 rounded-[2rem] shadow-2xl relative overflow-hidden group ${msg.role === 'user'
+                                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white'
+                                        : 'bg-slate-800/90 text-slate-100 border border-white/10'
                                         }`}
                                 >
+                                    {msg.role === 'user' && (
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                                    )}
                                     {msg.role === 'assistant' && (
-                                        <div className="flex items-center gap-2 mb-2 text-purple-400 text-sm font-semibold">
-                                            <span>🤖</span>
+                                        <div className="flex items-center gap-2 mb-3 text-purple-400 text-xs font-black uppercase tracking-widest">
+                                            <div className="w-6 h-6 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                                <span>🤖</span>
+                                            </div>
                                             <span>Tutor</span>
                                         </div>
                                     )}
-                                    <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+
+                                    {msg.image && (
+                                        <div className="mb-4 rounded-2xl overflow-hidden border border-white/10 shadow-lg">
+                                            <img src={msg.image} alt="Uploaded attachment" className="max-w-full h-auto max-h-[300px] object-contain bg-black/20" />
+                                        </div>
+                                    )}
+
+                                    <div className="whitespace-pre-wrap leading-relaxed relative z-10 font-medium">{msg.content}</div>
                                 </div>
                             </motion.div>
                         ))}
@@ -165,21 +225,22 @@ export default function AIChatInterface() {
                             animate={{ opacity: 1 }}
                             className="flex justify-start"
                         >
-                            <div className="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl">
-                                <div className="flex items-center gap-2 mb-2 text-purple-400 text-sm font-semibold">
-                                    <span>🤖</span>
+                            <div className="bg-slate-800/90 border border-white/10 p-5 rounded-[2rem]">
+                                <div className="flex items-center gap-2 mb-3 text-purple-400 text-xs font-black uppercase tracking-widest">
+                                    <div className="w-6 h-6 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                        <span>🤖</span>
+                                    </div>
                                     <span>Tutor</span>
                                 </div>
-                                <div className="flex gap-2">
-                                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
-                                    <div
-                                        className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"
-                                        style={{ animationDelay: '0.1s' }}
-                                    ></div>
-                                    <div
-                                        className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"
-                                        style={{ animationDelay: '0.2s' }}
-                                    ></div>
+                                <div className="flex gap-1.5 ml-1">
+                                    {[0, 0.2, 0.4].map((delay, i) => (
+                                        <motion.div
+                                            key={i}
+                                            animate={{ y: [0, -6, 0] }}
+                                            transition={{ duration: 0.6, repeat: Infinity, delay }}
+                                            className="w-1.5 h-1.5 bg-purple-500 rounded-full shadow-[0_0_10px_#a855f7]"
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         </motion.div>
@@ -190,36 +251,79 @@ export default function AIChatInterface() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t border-slate-700 bg-slate-900/95 backdrop-blur-sm p-6">
+            <div className="border-t border-white/10 bg-slate-900/98 backdrop-blur-3xl p-6 shrink-0">
                 <div className="max-w-4xl mx-auto">
-                    <div className="flex gap-3">
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={input}
-                            onChange={e => setInput(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            placeholder="Ask me anything about your exam prep..."
-                            disabled={loading}
-                            className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-5 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 transition-all"
-                        />
+                    {/* Image Preview */}
+                    <AnimatePresence>
+                        {selectedImage && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                className="mb-4 relative inline-block group"
+                            >
+                                <div className="p-1 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl shadow-xl shadow-purple-500/20">
+                                    <div className="relative rounded-xl overflow-hidden border border-white/20 bg-slate-800">
+                                        <img src={selectedImage.preview} alt="Preview" className="h-24 w-24 object-cover" />
+                                        <button
+                                            onClick={() => setSelectedImage(null)}
+                                            className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="flex gap-4 items-end">
+                        <div className="flex-1 relative">
+                            {/* Hidden File Input */}
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileSelect}
+                                accept="image/*"
+                                className="hidden"
+                            />
+
+                            <div className="flex gap-2">
+                                {/* The User requested "+" button for images */}
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="shrink-0 w-[58px] h-[58px] rounded-2xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-400 hover:text-purple-400 flex items-center justify-center transition-all group"
+                                    title="Add image"
+                                >
+                                    <Plus className="w-6 h-6 transition-transform group-hover:rotate-90" />
+                                </button>
+
+                                <textarea
+                                    ref={inputRef as any}
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    onKeyDown={handleKeyPress as any}
+                                    placeholder="Explain this concept..."
+                                    rows={1}
+                                    className="flex-1 bg-slate-800/80 border border-white/10 rounded-2xl px-5 py-[16px] text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 disabled:opacity-50 transition-all resize-none min-h-[58px] max-h-[150px]"
+                                />
+                            </div>
+                        </div>
+
                         <button
                             onClick={sendMessage}
-                            disabled={loading || !input.trim()}
-                            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-slate-700 disabled:to-slate-700 text-white px-8 py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-purple-500/50 disabled:shadow-none"
+                            disabled={loading || (!input.trim() && !selectedImage)}
+                            className="shrink-0 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-slate-800 disabled:to-slate-800 text-white w-[120px] h-[58px] rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl hover:shadow-purple-500/30 active:scale-95 disabled:shadow-none flex items-center justify-center"
                         >
                             {loading ? (
-                                <span className="flex items-center gap-2">
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Thinking...
-                                </span>
+                                <div className="w-5 h-5 border-[3px] border-white/30 border-t-white rounded-full animate-spin"></div>
                             ) : (
                                 'Send'
                             )}
                         </button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-3 text-center">
-                        AI responses are generated based on your learning progress and weak areas
+                    <p className="text-[10px] text-slate-600 mt-4 text-center font-bold uppercase tracking-widest">
+                        Tutor is analyzing your specific weak areas ⚡
                     </p>
                 </div>
             </div>
