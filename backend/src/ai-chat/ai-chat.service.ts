@@ -429,17 +429,19 @@ HISTORY:
 ${historyText}
 
 INSTRUCTIONS:
-- NO TABLES: Do not use Markdown tables. They are hard to read on mobile. Use bullet points or bold headers instead.
+- NO MARKDOWN SYMBOLS: Strictly forbid #, ##, ###, **, *, _, and \` symbols.
+- HEADERS: Use ALL CAPS for headers (e.g., SECTION TITLE) followed by a line break.
+- LISTS: Use simple bullet points (e.g., • or -) but do not use markdown list symbols that require rendering.
+- CLEAN STRUCTURE: Use empty lines for spacing and indentation.
+- PLAIN TEXT ONLY: Your entire response must be readable as raw text without any markdown parser.
+- NO TABLES: Do not use Markdown tables.
 - NO DECORATIVE SYMBOLS: Never use $, $$, ---, ***, ___ or any excessive punctuation/dividers.
-- NO MATH NOTATION: Use plain English for formulas (e.g. Force = Mass x Acceleration).
-- CLEAN STRUCTURE: Use headers (e.g., ### Section) and empty lines for spacing.
-- READABILITY: If providing a study plan, use a clear day-by-day bulleted list.
+- MATH: Use plain text, never LaTeX.
 - HUMAN TONE: Helpful, encouraging, and brief.
 - SOCRATIC: Ask a leading question before the full answer.
-- MATH: Use plain text, never LaTeX.
 - RESPOND in ${context.preferredLanguage}.
 
-Response:`;
+        Response: `;
     }
 
     async getConversations(userId: string): Promise<ChatConversation[]> {

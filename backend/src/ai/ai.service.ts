@@ -136,19 +136,20 @@ Correct Answer: ${question.correctOptionId} - ${this.sanitizeInput(correctOption
 
 Provide a structured explanation with these sections:
 
-1. **Correct Answer**: Explain why option ${question.correctOptionId} is the right answer (2-3 sentences)
+1. CORRECT ANSWER: Explain why option ${question.correctOptionId} is the right answer (2-3 sentences)
 
-2. **Explore Other Options**: Briefly explain why each incorrect option is wrong (1 sentence per option)
+2. OTHER OPTIONS: Briefly explain why each incorrect option is wrong (1 sentence per option)
 
-3. **Key concept**: State the main concept being tested (1 sentence)
+3. KEY CONCEPT: State the main concept being tested (1 sentence)
 
-4. **Common mistake**: Mention a common error students make on this type of question (1 sentence)
+4. COMMON MISTAKE: Mention a common error students make on this type of question (1 sentence)
 
 Keep the explanation student-friendly, encouraging, and under 200 words total.
 
 INSTRUCTIONS:
+- NO MARKDOWN: Never use #, ##, ### for headers. Use ALL CAPS for section titles instead.
+- NO BOLD/ITALIC: Never use ** or * or _ for emphasis.
 - NO DECORATIVE SYMBOLS: Never use $, $$, ---, ***, ___ or any excessive punctuation/dividers.
-- CLEAN STRUCTURE: Use headers and empty lines for spacing.
 - MATH: Use plain text, never LaTeX.
 
 ---
@@ -732,16 +733,23 @@ JSON:`;
         if (!text) return text;
         return text
             .replace(/\$\$[\s\S]*?\$\$/g, (match) => match.replace(/\$\$/g, '')) // Remove double $ but keep content
-            .replace(/\$|\$\$/g, '') // Strip all remaining $ symbols
+            .replace(/\$|\$\$/g, '') // Strip remaining $ symbols
+            .replace(/\*\*([\s\S]*?)\*\*/g, '$1') // Strip bold
+            .replace(/__([\s\S]*?)__/g, '$1') // Strip bold underscore
+            .replace(/\*([\s\S]*?)\*/g, '$1') // Strip italic
+            .replace(/_([\s\S]*?)_/g, '$1') // Strip italic underscore
+            .replace(/^#+\s+/gm, '') // Strip headers at start of lines
             .replace(/\\text\{([\s\S]*?)\}/g, '$1') // Strip \text{...}
             .replace(/\\frac\{([\s\S]*?)\}\{([\s\S]*?)\}/g, '($1 / $2)') // Simple fraction
             .replace(/\\times/g, 'x')
-            .replace(/---|___|={3,}/g, '') // Strip various horizontal rules
-            .replace(/\*{3,}/g, '') // Strip triple stars or more
-            .replace(/\* \* \*/g, '') // Strip spaced stars
+            .replace(/---|___|={3,}/g, '') // Strip horizontal rules
+            .replace(/\*{3,}/g, '') // Strip stars
+            .replace(/\* \* \*/g, '')
             .replace(/\\Delta/g, 'change in ')
             .replace(/\\approx/g, 'approx.')
-            .replace(/\|?\s*--+\s*\|/g, '') // Clean up broken markdown table remnants
+            .replace(/\|?\s*--+\s*\|/g, '') // Clean table remnants
+            .replace(/`{3,}[\s\S]*?`{3,}/g, (match) => match.match(/`{3,}(?:json)?\s*([\s\S]*?)`{3,}/)?.[1] || match) // Strip code blocks but keep content
+            .replace(/`([^`]+)`/g, '$1') // Strip inline code
             .trim();
     }
 
