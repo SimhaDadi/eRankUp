@@ -49,8 +49,11 @@ export default function PracticePage() {
     useEffect(() => {
         const fetchHierarchy = async () => {
             try {
-                const response = await api.get('/exams/hierarchy');
-                setHierarchy(Array.isArray(response.data) ? response.data : []);
+                const response = await api.get('/exams/hierarchy?type=question_bank');
+                // Flatten subjects from all returned exams
+                const exams = Array.isArray(response.data) ? response.data : [];
+                const allSubjects = exams.flatMap((exam: any) => exam.subjects || []);
+                setHierarchy(allSubjects);
             } catch (error) {
                 console.error("Failed to fetch practice hierarchy", error);
             } finally {
@@ -165,10 +168,10 @@ export default function PracticePage() {
                             </div>
                             <div className="space-y-1">
                                 <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none">
-                                    Curated Practice
+                                    Chapter Wise Tests
                                 </h1>
                                 <p className="text-slate-500 font-medium text-lg leading-snug tracking-tight max-w-2xl">
-                                    Architect elite domain expertise through high-fidelity, topic-specific practice modules.
+                                    Architect elite domain expertise through high-fidelity, chapter-wise test modules.
                                 </p>
                             </div>
                         </motion.div>

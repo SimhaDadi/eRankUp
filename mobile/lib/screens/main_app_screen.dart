@@ -74,7 +74,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
             NavigationDestination(
               icon: Icon(Icons.auto_awesome_outlined),
               selectedIcon: Icon(Icons.auto_awesome),
-              label: 'AI Tutor',
+              label: 'Tutor',
             ),
             NavigationDestination(
               icon: Icon(Icons.trending_up_outlined),

@@ -33,11 +33,19 @@ class _PracticeModeScreenState extends State<PracticeModeScreen> {
     final apiService = Provider.of<ApiService>(context, listen: false);
 
     try {
-      final response = await apiService.get('/exams/hierarchy');
+      final response = await apiService.get('/exams/hierarchy?type=question_bank');
       if (response.statusCode == 200) {
         if (mounted) {
           setState(() {
-            _hierarchy = jsonDecode(response.body);
+            // Flatten subjects from all returned exams to match Web behavior
+            final List<dynamic> exams = jsonDecode(response.body);
+            final List<dynamic> allSubjects = [];
+            for (var exam in exams) {
+              if (exam['subjects'] != null) {
+                allSubjects.addAll(exam['subjects']);
+              }
+            }
+            _hierarchy = allSubjects;
             _isLoading = false;
           });
         }
@@ -132,7 +140,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Topic-wise Practice'),
+        title: const Text('Chapter Wise Tests'),
         elevation: 0,
       ),
       body: _isLoading

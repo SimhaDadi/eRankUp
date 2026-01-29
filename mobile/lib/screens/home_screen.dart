@@ -529,7 +529,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisSpacing: AppSpacing.md,
             children: [
               _buildQuickActionCard(
-                'Practice',
+                'Chapter Wise Tests',
                 Icons.fitness_center,
                 Colors.teal,
                 () {

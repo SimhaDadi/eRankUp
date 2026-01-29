@@ -83,9 +83,9 @@ export default function AIChatInterface() {
                     <div className="flex items-center gap-3 mb-2">
                         <span className="text-4xl">🤖</span>
                         <div>
-                            <h1 className="text-3xl font-bold text-white">AI Study Companion</h1>
+                            <h1 className="text-3xl font-bold text-white">Tutor</h1>
                             <p className="text-sm text-purple-100">
-                                Powered by Gemini AI • Personalized to your learning needs
+                                Personalized to your learning needs
                             </p>
                         </div>
                     </div>
@@ -103,7 +103,7 @@ export default function AIChatInterface() {
                         >
                             <div className="text-6xl mb-6">👋</div>
                             <h2 className="text-3xl font-bold text-white mb-3">
-                                Hi! I'm your AI study companion
+                                Hi! I'm your Study Companion
                             </h2>
                             <p className="text-slate-300 mb-8">
                                 I can help you understand concepts, practice questions, and create study plans
@@ -150,7 +150,7 @@ export default function AIChatInterface() {
                                     {msg.role === 'assistant' && (
                                         <div className="flex items-center gap-2 mb-2 text-purple-400 text-sm font-semibold">
                                             <span>🤖</span>
-                                            <span>AI Tutor</span>
+                                            <span>Tutor</span>
                                         </div>
                                     )}
                                     <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
@@ -168,7 +168,7 @@ export default function AIChatInterface() {
                             <div className="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl">
                                 <div className="flex items-center gap-2 mb-2 text-purple-400 text-sm font-semibold">
                                     <span>🤖</span>
-                                    <span>AI Tutor</span>
+                                    <span>Tutor</span>
                                 </div>
                                 <div className="flex gap-2">
                                     <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>

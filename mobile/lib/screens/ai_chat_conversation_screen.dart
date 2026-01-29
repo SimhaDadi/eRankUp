@@ -20,7 +20,7 @@ class AIChatConversationScreen extends StatefulWidget {
   const AIChatConversationScreen({
     super.key,
     this.conversationId,
-    this.title = 'AI Tutor',
+    this.title = 'Tutor',
     this.questionId,
   });
 

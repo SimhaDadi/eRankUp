@@ -59,7 +59,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('AI Personal Tutor'),
+        title: const Text('Tutor'),
         elevation: 0,
       ),
       body: _isLoading
@@ -108,7 +108,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Meet your AI Tutor',
+            'Meet your Tutor',
             style: AppTextStyles.h2,
           ),
           const SizedBox(height: 12),

@@ -22,7 +22,10 @@ import {
     AlertTriangle,
     HelpCircle,
     ChevronLeft,
-    Menu
+    Menu,
+    Settings,
+    MonitorPlay,
+    BookOpen
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -88,9 +91,9 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
         {
             items: [
                 { icon: Layers, label: 'Mock Tests', href: '/dashboard/test-series' },
-                { icon: Activity, label: 'Live Tests', href: '/dashboard/live-exams' },
-                { icon: FileText, label: 'Previous Year Papers', href: '/dashboard/pyp' },
-                { icon: Crosshair, label: 'Practice', href: '/dashboard/practice' },
+                { icon: MonitorPlay, label: 'Live Tests', href: '/dashboard/live-tests' },
+                { icon: Clock, label: 'Previous Year Papers', href: '/dashboard/pyp' },
+                { icon: BookOpen, label: 'Chapter Wise Tests', href: '/dashboard/practice' },
                 { icon: Clock, label: 'Daily Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },
                 { icon: CheckCircle, label: 'Attempted Tests', href: '/dashboard/performance' }, // Performance page
                 { icon: Ticket, label: 'Pass', href: '/dashboard/plans' },
@@ -101,7 +104,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                 { icon: List, label: 'Exams', href: '/dashboard/all-exams' },
                 { icon: Bookmark, label: 'Saved Questions', href: '/dashboard/saved' },
                 { icon: AlertTriangle, label: 'Reported Questions', href: '/dashboard/reported' },
-                { icon: HelpCircle, label: 'Doubts', href: '/dashboard/doubts' },
+                { icon: HelpCircle, label: 'Tutor', href: '/dashboard/ai-chat', badge: 'BETA', badgeColor: 'bg-purple-500' },
             ]
         },
     ];
