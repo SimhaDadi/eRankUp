@@ -30,6 +30,7 @@ interface Exam {
     createdAt: string;
     questionCount?: number;
     duration?: number;
+    isPublished?: boolean;
 }
 
 export default function FreeQuizzesPage() {
@@ -47,7 +48,7 @@ export default function FreeQuizzesPage() {
                     params: { type: 'real_exam' }
                 });
                 const quizzes = Array.isArray(response.data)
-                    ? response.data.filter((e: Exam) => e.category === 'Free Quiz')
+                    ? response.data.filter((e: Exam) => e.category === 'Free Quiz' && e.isPublished)
                     : [];
                 setExams(quizzes);
             } catch (error) {
@@ -98,7 +99,7 @@ export default function FreeQuizzesPage() {
                     </div>
                     <div className="space-y-1">
                         <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none uppercase tracking-wider">
-                            Free Quizzes
+                            Daily Quizzes
                         </h1>
                         <p className="text-slate-500 font-medium text-lg leading-snug tracking-tight max-w-2xl">
                             Sharpen your instincts. Rapid-fire quizzes designed for daily mastery and conceptual depth.

@@ -14,6 +14,7 @@ import 'saved_questions_screen.dart';
 import 'study_plan_screen.dart';
 import '../widgets/daily_goal_widget.dart';
 import '../widgets/premium_card.dart';
+import 'practice_mode_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,30 +44,45 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchHomeData() async {
+    debugPrint('HomeScreen: _fetchHomeData started');
     setState(() => _isLoading = true);
     final apiService = Provider.of<ApiService>(context, listen: false);
     
     try {
+      debugPrint('HomeScreen: Fetching data from ${ApiService.baseUrl}');
       // Fetch multiple endpoints in parallel
       final results = await Future.wait([
         apiService.get('/exams/user/stats'),
         apiService.get('/exams/user/recent'),
         apiService.get('/exams/live'),
-      ]);
+      ]).timeout(const Duration(seconds: 10));
+
+      debugPrint('HomeScreen: Data fetched. Statuses: ${results.map((r) => r.statusCode)}');
 
       if (mounted) {
         setState(() {
           if (results[0].statusCode == 200) {
             _stats = jsonDecode(results[0].body);
+            debugPrint('HomeScreen: Stats loaded: $_stats');
             if ((_stats?['dailyQuestions'] ?? 0) >= 100) {
               _confettiController.play();
             }
+          } else {
+            debugPrint('HomeScreen: Stats failed: ${results[0].body}');
           }
+
           if (results[1].statusCode == 200) {
             _recentAttempts = jsonDecode(results[1].body) as List;
+             debugPrint('HomeScreen: Recent attempts loaded: ${_recentAttempts?.length}');
+          } else {
+             debugPrint('HomeScreen: Recent attempts failed: ${results[1].body}');
           }
+
           if (results[2].statusCode == 200) {
             _liveTests = jsonDecode(results[2].body) as List;
+             debugPrint('HomeScreen: Live tests loaded: ${_liveTests?.length}');
+          } else {
+             debugPrint('HomeScreen: Live tests failed: ${results[2].body}');
           }
           _isLoading = false;
         });
@@ -519,7 +535,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const StudyPlanScreen()),
+                    MaterialPageRoute(builder: (_) => const PracticeModeScreen()),
                   );
                 },
               ),

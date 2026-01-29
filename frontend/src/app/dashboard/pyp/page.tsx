@@ -30,6 +30,7 @@ interface Exam {
     createdAt: string;
     questionCount?: number;
     duration?: number;
+    isPublished?: boolean;
 }
 
 export default function PreviousYearPapersPage() {
@@ -47,7 +48,7 @@ export default function PreviousYearPapersPage() {
         try {
             const response = await api.get('/exams?type=previous_year_paper');
             const pypExams = Array.isArray(response.data)
-                ? response.data.filter((e: Exam) => e.type === 'previous_year_paper')
+                ? response.data.filter((e: Exam) => e.type === 'previous_year_paper' && e.isPublished)
                 : [];
             setExams(pypExams);
         } catch (error: any) {

@@ -2,10 +2,11 @@
 const nextConfig = {
     reactStrictMode: true,
     async rewrites() {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
         return [
             {
                 source: '/api/:path*',
-                destination: 'http://127.0.0.1:3001/:path*', // Proxy to Backend
+                destination: `${backendUrl}/:path*`, // Proxy to Backend with path
             },
         ]
     },

@@ -10,17 +10,18 @@ interface CreateExamModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (examId: string) => void;
+    defaultCategory?: string;
 }
 
-export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalProps) {
+export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }: CreateExamModalProps) {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        category: 'SSC',
+        category: defaultCategory || 'SSC',
         type: 'real_exam',
         defaultPositiveMarks: 1,
         defaultNegativeMarks: 0.25,
-        duration: 60,
+        duration: defaultCategory === 'Free Quiz' ? 15 : 60,
         startTime: '',
         endTime: ''
     });
@@ -69,11 +70,11 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
             setFormData({
                 title: '',
                 description: '',
-                category: 'SSC',
+                category: defaultCategory || 'SSC',
                 type: 'real_exam',
                 defaultPositiveMarks: 1,
                 defaultNegativeMarks: 0.25,
-                duration: 60,
+                duration: defaultCategory === 'Free Quiz' ? 15 : 60,
                 startTime: '',
                 endTime: ''
             });
@@ -164,20 +165,25 @@ export function CreateExamModal({ isOpen, onClose, onSuccess }: CreateExamModalP
                     </div>
 
                     {/* Category */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Category <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                            value={formData.category}
-                            onChange={(e) => handleChange('category', e.target.value)}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 bg-white"
-                        >
-                            {EXAM_CATEGORIES.map(cat => (
-                                <option key={cat.id} value={cat.id}>{cat.label}</option>
-                            ))}
-                        </select>
-                    </div>
+                    {defaultCategory ? (
+                        // Hidden input if category is forced
+                        null
+                    ) : (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Category <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                value={formData.category}
+                                onChange={(e) => handleChange('category', e.target.value)}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 bg-white"
+                            >
+                                {EXAM_CATEGORIES.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     {/* Live Exam Schedule */}
                     <AnimatePresence>

@@ -36,7 +36,10 @@ export class PassesController {
     @UseGuards(AuthGuard('jwt'))
     @Post('create-order')
     async createOrder(@Request() req, @Body() body: { passId: string, couponCode?: string }) {
-        return this.paymentsService.createPassOrder(req.user, body.passId, body.couponCode);
+        console.log('[DEBUG] PassesController.createOrder req.user:', JSON.stringify(req.user));
+        const user = { ...req.user, id: req.user.userId };
+        console.log('[DEBUG] PassesController.createOrder constructed user:', JSON.stringify(user));
+        return this.paymentsService.createPassOrder(user, body.passId, body.couponCode);
     }
 
     @UseGuards(AuthGuard('jwt'))

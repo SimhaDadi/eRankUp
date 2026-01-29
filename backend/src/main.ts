@@ -25,7 +25,7 @@ async function bootstrap() {
     }));
 
     // Restrict CORS
-    const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.31.63:3000', 'http://192.168.31.63:3001'];
+    const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [];
 
     app.enableCors({
         origin: allowedOrigins,

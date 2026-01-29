@@ -43,7 +43,7 @@ export default function DashboardPage() {
                     api.get('/passes/current').catch(() => ({ data: null }))
                 ]);
                 setStats(statsRes.data);
-                setRecentAttempts(recentRes.data);
+                setRecentAttempts(Array.isArray(recentRes.data) ? recentRes.data : []);
                 setAllExams(examsRes.data || []);
                 setActivePass(passRes.data);
             } catch (error) {
@@ -377,7 +377,7 @@ export default function DashboardPage() {
 
                                 <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-lg shadow-slate-200/30 p-2">
                                     {(() => {
-                                        const filtered = recentAttempts.filter(attempt => {
+                                        const filtered = (recentAttempts || []).filter(attempt => {
                                             const title = (attempt.exam?.title || attempt.model?.title || '').toLowerCase();
                                             return title.includes(searchQuery.toLowerCase());
                                         });

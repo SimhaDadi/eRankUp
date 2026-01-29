@@ -113,11 +113,12 @@ export class PaymentsService implements OnModuleInit {
     }
 
     async createPassOrder(user: any, passId: string, couponCode?: string) {
-        // console.error('DEBUG: createPassOrder user:', JSON.stringify(user));
         const pass = await this.passRepository.findOneBy({ id: passId });
         if (!pass) {
             throw new Error('Pass not found');
         }
+        console.log('[DEBUG] PaymentsService.createPassOrder received user:', JSON.stringify(user));
+        console.log('[DEBUG] PaymentsService.createPassOrder user.id:', user.id, 'user.userId:', user.userId);
 
         let finalPrice = pass.price;
         let discountAmount = 0;
@@ -232,7 +233,7 @@ export class PaymentsService implements OnModuleInit {
         const userPass = this.userPassRepository.create({
             user,
             pass,
-            userId: user.id,
+            userId: user.id || user.userId,
             passId: pass.id,
             purchaseDate: startDate,
             expiryDate: expiryDate,
@@ -246,6 +247,7 @@ export class PaymentsService implements OnModuleInit {
         await this.userPassRepository.save(userPass);
 
         return {
+            id: rzpOrder.id,
             orderId: rzpOrder.id,
             amount: rzpOrder.amount,
             currency: rzpOrder.currency,

@@ -75,6 +75,9 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
           }
         }
 
+        // Strict filtering: Only show published exams
+        if (!exam.isPublished) return false;
+
         String typeFilter = 'all';
         bool isFreeQuiz = false;
 
@@ -82,11 +85,11 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
           case 1: typeFilter = 'real_exam'; break; // Mock Tests
           case 2: typeFilter = 'previous_year_paper'; break; // PYPs
           case 3: typeFilter = 'question_bank'; break; // Banks
-          case 4: isFreeQuiz = true; break; // Free Quizzes
+          case 4: isFreeQuiz = true; break; // Daily Quizzes
         }
 
         if (isFreeQuiz) {
-          // Special handling for Free Quizzes tab
+          // Special handling for Daily Quizzes tab
           return exam.category == 'Free Quiz';
         }
 
@@ -142,7 +145,7 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
                 Tab(text: 'Mock Tests'),
                 Tab(text: 'PYPs'),
                 Tab(text: 'Banks'),
-                Tab(text: 'Free Quizzes'),
+                Tab(text: 'Daily Quizzes'),
               ],
             ),
             

@@ -23,7 +23,8 @@ import {
     Banknote,
     Search,
     Plus,
-    LogOut
+    LogOut,
+    Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -36,7 +37,9 @@ const adminNavSections = [
     {
         title: 'CONTENT MANAGEMENT',
         items: [
-            { icon: BookOpen, label: 'Manage Exams', href: '/admin/exams' },
+            { icon: BookOpen, label: 'Drafts & Staging', href: '/admin/exams' },
+            { icon: BookOpen, label: 'Mock Tests', href: '/admin/mock-tests' },
+            { icon: Zap, label: 'Daily Quiz', href: '/admin/daily-quizzes' },
             { icon: Calendar, label: 'Live Exams', href: '/admin/live-exams' },
             { icon: Plus, label: 'Question Management', href: '/admin/questions' },
             { icon: Layers, label: 'Hierarchy & Subjects', href: '/admin/hierarchy' },

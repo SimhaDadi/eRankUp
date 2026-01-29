@@ -31,6 +31,7 @@ interface Exam {
     createdAt: string;
     chapters: any[];
     type: 'real_exam' | 'question_bank' | 'live_exam' | 'previous_year_paper';
+    category?: string;
     questionCount?: number;
 }
 
@@ -84,7 +85,9 @@ export default function AdminExamsPage() {
     const filteredExams = exams.filter(exam => {
         const matchesType = filterType === 'all' || exam.type === filterType;
         const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesType && matchesSearch;
+        // SHOW ONLY DRAFTS (Unpublished)
+        const isDraft = exam.isPublished === false;
+        return matchesType && matchesSearch && isDraft;
     });
 
     return (
@@ -92,8 +95,8 @@ export default function AdminExamsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Manage Exams</h1>
-                    <p className="text-slate-400">Create, edit, and organize your platform content hierarchy.</p>
+                    <h1 className="text-3xl font-bold">Drafts & Staging</h1>
+                    <p className="text-slate-400">Create and edit content before publishing to the platform.</p>
                 </div>
                 <div className="flex gap-3">
                     <button
@@ -233,6 +236,10 @@ export default function AdminExamsPage() {
                                     <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
                                         PYP
                                     </span>
+                                ) : exam.category === 'Free Quiz' ? (
+                                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                        QUIZ
+                                    </span>
                                 ) : null}
                             </h3>
                             <p className="text-slate-400 text-sm line-clamp-2 mb-6">
@@ -264,7 +271,7 @@ export default function AdminExamsPage() {
 
                 {filteredExams.length === 0 && !isLoading && (
                     <div className="col-span-full py-20 text-center bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl">
-                        <div className="text-slate-500 mb-2">No exams found matching your filter.</div>
+                        <div className="text-slate-500 mb-2">No drafts found. Create a new exam to get started.</div>
                     </div>
                 )}
             </div>

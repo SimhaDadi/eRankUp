@@ -621,7 +621,7 @@ class _InteractiveQuizState extends State<_InteractiveQuiz> {
                 ),
                 child: Row(
                   children: [
-                    Expanded(child: MathRichText(text: options[index], style: TextStyle(fontSize: 14, color: isDark ? Colors.white87 : Colors.black87))),
+                    Expanded(child: MathRichText(text: options[index], style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87))),
                     if (icon != null) icon,
                   ],
                 ),

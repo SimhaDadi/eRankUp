@@ -175,12 +175,18 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     async findModel(id: string, userId?: string) {
+        console.log(`[DEBUG] findModel called for ${id} (User: ${userId})`);
         const model = await this.modelRepository.findOne({
             where: { id },
             relations: ['chapter', 'chapter.subject', 'questions', 'exams']
         });
 
-        if (!model) return null;
+        if (!model) {
+            console.log(`[DEBUG] findModel: Model not found in DB for id ${id}`);
+            return null;
+        } else {
+            console.log(`[DEBUG] findModel: Found model ${model.title} (Questions: ${model.questions?.length})`);
+        }
 
         // Security Check: If it's a premium model, check if user has purchased
         const isPremium = model.exams?.some(e => e.isPremium);

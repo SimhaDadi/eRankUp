@@ -87,11 +87,11 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
         },
         {
             items: [
-                { icon: Layers, label: 'Test Series', href: '/dashboard/test-series' },
+                { icon: Layers, label: 'Mock Tests', href: '/dashboard/test-series' },
                 { icon: Activity, label: 'Live Tests', href: '/dashboard/live-exams' },
                 { icon: FileText, label: 'Previous Year Papers', href: '/dashboard/pyp' },
                 { icon: Crosshair, label: 'Practice', href: '/dashboard/practice' },
-                { icon: Clock, label: 'Free Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },
+                { icon: Clock, label: 'Daily Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },
                 { icon: CheckCircle, label: 'Attempted Tests', href: '/dashboard/performance' }, // Performance page
                 { icon: Ticket, label: 'Pass', href: '/dashboard/plans' },
             ]

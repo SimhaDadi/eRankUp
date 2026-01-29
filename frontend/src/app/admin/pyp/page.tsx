@@ -2,7 +2,7 @@
 import 'reflect-metadata';
 
 import { useState, useEffect } from 'react';
-import { FileText, Download, Calendar, BookOpen, Search, Filter, Eye, Play } from 'lucide-react';
+import { FileText, Download, Calendar, BookOpen, Search, Filter, Eye, Play, Plus, Trash2, Edit, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '@/lib/api';
 import Link from 'next/link';
@@ -18,7 +18,7 @@ export default function PreviousYearPapersPage() {
         const fetchPapers = async () => {
             try {
                 const res = await api.get('/exams?type=previous_year_paper');
-                setPapers(res.data);
+                setPapers(res.data.filter((p: any) => p.isPublished));
                 if (res.data.length > 0) {
                     // Auto-select first category if available, else 'All' or specific logic
                     // For now default to 'All' or user can switch.
@@ -42,61 +42,32 @@ export default function PreviousYearPapersPage() {
     // Let's just use the distinct categories found in data.
     const distinctCategories = Array.from(new Set(papers.map(p => p.category || 'Other')));
 
-    const filteredPapers = activeCategory === 'All'
-        ? papers
-        : papers.filter(p => (p.category || 'Other') === activeCategory);
 
-    const handleDownload = async (paper: any) => {
-        try {
-            // Need to fetch full details including questions
-            // Assuming we have an endpoint for full exam details or we construct it
-            // If the list endpoint doesn't return questions, we fetch specific exam
-            const res = await api.get(`/exams/${paper.id}`);
-            const fullExam = res.data;
 
-            // Extract questions from hierarchy (Exam -> Models -> Questions?) 
-            // OR if generic exam structure, it might have questions linked directly or via models
-            // The service 'findOne' returns everything.
-            // But we need a flat list of questions for the PDF
-
-            let questions: any[] = [];
-
-            // Check direct questions linkage
-            if (fullExam.questions && fullExam.questions.length > 0) {
-                questions = fullExam.questions;
+    const handleDelete = async (id: string) => {
+        if (window.confirm('Are you sure you want to delete this paper?')) {
+            try {
+                await api.delete(`/exams/${id}`);
+                setPapers(papers.filter(p => p.id !== id));
+            } catch (error) {
+                alert('Failed to delete paper');
             }
-            // Check models linkage
-            else if (fullExam.chapters) {
-                // Iterate through hierarchy
-                fullExam.chapters.forEach((chapter: any) => {
-                    chapter.models?.forEach((model: any) => {
-                        // We might need to fetch questions for model if not populated
-                        // But usually findOne populates hierarchy structure.
-                        // Wait, findOne populates models and chapters, does it populate QUESTIONS inside models?
-                        // Service: relations: ['models', 'models.chapter', 'models.chapter.subject', 'questions']
-                        // It fetches DIRECT questions. 
-                        // It does NOT deep fetch questions inside models by default in current 'findOne'.
-                    });
-                });
-            }
-
-            // If questions are empty, we might need a specific "get questions for exam" endpoint
-            // Let's use the '/exams/:id/questions' or similar if it exists, or just use what we have.
-            // Actually, for PYP, we usually link questions directly or via a single model.
-
-            if (questions.length === 0) {
-                // Fallback: Fetch questions for the first model if available?
-                // Or inform user.
-                alert("Generating PDF... (Ensure questions are properly linked to this exam)");
-            }
-
-            generateExamPDF(fullExam, questions);
-
-        } catch (error) {
-            console.error("Download failed", error);
-            alert("Failed to download PDF. Please try again.");
         }
     };
+
+    const handleTogglePublish = async (id: string, currentStatus: boolean) => {
+        try {
+            await api.put(`/exams/${id}/publish`, { isPublished: !currentStatus });
+            setPapers(papers.map(p => p.id === id ? { ...p, isPublished: !currentStatus } : p));
+        } catch (error) {
+            alert('Failed to update publish status');
+        }
+    };
+
+    const filteredPapers = (activeCategory === 'All'
+        ? papers
+        : papers.filter(p => (p.category || 'Other') === activeCategory))
+        .filter(p => p.title.toLowerCase().includes('')); // Add search state if needed, or just keep category filter
 
     if (loading) {
         return (
@@ -107,12 +78,19 @@ export default function PreviousYearPapersPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-8">
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-black text-gray-900 mb-2">Previous Year Papers</h1>
-                    <p className="text-gray-600">Download and practice with authentic exam papers from past years</p>
+                <div className="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-4xl font-bold text-white mb-2">Previous Year Papers</h1>
+                        <p className="text-slate-400">Manage published previous year exam papers.</p>
+                    </div>
+                    <Link href="/admin/exams">
+                        <button className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all">
+                            <Plus className="w-5 h-5" /> Create New (Drafts)
+                        </button>
+                    </Link>
                 </div>
 
                 {/* Categories */}
@@ -121,9 +99,9 @@ export default function PreviousYearPapersPage() {
                         <button
                             key={category}
                             onClick={() => setActiveCategory(category)}
-                            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeCategory === category
-                                ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeCategory === category
+                                ? 'bg-amber-500 text-slate-900'
+                                : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
                                 }`}
                         >
                             {EXAM_CATEGORIES.find(c => c.id === category)?.label || category}
@@ -139,48 +117,55 @@ export default function PreviousYearPapersPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            whileHover={{ y: -5 }}
-                            className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-xl transition-all"
+                            className="bg-slate-900 rounded-xl p-6 border border-slate-800 hover:border-amber-500/50 transition-all group relative"
                         >
+                            <div className="absolute top-4 right-4 z-10 flex gap-2">
+                                <button
+                                    onClick={() => handleTogglePublish(paper.id, paper.isPublished)}
+                                    className="p-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                                    title="Unpublish (Move to Drafts)"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(paper.id)}
+                                    className="p-1.5 text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg hover:bg-rose-500/20 transition-colors"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+
                             <div className="flex items-start justify-between mb-4">
-                                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                    <FileText className="w-6 h-6 text-white" />
+                                <div className="w-12 h-12 bg-amber-500/10 rounded-lg flex items-center justify-center border border-amber-500/20">
+                                    <FileText className="w-6 h-6 text-amber-500" />
                                 </div>
                                 {paper.createdAt && (
-                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                                    <span className="px-3 py-1 bg-slate-800 text-slate-400 text-xs font-bold rounded-full border border-slate-700">
                                         {new Date(paper.createdAt).getFullYear()}
                                     </span>
                                 )}
                             </div>
 
-                            <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2 min-h-[56px]">{paper.title}</h3>
-                            <p className="text-sm text-gray-500 mb-4 line-clamp-1">{paper.description || 'Official Previous Year Paper'}</p>
+                            <h3 className="text-lg font-bold text-white mb-1 line-clamp-2 min-h-[56px] pr-16">{paper.title}</h3>
+                            <p className="text-sm text-slate-400 mb-4 line-clamp-1">{paper.description || 'Official Previous Year Paper'}</p>
 
-                            <div className="space-y-2 mb-6">
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <Calendar className="w-4 h-4" />
-                                    <span>Added {new Date(paper.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            <div className="space-y-2 mb-6 border-t border-slate-800 pt-4">
+                                <div className="flex items-center gap-2 text-sm text-slate-400">
+                                    <Calendar className="w-4 h-4 text-slate-500" />
+                                    <span>Added {new Date(paper.createdAt).toLocaleDateString()}</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <BookOpen className="w-4 h-4" />
+                                <div className="flex items-center gap-2 text-sm text-slate-400">
+                                    <BookOpen className="w-4 h-4 text-slate-500" />
                                     <span>{paper.questionCount || 0} Questions</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <Download className="w-4 h-4" />
-                                    <span>{0} Downloads</span>
                                 </div>
                             </div>
 
                             <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleDownload(paper)}
-                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                                >
-                                    <Download className="w-4 h-4" />
-                                    PDF
-                                </button>
-                                <Link href={`/dashboard/exams/${paper.id}`} className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors border border-emerald-200">
-                                    <Play className="w-4 h-4" />
+                                <Link href={`/admin/exams/${paper.id}`} className="flex-1">
+                                    <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors border border-slate-700">
+                                        <Edit className="w-4 h-4" />
+                                        Manage
+                                    </button>
                                 </Link>
                             </div>
                         </motion.div>
@@ -188,10 +173,10 @@ export default function PreviousYearPapersPage() {
                 </div>
 
                 {filteredPapers.length === 0 && (
-                    <div className="text-center py-16">
-                        <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">No papers found</h3>
-                        <p className="text-gray-500">Check back later for new uploads!</p>
+                    <div className="text-center py-16 bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl">
+                        <FileText className="w-16 h-16 text-slate-700 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-slate-300 mb-2">No papers found</h3>
+                        <p className="text-slate-500">Publish a PYP from Drafts to see it here.</p>
                     </div>
                 )}
             </div>

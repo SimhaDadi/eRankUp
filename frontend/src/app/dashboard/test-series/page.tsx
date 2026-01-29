@@ -34,6 +34,7 @@ interface Exam {
     questionCount?: number;
     duration?: number;
     attempts?: any;
+    isPublished?: boolean;
 }
 
 export default function TestSeriesPage() {
@@ -48,7 +49,7 @@ export default function TestSeriesPage() {
             try {
                 const response = await api.get('/exams?type=real_exam');
                 const testSeries = Array.isArray(response.data)
-                    ? response.data.filter((e: Exam) => e.type === 'real_exam')
+                    ? response.data.filter((e: Exam) => e.type === 'real_exam' && e.isPublished && e.category !== 'Free Quiz')
                     : [];
                 setExams(testSeries);
             } catch (error) {
