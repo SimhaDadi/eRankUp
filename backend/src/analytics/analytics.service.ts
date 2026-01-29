@@ -6,6 +6,7 @@ import { User, UserRole } from '../users/user.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { Attempt } from '../exams/entities/attempt.entity';
 import { Purchase } from '../exams/entities/purchase.entity';
+import { UserPass } from '../passes/entities/user-pass.entity';
 
 @Injectable()
 export class AnalyticsService {
@@ -18,6 +19,8 @@ export class AnalyticsService {
         private attemptRepository: Repository<Attempt>,
         @InjectRepository(Purchase)
         private purchaseRepository: Repository<Purchase>,
+        @InjectRepository(UserPass)
+        private userPassRepository: Repository<UserPass>,
         private cacheService: CacheService,
     ) { }
 
@@ -47,14 +50,22 @@ export class AnalyticsService {
             }
         });
 
-        // 4. Revenue (Total Completed Purchases)
-        const totalRevenueResult = await this.purchaseRepository
+        // 4. Revenue (Total Completed Purchases + Passes)
+        const totalPurchasesResult = await this.purchaseRepository
             .createQueryBuilder('purchase')
             .select('SUM(purchase.amount)', 'total')
             .where("purchase.status = 'COMPLETED'")
             .getRawOne();
+        const purchaseRevenue = parseFloat(totalPurchasesResult.total) || 0;
 
-        const totalRevenue = parseFloat(totalRevenueResult.total) || 0;
+        const totalPassesResult = await this.userPassRepository
+            .createQueryBuilder('userPass')
+            .select('SUM(userPass.amount)', 'total')
+            .where("userPass.paymentStatus = 'COMPLETED'")
+            .getRawOne();
+        const passRevenue = parseFloat(totalPassesResult.total) || 0;
+
+        const totalRevenue = purchaseRevenue + passRevenue;
 
         // Calculate growth (mocked for now, but could be real comparison with last month)
         const revenueStats = {

@@ -26,6 +26,39 @@ interface Conversation {
     updatedAt: string;
 }
 
+const useTypewriter = (text: string, speed: number = 20) => {
+    const [displayedText, setDisplayedText] = useState('');
+    const [isComplete, setIsComplete] = useState(false);
+
+    useEffect(() => {
+        setDisplayedText('');
+        setIsComplete(false);
+        let i = 0;
+        const timer = setInterval(() => {
+            if (i < text.length) {
+                setDisplayedText((prev) => prev + text.charAt(i));
+                i++;
+            } else {
+                setIsComplete(true);
+                clearInterval(timer);
+            }
+        }, speed);
+        return () => clearInterval(timer);
+    }, [text, speed]);
+
+    return { displayedText, isComplete };
+};
+
+const TypewriterMessage = ({ content }: { content: string }) => {
+    const { displayedText, isComplete } = useTypewriter(content);
+    return (
+        <div className="whitespace-pre-wrap leading-relaxed relative z-10 font-medium">
+            {displayedText}
+            {!isComplete && <span className="animate-pulse">|</span>}
+        </div>
+    );
+};
+
 export default function AIChatInterface() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
@@ -66,7 +99,8 @@ export default function AIChatInterface() {
             setMessages(response.data.map((m: any) => ({
                 role: m.role,
                 content: m.content,
-                image: m.image
+                image: m.image,
+                animate: false // Never animate history
             })));
             setConversationId(id);
             if (window.innerWidth < 768) setSidebarOpen(false);
@@ -135,10 +169,12 @@ export default function AIChatInterface() {
         setInput('');
         setSelectedImage(null);
 
+        // Optimistically add user message
         setMessages(prev => [...prev, {
             role: 'user',
             content: userMessage,
-            image: currentImage?.preview
+            image: currentImage?.preview,
+            animate: false
         }]);
         setLoading(true);
 
@@ -155,7 +191,11 @@ export default function AIChatInterface() {
             });
 
             setConversationId(response.data.conversationId);
-            setMessages(prev => [...prev, { role: 'assistant', content: response.data.response }]);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: response.data.response,
+                animate: true // Animate only this new response
+            }]);
             fetchConversations(); // Refresh sidebar title if new
         } catch (error) {
             console.error('Failed to send message', error);
@@ -164,6 +204,7 @@ export default function AIChatInterface() {
                 {
                     role: 'assistant',
                     content: 'Sorry, I encountered an error. Please try again.',
+                    animate: false
                 },
             ]);
         } finally {
@@ -354,7 +395,13 @@ export default function AIChatInterface() {
                                             </div>
                                         )}
 
-                                        <div className="whitespace-pre-wrap leading-relaxed relative z-10 font-medium">{msg.content}</div>
+                                        {/* TYPEWRITED CONTENT FOR ASSISTANT, PLAIN FOR USER */}
+                                        {msg.role === 'assistant' && msg.animate ? (
+                                            <TypewriterMessage content={msg.content} />
+                                        ) : (
+                                            <div className="whitespace-pre-wrap leading-relaxed relative z-10 font-medium">{msg.content}</div>
+                                        )}
+
                                     </div>
                                 </motion.div>
                             ))}

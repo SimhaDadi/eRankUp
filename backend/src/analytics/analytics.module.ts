@@ -9,10 +9,11 @@ import { Exam } from '../exams/entities/exam.entity';
 import { Attempt } from '../exams/entities/attempt.entity';
 import { Response } from '../exams/entities/response.entity';
 import { Purchase } from '../exams/entities/purchase.entity';
+import { UserPass } from '../passes/entities/user-pass.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([User, Exam, Attempt, Response, Purchase])
+        TypeOrmModule.forFeature([User, Exam, Attempt, Response, Purchase, UserPass])
     ],
     controllers: [AnalyticsController],
     providers: [AnalyticsService, PercentileService, PatternDetectionService],
