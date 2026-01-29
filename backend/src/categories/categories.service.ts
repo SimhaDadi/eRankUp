@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -35,8 +35,12 @@ export class CategoriesService {
     return query.getMany();
   }
 
-  findOne(id: string) {
-    return this.categoryRepository.findOne({ where: { id } });
+  async findOne(id: string) {
+    const category = await this.categoryRepository.findOne({ where: { id } });
+    if (!category) {
+      throw new NotFoundException(`Category with ID ${id} not found`);
+    }
+    return category;
   }
 
   async update(id: string, updateCategoryDto: UpdateCategoryDto) {

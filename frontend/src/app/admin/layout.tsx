@@ -128,7 +128,7 @@ export default function AdminLayout({
                 isCollapsed={isSidebarCollapsed}
                 onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             />
-            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-[90px]' : 'ml-[290px]'}`}>
                 <header className="h-20 border-b border-slate-800/50 bg-[#0c111d]/50 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-8">
                     <div className="flex items-center gap-4 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
                         <Search className="w-4 h-4 text-slate-500" />

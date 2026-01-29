@@ -160,7 +160,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             animate={isCollapsed ? "collapsed" : "expanded"}
             variants={sidebarVariants}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto overflow-x-hidden z-30 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50"
+            className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto overflow-x-hidden z-50 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50"
         >
             {/* Larger Logo Area */}
             <div className="px-5 py-4 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-20">
