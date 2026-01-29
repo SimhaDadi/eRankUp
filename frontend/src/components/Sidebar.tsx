@@ -22,6 +22,7 @@ import {
     AlertTriangle,
     HelpCircle,
     ChevronLeft,
+    ChevronRight,
     Menu,
     Settings,
     MonitorPlay,
@@ -166,7 +167,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto overflow-x-hidden z-50 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50"
         >
             {/* Larger Logo Area */}
-            <div className="px-5 py-4 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-20">
+            <div className={`px-3 py-4 flex items-center sticky top-0 bg-white/95 backdrop-blur-sm z-20 transition-all duration-300 w-full ${isCollapsed ? 'flex-col gap-4 justify-center' : 'flex-row justify-between'}`}>
                 <Link
                     href="/dashboard"
                     className="flex items-center gap-3 cursor-pointer overflow-hidden group z-50 transition-opacity hover:opacity-90"
@@ -188,9 +189,9 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
 
                 <button
                     onClick={handleToggle}
-                    className={`z-50 w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'hidden' : ''}`}
+                    className={`z-50 w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'bg-slate-50 text-slate-900 shadow-sm' : ''}`}
                 >
-                    <ChevronLeft className="w-6 h-6" />
+                    {isCollapsed ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
                 </button>
 
                 {isCollapsed && (
@@ -240,11 +241,21 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                                             title={isCollapsed ? item.label : ''}
                                         >
                                             {/* Living Icon Container */}
-                                            <div className={`relative z-10 w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-300 shadow-sm shrink-0 ${isActive
-                                                ? `bg-gradient-to-br ${gradient} text-white shadow-lg scale-105`
-                                                : 'bg-white border-2 border-slate-200 text-slate-500 group-hover:border-slate-300 group-hover:text-slate-700 group-hover:scale-110'
+                                            <div className={`relative z-10 w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-300 shrink-0 ${item.label === 'Tutor'
+                                                    ? 'bg-transparent scale-125'
+                                                    : isActive
+                                                        ? `bg-gradient-to-br ${gradient} text-white shadow-lg shadow-sm scale-105`
+                                                        : 'bg-white border-2 border-slate-200 text-slate-500 shadow-sm group-hover:border-slate-300 group-hover:text-slate-700 group-hover:scale-110'
                                                 }`}>
-                                                <item.icon className="w-5 h-5" strokeWidth={isActive ? 3 : 2.5} />
+                                                {item.label === 'Tutor' ? (
+                                                    <img
+                                                        src="/south_indian_teacher.png"
+                                                        alt="Tutor"
+                                                        className="w-full h-full object-contain drop-shadow-md"
+                                                    />
+                                                ) : (
+                                                    <item.icon className="w-5 h-5" strokeWidth={isActive ? 3 : 2.5} />
+                                                )}
                                             </div>
 
                                             <motion.span

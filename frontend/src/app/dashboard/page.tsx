@@ -152,7 +152,7 @@ export default function DashboardPage() {
 
                                         <div className="flex flex-wrap gap-4">
                                             <Link
-                                                href="/dashboard/exams"
+                                                href="/dashboard/test-series"
                                                 className="group/btn relative inline-flex items-center gap-3 bg-slate-900 text-white px-8 py-3 rounded-[1.25rem] font-bold transition-all hover:scale-[1.03] active:scale-95 shadow-xl shadow-slate-900/20 overflow-hidden"
                                             >
                                                 <span className="relative z-10 flex items-center gap-2 text-sm uppercase tracking-wider">

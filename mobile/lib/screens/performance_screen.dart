@@ -30,7 +30,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       final results = await Future.wait([
         apiService.get('/exams/user/stats'),
         apiService.get('/exams/user/recent'),
-        apiService.get('/adaptive/mastery'),
+        apiService.get('/analytics/mastery'),
       ]);
       
       if (mounted) {

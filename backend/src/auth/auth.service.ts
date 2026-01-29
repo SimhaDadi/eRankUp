@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -61,7 +61,10 @@ export class AuthService {
         });
     }
 
+    private readonly logger = new Logger(AuthService.name);
+
     async login(loginDto: LoginCredentialsDto) {
+        this.logger.log(`Attempting login for email: ${loginDto.email}`);
         const user = await this.usersService.findOneByEmailWithPassword(loginDto.email);
 
         if (!user) {

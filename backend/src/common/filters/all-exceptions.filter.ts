@@ -52,7 +52,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         };
 
         const fs = require('fs');
-        const logFile = 'c:\\Users\\dadim\\OneDrive\\Desktop\\eRankUp\\backend\\debug.log';
+        const path = require('path');
+        const logDir = path.join(process.cwd(), 'logs');
+        if (!fs.existsSync(logDir)) {
+            fs.mkdirSync(logDir);
+        }
+        const logFile = path.join(logDir, 'debug.log');
         const logMsg = `[${new Date().toISOString()}] ${method} ${url} - ${status}: ${JSON.stringify(message)}\n`;
 
         if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
@@ -60,10 +65,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
                 `[${method}] ${url} - Error: ${JSON.stringify(message)}`,
                 (exception as Error).stack,
             );
-            fs.appendFileSync(logFile, logMsg + `${(exception as Error).stack}\n`);
+            try {
+                fs.appendFileSync(logFile, logMsg + `${(exception as Error).stack}\n`);
+            } catch (e) {
+                console.error('Failed to write to log file', e);
+            }
         } else {
             this.logger.warn(`[${method}] ${url} - Warning: ${JSON.stringify(message)}`);
-            fs.appendFileSync(logFile, logMsg);
+            try {
+                fs.appendFileSync(logFile, logMsg);
+            } catch (e) {
+                console.error('Failed to write to log file', e);
+            }
         }
 
         httpAdapter.reply(response, responseBody, status);

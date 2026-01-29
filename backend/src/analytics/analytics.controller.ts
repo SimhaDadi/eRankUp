@@ -135,4 +135,13 @@ export class AnalyticsController {
             throw new HttpException(error.message || 'Failed to detect patterns', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    /**
+     * Get subject mastery breakdown for current user
+     */
+    @Get('mastery')
+    @UseGuards(AuthGuard('jwt'))
+    async getSubjectMastery(@Request() req: any) {
+        return this.analyticsService.getSubjectMastery(req.user.userId);
+    }
 }

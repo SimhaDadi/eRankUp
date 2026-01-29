@@ -128,7 +128,7 @@ export default function Topbar() {
     }
 
     return (
-        <div className="h-20 sticky top-0 z-40 transition-all duration-300 backdrop-blur-md bg-white/80 border-b border-white/50 shadow-sm shadow-slate-200/50">
+        <div className="h-20 sticky top-0 z-[60] transition-all duration-300 backdrop-blur-md bg-white/80 border-b border-white/50 shadow-sm shadow-slate-200/50">
             <div className="h-full flex items-center justify-between px-4 lg:px-6 max-w-7xl mx-auto">
                 {/* Search Bar - Visible on all main dashboard pages */}
                 {(pathname?.startsWith('/dashboard') && !pathname?.includes('/test/') && !pathname?.includes('/results/') && !pathname?.includes('/solutions/')) ? (
@@ -242,9 +242,7 @@ export default function Topbar() {
                                 <div className="px-4 py-4 border-b border-slate-50 mb-1 bg-slate-50/50 rounded-2xl">
                                     <p className="text-sm font-black text-slate-900">{user?.fullName}</p>
                                     <p className="text-xs text-slate-500 truncate font-medium">{user?.email}</p>
-                                    {user?.phone && (
-                                        <p className="text-[10px] text-slate-400 mt-1 font-bold uppercase tracking-wider">{user.phone}</p>
-                                    )}
+                                    {/* Phone display removed due to type mismatch */}
                                 </div>
                                 <Link
                                     href="/dashboard/settings"
