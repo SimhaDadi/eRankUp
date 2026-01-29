@@ -73,7 +73,8 @@ export class AIChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             // After stream ends, save and notify final state
             await this.aiChatService.saveAssistantMessage(response.conversationId, fullText, data.userId, data.message);
 
-            client.emit('streamEnd', { fullText });
+            const cleanFullText = this.aiChatService.cleanAssistantResponse(fullText);
+            client.emit('streamEnd', { fullText: cleanFullText });
         } catch (error) {
             console.error('[AIChatGateway] Error:', error);
             client.emit('error', { message: error.message || 'Stream failed' });

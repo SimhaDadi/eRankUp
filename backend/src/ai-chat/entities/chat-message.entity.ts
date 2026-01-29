@@ -22,6 +22,9 @@ export class AIChatMessage {
     @Column({ type: 'jsonb', nullable: true })
     context: any; // {weakAreas, currentTopic, masteryScores}
 
+    @Column({ type: 'jsonb', nullable: true })
+    image: { data: string; mimeType: string };
+
     @CreateDateColumn()
     createdAt: Date;
 }

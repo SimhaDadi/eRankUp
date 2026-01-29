@@ -139,6 +139,7 @@ export class AIChatService {
                 role: 'user',
                 content: message,
                 context,
+                image,
             })
         );
 
@@ -164,7 +165,7 @@ export class AIChatService {
     }
 
     async saveAssistantMessage(conversationId: string, content: string, userId: string, userMsg: string) {
-        const cleanContent = this.aiService.cleanAIResponse(content);
+        const cleanContent = this.cleanAssistantResponse(content);
         // Save assistant response
         await this.messageRepo.save(
             this.messageRepo.create({
@@ -181,6 +182,13 @@ export class AIChatService {
         this.extractAndSaveInsight(userId, userMsg, content).catch(err =>
             console.error('[AIChat] Insight failed:', err)
         );
+    }
+
+    /**
+     * Wrapper for AIService.cleanAIResponse to be used in streaming etc.
+     */
+    cleanAssistantResponse(content: string): string {
+        return this.aiService.cleanAIResponse(content);
     }
 
     async sendMessage(
@@ -281,6 +289,7 @@ export class AIChatService {
                 role: 'user',
                 content: message,
                 context,
+                image,
             })
         );
 
