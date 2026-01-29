@@ -316,7 +316,9 @@ export default function ExamDetailsPage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {chapter.models?.map((model, mIdx) => (
-                                        <TestUnit key={model.id} model={model} isUnlocked={!exam.isPremium || !!exam.hasPurchased} index={mIdx} />
+                                        <Link key={model.id} href={(!exam.isPremium || !!exam.hasPurchased) ? `/dashboard/exam-start/${model.id}` : '#'}>
+                                            <TestUnit model={model} isUnlocked={!exam.isPremium || !!exam.hasPurchased} index={mIdx} />
+                                        </Link>
                                     ))}
                                 </div>
                             </motion.div>
@@ -403,7 +405,7 @@ function TestUnit({ model, isUnlocked, index }: { model: Model, isUnlocked: bool
 
     return (
         <div
-            className={`group p-6 bg-white border border-slate-100 rounded-2xl relative overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-md hover:border-sky-100/50 ${!ready ? 'cursor-not-allowed opacity-60' : ''}`}
+            className={`group p-6 bg-white border border-slate-100 rounded-2xl relative overflow-hidden h-full flex flex-col transition-all duration-300 ${isUnlocked && ready ? 'hover:shadow-md hover:border-sky-100/50 hover:-translate-y-1' : ''} ${!ready || !isUnlocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
         >
             {/* Midnight Silk Lining - Architecture Detail */}
             <div className="absolute inset-x-0 bottom-0 h-[1.5px] bg-slate-900/5 group-hover:bg-sky-600/20 transition-colors" />
@@ -422,6 +424,9 @@ function TestUnit({ model, isUnlocked, index }: { model: Model, isUnlocked: bool
                         Soon
                     </div>
                 )}
+                {isUnlocked && ready && (
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-colors" />
+                )}
             </div>
 
             <h5 className="font-black text-slate-700 text-lg leading-tight mb-auto group-hover:text-sky-600 transition-colors">
@@ -432,7 +437,7 @@ function TestUnit({ model, isUnlocked, index }: { model: Model, isUnlocked: bool
                 {ready ? (
                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.1em] flex items-center gap-2">
                         <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                        Included in Full Exam
+                        {isUnlocked ? 'Available Now' : 'Included in Full Exam'}
                     </span>
                 ) : (
                     <span className="text-[9px] text-sky-400 font-bold uppercase tracking-[0.1em]">{new Date(model.scheduledAt!).toLocaleDateString()}</span>

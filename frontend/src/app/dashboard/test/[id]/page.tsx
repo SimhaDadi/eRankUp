@@ -31,6 +31,7 @@ export default function TestPage() {
     const [isPaused, setIsPaused] = useState(false);
     const [pauseReason, setPauseReason] = useState<'manual' | 'security'>('manual');
     const [timeLeft, setTimeLeft] = useState(60 * 60); // 60 minutes default
+    const [modelTitle, setModelTitle] = useState('Assessment in Progress');
 
 
 
@@ -85,6 +86,7 @@ export default function TestPage() {
 
                         if (session && session.questions && session.questions.length > 0) {
                             setQuestions(session.questions);
+                            setModelTitle('Adaptive AI Practice');
 
                             // Load session state
                             if (session.answers) setAnswers(session.answers);
@@ -123,6 +125,7 @@ export default function TestPage() {
 
                         if (loadedQuestions && loadedQuestions.length > 0) {
                             setQuestions(loadedQuestions);
+                            setModelTitle('Chapter Practice');
 
                             // 2. Load Session (Already started by PracticePage)
                             const sessionRes = await api.get(`/test-session/${params.id}`);
@@ -167,6 +170,7 @@ export default function TestPage() {
                         const response = await api.get(`/exams/models/${params.id}`);
                         const model = response.data;
                         if (model) {
+                            setModelTitle(model.title);
                             if (model.questions && model.questions.length > 0) {
                                 loadedQuestions = model.questions;
                             }
@@ -208,7 +212,7 @@ export default function TestPage() {
                     }
 
                     setQuestions(loadedQuestions);
-
+                    // Duration Sync
                     const durationSeconds = testDurationMinutes * 60;
 
                     // Start Test Session
@@ -521,7 +525,7 @@ export default function TestPage() {
         <div className="flex flex-col h-screen bg-gray-100 overflow-hidden font-sans select-none">
             {/* 1. Header */}
             <header className="h-16 bg-white border-b flex items-center justify-between px-4 shrink-0 shadow-sm z-20">
-                <div className="font-bold text-lg text-slate-800 truncate max-w-md">SSC CGL 2030 Tier-I Mock Test</div>
+                <div className="font-bold text-lg text-slate-800 truncate max-w-md">{modelTitle}</div>
                 <div className="flex items-center gap-6">
                     <button
                         onClick={() => handlePause('manual')}

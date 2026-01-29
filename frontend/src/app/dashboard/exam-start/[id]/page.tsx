@@ -27,14 +27,17 @@ export default function ExamStartPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [agreedToInstructions, setAgreedToInstructions] = useState(false);
     const [showInstructions, setShowInstructions] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchModel = async () => {
             try {
                 const response = await api.get(`/exams/models/${params.id}`);
                 setModel(response.data);
-            } catch (error) {
-                console.error('Failed to fetch model:', error);
+            } catch (err: any) {
+                console.error('Failed to fetch model:', err);
+                const msg = err.response?.data?.message || err.message || "Failed to load exam details";
+                setError(msg);
             } finally {
                 setIsLoading(false);
             }
@@ -67,17 +70,27 @@ export default function ExamStartPage() {
             <div className="flex h-screen items-center justify-center bg-slate-50">
                 <div className="text-center">
                     <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-600 font-medium">Loading exam details...</p>
+                    <p className="text-slate-600 font-medium">Elevating Assessment Experience...</p>
                 </div>
             </div>
         );
     }
 
-    if (!model) {
+    if (error || !model) {
         return (
             <div className="flex h-screen items-center justify-center bg-slate-50">
-                <div className="text-center">
-                    <p className="text-slate-600 font-medium">Exam not found</p>
+                <div className="text-center px-4 max-w-md">
+                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                        <Shield className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 mb-2">Access Interrupted</h2>
+                    <p className="text-slate-500 font-medium mb-6">{error || "The requested exam could not be located."}</p>
+                    <button
+                        onClick={() => router.push('/dashboard/exams')}
+                        className="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-slate-900/10"
+                    >
+                        Return to Hub
+                    </button>
                 </div>
             </div>
         );
@@ -269,8 +282,8 @@ export default function ExamStartPage() {
                     onClick={handleStartExam}
                     disabled={!agreedToInstructions}
                     className={`w-full py-5 rounded-xl font-bold text-lg uppercase tracking-wide transition-all shadow-lg ${agreedToInstructions
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30 hover:shadow-xl hover:scale-[1.02]'
-                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30 hover:shadow-xl hover:scale-[1.02]'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                         }`}
                 >
                     {agreedToInstructions ? 'START EXAM →' : 'PLEASE ACCEPT INSTRUCTIONS'}

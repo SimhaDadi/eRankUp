@@ -132,11 +132,30 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             }
 
             if (model) {
+                // Check 'scheduledAt' (legacy/model-specific)
                 if (model.scheduledAt) {
                     const now = new Date();
                     const scheduledTime = new Date(model.scheduledAt);
                     if (now < scheduledTime) {
                         throw new Error(`This test is scheduled for ${scheduledTime.toLocaleString()}. Please wait.`);
+                    }
+                }
+
+                // Check 'startTime' (Live Exam standard)
+                if (model.startTime) {
+                    const now = new Date();
+                    const startTime = new Date(model.startTime);
+
+                    // If it has an endTime, checking validity window
+                    if (model.endTime) {
+                        const endTime = new Date(model.endTime);
+                        if (now > endTime) {
+                            throw new Error(`This event ended on ${endTime.toLocaleString()}.`);
+                        }
+                    }
+
+                    if (now < startTime) {
+                        throw new Error(`This live event starts at ${startTime.toLocaleString()}. Please wait.`);
                     }
                 }
                 durationSeconds = (model.duration * 60) + (60 * 60);

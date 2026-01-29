@@ -175,28 +175,83 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     async findModel(id: string, userId?: string) {
-        console.log(`[DEBUG] findModel called for ${id} (User: ${userId})`);
-        const model = await this.modelRepository.findOne({
+        console.log(`\n============== [DEBUG] findModel START ==============`);
+        console.log(`ID: ${id}`);
+        console.log(`User: ${userId}`);
+
+        // 1. Try finding as a specific Model first
+        let model = await this.modelRepository.findOne({
             where: { id },
             relations: ['chapter', 'chapter.subject', 'questions', 'exams']
         });
 
         if (!model) {
-            console.log(`[DEBUG] findModel: Model not found in DB for id ${id}`);
-            return null;
+            console.log(`[DEBUG] findModel: Model NOT found for ${id}. Trying Exam fallback...`);
+            // 2. Fallback: Check if it's an Exam ID
+            const exam = await this.examsRepository.findOne({
+                where: { id },
+                relations: ['questions', 'models', 'models.questions']
+            });
+
+            if (exam) {
+                console.log(`[DEBUG] findModel: Found Exam fallback: ${exam.title}`);
+
+                // Aggregate questions if direct questions are missing
+                let finalQuestions = exam.questions || [];
+                if (finalQuestions.length === 0 && exam.models) {
+                    const aggregated = new Map();
+                    exam.models.forEach(m => {
+                        if (m.questions) m.questions.forEach(q => aggregated.set(q.id, q));
+                    });
+                    finalQuestions = Array.from(aggregated.values());
+                }
+
+                // Transform Exam to look like a Model for the start page
+                model = {
+                    id: exam.id,
+                    title: exam.title,
+                    totalQuestions: finalQuestions.length,
+                    duration: exam.duration || 60,
+                    difficulty: 'medium', // Standard for full exams
+                    positiveMarks: exam.defaultPositiveMarks || 1,
+                    negativeMarks: exam.defaultNegativeMarks || 0,
+                    totalMarks: finalQuestions.length * (exam.defaultPositiveMarks || 1),
+                    allowCalculator: true,
+                    allowReview: true,
+                    allowSkip: true,
+                    questions: finalQuestions,
+                    exams: [exam]
+                } as any;
+            } else {
+                console.log(`[DEBUG] findModel: No Exam found for ${id} either.`);
+            }
         } else {
-            console.log(`[DEBUG] findModel: Found model ${model.title} (Questions: ${model.questions?.length})`);
+            console.log(`[DEBUG] findModel: Found direct Model: ${model.title}`);
         }
 
-        // Security Check: If it's a premium model, check if user has purchased
-        const isPremium = model.exams?.some(e => e.isPremium);
+        if (!model) {
+            console.log(`[DEBUG] findModel result: NULL`);
+            console.log(`============== [DEBUG] findModel END ==============\n`);
+            return null;
+        }
+
+        console.log(`[DEBUG] findModel result: ${model.title} (Q: ${model.questions?.length})`);
+        console.log(`============== [DEBUG] findModel END ==============\n`);
+
+        // Security Check: If it's a premium model, check if user has purchased or has pass
+        const isPremium = (model.exams || []).some(e => e.isPremium);
         if (isPremium && userId) {
-            const hasPurchased = await this.paymentsService.hasPurchased(userId, model.exams.find(e => e.isPremium)!.id);
-            if (!hasPurchased) {
-                // Return model metadata but NOT questions if not purchased? 
-                // Or just throw error. Usually for test taking, we throw error.
-                throw new Error('This is a premium mock test. Please purchase the exam to access it.');
+            console.log(`[DEBUG] findModel: Premium test detected. Checking purchase/pass...`);
+            const premiumExam = model.exams.find(e => e.isPremium);
+
+            const hasPurchased = await this.paymentsService.hasPurchased(userId, premiumExam!.id);
+            const hasPass = await this.passesService.getCurrentPass(userId);
+
+            if (!hasPurchased && !hasPass) {
+                console.log(`[DEBUG] findModel: ACCESS DENIED for ${userId}`);
+                throw new Error('This is a premium mock test. Please purchase the exam or a pass to access it.');
             }
+            console.log(`[DEBUG] findModel: ACCESS GRANTED`);
         }
 
         return model;
