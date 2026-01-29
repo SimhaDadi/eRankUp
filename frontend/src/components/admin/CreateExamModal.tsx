@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2, Plus, Library, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
-import { EXAM_CATEGORIES } from '@erankup/shared';
 
 interface CreateExamModalProps {
     isOpen: boolean;
@@ -17,7 +16,7 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        category: defaultCategory || 'SSC',
+        category: defaultCategory || '', // No default if not provided
         type: 'real_exam',
         defaultPositiveMarks: 1,
         defaultNegativeMarks: 0.25,
@@ -27,6 +26,31 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [categories, setCategories] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await api.get('/categories/admin');
+                setCategories(res.data);
+                // If no defaultCategory and we have categories, set first one as default
+                if (!defaultCategory && res.data.length > 0 && !formData.category) {
+                    setFormData(prev => ({ ...prev, category: res.data[0].name }));
+                } else if (!defaultCategory && !formData.category) {
+                    // Fallback default
+                    setFormData(prev => ({ ...prev, category: 'SSC' }));
+                }
+            } catch (error) {
+                console.error('Failed to fetch categories', error);
+                // Fallback if API fails
+                setCategories([
+                    { id: 'ssc', name: 'SSC' },
+                    { id: 'banking', name: 'Banking' }
+                ]);
+            }
+        };
+        fetchCategories();
+    }, [defaultCategory]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -178,9 +202,14 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
                                 onChange={(e) => handleChange('category', e.target.value)}
                                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 bg-white"
                             >
-                                {EXAM_CATEGORIES.map(cat => (
-                                    <option key={cat.id} value={cat.id}>{cat.label}</option>
+                                <option value="" disabled>Select a category</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.name}>{cat.name}</option>
                                 ))}
+                                {/* Fallback for Free Quiz if not in DB yet but needed for logic */}
+                                {!categories.find(c => c.name === 'Free Quiz') && (
+                                    <option value="Free Quiz">Free Quiz (System)</option>
+                                )}
                             </select>
                         </div>
                     )}

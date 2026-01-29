@@ -23,6 +23,7 @@ import { QualityModule } from './quality/quality.module';
 import { DoubtsModule } from './doubts/doubts.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
     imports: [
@@ -72,6 +73,7 @@ import { APP_GUARD } from '@nestjs/core';
         PassesModule,
         QualityModule,
         DoubtsModule,
+        CategoriesModule,
     ],
     controllers: [AppController],
     providers: [

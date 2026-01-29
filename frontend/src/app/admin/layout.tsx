@@ -47,6 +47,12 @@ const adminNavSections = [
         ]
     },
     {
+        title: 'MASTER DATA',
+        items: [
+            { icon: Tag, label: 'Categories', href: '/admin/master-data/categories' },
+        ]
+    },
+    {
         title: 'AI & ANALYTICS',
         items: [
             { icon: Sparkles, label: 'AI Explanations', href: '/admin/ai-explanations' },
