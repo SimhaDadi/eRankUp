@@ -140,10 +140,14 @@ export default function DashboardPage() {
                                                 {user?.fullName?.split(' ')[0] || 'Aspirant'}
                                             </span>! 🚀
                                         </h1>
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold">SSC Focus</span>
+                                            <span className="px-2 py-0.5 rounded bg-orange-100 text-orange-700 text-[10px] font-bold">Railway Focus</span>
+                                        </div>
 
                                         <p className="text-slate-500 max-w-lg font-bold text-lg leading-relaxed mb-6">
-                                            You've mastered <span className="text-slate-900 font-extrabold text-xl">{stats?.totalAttempts || 0}</span> test cycles.
-                                            Your streak is heating up at <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-xl font-black border border-orange-200">{stats?.streak || 0} days</span>.
+                                            Your SSC & Railway journey is peaking. You've mastered <span className="text-slate-900 font-extrabold text-xl">{stats?.totalAttempts || 0}</span> test cycles.
+                                            Daily streak: <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-xl font-black border border-orange-200">{stats?.streak || 0} days</span>.
                                         </p>
 
                                         <div className="flex flex-wrap gap-4">
@@ -491,9 +495,9 @@ export default function DashboardPage() {
                                             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-2xl text-white text-[9px] font-black uppercase tracking-[0.15em] mb-4 border border-white/20 shadow-lg">
                                                 <Sparkles className="w-3 h-3 text-yellow-300" /> Focus Recommendation
                                             </div>
-                                            <h3 className="text-2xl font-black mb-3 leading-[1.2] tracking-tight">Master Geometry <br />Properties</h3>
+                                            <h3 className="text-2xl font-black mb-3 leading-[1.2] tracking-tight">Master History <br />& GS for SSC</h3>
                                             <p className="text-indigo-100 text-xs leading-relaxed font-medium mb-8 opacity-80">
-                                                Your accuracy in Triangle centers is <span className="text-emerald-300 font-bold">28% lower</span> than the average topper.
+                                                Your accuracy in Indian History is <span className="text-emerald-300 font-bold">15% lower</span> than RRB NTPC toppers.
                                             </p>
                                             <Link
                                                 href="/dashboard/study-plan"

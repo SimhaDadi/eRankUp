@@ -10,12 +10,12 @@ interface Message {
 }
 
 const SUGGESTED_PROMPTS = [
-    'Explain quadratic equations in simple terms',
-    'Give me 5 practice questions on Algebra',
-    'What are the key concepts in Data Interpretation?',
+    'Explain Time and Work concepts for SSC CGL',
+    'Give me 5 Reasoning questions for RRB NTPC',
+    'Important Current Affairs for SSC CHSL',
+    'Explain Newton\'s Laws for Railway Group D',
     'Create a 30-day study plan for SSC CGL',
-    'How do I improve my speed in quantitative aptitude?',
-    'Explain the difference between mean, median, and mode',
+    'Shortcut tricks for Profit and Loss',
 ];
 
 export default function AIChatInterface() {

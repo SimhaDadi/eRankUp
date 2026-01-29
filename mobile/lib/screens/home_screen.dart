@@ -206,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Ready to learn?',
+            'Conquer SSC & Railway 🎯',
             style: AppTextStyles.h1,
           ),
           if (streak > 0) ...[
@@ -651,7 +651,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Text('TODAY\'S FOCUS', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1)),
                           const SizedBox(height: 4),
                           Text(
-                            _stats?['topTopicRecommendation'] ?? 'AI is analyzing your performance...',
+                            _stats?['topTopicRecommendation'] ?? 'Perfecting your SSC & Railway GS strategy...',
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                         ],
