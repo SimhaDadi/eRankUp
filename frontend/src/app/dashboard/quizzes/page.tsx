@@ -31,6 +31,10 @@ interface Exam {
     questionCount?: number;
     duration?: number;
     isPublished?: boolean;
+    attempts?: {
+        count: number;
+        latestAttemptId: string;
+    };
 }
 
 export default function FreeQuizzesPage() {
@@ -177,13 +181,27 @@ export default function FreeQuizzesPage() {
                                         </div>
                                     </div>
 
-                                    <div className="mt-8 relative z-10">
-                                        <Link
-                                            href={`/dashboard/exams/${quiz.id}`}
-                                            className="w-full py-5 bg-slate-900 hover:bg-amber-500 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-900/10 group-hover:shadow-amber-500/20 text-[10px] uppercase tracking-[0.2em]"
-                                        >
-                                            <Zap className="w-4 h-4 fill-current" /> Start Sprint
-                                        </Link>
+                                    <div className="mt-8 relative z-10 w-full">
+                                        {quiz.attempts && quiz.attempts.count > 0 ? (
+                                            <div className="space-y-3 w-full">
+                                                <div className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-50 border border-emerald-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-600 shadow-sm shadow-emerald-500/5">
+                                                    <Brain className="w-3.5 h-3.5" /> Sprint Completed
+                                                </div>
+                                                <Link
+                                                    href={`/dashboard/results/${quiz.attempts.latestAttemptId}`}
+                                                    className="w-full py-3 bg-slate-900 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-colors text-[10px] uppercase tracking-[0.2em]"
+                                                >
+                                                    <Activity className="w-4 h-4 fill-current" /> View Analysis
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            <Link
+                                                href={`/dashboard/exams/${quiz.id}`}
+                                                className="w-full py-5 bg-slate-900 hover:bg-amber-500 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-900/10 group-hover:shadow-amber-500/20 text-[10px] uppercase tracking-[0.2em]"
+                                            >
+                                                <Zap className="w-4 h-4 fill-current" /> Start Sprint
+                                            </Link>
+                                        )}
                                     </div>
 
                                     {/* Decor */}

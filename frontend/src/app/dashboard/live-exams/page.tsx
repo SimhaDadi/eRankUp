@@ -34,6 +34,10 @@ interface Exam {
     duration?: number;
     startTime?: string;
     endTime?: string;
+    attempts?: {
+        count: number;
+        latestAttemptId: string;
+    };
 }
 
 export default function LiveExamsPage() {
@@ -195,13 +199,27 @@ export default function LiveExamsPage() {
                                             </div>
                                         </div>
 
-                                        <div className="mt-8 relative z-10">
-                                            <Link
-                                                href={`/dashboard/exams/${exam.id}`}
-                                                className="w-full py-5 bg-slate-900 hover:bg-red-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-900/10 group-hover:shadow-red-600/20 text-[10px] uppercase tracking-[0.2em]"
-                                            >
-                                                <Zap className="w-4 h-4 fill-current" /> Participate Now
-                                            </Link>
+                                        <div className="mt-8 relative z-10 w-full">
+                                            {exam.attempts && exam.attempts.count > 0 ? (
+                                                <div className="space-y-3 w-full">
+                                                    <div className="flex items-center justify-center gap-2 py-2 px-3 bg-red-50 border border-red-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-600 shadow-sm shadow-red-500/5">
+                                                        <Trophy className="w-3.5 h-3.5" /> Participation Recorded
+                                                    </div>
+                                                    <Link
+                                                        href={`/dashboard/results/${exam.attempts.latestAttemptId}`}
+                                                        className="w-full py-3 bg-slate-900 hover:bg-red-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-colors text-[10px] uppercase tracking-[0.2em]"
+                                                    >
+                                                        <Activity className="w-4 h-4 fill-current" /> View Analysis
+                                                    </Link>
+                                                </div>
+                                            ) : (
+                                                <Link
+                                                    href={`/dashboard/exams/${exam.id}`}
+                                                    className="w-full py-5 bg-slate-900 hover:bg-red-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-900/10 group-hover:shadow-red-600/20 text-[10px] uppercase tracking-[0.2em]"
+                                                >
+                                                    <Zap className="w-4 h-4 fill-current" /> Participate Now
+                                                </Link>
+                                            )}
                                         </div>
 
                                         {/* Decorative Background Elements */}

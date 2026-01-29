@@ -230,34 +230,39 @@ export class PaymentsService implements OnModuleInit {
         const expiryDate = new Date(startDate);
         expiryDate.setDate(expiryDate.getDate() + pass.durationDays);
 
-        const userPass = this.userPassRepository.create({
-            user,
-            pass,
-            userId: user.id || user.userId,
-            passId: pass.id,
-            purchaseDate: startDate,
-            expiryDate: expiryDate,
-            amount: finalPrice,
-            razorpayOrderId: rzpOrder.id,
-            couponCode: couponCode || null,
-            discountAmount: discountAmount,
-            paymentStatus: 'PENDING',
-            status: 'ACTIVE'
-        });
-        await this.userPassRepository.save(userPass);
+        try {
+            const userPass = this.userPassRepository.create({
+                // user, // REMOVED
+                // pass, // REMOVED: Use passId only to be safe
+                userId: user.id || user.userId,
+                passId: pass.id,
+                purchaseDate: startDate,
+                expiryDate: expiryDate,
+                amount: finalPrice,
+                razorpayOrderId: rzpOrder.id,
+                couponCode: couponCode || null,
+                discountAmount: discountAmount,
+                paymentStatus: 'PENDING',
+                status: 'ACTIVE'
+            });
+            await this.userPassRepository.save(userPass);
 
-        return {
-            id: rzpOrder.id,
-            orderId: rzpOrder.id,
-            amount: rzpOrder.amount,
-            currency: rzpOrder.currency,
-            keyId: this.configService.get('RAZORPAY_KEY_ID'),
-            user: {
-                name: user.fullName || user.email,
-                email: user.email
-            },
-            discountApplied: discountAmount
-        };
+            return {
+                id: rzpOrder.id,
+                orderId: rzpOrder.id,
+                amount: rzpOrder.amount,
+                currency: rzpOrder.currency,
+                keyId: this.configService.get('RAZORPAY_KEY_ID'),
+                user: {
+                    name: user.fullName || user.email,
+                    email: user.email
+                },
+                discountApplied: discountAmount
+            };
+        } catch (error) {
+            console.error('CRITICAL ERROR in createPassOrder (Paid):', error);
+            throw error;
+        }
     }
 
     async handleWebhook(sig: string, rawBody: Buffer) {

@@ -335,7 +335,7 @@ export default function ResultsPage() {
                                 <Zap className="w-8 h-8 text-white" />
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-xl font-bold text-blue-900 mb-2">AI Performance Insights</h3>
+                                <h3 className="text-xl font-bold text-blue-900 mb-2">Performance Insights</h3>
                                 <p className="text-blue-800 text-lg leading-relaxed">
                                     {attempt.insights.recommendation}
                                 </p>
@@ -361,7 +361,7 @@ export default function ResultsPage() {
                                 </div>
                                 <h3 className="text-2xl font-bold text-slate-900 mb-2">Analyzing your performance...</h3>
                                 <p className="text-slate-500 max-w-md mx-auto">
-                                    Our AI engine is processing your answers, identifying weak spots, and generating personalized recommendations. This usually takes just a few seconds.
+                                    Our analysis engine is processing your answers, identifying weak spots, and generating personalized recommendations. This usually takes just a few seconds.
                                 </p>
                             </div>
                         </div>

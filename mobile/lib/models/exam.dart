@@ -11,6 +11,7 @@ class Exam {
   final String? category;
   final int? totalModels;
   final bool isPublished;
+  final Map<String, dynamic>? attempts;
 
   Exam({
     required this.id,
@@ -26,6 +27,7 @@ class Exam {
     this.totalModels,
     this.category,
     this.isPublished = false,
+    this.attempts,
   });
 
   factory Exam.fromJson(Map<String, dynamic> json) {
@@ -50,7 +52,8 @@ class Exam {
       activeSession: json['activeSession'],
       totalModels: json['totalModels'],
       category: categoryName,
-      isPublished: json['isPublished'] ?? true, 
+      isPublished: json['isPublished'] ?? true,
+      attempts: json['attempts'],
     );
   }
 }

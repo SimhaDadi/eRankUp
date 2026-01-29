@@ -12,10 +12,11 @@ import { LiveExamsService } from './live-exams.service';
 import { Purchase } from '../exams/entities/purchase.entity';
 import { User } from '../users/user.entity';
 import { Exam } from '../exams/entities/exam.entity';
+import { UserPass } from '../passes/entities/user-pass.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Purchase, User, Exam]),
+        TypeOrmModule.forFeature([Purchase, User, Exam, UserPass]),
         ConfigModule
     ],
     controllers: [

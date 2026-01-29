@@ -31,6 +31,10 @@ interface Exam {
     questionCount?: number;
     duration?: number;
     isPublished?: boolean;
+    attempts?: {
+        count: number;
+        latestAttemptId: string;
+    };
 }
 
 export default function PreviousYearPapersPage() {
@@ -188,12 +192,26 @@ export default function PreviousYearPapersPage() {
                                             </div>
                                         </div>
 
-                                        <Link
-                                            href={`/dashboard/exam-start/${exam.id}`}
-                                            className="w-full btn-ultra-primary justify-center text-xs tracking-[0.15em] group-hover:shadow-blue-900/20"
-                                        >
-                                            <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" /> Attempt Now
-                                        </Link>
+                                        {exam.attempts && exam.attempts.count > 0 ? (
+                                            <div className="space-y-3 w-full">
+                                                <div className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-50 border border-emerald-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-600 shadow-sm shadow-emerald-500/5">
+                                                    <FileCheck className="w-3.5 h-3.5" /> Attempted
+                                                </div>
+                                                <Link
+                                                    href={`/dashboard/results/${exam.attempts.latestAttemptId}`}
+                                                    className="w-full btn-ultra-primary justify-center text-xs tracking-[0.15em] bg-slate-900 group-hover:shadow-blue-900/20"
+                                                >
+                                                    <Activity className="w-4 h-4 text-emerald-400" /> View Analysis
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            <Link
+                                                href={`/dashboard/exam-start/${exam.id}`}
+                                                className="w-full btn-ultra-primary justify-center text-xs tracking-[0.15em] group-hover:shadow-blue-900/20"
+                                            >
+                                                <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" /> Attempt Now
+                                            </Link>
+                                        )}
                                     </div>
 
                                     {/* Card Decor */}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Check, Shield, Zap, Sparkles, Crown } from 'lucide-react';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import Script from 'next/script';
 
 interface Pass {
     id: string;
@@ -43,13 +44,20 @@ export default function PlansPage() {
 
     const handleSelectPlan = async (plan: Pass) => {
         try {
+            console.log('Initiating purchase for:', plan.id);
             // Create Order
             const res = await api.post('/passes/create-order', { passId: plan.id });
             const data = res.data;
+            console.log('Order created:', data);
 
             if (data.isFree) {
                 alert('Success! Your Free Trial has been activated.');
                 router.push('/dashboard');
+                return;
+            }
+
+            if (!(window as any).Razorpay) {
+                alert('Payment gateway failed to load. Please refresh the page.');
                 return;
             }
 
@@ -70,14 +78,14 @@ export default function PlansPage() {
                         });
                         alert('Payment Successful! Your Pass is now active.');
                         router.push('/dashboard');
-                    } catch (err) {
-                        alert('Payment Verification Failed');
+                    } catch (err: any) {
+                        alert('Payment Verification Failed: ' + (err.response?.data?.message || err.message));
                         console.error(err);
                     }
                 },
                 prefill: {
-                    name: "User", // Can fetch from AuthStore
-                    email: "user@example.com"
+                    name: data.user.name,
+                    email: data.user.email
                 },
                 theme: {
                     color: "#00bfa5"
@@ -85,11 +93,14 @@ export default function PlansPage() {
             };
 
             const rzp = new (window as any).Razorpay(options);
+            rzp.on('payment.failed', function (response: any) {
+                alert('Payment Failed: ' + response.error.description);
+            });
             rzp.open();
 
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to initiate purchase', err);
-            alert('Failed to initiate purchase. Please try again.');
+            alert(`Failed to initiate purchase: ${err.response?.data?.message || err.message}`);
         }
     };
 
@@ -97,7 +108,7 @@ export default function PlansPage() {
 
     return (
         <div className="min-h-screen bg-[#f8fafc] p-8 lg:p-16 font-sans">
-            <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+            <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
             <div className="max-w-7xl mx-auto space-y-16">
 
                 {/* Header */}

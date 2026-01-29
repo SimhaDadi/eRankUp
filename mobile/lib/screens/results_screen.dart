@@ -234,7 +234,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
             const SizedBox(height: 32),
             
             if (insights != null) ...[ 
-              Text('AI Insights', style: AppTextStyles.h2),
+              Text('Performance Insights', style: AppTextStyles.h2),
               const SizedBox(height: 16),
               
               // Recommendation

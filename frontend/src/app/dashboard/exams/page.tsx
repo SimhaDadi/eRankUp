@@ -194,9 +194,9 @@ function ExamCard({ exam, index, itemVariants }: { exam: Exam, index: number, it
     const { accent, bg, border, light, icon, glow } = themes[index % themes.length];
 
     const attemptsCount = exam.attempts?.count || 0;
-    const isCompleted = exam.totalModels && exam.attempts && exam.attempts.attemptedModelIds.length >= exam.totalModels;
+    const isCompleted = exam.totalModels && exam.attempts && exam.attempts.attemptedModelIds && exam.attempts.attemptedModelIds.length >= exam.totalModels;
     const isInProgress = !!exam.activeSession;
-    const progressCount = exam.attempts?.attemptedModelIds.length || 0;
+    const progressCount = exam.attempts?.attemptedModelIds?.length || 0;
     const totalCount = exam.totalModels || 0;
 
     return (

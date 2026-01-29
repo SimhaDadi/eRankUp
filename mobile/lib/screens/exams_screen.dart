@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../models/exam.dart';
 import '../theme/app_theme.dart';
 import 'exam_detail_screen.dart';
+import 'results_screen.dart';
 
 class ExamsScreen extends StatefulWidget {
   const ExamsScreen({super.key});
@@ -320,58 +321,89 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
         child: InkWell(
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
           onTap: () {
-            Navigator.push(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                    ExamDetailScreen(exam: exam),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(1.0, 0.0);
-                  const end = Offset.zero;
-                  const curve = Curves.easeInOutCubic;
-                  
-                  var tween = Tween(begin: begin, end: end)
-                      .chain(CurveTween(curve: curve));
-                  var offsetAnimation = animation.drive(tween);
-                  
-                  return SlideTransition(
-                    position: offsetAnimation,
-                    child: child,
+            if (exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0) {
+                 Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ResultsScreen(attemptId: exam.attempts!['latestAttemptId']),
+                    ),
                   );
-                },
-                transitionDuration: const Duration(milliseconds: 300),
-              ),
-            );
+            } else {
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      ExamDetailScreen(exam: exam),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(1.0, 0.0);
+                    const end = Offset.zero;
+                    const curve = Curves.easeInOutCubic;
+                    
+                    var tween = Tween(begin: begin, end: end)
+                        .chain(CurveTween(curve: curve));
+                    var offsetAnimation = animation.drive(tween);
+                    
+                    return SlideTransition(
+                      position: offsetAnimation,
+                      child: child,
+                    );
+                  },
+                  transitionDuration: const Duration(milliseconds: 300),
+                ),
+              );
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.xl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        ),
+                        child: Icon(
+                          _getCategoryIcon(exam.title),
+                          color: Colors.white,
+                          size: AppSpacing.iconLg,
+                        ),
                       ),
-                      child: Icon(
-                        _getCategoryIcon(exam.title),
-                        color: Colors.white,
-                        size: AppSpacing.iconLg,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (exam.isPremium)
-                      const Icon(
-                        Icons.workspace_premium,
-                        color: Colors.amber,
-                        size: 24,
-                      ),
-                  ],
-                ),
+                      const Spacer(),
+                      if (exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: Colors.green, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                "ATTEMPTED",
+                                style: TextStyle(
+                                  fontSize: 10, 
+                                  fontWeight: FontWeight.bold, 
+                                  color: Colors.green.shade700
+                                )
+                              )
+                            ],
+                          )
+                        )
+                      else if (exam.isPremium)
+                        const Icon(
+                          Icons.workspace_premium,
+                          color: Colors.amber,
+                          size: 24,
+                        ),
+                    ],
+                  ),
                 const SizedBox(height: AppSpacing.lg),
                 
                 // Title
