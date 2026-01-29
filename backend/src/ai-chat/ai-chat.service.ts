@@ -164,7 +164,7 @@ export class AIChatService {
     }
 
     async saveAssistantMessage(conversationId: string, content: string, userId: string, userMsg: string) {
-        const cleanContent = this.sanitizeResponse(content);
+        const cleanContent = this.aiService.cleanAIResponse(content);
         // Save assistant response
         await this.messageRepo.save(
             this.messageRepo.create({
@@ -302,11 +302,12 @@ export class AIChatService {
         let aiResponse: string;
         try {
             aiResponse = await this.aiService.generateText(prompt, image ? [image] : []);
-            aiResponse = this.sanitizeResponse(aiResponse); // Mechanically strip unwanted symbols
+            aiResponse = this.aiService.cleanAIResponse(aiResponse); // Mechanically strip unwanted symbols
             await this.aiUsageService.trackUsage(userId, prompt, aiResponse);
 
             if (questionContext && this.shouldAudit(aiResponse, questionContext)) {
                 aiResponse = await this.verifyResponse(aiResponse, questionContext);
+                aiResponse = this.aiService.cleanAIResponse(aiResponse); // Clean after verification too
             }
         } catch (error) {
             console.error('[AIChat] API error:', error);
@@ -331,20 +332,6 @@ export class AIChatService {
         return { response: aiResponse, conversationId: conversation.id };
     }
 
-    private sanitizeResponse(text: string): string {
-        if (!text) return text;
-        return text
-            .replace(/\$\$[\s\S]*?\$\$/g, (match) => match.replace(/\$\$/g, '')) // Remove double $ but keep content
-            .replace(/\$|\$\$/g, '') // Strip all remaining $ symbols
-            .replace(/\\text\{([\s\S]*?)\}/g, '$1') // Strip \text{...}
-            .replace(/\\frac\{([\s\S]*?)\}\{([\s\S]*?)\}/g, '($1 / $2)') // Simple fraction
-            .replace(/\\times/g, 'x')
-            .replace(/---/g, '') // Strip horizontal rules
-            .replace(/\*\*\*/g, '') // Strip triple stars
-            .replace(/\\Delta/g, 'change in ')
-            .replace(/\\approx/g, 'approx.')
-            .trim();
-    }
 
     private shouldAudit(response: string, groundTruth: any): boolean {
         // Optimization: Only audit if response contains numbers or specific patterns suggesting factual claims
@@ -442,12 +429,13 @@ HISTORY:
 ${historyText}
 
 INSTRUCTIONS:
-- NO SYMBOLS: Never use $, $$, ---, or ***.
+- NO TABLES: Do not use Markdown tables. They are hard to read on mobile. Use bullet points or bold headers instead.
+- NO DECORATIVE SYMBOLS: Never use $, $$, ---, ***, ___ or any excessive punctuation/dividers.
 - NO MATH NOTATION: Use plain English for formulas (e.g. Force = Mass x Acceleration).
-- CLEAN STYLE: Use empty lines for spacing. No weird dividers.
+- CLEAN STRUCTURE: Use headers (e.g., ### Section) and empty lines for spacing.
+- READABILITY: If providing a study plan, use a clear day-by-day bulleted list.
 - HUMAN TONE: Helpful, encouraging, and brief.
 - SOCRATIC: Ask a leading question before the full answer.
-- WHITEBOARD: Use <svg> for physics/geometry diagrams if helpful.
 - MATH: Use plain text, never LaTeX.
 - RESPOND in ${context.preferredLanguage}.
 
