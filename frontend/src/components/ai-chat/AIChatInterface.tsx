@@ -3,12 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Image as ImageIcon, MessageSquare, History, Trash2, Menu } from 'lucide-react';
+import Image from 'next/image';
 import api from '@/lib/api';
 
 interface Message {
     role: 'user' | 'assistant';
     content: string;
     image?: string; // Base64 or URL for display
+    animate?: boolean;
 }
 
 const SUGGESTED_PROMPTS = [
@@ -391,7 +393,14 @@ export default function AIChatInterface() {
 
                                         {msg.image && (
                                             <div className="mb-4 rounded-2xl overflow-hidden border border-white/10 shadow-lg">
-                                                <img src={msg.image} alt="Uploaded attachment" className="max-w-full h-auto max-h-[300px] object-contain bg-black/20" />
+                                                <Image
+                                                    src={msg.image}
+                                                    alt="Uploaded attachment"
+                                                    width={300}
+                                                    height={300}
+                                                    className="max-w-full h-auto max-h-[300px] object-contain bg-black/20"
+                                                    unoptimized
+                                                />
                                             </div>
                                         )}
 
@@ -452,7 +461,14 @@ export default function AIChatInterface() {
                                 >
                                     <div className="p-1 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl shadow-xl shadow-purple-500/20">
                                         <div className="relative rounded-xl overflow-hidden border border-white/20 bg-slate-800">
-                                            <img src={selectedImage.preview} alt="Preview" className="h-24 w-24 object-cover" />
+                                            <Image
+                                                src={selectedImage.preview}
+                                                alt="Preview"
+                                                width={96}
+                                                height={96}
+                                                className="h-24 w-24 object-cover"
+                                                unoptimized
+                                            />
                                             <button
                                                 onClick={() => setSelectedImage(null)}
                                                 className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors"

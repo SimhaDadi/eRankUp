@@ -79,7 +79,7 @@ export const generateExamPDF = (exam: any, questions: any[]) => {
     });
 
     // Footer
-    const pageCount = doc.getNumberOfPages();
+    const pageCount = (doc as any).getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);

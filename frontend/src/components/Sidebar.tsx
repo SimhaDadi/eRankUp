@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -242,15 +243,17 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                                         >
                                             {/* Living Icon Container */}
                                             <div className={`relative z-10 w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-300 shrink-0 ${item.label === 'Tutor'
-                                                    ? 'bg-transparent scale-125'
-                                                    : isActive
-                                                        ? `bg-gradient-to-br ${gradient} text-white shadow-lg shadow-sm scale-105`
-                                                        : 'bg-white border-2 border-slate-200 text-slate-500 shadow-sm group-hover:border-slate-300 group-hover:text-slate-700 group-hover:scale-110'
+                                                ? 'bg-transparent scale-125'
+                                                : isActive
+                                                    ? `bg-gradient-to-br ${gradient} text-white shadow-lg shadow-sm scale-105`
+                                                    : 'bg-white border-2 border-slate-200 text-slate-500 shadow-sm group-hover:border-slate-300 group-hover:text-slate-700 group-hover:scale-110'
                                                 }`}>
                                                 {item.label === 'Tutor' ? (
-                                                    <img
+                                                    <Image
                                                         src="/south_indian_teacher.png"
                                                         alt="Tutor"
+                                                        width={44}
+                                                        height={44}
                                                         className="w-full h-full object-contain drop-shadow-md"
                                                     />
                                                 ) : (

@@ -173,14 +173,14 @@ export class FinanceService {
 
     async processRefund(paymentId: string) {
         // Try to find in Purchases first
-        let purchase = await this.purchaseRepository.findOne({ where: { razorpayPaymentId: paymentId } });
+        const purchase = await this.purchaseRepository.findOne({ where: { razorpayPaymentId: paymentId } });
 
         if (purchase) {
             return this.refundWithRazorpay(paymentId, 'purchase');
         }
 
         // Try UserPass
-        let userPass = await this.userPassRepository.findOne({ where: { razorpayPaymentId: paymentId } });
+        const userPass = await this.userPassRepository.findOne({ where: { razorpayPaymentId: paymentId } });
         if (userPass) {
             return this.refundWithRazorpay(paymentId, 'pass');
         }

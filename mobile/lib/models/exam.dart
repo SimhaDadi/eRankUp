@@ -12,6 +12,7 @@ class Exam {
   final int? totalModels;
   final bool isPublished;
   final Map<String, dynamic>? attempts;
+  final Map<String, dynamic>? activeSession;
 
   Exam({
     required this.id,

@@ -33,7 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _myUserId = userId;
     });
 
-    socket = io.io('http://10.0.2.2:3001', io.OptionBuilder()
+    socket = io.io('http://192.168.1.5:3001', io.OptionBuilder()
       .setTransports(['websocket'])
       .setQuery({'token': token})
       .build());

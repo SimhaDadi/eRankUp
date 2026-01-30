@@ -272,7 +272,11 @@ export class PaymentsService implements OnModuleInit {
             .update(rawBody)
             .digest('hex');
 
-        if (expectedSig !== sig) {
+        // Security: Use constant-time comparison
+        const sigBuffer = Buffer.from(sig);
+        const expectedSigBuffer = Buffer.from(expectedSig);
+
+        if (sigBuffer.length !== expectedSigBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedSigBuffer)) {
             console.error('Signature mismatch', { expectedSig, receivedSig: sig });
             throw new Error('Invalid Razorpay signature');
         }
@@ -284,21 +288,24 @@ export class PaymentsService implements OnModuleInit {
             const paymentId = payload.payload?.payment?.entity?.id;
 
             if (orderId) {
-                await this.purchaseRepository.update(
-                    { razorpayOrderId: orderId },
-                    {
-                        status: 'COMPLETED',
-                        razorpayPaymentId: paymentId
-                    }
-                );
+                // Robustness: Use transaction to ensure both updates succeed or fail together
+                await this.purchaseRepository.manager.transaction(async transactionalEntityManager => {
+                    await transactionalEntityManager.update(Purchase,
+                        { razorpayOrderId: orderId },
+                        {
+                            status: 'COMPLETED',
+                            razorpayPaymentId: paymentId
+                        }
+                    );
 
-                await this.userPassRepository.update(
-                    { razorpayOrderId: orderId },
-                    {
-                        paymentStatus: 'COMPLETED',
-                        razorpayPaymentId: paymentId
-                    }
-                );
+                    await transactionalEntityManager.update(UserPass,
+                        { razorpayOrderId: orderId },
+                        {
+                            paymentStatus: 'COMPLETED',
+                            razorpayPaymentId: paymentId
+                        }
+                    );
+                });
             }
         }
     }

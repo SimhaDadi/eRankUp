@@ -94,7 +94,7 @@ async function seed() {
                     }
 
                     // Create a Model for the chapter to make it "Practicable"
-                    let model = await modelRepo.create({
+                    const model = await modelRepo.create({
                         title: `${chapName} Practice Set`,
                         chapter: chapter,
                         totalQuestions: 5,

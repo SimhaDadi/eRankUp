@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Construction, ArrowLeft, Search, Sparkles, Rocket, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function ComingSoonPage() {
     const pathname = usePathname();
@@ -63,9 +64,11 @@ export default function ComingSoonPage() {
                             >
                                 <div className="absolute inset-2 bg-gradient-to-br from-[#00bfa5] to-teal-600 rounded-[1.5rem] opacity-5 blur-xl group-hover:opacity-20 transition-opacity" />
                                 <div className="w-24 h-24 relative z-10 p-2">
-                                    <img
+                                    <Image
                                         src="/images/coming-soon-icon.png"
                                         alt="Feature Development"
+                                        width={96}
+                                        height={96}
                                         className="w-full h-full object-contain drop-shadow-lg transform -rotate-3 group-hover:rotate-6 transition-transform duration-500"
                                     />
                                 </div>

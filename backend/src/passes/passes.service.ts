@@ -301,6 +301,7 @@ export class PassesService implements OnModuleInit {
         return this.getActivePass(userId);
     }
 
+    /*
     async createOrder(user: any, passId: string) {
         // This method is kept for backward compatibility
         // New code should use PaymentsService.createPassOrder instead
@@ -314,6 +315,7 @@ export class PassesService implements OnModuleInit {
 
         throw new BadRequestException('Use PaymentsService.createPassOrder for paid passes');
     }
+    */
 
     async verifyPayment(user: any, payload: { razorpayOrderId: string, razorpayPaymentId: string, razorpaySignature: string }) {
         this.logger.log(`[VerifyPayment] Verifying for User: ${user.userId || user.id}, Order: ${payload.razorpayOrderId}`);
@@ -333,7 +335,10 @@ export class PassesService implements OnModuleInit {
 
         this.logger.log(`[VerifyPayment] Sig Generated: ${generated_signature}, Received: ${payload.razorpaySignature}`);
 
-        if (generated_signature === payload.razorpaySignature) {
+        const sigBuffer = Buffer.from(payload.razorpaySignature);
+        const generatedSigBuffer = Buffer.from(generated_signature);
+
+        if (sigBuffer.length === generatedSigBuffer.length && crypto.timingSafeEqual(sigBuffer, generatedSigBuffer)) {
             await this.completePayment(payload.razorpayOrderId, payload.razorpayPaymentId);
             this.logger.log('[VerifyPayment] Signature Verified & Payment Completed');
             return { success: true, message: 'Pass Activated Successfully' };

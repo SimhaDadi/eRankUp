@@ -29,6 +29,27 @@ export class AnalyticsController {
         return this.analyticsService.getStudentList(page, limit, search);
     }
 
+    @Get('students/:id')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async getStudentDetails(@Param('id') id: string) {
+        return this.analyticsService.getStudentDetails(id);
+    }
+
+    @Get('students/:id/attempts')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async getStudentAttempts(@Param('id') id: string) {
+        return this.analyticsService.getStudentAttempts(id);
+    }
+
+    @Get('students/:id/activity')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async getStudentActivity(@Param('id') id: string) {
+        return this.analyticsService.getStudentActivity(id);
+    }
+
     @Get('users')
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)

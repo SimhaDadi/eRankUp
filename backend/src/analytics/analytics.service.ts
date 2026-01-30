@@ -457,4 +457,55 @@ export class AnalyticsService {
         await this.cacheService.set(cacheKey, unifiedResult, 300);
         return unifiedResult;
     }
+    async getStudentDetails(studentId: string) {
+        const user = await this.userRepository.findOne({ where: { id: studentId } });
+        if (!user) throw new Error('Student not found');
+
+        const stats = await this.attemptRepository
+            .createQueryBuilder('attempt')
+            .select('COUNT(attempt.id)', 'totalAttempts')
+            .addSelect('SUM(CASE WHEN attempt.score >= 40 THEN 1 ELSE 0 END)', 'passedExams')
+            .addSelect('AVG(attempt.score)', 'averageScore')
+            .addSelect('AVG(attempt.accuracy)', 'accuracy')
+            .where('attempt.userId = :userId', { userId: studentId })
+            .getRawOne();
+
+        return {
+            profile: {
+                id: user.id,
+                fullName: user.fullName,
+                email: user.email,
+                createdAt: user.createdAt,
+                role: user.role
+            },
+            stats: {
+                totalAttempts: parseInt(stats.totalAttempts) || 0,
+                passedExams: parseInt(stats.passedExams) || 0,
+                averageScore: Math.round(parseFloat(stats.averageScore) || 0),
+                accuracy: Math.round(parseFloat(stats.accuracy) || 0)
+            }
+        };
+    }
+
+    async getStudentAttempts(studentId: string) {
+        return this.attemptRepository.find({
+            where: { user: { id: studentId } },
+            relations: ['exam'],
+            order: { createdAt: 'DESC' }
+        });
+    }
+
+    async getStudentActivity(studentId: string) {
+        // Return score trend over time
+        const attempts = await this.attemptRepository.find({
+            where: { user: { id: studentId } },
+            select: ['score', 'createdAt'],
+            order: { createdAt: 'ASC' }
+        });
+
+        return attempts.map(a => ({
+            date: a.createdAt.toLocaleDateString(),
+            score: Math.round(a.score)
+        }));
+    }
 }
