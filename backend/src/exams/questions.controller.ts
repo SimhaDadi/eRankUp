@@ -197,21 +197,35 @@ export class QuestionsController {
 
                 try {
                     const examId = row['examid'];
-                    const subjectId = row['subjectid'];
+                    let subjectId = row['subjectid'];
                     const chapterId = row['chapterid'];
 
-                    if (!subjectId || !chapterId) {
-                        errors.push(`Line ${i + 1}: Missing hierarchy IDs (subjectId and chapterId required)`);
+                    if (!chapterId) {
+                        errors.push(`Line ${i + 1}: Missing chapterId (required)`);
                         continue;
                     }
 
                     // Fetch hierarchy entities
                     const exam = examId ? await this.examRepository.findOne({ where: { id: examId } }) : null;
-                    const subject = await this.subjectRepository.findOne({ where: { id: subjectId } });
-                    const chapter = await this.chapterRepository.findOne({ where: { id: chapterId } });
+                    const chapter = await this.chapterRepository.findOne({
+                        where: { id: chapterId },
+                        relations: ['subject']
+                    });
 
-                    if (!subject || !chapter || (examId && !exam)) {
-                        errors.push(`Line ${i + 1}: Invalid hierarchy IDs - subject, chapter, or specified exam not found`);
+                    if (!chapter) {
+                        errors.push(`Line ${i + 1}: Chapter not found`);
+                        continue;
+                    }
+
+                    // Infer subjectId if missing
+                    if (!subjectId && chapter.subject) {
+                        subjectId = chapter.subject.id;
+                    }
+
+                    const subject = subjectId ? await this.subjectRepository.findOne({ where: { id: subjectId } }) : null;
+
+                    if (!subject || (examId && !exam)) {
+                        errors.push(`Line ${i + 1}: Invalid hierarchy IDs - subject or specified exam not found`);
                         continue;
                     }
 
@@ -225,12 +239,12 @@ export class QuestionsController {
                     const question = this.questionRepository.create({
                         content: row['content'] || row['questiontext'],
                         options: options,
-                        correctOptionId: (row['correctoption'] || row['correctanswer']).toUpperCase(),
+                        correctOptionId: (row['correctoptionid'] || row['correctoption'] || row['correctanswer']).toUpperCase(),
                         explanation: row['explanation'] || '',
                         topic: row['topic'],
                         positiveMarks: parseFloat(row['positivemarks']) || 1.0,
                         negativeMarks: parseFloat(row['negativemarks']) || 0.25,
-                        difficultyWeight: row['difficulty'] === 'easy' ? 0.3 : row['difficulty'] === 'hard' ? 0.7 : 0.5,
+                        difficultyWeight: row['difficultyweight'] ? parseFloat(row['difficultyweight']) : (row['difficulty'] === 'easy' ? 0.3 : row['difficulty'] === 'hard' ? 0.7 : 0.5),
                         exams: exam ? [exam] : [], // Now an array, can be empty for global questions
                         subject: subject,
                         chapter: chapter,

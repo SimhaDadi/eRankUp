@@ -39,27 +39,31 @@ export class QuestionsUploadService {
             stream
                 .pipe(csv())
                 .on('data', (row) => {
-                    // Validating required CSV columns
-                    if (!row.content || !row.optionA || !row.correctOptionId) {
+                    // Validating required CSV columns with aliases
+                    const content = row.content || row.questiontext;
+                    const optionA = row.optionA || row.option1;
+                    const correctOptionId = row.correctOptionId || row.correctOption || row.correctAnswer;
+
+                    if (!content || !optionA || !correctOptionId) {
                         return; // Skip invalid rows
                     }
 
                     const options = [
-                        { id: 'A', text: row.optionA },
-                        { id: 'B', text: row.optionB },
-                        { id: 'C', text: row.optionC || '' },
-                        { id: 'D', text: row.optionD || '' },
+                        { id: 'A', text: optionA },
+                        { id: 'B', text: row.optionB || row.option2 },
+                        { id: 'C', text: row.optionC || row.option3 || '' },
+                        { id: 'D', text: row.optionD || row.option4 || '' },
                     ].filter(o => o.text); // Remove empty options
 
                     questions.push({
-                        content: row.content,
+                        content: content,
                         options,
-                        correctOptionId: row.correctOptionId,
+                        correctOptionId: correctOptionId.toUpperCase(),
                         explanation: row.explanation,
                         topic: row.topic || 'General',
-                        difficultyWeight: parseFloat(row.difficultyWeight) || 0.5,
-                        positiveMarks: parseFloat(row.positiveMarks) || 1.0,
-                        negativeMarks: parseFloat(row.negativeMarks) || 0.25,
+                        difficultyWeight: parseFloat(row.difficultyWeight || row.difficulty) || 0.5,
+                        positiveMarks: parseFloat(row.positiveMarks || row.positivemarks) || 1.0,
+                        negativeMarks: parseFloat(row.negativeMarks || row.negativemarks) || 0.25,
                     });
                 })
                 .on('end', () => resolve(questions))

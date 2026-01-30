@@ -757,6 +757,87 @@ export class ExamsService implements OnApplicationBootstrap {
 
 
 
+    async exportModelQuestionsToCSV(modelId: string): Promise<string> {
+        const model = await this.modelRepository.findOne({
+            where: { id: modelId },
+            relations: ['questions', 'chapter', 'chapter.subject']
+        });
+
+        if (!model) throw new BadRequestException('Model not found');
+        return this.formatQuestionsToCSV(model.questions, {
+            chapterId: model.chapter?.id,
+            subjectId: model.chapter?.subject?.id
+        });
+    }
+
+    async exportExamQuestionsToCSV(examId: string): Promise<string> {
+        const exam = await this.examsRepository.findOne({
+            where: { id: examId },
+            relations: [
+                'questions',
+                'questions.subject',
+                'questions.chapter',
+                'models',
+                'models.questions',
+                'models.questions.subject',
+                'models.questions.chapter'
+            ]
+        });
+
+        if (!exam) throw new BadRequestException('Exam not found');
+
+        // Aggregate all unique questions
+        const questionsMap = new Map<string, Question>();
+        if (exam.questions) exam.questions.forEach(q => questionsMap.set(q.id, q));
+        if (exam.models) {
+            exam.models.forEach(model => {
+                if (model.questions) model.questions.forEach(q => questionsMap.set(q.id, q));
+            });
+        }
+
+        return this.formatQuestionsToCSV(Array.from(questionsMap.values()), {
+            examId: exam.id
+        });
+    }
+
+    private formatQuestionsToCSV(questions: Question[], hierarchy?: { examId?: string, subjectId?: string, chapterId?: string }): string {
+        const baseHeaders = ['content', 'optionA', 'optionB', 'optionC', 'optionD', 'correctOptionId', 'explanation', 'topic', 'difficultyWeight', 'positiveMarks', 'negativeMarks'];
+        const metaHeaders = ['examId', 'subjectId', 'chapterId'];
+        const headers = [...baseHeaders, ...metaHeaders];
+
+        const rows = questions.map(q => {
+            const optionsMap: any = {};
+            q.options?.forEach(opt => {
+                optionsMap[`option${opt.id.toUpperCase()}`] = opt.text;
+            });
+
+            const data = [
+                q.content,
+                optionsMap.optionA || '',
+                optionsMap.optionB || '',
+                optionsMap.optionC || '',
+                optionsMap.optionD || '',
+                q.correctOptionId,
+                q.explanation || '',
+                q.topic || 'General',
+                q.difficultyWeight,
+                q.positiveMarks,
+                q.negativeMarks,
+                hierarchy?.examId || q.examId || '',
+                hierarchy?.subjectId || q.subject?.id || '',
+                hierarchy?.chapterId || q.chapterId || q.chapter?.id || ''
+            ];
+
+            return data.map(val => {
+                if (val === null || val === undefined) return '""';
+                const str = String(val).replace(/"/g, '""');
+                return `"${str}"`;
+            }).join(',');
+        });
+
+        return [headers.join(','), ...rows].join('\n');
+    }
+
     async onApplicationBootstrap() {
         // 1. Sync Model Question Counts (Self-Healing)
         console.log('[BOOTSTRAP] Syncing model question counts...');

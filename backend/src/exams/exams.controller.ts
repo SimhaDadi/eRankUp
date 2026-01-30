@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query, ForbiddenException, ClassSerializerInterceptor, SerializeOptions } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query, ForbiddenException, ClassSerializerInterceptor, SerializeOptions, Res } from '@nestjs/common';
 import { instanceToPlain } from 'class-transformer';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
@@ -488,6 +488,26 @@ export class ExamsController {
     @Delete(':id')
     deleteExam(@Param('id') id: string) {
         return this.examsService.deleteExam(id);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Get('models/:id/export/csv')
+    async exportModelCSV(@Param('id') id: string, @Res() res: any) {
+        const csv = await this.examsService.exportModelQuestionsToCSV(id);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=questions-model-${id}.csv`);
+        res.status(200).send(csv);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Get(':id/export/csv')
+    async exportExamCSV(@Param('id') id: string, @Res() res: any) {
+        const csv = await this.examsService.exportExamQuestionsToCSV(id);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=questions-exam-${id}.csv`);
+        res.status(200).send(csv);
     }
 
     @UseGuards(AuthGuard('jwt'))
