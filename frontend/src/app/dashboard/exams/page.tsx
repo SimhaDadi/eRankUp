@@ -13,6 +13,7 @@ interface Exam {
     title: string;
     description: string;
     isPremium: boolean;
+    hasPurchased?: boolean; // Added hasPurchased
     price: number;
     category?: string; // Added category
     chapters?: any[];
@@ -265,13 +266,53 @@ function ExamCard({ exam, index, itemVariants }: { exam: Exam, index: number, it
                 </p>
 
                 {/* Actions */}
+                {/* Actions */}
                 <div className="flex items-center gap-3 mt-auto">
-                    <Link
-                        href={isInProgress ? `/dashboard/test/${exam.activeSession}` : `/dashboard/exams/${exam.id}`}
-                        className={`flex-1 ${isInProgress ? 'bg-emerald-500 shadow-emerald-500/20' : isCompleted ? 'bg-emerald-600' : 'bg-sky-600'} text-white text-[10px] font-black py-3 rounded-xl transition-all hover:opacity-90 active:scale-95 text-center uppercase tracking-[0.2em] shadow-lg`}
-                    >
-                        {isInProgress ? 'Continue Test' : isCompleted ? 'View Results' : 'Enter Series'}
-                    </Link>
+                    {(() => {
+                        // Determine target URL
+                        let targetUrl = `/dashboard/exams/${exam.id}`;
+
+                        if (isInProgress && exam.activeSession) {
+                            targetUrl = `/dashboard/test/${exam.activeSession}`;
+                        } else if (isCompleted) {
+                            // If completed, ideally go to results or details. 
+                            // Logic here says 'View Results', maybe go to details to see list?
+                            // Or if multiple models, details is best.
+                            targetUrl = `/dashboard/exams/${exam.id}`;
+                        } else {
+                            // Check for single model skip
+                            // We need to find the first model id. 
+                            // exam.chapters -> models
+                            let singleModelId: string | null = null;
+                            let totalModelsFound = 0;
+
+                            if (exam.chapters) {
+                                for (const chapter of exam.chapters) {
+                                    if (chapter.models) {
+                                        for (const model of chapter.models) {
+                                            if (!singleModelId) singleModelId = model.id;
+                                            totalModelsFound++;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Skip if: 1 model total, AND (Premium+Purchased OR Not Premium)
+                            if (totalModelsFound === 1 && singleModelId && (!exam.isPremium || exam.hasPurchased)) {
+                                targetUrl = `/dashboard/exam-start/${singleModelId}`;
+                            }
+                        }
+
+                        return (
+                            <Link
+                                href={targetUrl}
+                                className={`flex-1 ${isInProgress ? 'bg-emerald-500 shadow-emerald-500/20' : isCompleted ? 'bg-emerald-600' : 'bg-sky-600'} text-white text-[10px] font-black py-3 rounded-xl transition-all hover:opacity-90 active:scale-95 text-center uppercase tracking-[0.2em] shadow-lg`}
+                            >
+                                {isInProgress ? 'Continue Test' : isCompleted ? 'View Results' : 'Enter Series'}
+                            </Link>
+                        );
+                    })()}
+
                     <button className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-sky-500 transition-all border border-slate-100">
                         <Bookmark className="w-4 h-4" />
                     </button>

@@ -24,12 +24,28 @@ export class UsersController {
 
     @Patch('profile')
     async updateProfile(@Request() req, @Body() updateData: any) {
-        return this.usersService.updateProfile(req.user.userId, updateData);
+        // Security: Whitelist allowed fields to prevent privilege escalation (e.g. updating role)
+        const allowedFields = ['fullName', 'phone', 'dob', 'education', 'category', 'location', 'defaultLanguage', 'profilePicture'];
+        const filteredData = Object.keys(updateData)
+            .filter(key => allowedFields.includes(key))
+            .reduce((obj, key) => {
+                obj[key] = updateData[key];
+                return obj;
+            }, {});
+
+        return this.usersService.updateProfile(req.user.userId, filteredData);
     }
 
     @Get('profile')
     async getProfile(@Request() req) {
         return this.usersService.findOneById(req.user.userId);
+    }
+
+    @Patch(':id/status')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async updateStatus(@Param('id') id: string, @Body() body: { isActive: boolean }) {
+        return this.usersService.updateStatus(id, body.isActive);
     }
 
     // --- Saved Questions ---

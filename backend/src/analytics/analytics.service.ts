@@ -458,9 +458,13 @@ export class AnalyticsService {
         return unifiedResult;
     }
     async getStudentDetails(studentId: string) {
-        const user = await this.userRepository.findOne({ where: { id: studentId } });
+        const user = await this.userRepository.findOne({
+            where: { id: studentId },
+            select: ['id', 'fullName', 'email', 'createdAt', 'role', 'phone', 'location', 'profilePicture', 'isActive']
+        });
         if (!user) throw new Error('Student not found');
 
+        // Fetch Exam Stats
         const stats = await this.attemptRepository
             .createQueryBuilder('attempt')
             .select('COUNT(attempt.id)', 'totalAttempts')
@@ -470,14 +474,30 @@ export class AnalyticsService {
             .where('attempt.userId = :userId', { userId: studentId })
             .getRawOne();
 
+        // Fetch Latest Subscription/Pass
+        const latestPass = await this.userPassRepository.findOne({
+            where: { user: { id: studentId }, status: 'ACTIVE' },
+            relations: ['pass'],
+            order: { expiryDate: 'DESC' }
+        });
+
         return {
             profile: {
                 id: user.id,
                 fullName: user.fullName,
                 email: user.email,
+                phone: user.phone,
+                location: user.location,
+                profilePicture: user.profilePicture,
+                isActive: user.isActive,
                 createdAt: user.createdAt,
                 role: user.role
             },
+            subscription: latestPass ? {
+                planName: latestPass.pass.title,
+                expiryDate: latestPass.expiryDate,
+                status: latestPass.status
+            } : null,
             stats: {
                 totalAttempts: parseInt(stats.totalAttempts) || 0,
                 passedExams: parseInt(stats.passedExams) || 0,
