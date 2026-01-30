@@ -64,6 +64,24 @@ export default function PreviousYearPapersPage() {
         }
     };
 
+    const handleExportCSV = async (id: string, title: string) => {
+        try {
+            const response = await api.get(`/exams/${id}/export/csv`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `pyp-${title.replace(/\s+/g, '-').toLowerCase()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Failed to export CSV", error);
+            alert('Failed to export CSV');
+        }
+    };
+
     const filteredPapers = (activeCategory === 'All'
         ? papers
         : papers.filter(p => (p.category || 'Other') === activeCategory))
@@ -120,6 +138,13 @@ export default function PreviousYearPapersPage() {
                             className="bg-slate-900 rounded-xl p-6 border border-slate-800 hover:border-amber-500/50 transition-all group relative"
                         >
                             <div className="absolute top-4 right-4 z-10 flex gap-2">
+                                <button
+                                    onClick={() => handleExportCSV(paper.id, paper.title)}
+                                    className="p-1.5 text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors"
+                                    title="Export Question Paper (CSV)"
+                                >
+                                    <FileText className="w-4 h-4" />
+                                </button>
                                 <button
                                     onClick={() => handleTogglePublish(paper.id, paper.isPublished)}
                                     className="p-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors"

@@ -113,6 +113,28 @@ export class AIService {
     }
 
     /**
+     * Generate an embedding for a piece of text using Gemini API
+     */
+    async generateEmbedding(text: string): Promise<number[]> {
+        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+        return this.queueService.add(async () => {
+            try {
+                const { GoogleGenerativeAI } = require("@google/generative-ai");
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+
+                const result = await model.embedContent(text);
+                return result.embedding.values;
+            } catch (error) {
+                console.error('[AIService] Embedding generation failed:', error);
+                throw error;
+            }
+        });
+    }
+
+    /**
      * Generate detailed explanation for a question using AI
      */
     async generateQuestionExplanation(question: Question): Promise<string> {
@@ -727,6 +749,64 @@ JSON:`;
             console.error('[AIService] Question parsing error:', error);
             throw new Error('Failed to parse questions from text');
         }
+    }
+
+    /**
+     * AI Photo-Search - Solves a question from an image and finds similar questions
+     */
+    async photoSearch(file: any): Promise<{ solution: string; similarQuestions: Question[] }> {
+        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+        const { GoogleGenerativeAI } = require("@google/generative-ai");
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+        const prompt = `You are an expert tutor. Solve the question shown in this image.
+        1. PROVIDE SOLUTION: A step-by-step clear explanation.
+        2. EXTRACT TEXT: The exact text of the question.
+        3. KEYWORDS: 3-5 keywords for searching similar questions.
+
+        Output strictly in JSON:
+        {
+          "solution": "...",
+          "questionText": "...",
+          "keywords": ["...", "..."]
+        }`;
+
+        const imagePart = {
+            inlineData: {
+                data: file.buffer.toString("base64"),
+                mimeType: file.mimetype,
+            },
+        };
+
+        const result = await this.queueService.add(async () => await model.generateContent([prompt, imagePart]));
+        const responseText = (await result.response).text();
+        const jsonStr = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const parsed = JSON.parse(jsonStr);
+
+        // Find similar questions using Vector Semantic Search
+        let similarQuestions: Question[] = [];
+        if (parsed.questionText) {
+            const embedding = await this.generateEmbedding(parsed.questionText);
+
+            // Use Cosine Similarity (<=> operator in pgvector for distance)
+            const embeddingStr = `[${embedding.join(',')}]`;
+            similarQuestions = await this.questionRepository
+                .createQueryBuilder('q')
+                .leftJoinAndSelect('q.subject', 'subject')
+                .leftJoinAndSelect('q.chapter', 'chapter')
+                .orderBy(`q.embedding <=> :embedding`)
+                .setParameters({ embedding: embeddingStr })
+                .limit(3)
+                .getMany();
+        }
+
+        return {
+            solution: this.cleanAIResponse(parsed.solution),
+            similarQuestions
+        };
     }
 
     public cleanAIResponse(text: string): string {

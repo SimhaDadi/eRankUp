@@ -34,6 +34,8 @@ import {
     Instagram,
     Linkedin,
     Youtube,
+    ArrowRight,
+    Cpu,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -65,10 +67,9 @@ export default function Home() {
                 </button>
             </div>
 
-            {/* Main Navigation - Testbook Style */}
             <nav className="sticky top-0 z-[50] bg-white border-b border-gray-200 shadow-sm">
                 <div className="max-w-[1440px] mx-auto px-4 lg:px-6">
-                    <div className="flex items-center justify-between h-[72px] gap-6">
+                    <div className="flex items-center justify-between h-[56px] gap-6">
                         {/* Logo Section */}
                         <div className="flex items-center gap-8 flex-shrink-0">
                             <Link href="/" className="flex items-center gap-2">
@@ -79,7 +80,7 @@ export default function Home() {
                             <div className="hidden xl:flex items-center gap-6 text-[14px] font-medium text-slate-700">
                                 {/* Exams Dropdown */}
                                 <div
-                                    className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[72px]"
+                                    className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[56px]"
                                     onMouseEnter={() => setIsExamsDropdownOpen(true)}
                                     onMouseLeave={() => setIsExamsDropdownOpen(false)}
                                 >
@@ -88,7 +89,7 @@ export default function Home() {
 
                                     {/* Dropdown Menu */}
                                     {isExamsDropdownOpen && (
-                                        <div className="absolute top-[72px] left-0 w-[280px] bg-white shadow-2xl rounded-lg border border-gray-100 py-2 z-50">
+                                        <div className="absolute top-[56px] left-0 w-[280px] bg-white shadow-2xl rounded-lg border border-gray-100 py-2 z-50">
                                             <div className="px-4 py-2 border-b border-gray-100">
                                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Popular Exams</h3>
                                             </div>
@@ -111,20 +112,20 @@ export default function Home() {
                                     )}
                                 </div>
 
-                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
+                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[56px]">
                                     <span>SuperCoaching</span>
                                     <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] px-1.5 py-0.5 rounded ml-1 font-bold">New</span>
                                 </Link>
-                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
+                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[56px]">
                                     <span>Test Series</span>
                                 </Link>
-                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
+                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[56px]">
                                     <span>Skill Academy</span>
                                 </Link>
-                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
+                                <Link href="/dashboard" className="hover:text-[#00bfa5] flex items-center gap-1 h-[56px]">
                                     <span>Pass</span>
                                 </Link>
-                                <div className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[72px]">
+                                <div className="group relative cursor-pointer hover:text-[#00bfa5] flex items-center gap-1 h-[56px]">
                                     <span>More</span>
                                     <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-[#00bfa5] transition-colors" />
                                 </div>
@@ -142,8 +143,8 @@ export default function Home() {
                                 </div>
                                 <input
                                     type="text"
-                                    className="block w-full h-[42px] pl-[88px] pr-10 rounded-md border border-gray-300 bg-gray-50 text-sm placeholder-gray-500 focus:outline-none focus:bg-white focus:border-[#00bfa5] focus:ring-1 focus:ring-[#00bfa5] transition-all"
-                                    placeholder="Search for Exams, Mock Tests..."
+                                    className="block w-full h-[38px] pl-[88px] pr-10 rounded-md border border-gray-300 bg-gray-50 text-sm placeholder-gray-500 focus:outline-none focus:bg-white focus:border-[#00bfa5] focus:ring-1 focus:ring-[#00bfa5] transition-all"
+                                    placeholder="Search for Exams..."
                                 />
                                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer">
                                     <Search className="h-5 w-5 text-gray-400 group-focus-within:text-[#00bfa5]" />
@@ -209,386 +210,428 @@ export default function Home() {
                 )}
             </nav>
 
-            {/* Hero Section */}
-            <section className="relative bg-gradient-to-b from-[#f0fcf9] via-[#f7fdfc] to-white pt-8 md:pt-16 pb-20 overflow-hidden">
-                <div className="max-w-[1280px] mx-auto px-6 relative z-10">
-                    <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+            {/* Hero Section - Extremely Compact */}
+            <section className="relative flex items-center bg-white overflow-hidden py-6">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00bfa5]/5 rounded-full blur-[100px] -z-10 translate-x-1/2 -translate-y-1/2"></div>
+                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[80px] -z-10 -translate-x-1/2 translate-y-1/2"></div>
+
+                <div className="max-w-[1440px] mx-auto px-6 relative z-10 w-full">
+                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                         <motion.div
-                            initial={{ opacity: 0, x: -30 }}
-                            animate={{ opacity: 1, x: 0 }}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
                             className="text-left relative z-20"
                         >
-                            <h1 className="text-4xl md:text-[46px] leading-[1.1] font-extrabold text-slate-900 mb-6">
-                                The Master App for <br />
-                                <span className="text-[#00bfa5]">Complete Exam Preparation</span>
-                            </h1>
-
-                            <div className="flex items-center gap-3 text-sm font-bold text-slate-500 mb-8 max-w-lg">
-                                <span className="text-slate-900">Learn</span>
-                                <span className="text-[#00bfa5] text-lg">›</span>
-                                <span className="text-slate-900">Practice</span>
-                                <span className="text-[#00bfa5] text-lg">›</span>
-                                <span className="text-slate-900">Improve</span>
-                                <span className="text-[#00bfa5] text-lg">›</span>
-                                <span className="bg-[#00bfa5]/10 text-[#00bfa5] px-2 py-0.5 rounded">Succeed</span>
+                            {/* Live Activity Insight */}
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-900/5 rounded-full mb-6 border border-slate-200 backdrop-blur-sm">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00bfa5] opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00bfa5]"></span>
+                                </span>
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                    <span className="text-slate-950">2,840 students</span> practicing right now
+                                </span>
                             </div>
 
-                            <p className="text-lg text-slate-600 mb-10 max-w-lg leading-relaxed">
-                                Join 5.5 Crore+ Students & Prepare for SSC, Banking, Railways & 100+ Govt. Exams with India's SuperTeachers.
+                            <h1 className="text-4xl md:text-[54px] leading-[0.98] font-black text-slate-950 mb-4 tracking-tightest">
+                                The AI Master App <br />
+                                <span className="text-gradient-accent">For Selection</span>
+                            </h1>
+
+                            <p className="text-base text-slate-500 mb-6 max-w-lg leading-relaxed font-medium">
+                                Join <span className="text-slate-950 font-bold underline decoration-[#00bfa5]/30">5.5 Cr+</span> achievers and dominate SSC, Banking, & Railways with AI.
                             </p>
 
-                            <div className="flex flex-wrap items-center gap-4 mb-8">
-                                <Link href="/signup" className="bg-[#00bfa5] hover:bg-[#00a693] text-white px-8 py-3.5 rounded-lg font-bold text-base transition-all shadow-lg shadow-[#00bfa5]/20 hover:-translate-y-1">
-                                    Get Started For Free
+                            <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
+                                <Link href="/signup" className="btn-ultra-blue w-full sm:w-auto text-sm px-8 h-12 group">
+                                    Start Prep Free
                                 </Link>
-
                                 <div className="flex items-center gap-3">
-                                    <button className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center gap-3 transition-colors border border-gray-800">
-                                        <div className="w-5 h-5 relative">
-                                            <div className="absolute inset-0 bg-gradient-to-tr from-[#00C6FF] to-[#0072FF] clip-play opacity-0"></div>
-                                            <Play className="w-5 h-5 text-white fill-white" />
-                                        </div>
-                                        <div className="text-left">
-                                            <div className="text-[9px] uppercase leading-none opacity-80 mb-0.5">Get it on</div>
-                                            <div className="text-xs font-bold leading-none">Google Play</div>
-                                        </div>
-                                    </button>
+                                    <div className="flex -space-x-2.5">
+                                        {[1, 2, 3].map((i) => (
+                                            <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center overflow-hidden">
+                                                <Image src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="user" width={32} height={32} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="text-left leading-tight">
+                                        <div className="text-[10px] font-black text-slate-950">Trusted by 5.5 Cr+</div>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
 
                         <motion.div
-                            initial={{ opacity: 0, x: 30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.6, delay: 0.2 }}
-                            className="relative z-10 flex justify-center lg:justify-end"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="relative flex justify-center lg:justify-end"
                         >
-                            <div className="relative w-full max-w-[500px] lg:max-w-[580px]">
-                                <Image
-                                    src="/hero_illustration_1768845362775.png"
-                                    alt="Exam Preparation Graphic"
-                                    width={600}
-                                    height={500}
-                                    className="object-contain w-full h-auto drop-shadow-xl"
-                                    priority
-                                />
+                            <div className="relative w-full max-w-[500px] lg:max-w-[600px] floating">
+                                <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl border-[6px] border-white group">
+                                    <Image
+                                        src="/hero_illustration_1768845362775.png"
+                                        alt="Exam Prep"
+                                        width={800}
+                                        height={700}
+                                        className="object-contain w-full h-auto"
+                                        priority
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 to-transparent"></div>
+                                </div>
+
+                                {/* Dynamic Insights */}
+                                <motion.div
+                                    animate={{ y: [0, -8, 0] }}
+                                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                    className="absolute -left-8 top-1/4 glass-panel p-4 rounded-[1.5rem] border-white/60 shadow-xl flex items-center gap-3"
+                                >
+                                    <div className="w-9 h-9 bg-[#00bfa5] rounded-xl flex items-center justify-center text-white">
+                                        <TrendingUp className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-black text-slate-950">+15% Score</div>
+                                        <div className="text-[9px] font-bold text-slate-400 tracking-tight uppercase">Avg. AI Improvement</div>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    animate={{ y: [0, 8, 0] }}
+                                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                                    className="absolute -right-4 bottom-1/4 glass-panel p-4 rounded-[1.5rem] border-white/60 shadow-xl flex items-center gap-3"
+                                >
+                                    <div className="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center text-white">
+                                        <Zap className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-black text-slate-950">24/7 AI Tutor</div>
+                                        <div className="text-[9px] font-bold text-slate-400 tracking-tight uppercase">Instant Doubts Solved</div>
+                                    </div>
+                                </motion.div>
                             </div>
                         </motion.div>
                     </div>
                 </div>
             </section>
 
-            {/* Stats Bar Floating */}
-            <section className="relative z-30 -mt-10 mb-16">
-                <div className="max-w-[1100px] mx-auto px-6">
-                    <div className="bg-white rounded-xl shadow-xl shadow-slate-200/50 p-6 md:p-8 flex flex-col md:flex-row justify-between divide-y md:divide-y-0 md:divide-x divide-gray-100 border border-gray-100">
-                        <div className="flex items-center gap-4 px-4 py-2 flex-1">
-                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0">
-                                <Users className="w-6 h-6" />
+            {/* Compact Insights Bar */}
+            <section className="relative z-30 -mt-2 mb-8 px-6">
+                <div className="max-w-[1200px] mx-auto">
+                    <div className="glass-panel border-white/50 rounded-[1.25rem] p-2.5 flex flex-wrap justify-center items-center gap-4 md:gap-10 bg-white/60 shadow-lg">
+                        <div className="flex items-center gap-3 px-2 flex-1 min-w-[160px] justify-center md:justify-start">
+                            <div className="w-10 h-10 bg-blue-500/10 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                                <Users className="w-5 h-5" />
                             </div>
                             <div>
-                                <div className="text-2xl font-black text-slate-900">5.5 Cr+</div>
-                                <div className="text-xs text-slate-500 font-bold uppercase tracking-wide">Students</div>
+                                <div className="text-lg font-black text-slate-950">5.5 Cr+</div>
+                                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Active Students</div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4 px-4 py-2 flex-1">
-                            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
-                                <BookOpen className="w-6 h-6" />
+                        <div className="w-px h-8 bg-slate-200 hidden md:block opacity-40"></div>
+                        <div className="flex items-center gap-3 px-2 flex-1 min-w-[160px] justify-center md:justify-start">
+                            <div className="w-10 h-10 bg-[#00bfa5]/10 text-[#00bfa5] rounded-xl flex items-center justify-center shrink-0">
+                                <Trophy className="w-5 h-5" />
                             </div>
                             <div>
-                                <div className="text-2xl font-black text-slate-900">28.5 L+</div>
-                                <div className="text-xs text-slate-500 font-bold uppercase tracking-wide">Selections</div>
+                                <div className="text-lg font-black text-slate-950">98.2%</div>
+                                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Satisfaction Score</div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4 px-4 py-2 flex-1">
-                            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center shrink-0">
-                                <CheckCircle2 className="w-6 h-6" />
+                        <div className="w-px h-8 bg-slate-200 hidden md:block opacity-40"></div>
+                        <div className="flex items-center gap-3 px-2 flex-1 min-w-[160px] justify-center md:justify-start">
+                            <div className="w-10 h-10 bg-purple-500/10 text-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                                <Sparkles className="w-5 h-5" />
                             </div>
                             <div>
-                                <div className="text-2xl font-black text-slate-900">242 Cr+</div>
-                                <div className="text-xs text-slate-500 font-bold uppercase tracking-wide">Test Attempts</div>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4 px-4 py-2 flex-1">
-                            <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center shrink-0">
-                                <Play className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-black text-slate-900">50k+</div>
-                                <div className="text-xs text-slate-500 font-bold uppercase tracking-wide">Daily Classes</div>
+                                <div className="text-lg font-black text-slate-950">1,250+</div>
+                                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">AI Lessons Daily</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Popular Exams Section */}
-            <section id="exams" className="py-24 px-6 bg-slate-50">
+            {/* Popular Exams - Tight */}
+            <section id="exams" className="py-8 px-6 relative bg-white">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6">
-                        <div className="max-w-2xl">
-                            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">
-                                Most Popular <span className="text-[#00bfa5]">Exam Series</span>
+                    <div className="flex flex-col md:flex-row items-end justify-between mb-6 gap-4">
+                        <div className="max-w-xl">
+                            <div className="w-10 h-1 bg-[#00bfa5] rounded-full mb-4"></div>
+                            <h2 className="text-3xl md:text-4xl font-black text-slate-950 mb-4 tracking-tight">
+                                Dominate Your <span className="text-gradient-accent">Dream Exam</span>
                             </h2>
-                            <p className="text-lg text-gray-500">Premium quality test series crafted by experts and past toppers.</p>
+                            <p className="text-base text-slate-500 font-medium">Precision mock tests & AI insights curated by toppers.</p>
                         </div>
-                        <Link href="/signup" className="flex items-center gap-2 text-[#00bfa5] font-bold hover:gap-3 transition-all">
-                            Explore All Categories <ChevronRight className="w-5 h-5" />
+                        <Link href="/signup" className="group flex items-center gap-2 text-slate-950 font-black tracking-widest text-[10px] uppercase hover:text-[#00bfa5] transition-all">
+                            View All Categories <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </Link>
                     </div>
 
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <ExamCard
                             title="SSC CGL"
-                            subtitle="Tier I & II"
+                            subtitle="Tier I & II Elite Collection"
                             tests="50+ Tests"
-                            students="15k Users"
-                            gradient="from-blue-600 to-blue-500"
-                            border="hover:border-blue-400"
+                            students="15k Aspirants"
+                            gradient="from-[#00bfa5] to-emerald-400"
                             delay={0.1}
                         />
                         <ExamCard
                             title="Banking"
-                            subtitle="IBPS & SBI PO"
+                            subtitle="IBPS & SBI PO Gold Series"
                             tests="45+ Tests"
-                            students="12k Users"
-                            gradient="from-emerald-600 to-emerald-500"
-                            border="hover:border-emerald-400"
+                            students="12k Aspirants"
+                            gradient="from-blue-600 to-blue-400"
                             delay={0.2}
                         />
                         <ExamCard
                             title="Railways"
-                            subtitle="RRB NTPC"
+                            subtitle="RRB NTPC Super Mock"
                             tests="30+ Tests"
-                            students="20k Users"
-                            gradient="from-cyan-600 to-cyan-500"
-                            border="hover:border-cyan-400"
+                            students="20k Aspirants"
+                            gradient="from-indigo-600 to-indigo-400"
                             delay={0.3}
                         />
                         <ExamCard
                             title="UPSC CSE"
-                            subtitle="Prelims"
+                            subtitle="Prelims Master Pack"
                             tests="60+ Tests"
-                            students="8k Users"
-                            gradient="from-violet-600 to-violet-500"
-                            border="hover:border-violet-400"
+                            students="8k Aspirants"
+                            gradient="from-slate-900 to-slate-700"
                             delay={0.4}
                         />
                     </div>
                 </div>
             </section>
 
-            {/* How It Works Section */}
-            <section id="process" className="py-24 bg-white relative">
-                <div className="max-w-7xl mx-auto px-6">
-                    <div className="text-center max-w-3xl mx-auto mb-20">
-                        <span className="text-[#00bfa5] font-bold tracking-wider uppercase text-sm mb-3 block">Your Path to Success</span>
-                        <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">3 Simple Steps to Crack Your Exam</h2>
-                        <p className="text-xl text-gray-500">Our proven methodology ensures you're always moving forward.</p>
+            {/* How It Works - Tight */}
+            <section id="process" className="py-8 px-6 relative overflow-hidden bg-slate-950 text-white">
+                <div className="absolute top-0 left-0 w-full h-full opacity-5 bg-[radial-gradient(#00bfa5_1px,transparent_1px)] [background-size:30px_30px]"></div>
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="text-center mb-8">
+                        <span className="text-[#00bfa5] text-[9px] font-black uppercase tracking-widest bg-[#00bfa5]/10 px-2 py-1 rounded-full border border-[#00bfa5]/20 mb-4 inline-block">The 3-Step Edge</span>
+                        <h2 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">Your Path to <span className="text-gradient-accent italic">Selection</span></h2>
+                        <p className="text-slate-400 text-sm max-w-xl mx-auto font-medium">Streamlined for goal-oriented preparation.</p>
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-12 relative">
-                        {/* Connecting Line (Desktop) */}
-                        <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-blue-100 via-emerald-100 to-blue-100 -z-10 bg-[length:20px_20px] bg-dashed"></div>
+                        {/* Connecting Path - Desktop */}
+                        <div className="hidden md:block absolute top-[50px] left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-slate-800 to-transparent"></div>
 
-                        <ProcessInfo
-                            icon={<Search className="w-8 h-8 text-white" />}
-                            step="01"
-                            title="Choose Your Exam"
-                            description="Select from 50+ government exam categories tailored to your goals."
-                            color="bg-blue-600"
-                        />
-                        <ProcessInfo
-                            icon={<PenTool className="w-8 h-8 text-white" />}
-                            step="02"
-                            title="Take Mock Tests"
-                            description="Practice with AI-curated questions that mimic the real exam difficulty."
-                            color="bg-[#00bfa5]"
-                        />
-                        <ProcessInfo
-                            icon={<LineChart className="w-8 h-8 text-white" />}
-                            step="03"
-                            title="Analyze & Improve"
-                            description="Get in-depth performance analytics to identify and fix your weak areas."
-                            color="bg-blue-600"
-                        />
+                        <div className="text-center group relative">
+                            <div className="w-24 h-24 bg-slate-900 rounded-[2rem] border border-white/5 flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:-rotate-6 transition-all duration-500 relative z-10">
+                                <Search className="w-10 h-10 text-[#00bfa5]" />
+                                <div className="absolute -top-2 -right-2 w-8 h-8 bg-[#00bfa5] rounded-xl flex items-center justify-center text-slate-950 font-black text-lg shadow-lg border-2 border-slate-950">1</div>
+                            </div>
+                            <h3 className="text-xl font-black mb-2">Select Exam</h3>
+                            <p className="text-sm text-slate-400 font-medium">500+ categories. 92% students find theirs in 30s.</p>
+                        </div>
+
+                        <div className="text-center group relative">
+                            <div className="w-24 h-24 bg-slate-900 rounded-[2rem] border border-white/5 flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:rotate-6 transition-all duration-500 relative z-10">
+                                <Target className="w-10 h-10 text-blue-500" />
+                                <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-500 rounded-xl flex items-center justify-center text-slate-950 font-black text-lg shadow-lg border-2 border-slate-950">2</div>
+                            </div>
+                            <h3 className="text-xl font-black mb-2">Daily Practice</h3>
+                            <p className="text-sm text-slate-400 font-medium">Adaptive tests that improve score by 15% avg.</p>
+                        </div>
+
+                        <div className="text-center group relative">
+                            <div className="w-24 h-24 bg-slate-900 rounded-[2rem] border border-white/5 flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:-rotate-3 transition-all duration-500 relative z-10">
+                                <Trophy className="w-10 h-10 text-emerald-400" />
+                                <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-400 rounded-xl flex items-center justify-center text-slate-950 font-black text-lg shadow-lg border-2 border-slate-950">3</div>
+                            </div>
+                            <h3 className="text-xl font-black mb-2">Get Selected</h3>
+                            <p className="text-sm text-slate-400 font-medium">Join 28.5L+ successful aspirants this year.</p>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Features Grid */}
-            <section id="features" className="py-24 px-6 bg-white overflow-hidden border-t border-gray-100">
+            {/* Why eRankUp? - Tight Bento */}
+            <section id="features" className="py-8 px-6 bg-slate-50 relative">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-20">
-                        <span className="text-[#00bfa5] font-bold uppercase tracking-wider text-sm mb-3 block">Why Choose eRankUp</span>
-                        <h2 className="text-4xl md:text-5xl font-black text-gray-900">Features That Drive Results</h2>
+                    <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
+                        <div className="max-w-xl text-center md:text-left">
+                            <h2 className="text-2xl md:text-3xl font-black text-slate-950 mb-2 tracking-tight">The <span className="text-gradient-accent">Edge</span> You Deserve</h2>
+                            <p className="text-sm text-slate-500 font-medium">Industry-leading AI combined with educator research.</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="px-4 py-1.5 glass-panel flex items-center gap-2">
+                                <div className="text-xl font-black text-slate-950">24/7</div>
+                                <div className="text-[8px] text-slate-400 font-black uppercase tracking-widest leading-none">AI Doubt<br />Solver</div>
+                            </div>
+                            <div className="px-4 py-1.5 glass-panel flex items-center gap-2">
+                                <div className="text-xl font-black text-slate-950">2.5k</div>
+                                <div className="text-[8px] text-slate-400 font-black uppercase tracking-widest leading-none">Daily<br />Tests</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-8 mb-16">
-                        <FeatureBox
-                            icon={<Brain className="w-6 h-6" />}
-                            title="Smart Analysis"
-                            desc="Deep dive into your performance with granular metrics on precision, speed, and stamina."
-                        />
-                        <FeatureBox
-                            icon={<Clock className="w-6 h-6" />}
-                            title="Real-time Simulation"
-                            desc="Experience the actual exam interface to avoid panic during the D-Day."
-                        />
-                        <FeatureBox
-                            icon={<Target className="w-6 h-6" />}
-                            title="Goal Tracking"
-                            desc="Set personal score targets and let our AI guide your daily study plan."
-                        />
-                        <FeatureBox
-                            icon={<Users className="w-6 h-6" />}
-                            title="All India Rank"
-                            desc="Know where you stand among thousands of aspirants with live leaderboards."
-                        />
-                        <FeatureBox
-                            icon={<Download className="w-6 h-6" />}
-                            title="Offline Mode"
-                            desc="Download tests and attempt them anytime, anywhere without internet."
-                        />
-                        <FeatureBox
-                            icon={<Zap className="w-6 h-6" />}
-                            title="Instant Doubts"
-                            desc="Get 24/7 expert support for any questions you find difficult."
-                        />
-                    </div>
-                </div>
-            </section>
-
-            {/* Success CTA */}
-            <section className="py-24 px-6 bg-[#0a1023] text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-[#00bfa5]/10 to-transparent"></div>
-                <div className="max-w-5xl mx-auto text-center relative z-10">
-                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-8 leading-tight">
-                        Ready to join the league of <br />
-                        <span className="text-[#00bfa5]">Toppers?</span>
-                    </h2>
-                    <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-                        Don't just prepare, prepare to win. Join 50,000+ serious aspirants today.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-5 justify-center">
-                        <Link href="/signup" className="bg-[#00bfa5] hover:bg-[#00a693] text-white px-10 py-4 rounded-xl font-bold text-xl transition-all shadow-xl hover:shadow-[#00bfa5]/25 hover:scale-105">
-                            Start Your Free Trial
-                        </Link>
-                    </div>
-                    <p className="mt-8 text-sm text-gray-500">No credit card required • Cancel anytime</p>
-                </div>
-            </section>
-
-            {/* Footer */}
-            <footer className="bg-white border-t border-gray-100 pt-20 pb-10">
-                <div className="max-w-7xl mx-auto px-6">
-                    <div className="grid md:grid-cols-4 gap-12 mb-16">
-                        <div className="col-span-1 md:col-span-1">
-                            <Link href="/" className="flex items-center gap-3 mb-6">
-                                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-emerald-500 rounded-lg flex items-center justify-center">
-                                    <span className="text-white font-black text-xl">e</span>
+                    <div className="grid md:grid-cols-12 gap-4">
+                        <div className="md:col-span-8 group">
+                            <div className="ultra-card p-6 h-full bg-gradient-to-br from-white to-slate-50 relative overflow-hidden">
+                                <div className="w-10 h-10 bg-[#00bfa5]/10 text-[#00bfa5] rounded-xl flex items-center justify-center mb-4">
+                                    <Cpu className="w-5 h-5" />
                                 </div>
-                                <span className="text-xl font-black text-gray-900">eRankUp</span>
-                            </Link>
-                            <p className="text-gray-500 leading-relaxed mb-6">
-                                Making government exam preparation accessible, affordable, and effective for every Indian student.
+                                <div className="inline-block px-2 py-0.5 bg-emerald-50 text-[9px] font-black text-emerald-600 uppercase tracking-widest rounded mb-3">Core Tech</div>
+                                <h3 className="text-xl font-black text-slate-950 mb-2">AI-Adaptive Learning</h3>
+                                <p className="text-slate-500 text-xs leading-relaxed font-medium max-w-sm">AI recalibrates difficulty instantly based on your response time.</p>
+                            </div>
+                        </div>
+                        <div className="md:col-span-4">
+                            <div className="ultra-card p-6 h-full bg-blue-50/10">
+                                <div className="w-10 h-10 bg-blue-500/10 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                                    <Play className="w-5 h-5 fill-current" />
+                                </div>
+                                <h3 className="text-lg font-black text-slate-950 mb-1">Video Solutions</h3>
+                                <p className="text-[10px] text-slate-500 font-medium">Step-by-step logic for 10L+ questions by experts.</p>
+                            </div>
+                        </div>
+                        <div className="md:col-span-4">
+                            <div className="ultra-card p-6 h-full bg-amber-50/10">
+                                <div className="w-10 h-10 bg-amber-500/10 text-amber-600 rounded-xl flex items-center justify-center mb-4">
+                                    <Clock className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-lg font-black text-slate-950 mb-1">AIR Prediction</h3>
+                                <p className="text-[10px] text-slate-500 font-medium">Know where you stand against 50k+ daily mock-takers.</p>
+                            </div>
+                        </div>
+                        <div className="md:col-span-8 group">
+                            <div className="ultra-card p-6 h-full bg-slate-950 text-white relative overflow-hidden">
+                                <div className="relative z-10">
+                                    <div className="w-10 h-10 bg-white/10 text-white rounded-xl flex items-center justify-center mb-4">
+                                        <Smartphone className="w-5 h-5" />
+                                    </div>
+                                    <h3 className="text-xl font-black mb-1">Sync Everywhere</h3>
+                                    <p className="text-slate-400 text-xs leading-relaxed font-medium max-w-xs">Start on desktop, finish on mobile. Preparation on the go.</p>
+                                </div>
+                                <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/5 blur-2xl rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Success CTA - Tight */}
+            <section className="py-8 px-6 bg-white relative overflow-hidden">
+                <div className="max-w-7xl mx-auto">
+                    <div className="ultra-card bg-slate-950 p-8 md:p-10 text-center relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#00bfa5]/10 rounded-full blur-[60px] -mr-32 -mt-32"></div>
+                        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[60px] -ml-32 -mb-32"></div>
+
+                        <div className="relative z-10">
+                            <h2 className="text-2xl md:text-3xl font-black text-white mb-4 tracking-tightest leading-tight">
+                                Your Goal is <span className="text-gradient-accent">Attainable.</span>
+                            </h2>
+                            <p className="text-base text-slate-400 mb-6 max-w-xl mx-auto font-medium">
+                                Join 5.5 Cr+ aspirants dominating their exams. Start free.
                             </p>
-                            <div className="flex gap-4">
-                                {[
-                                    { Icon: Facebook, color: "hover:text-[#1877F2]", label: "Facebook" },
-                                    { Icon: Twitter, color: "hover:text-[#1DA1F2]", label: "Twitter" },
-                                    { Icon: Instagram, color: "hover:text-[#E4405F]", label: "Instagram" },
-                                    { Icon: Linkedin, color: "hover:text-[#0A66C2]", label: "LinkedIn" },
-                                    { Icon: Youtube, color: "hover:text-[#FF0000]", label: "YouTube" }
-                                ].map((social, index) => (
-                                    <a
-                                        key={index}
-                                        href="#"
-                                        aria-label={social.label}
-                                        className={`w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 transition-all duration-300 hover:bg-white hover:shadow-md hover:-translate-y-1 ${social.color}`}
-                                    >
-                                        <social.Icon className="w-5 h-5" />
+                            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                <Link href="/signup" className="btn-ultra-blue text-sm px-8 h-12 flex items-center">
+                                    Start Prep Free
+                                </Link>
+                                <Link href="/dashboard" className="px-8 h-12 rounded-lg border border-white/10 text-white font-black hover:bg-white hover:text-slate-950 transition-all flex items-center justify-center text-xs">
+                                    Explore Pass
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Footer - Tight */}
+            <footer className="bg-white border-t border-slate-100 pt-10 pb-6">
+                <div className="max-w-[1440px] mx-auto px-6">
+                    <div className="grid md:grid-cols-4 gap-8 mb-8">
+                        <div className="col-span-1">
+                            <Link href="/" className="flex items-center gap-2 mb-4 group">
+                                <div className="w-7 h-7 bg-gradient-to-br from-[#00bfa5] to-blue-500 rounded-lg flex items-center justify-center shadow-md group-hover:rotate-6 transition-transform">
+                                    <Trophy className="w-4 h-4 text-white" />
+                                </div>
+                                <span className="text-lg font-black text-slate-950 tracking-tightest">eRankUp</span>
+                            </Link>
+                            <p className="text-slate-500 text-xs font-medium leading-relaxed mb-4">
+                                AI-powered exam preparation for India's ambitious aspirants.
+                            </p>
+                            <div className="flex gap-2">
+                                {[Facebook, Twitter, Instagram, Linkedin, Youtube].map((Icon, index) => (
+                                    <a key={index} href="#" className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-[#00bfa5] hover:text-white transition-all">
+                                        <Icon className="w-3.5 h-3.5" />
                                     </a>
                                 ))}
                             </div>
                         </div>
 
                         <div>
-                            <h4 className="font-bold text-gray-900 mb-6">Exams</h4>
-                            <ul className="space-y-4 text-gray-500 font-medium">
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">SSC CGL</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">SBI PO</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">RRB NTPC</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">IBPS Clerk</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">UPSC CSE</a></li>
+                            <h4 className="font-black text-slate-950 uppercase tracking-widest text-[9px] mb-4 opacity-40">Exams</h4>
+                            <ul className="space-y-2 text-slate-500 font-bold text-[10px]">
+                                <li><a href="#" className="hover:text-[#00bfa5]">SSC CGL</a></li>
+                                <li><a href="#" className="hover:text-[#00bfa5]">Banking</a></li>
+                                <li><a href="#" className="hover:text-[#00bfa5]">Railways</a></li>
+                                <li><a href="#" className="hover:text-[#00bfa5]">UPSC</a></li>
                             </ul>
                         </div>
 
                         <div>
-                            <h4 className="font-bold text-gray-900 mb-6">Company</h4>
-                            <ul className="space-y-4 text-gray-500 font-medium">
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">About Us</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">Careers</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">Blog</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">Press</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">Contact</a></li>
+                            <h4 className="font-black text-slate-950 uppercase tracking-widest text-[9px] mb-4 opacity-40">Company</h4>
+                            <ul className="space-y-2 text-slate-500 font-bold text-[10px]">
+                                <li><a href="#" className="hover:text-[#00bfa5]">Our Story</a></li>
+                                <li><a href="#" className="hover:text-[#00bfa5]">Careers</a></li>
+                                <li><a href="#" className="hover:text-[#00bfa5]">Press</a></li>
                             </ul>
                         </div>
 
                         <div>
-                            <h4 className="font-bold text-gray-900 mb-6">Resources</h4>
-                            <ul className="space-y-4 text-gray-500 font-medium">
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">Previous Year Papers</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">Daily Current Affairs</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">Exam Notifications</a></li>
-                                <li><a href="#" className="hover:text-[#00bfa5] transition-colors">Free Mock Tests</a></li>
-                            </ul>
+                            <h4 className="font-black text-slate-950 uppercase tracking-widest text-[9px] mb-4 opacity-40">Contact</h4>
+                            <div className="flex items-center gap-2 text-slate-950 font-black text-[10px]">
+                                <Smartphone className="w-3.5 h-3.5 text-[#00bfa5]" />
+                                +91 99999 00000
+                            </div>
                         </div>
                     </div>
 
-                    <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-                        <div>© 2024 eRankUp Technologies Pvt Ltd. All rights reserved.</div>
-                        <div className="flex gap-8">
-                            <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
-                            <a href="#" className="hover:text-gray-900 transition-colors">Terms</a>
-                            <a href="#" className="hover:text-gray-900 transition-colors">Sitemap</a>
+                    <div className="pt-6 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-3 text-[8px] font-black uppercase tracking-widest text-slate-400">
+                        <div>© 2026 eRankUp. Powered by AI.</div>
+                        <div className="flex gap-4">
+                            <a href="#">Privacy</a>
+                            <a href="#">Terms</a>
                         </div>
                     </div>
                 </div>
-            </footer >
-        </div >
+            </footer>
+        </div>
     );
 }
 
-// Components
-function ExamCard({ title, subtitle, tests, students, gradient, border, delay }: any) {
+// Components - Ultra Modernized
+function ExamCard({ title, subtitle, tests, students, gradient, delay }: any) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay }}
-            whileHover={{ y: -5 }}
-            className={`bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl transition-all group cursor-pointer ${border}`}
+            transition={{ duration: 0.6, delay }}
+            className="ultra-card p-6 group cursor-pointer"
         >
-            <div className={`w-14 h-14 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center mb-6 shadow-md text-white`}>
+            <div className={`w-14 h-14 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center mb-6 shadow-lg text-white group-hover:scale-110 transition-transform`}>
                 <Award className="w-7 h-7" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-[#00bfa5] transition-colors">{title}</h3>
-            <p className="text-sm text-gray-500 font-medium mb-4">{subtitle}</p>
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-[9px] font-bold text-emerald-600 uppercase tracking-tighter rounded mb-3">
+                <Sparkles className="w-2.5 h-2.5" /> High Success Rate
+            </div>
+            <h3 className="text-xl font-black text-slate-950 mb-1 group-hover:text-[#00bfa5] transition-colors tracking-tight">{title}</h3>
+            <p className="text-[11px] text-slate-400 font-bold mb-4">{subtitle}</p>
 
-            <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mb-6">
-                <span className="flex items-center gap-1 bg-gray-50 px-2.5 py-1 rounded-md">
-                    <BookOpen className="w-3.5 h-3.5" /> {tests}
-                </span>
-                <span className="flex items-center gap-1 bg-gray-50 px-2.5 py-1 rounded-md">
-                    <Users className="w-3.5 h-3.5" /> {students}
-                </span>
+            <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-slate-500 mb-6 opacity-80">
+                <span className="flex items-center gap-1.5">{tests}</span>
+                <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
+                <span className="flex items-center gap-1.5 text-slate-950">{students}</span>
             </div>
 
-            <div className="w-full h-10 rounded-xl bg-gray-50 text-gray-900 font-bold text-sm flex items-center justify-center group-hover:bg-gray-900 group-hover:text-white transition-all">
-                Start Now
+            <div className="w-full h-[46px] rounded-xl bg-slate-50 text-slate-950 font-black text-[11px] uppercase tracking-widest flex items-center justify-center group-hover:bg-slate-950 group-hover:text-white transition-all">
+                Start Prep
             </div>
         </motion.div>
     );

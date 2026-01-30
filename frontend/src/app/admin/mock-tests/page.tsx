@@ -78,6 +78,24 @@ export default function AdminMockTestsPage() {
         }
     };
 
+    const handleExportCSV = async (id: string, title: string) => {
+        try {
+            const response = await api.get(`/exams/${id}/export/csv`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `questions-${title.replace(/\s+/g, '-').toLowerCase()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Failed to export CSV", error);
+            alert('Failed to export CSV');
+        }
+    };
+
     // Filter: Published AND Real Exam AND Not Free Quiz (just in case)
     const filteredExams = exams.filter(exam => {
         const isMockTest = exam.type === 'real_exam' && exam.category !== 'Free Quiz';
@@ -164,6 +182,13 @@ export default function AdminMockTestsPage() {
                                             {/* Actions? Maybe just unpublish */}
                                         </button>
                                         <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleExportCSV(exam.id, exam.title)}
+                                                className="p-1.5 text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors"
+                                                title="Export Question Paper (CSV)"
+                                            >
+                                                <FileText className="w-4 h-4" />
+                                            </button>
                                             <button
                                                 onClick={() => handleTogglePublish(exam.id, exam.isPublished)}
                                                 className="p-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors"

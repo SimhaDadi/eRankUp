@@ -1,7 +1,5 @@
-import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'ai_chat_screen.dart';
@@ -45,6 +43,161 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
       debugPrint('Error fetching doubts: $e');
       setState(() => _isLoading = false);
     }
+  }
+
+    }
+  }
+
+  Future<void> _pickAndSearchPhoto(ImageSource source) async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: source, imageQuality: 80);
+    
+    if (image == null) return;
+
+    if (!mounted) return;
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('AI is Analyzing Question...', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    try {
+      final response = await apiService.uploadFile('/ai/photo-search', image.path, 'file');
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final result = jsonDecode(response.body);
+        _showResultSheet(result);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${response.statusCode} - ${response.body}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to connect to AI server: $e')),
+        );
+      }
+    }
+  }
+
+  void _showResultSheet(Map<String, dynamic> result) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        builder: (_, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.all(24),
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                   Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.indigo.shade50, borderRadius: BorderRadius.circular(10)),
+                    child: Icon(Icons.auto_awesome, color: Colors.indigo.shade600, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('AI Solution', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.shade50.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.indigo.shade100),
+                ),
+                child: Text(
+                  result['solution'] ?? 'No solution found.',
+                  style: const TextStyle(fontSize: 15, height: 1.6),
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (result['similarQuestions'] != null && (result['similarQuestions'] as List).isNotEmpty) ...[
+                const Text('SIMILAR PRACTICE MATERIAL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.black, letterSpacing: 1.2, color: Colors.grey)),
+                const SizedBox(height: 12),
+                ... (result['similarQuestions'] as List).map((q) => _buildSimilarQuestionCard(q)).toList(),
+              ],
+               const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSimilarQuestionCard(Map<String, dynamic> q) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(q['content'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(q['subject']?['title'] ?? 'General', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_ios, size: 16),
+            onPressed: () {
+              // Navigation to practice details would go here
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _postDoubt() async {
@@ -265,23 +418,48 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
           Row(
             children: [
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AIChatScreen()),
-                    );
-                  },
+                child: ElevatedButton.icon(
+                  onPressed: () => _pickAndSearchPhoto(ImageSource.camera),
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Scan Question', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFF6366F1),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Speak to AI Tutor', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _pickAndSearchPhoto(ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Pick Image', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    side: const BorderSide(color: Colors.white24),
+                  ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+                onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AIChatScreen()),
+                );
+                },
+                child: const Text('Or just chat with AI Tutor', style: TextStyle(color: Colors.white70, decoration: TextDecoration.underline)),
+            ),
           ),
         ],
       ),

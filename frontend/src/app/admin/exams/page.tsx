@@ -80,6 +80,24 @@ export default function AdminExamsPage() {
         }
     };
 
+    const handleExportCSV = async (id: string, title: string) => {
+        try {
+            const response = await api.get(`/exams/${id}/export/csv`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `draft-${title.replace(/\s+/g, '-').toLowerCase()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Failed to export CSV", error);
+            alert('Failed to export CSV');
+        }
+    };
+
     const [filterType, setFilterType] = useState<'all' | 'real_exam' | 'question_bank' | 'live_exam' | 'previous_year_paper'>('all');
 
     const filteredExams = exams.filter(exam => {
@@ -201,6 +219,13 @@ export default function AdminExamsPage() {
                                     )}
                                 </div>
                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={() => handleExportCSV(exam.id, exam.title)}
+                                        className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                                        title="Export Question Paper (CSV)"
+                                    >
+                                        <FileText className="w-4 h-4" />
+                                    </button>
                                     <button
                                         onClick={() => handleTogglePublish(exam.id, exam.isPublished)}
                                         className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${exam.isPublished

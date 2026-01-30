@@ -5,6 +5,9 @@ export interface Stats {
     accuracy: number;
     streak: number;
     dailyQuestions?: number;
+    totalXp?: number;
+    level?: number;
+    badges?: any[];
 }
 
 export interface RecentAttempt {

@@ -11,7 +11,8 @@ import {
     Zap,
     ExternalLink,
     HelpCircle,
-    Calendar
+    Calendar,
+    FileText
 } from 'lucide-react';
 import api from '@/lib/api';
 import { CreateExamModal } from '@/components/admin/CreateExamModal';
@@ -75,6 +76,24 @@ export default function AdminDailyQuizzesPage() {
         }
     };
 
+    const handleExportCSV = async (id: string, title: string) => {
+        try {
+            const response = await api.get(`/exams/${id}/export/csv`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `quiz-${title.replace(/\s+/g, '-').toLowerCase()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Failed to export CSV", error);
+            alert('Failed to export CSV');
+        }
+    };
+
     const filteredQuizzes = quizzes.filter(quiz =>
         quiz.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -124,6 +143,13 @@ export default function AdminDailyQuizzesPage() {
                         >
                             {/* Actions Overlay */}
                             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-slate-900/80 backdrop-blur rounded-lg p-1">
+                                <button
+                                    onClick={() => handleExportCSV(quiz.id, quiz.title)}
+                                    className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                                    title="Export Question Paper (CSV)"
+                                >
+                                    <FileText className="w-4 h-4" />
+                                </button>
                                 <button
                                     onClick={() => handleTogglePublish(quiz.id, quiz.isPublished)}
                                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${quiz.isPublished

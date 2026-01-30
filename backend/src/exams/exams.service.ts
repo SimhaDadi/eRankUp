@@ -17,6 +17,7 @@ import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 import { CreateSubjectDto, CreateChapterDto, CreateModelDto } from '@erankup/shared';
 import { ExplanationService } from '../ai/explanation.service';
+import { AIService } from '../ai/ai.service';
 import { UserRole } from '../users/user.entity';
 
 @Injectable()
@@ -44,6 +45,7 @@ export class ExamsService implements OnApplicationBootstrap {
         private passesService: PassesService,
         private cacheService: CacheService,
         private explanationService: ExplanationService,
+        private aiService: AIService,
     ) { }
 
     async findAll(options: { includeUnpublished?: boolean; type?: string } = {}) {
@@ -726,13 +728,17 @@ export class ExamsService implements OnApplicationBootstrap {
             }
         }
 
+        // Generate vector embedding for semantic search
+        const embedding = await this.aiService.generateEmbedding(data.content || data.questionText);
+
         // Link to hierarchy for bank categorization
         const questionData = {
             ...data,
             subject: model?.chapter?.subject,
             chapter: model?.chapter,
             models: [model],
-            exams: data.examId ? [{ id: data.examId }] : [] // Use exams array instead of examId column
+            exams: data.examId ? [{ id: data.examId }] : [], // Use exams array instead of examId column
+            embedding
         };
 
         const question = this.questionRepository.create(questionData);
@@ -1094,6 +1100,13 @@ export class ExamsService implements OnApplicationBootstrap {
                 if (!questionData.exams.some((e: any) => e.id === examId)) {
                     questionData.exams.push({ id: examId });
                 }
+            }
+
+            // Generate vector embedding
+            try {
+                questionData.embedding = await this.aiService.generateEmbedding(data.content);
+            } catch (err) {
+                console.error(`[ExamsService] Failed to generate embedding for bulk question:`, err.message);
             }
 
             const question = this.questionRepository.create(questionData);

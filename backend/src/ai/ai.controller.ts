@@ -1,4 +1,5 @@
-import { Controller, Post, Get, Param, Body, UseGuards, HttpException, HttpStatus, Request } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, UseGuards, HttpException, HttpStatus, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -116,6 +117,17 @@ export class AIController {
             };
         } catch (error) {
             throw new HttpException(error.message || 'Failed to fetch explanation', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Post('photo-search')
+    @UseInterceptors(FileInterceptor('file'))
+    async photoSearch(@UploadedFile() file: Express.Multer.File) {
+        if (!file) throw new HttpException('No file uploaded', HttpStatus.BAD_REQUEST);
+        try {
+            return await this.aiService.photoSearch(file);
+        } catch (error) {
+            throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

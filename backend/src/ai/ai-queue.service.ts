@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 export class AIQueueService {
     private queue: Array<() => Promise<any>> = [];
     private isProcessing = false;
-    private readonly RATE_LIMIT_DELAY = 10000; // 10 seconds between requests (6 RPM) to strictly avoid bans
+    private readonly RATE_LIMIT_DELAY = 2500; // 2.5 seconds between requests (24 RPM)
 
     /**
      * Add a task to the AI queue

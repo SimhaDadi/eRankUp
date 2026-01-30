@@ -55,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
         apiService.get('/exams/user/stats'),
         apiService.get('/exams/user/recent'),
         apiService.get('/exams/live'),
+        apiService.get('/gamification/profile'),
       ]).timeout(const Duration(seconds: 10));
 
       debugPrint('HomeScreen: Data fetched. Statuses: ${results.map((r) => r.statusCode)}');
@@ -62,8 +63,19 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           if (results[0].statusCode == 200) {
-            _stats = jsonDecode(results[0].body);
-            debugPrint('HomeScreen: Stats loaded: $_stats');
+            final examsStats = jsonDecode(results[0].body);
+            _stats = examsStats;
+            
+            // Merge gamification data
+            if (results[3].statusCode == 200) {
+              final gamiStats = jsonDecode(results[3].body);
+              _stats!['totalXp'] = gamiStats['totalXp'];
+              _stats!['level'] = gamiStats['level'];
+              _stats!['badges'] = gamiStats['badges'];
+              _stats!['currentStreak'] = gamiStats['currentStreak'];
+            }
+            
+            debugPrint('HomeScreen: Combined Stats loaded: $_stats');
             if ((_stats?['dailyQuestions'] ?? 0) >= 100) {
               _confettiController.play();
             }
@@ -211,33 +223,64 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           if (streak > 0) ...[
             const SizedBox(height: AppSpacing.md),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: Theme.of(context).brightness == Brightness.dark 
-                    ? [const Color(0xFFC2410C), const Color(0xFF991B1B)]
-                    : [Colors.orange.shade400, Colors.red.shade400],
-                ),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('🔥', style: TextStyle(fontSize: 18)),
-                  const SizedBox(width: 6),
-                  Text(
-                    '$streak day streak!',
-                    style: AppTextStyles.caption.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
                   ),
-                ],
-              ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: Theme.of(context).brightness == Brightness.dark 
+                        ? [const Color(0xFFC2410C), const Color(0xFF991B1B)]
+                        : [Colors.orange.shade400, Colors.red.shade400],
+                    ),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🔥', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$streak day streak!',
+                        style: AppTextStyles.caption.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF1E293B) 
+                        : Colors.white,
+                    border: Border.all(color: Colors.amber.shade300, width: 2),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('⭐', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'LVL ${_stats?['level'] ?? 1}',
+                        style: AppTextStyles.caption.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.amber.shade800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ],

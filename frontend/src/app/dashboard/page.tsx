@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import ActivePassBadge from '@/components/ActivePassBadge';
 import DashboardSkeleton from '@/components/DashboardSkeleton';
+import AiDoubtSolver from '@/components/AiDoubtSolver';
 
 import { Stats, RecentAttempt } from '@/types/dashboard.types';
 
@@ -36,13 +37,22 @@ export default function DashboardPage() {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [statsRes, recentRes, examsRes, passRes] = await Promise.all([
+                const [statsRes, recentRes, examsRes, passRes, gamiRes] = await Promise.all([
                     api.get('/exams/user/stats'),
                     api.get('/exams/user/recent'),
                     api.get('/exams'),
-                    api.get('/passes/current').catch(() => ({ data: null }))
+                    api.get('/passes/current').catch(() => ({ data: null })),
+                    api.get('/gamification/profile').catch(() => ({ data: {} }))
                 ]);
-                setStats(statsRes.data);
+
+                const combinedStats = {
+                    ...statsRes.data,
+                    totalXp: gamiRes.data.totalXp,
+                    level: gamiRes.data.level,
+                    badges: gamiRes.data.badges
+                };
+
+                setStats(combinedStats);
                 setRecentAttempts(Array.isArray(recentRes.data) ? recentRes.data : []);
                 setAllExams(examsRes.data || []);
                 setActivePass(passRes.data);
@@ -473,8 +483,69 @@ export default function DashboardPage() {
                                 </div>
                             </div>
 
-                            {/* AI Recommendations */}
+                            {/* AI Doubt Solver & Gamification Widgets */}
                             <div className="lg:col-span-2 space-y-4">
+                                <AiDoubtSolver />
+
+                                {/* Gamification Quick Stats */}
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 1.2 }}
+                                    className="bg-white border border-slate-200/60 rounded-[2rem] p-6 shadow-xl shadow-slate-200/10 relative overflow-hidden group"
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
+                                                <Trophy className="w-5 h-5 text-amber-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-slate-900 tracking-tight leading-none">Level {stats?.level || 1}</h3>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Preparation Tier</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-sm font-black text-slate-900 leading-none">{stats?.totalXp || 0}</div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Total XP</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            <span>Progress to Level {(stats?.level || 1) + 1}</span>
+                                            <span>{Math.round(((stats?.totalXp || 0) % 500) / 5)}%</span>
+                                        </div>
+                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${((stats?.totalXp || 0) % 500) / 5}%` }}
+                                                className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Badges Preview */}
+                                    {stats?.badges && stats.badges.length > 0 && (
+                                        <div className="mt-6 pt-6 border-t border-slate-100">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recent Achievements</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {stats.badges.slice(0, 4).map((badge: any, i: number) => (
+                                                    <div
+                                                        key={i}
+                                                        className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-help"
+                                                        title={badge.name}
+                                                    >
+                                                        {badge.icon || '🏅'}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </motion.div>
+
                                 <div className="px-2">
                                     <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900 tracking-tight">
                                         <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center">

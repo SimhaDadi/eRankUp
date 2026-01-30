@@ -10,6 +10,7 @@ import { Question } from '../exams/entities/question.entity';
 import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
 import { Exam } from '../exams/entities/exam.entity';
+import { AIService } from '../ai/ai.service';
 
 @Controller('questions')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -24,6 +25,7 @@ export class QuestionsController {
         private chapterRepository: Repository<Chapter>,
         @InjectRepository(Exam)
         private examRepository: Repository<Exam>,
+        private readonly aiService: AIService,
     ) { }
 
     @Get()
@@ -87,6 +89,8 @@ export class QuestionsController {
                 text: text
             }));
 
+            const embedding = await this.aiService.generateEmbedding(questionText);
+
             const question = this.questionRepository.create({
                 content: questionText,
                 options: formattedOptions,
@@ -99,7 +103,8 @@ export class QuestionsController {
                 subject: subject,
                 chapter: chapter,
                 chapterId: chapterId,
-                exams: exam ? [exam] : [] // Now an array, can be empty for global questions
+                exams: exam ? [exam] : [], // Now an array, can be empty for global questions
+                embedding: embedding
             });
 
             const saved = await this.questionRepository.save(question);
@@ -142,7 +147,15 @@ export class QuestionsController {
                 }
             }
 
-            if (updateData.questionText) question.content = updateData.questionText;
+            if (updateData.questionText) {
+                question.content = updateData.questionText;
+                // Update embedding when content changes
+                try {
+                    question.embedding = await this.aiService.generateEmbedding(updateData.questionText);
+                } catch (e) {
+                    console.error(`Failed to update embedding during question edit: ${e.message}`);
+                }
+            }
             if (updateData.correctAnswer !== undefined) question.correctOptionId = String.fromCharCode(65 + updateData.correctAnswer);
             if (updateData.explanation) question.explanation = updateData.explanation;
             if (updateData.topic) question.topic = updateData.topic;
@@ -258,6 +271,14 @@ export class QuestionsController {
             }
 
             if (validQuestions.length > 0) {
+                // Generate embeddings for all valid questions before saving
+                for (const q of validQuestions) {
+                    try {
+                        q.embedding = await this.aiService.generateEmbedding(q.content);
+                    } catch (e) {
+                        console.error(`Failed to generate embedding for bulk question: ${e.message}`);
+                    }
+                }
                 await this.questionRepository.save(validQuestions);
             }
 
