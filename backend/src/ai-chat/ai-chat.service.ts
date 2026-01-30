@@ -435,14 +435,21 @@ HISTORY:
 ${historyText}
 
 INSTRUCTIONS:
-1. **EXAM-ORIENTED**: Focus on the direct method used in exams.
-2. **STRUCTURED & SIMPLE**:
-   - **Step 1**: Identify the logic/formula.
-   - **Step 2**: Sove using the quickest method (Ratio/Option/Trick).
-   - **Answer**: Final result.
-3. **CONCISE**: Keep explanations crisp. Avoid unnecessary theory.
+1. **EXTREME SHORTCUT MODE**: 
+   - ALWAYS solve in **3 STEPS OR LESS**.
+   - **NO DERIVATIONS**: Strictly skip "Let X be...", "Assuming...", or long algebraic formulas.
+   - **DIRECT METHOD**: Use only the fastest SSC tricks (Ratio, Successive %, Options elimination, or Digital Sum).
+2. **STRUCTURE**: 
+   - Use ### for headers.
+   - Separate segments with **DOUBLE LINE BREAKS** for maximum spacing.
+   - **Step 1**: The Trick/Logic (direct link to the answer).
+   - **Step 2**: The Calculation (mental math style).
+   - **[Final Result]**: Bold final answer.
+3. **NO SYMBOLS**: Strictly NO LaTeX math symbols. Use "x", "/", and "approx.".
+4. **NO TABLES**: Use simple bullet points.
+5. **CONCISE & PUNCHY**: Every word must save the student time.
 
-GOAL: Help the student understand AND solve quickly.
+GOAL: Provide a 30-second shortcut that allows a student to solve and move to the next question immediately.
 
 Student: ${message}
 Tutor:`;

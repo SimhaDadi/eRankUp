@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { Camera, Upload, Sparkles, Loader2, ChevronRight, X, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-export default function AiDoubtSolver() {
+export default function AiDoubtSolver({ onClose }: { onClose?: () => void }) {
     const [isUploading, setIsUploading] = useState(false);
     const [result, setResult] = useState<{ solution: string; similarQuestions: any[] } | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,15 @@ export default function AiDoubtSolver() {
                         </div>
                         AI Doubt Solver
                     </h2>
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-slate-900 transition-all border border-transparent hover:border-slate-100"
+                            title="Hide"
+                        >
+                            <X size={20} />
+                        </button>
+                    )}
                 </div>
 
                 {!result && !isUploading && (
@@ -92,8 +103,20 @@ export default function AiDoubtSolver() {
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
-                                <div className="text-sm text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">
-                                    {result.solution}
+                                <div className="text-sm text-slate-700 leading-relaxed prose prose-slate max-w-none prose-p:leading-relaxed prose-li:leading-relaxed">
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                            h3: ({ node, ...props }) => <h3 className="text-[10px] font-black mt-4 mb-2 text-indigo-600 uppercase tracking-widest" {...props} />,
+                                            p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                                            ul: ({ node, ...props }) => <ul className="list-disc ml-4 mb-2 space-y-1" {...props} />,
+                                            ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mb-2 space-y-1" {...props} />,
+                                            li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                                            strong: ({ node, ...props }) => <strong className="font-black text-slate-900" {...props} />
+                                        }}
+                                    >
+                                        {result.solution}
+                                    </ReactMarkdown>
                                 </div>
                             </div>
 

@@ -11,9 +11,9 @@ export class ChatService {
         private messageRepository: Repository<ChatMessage>,
     ) { }
 
-    async saveMessage(user: User, content: string): Promise<ChatMessage> {
+    async saveMessage(userId: string, content: string): Promise<ChatMessage> {
         const message = this.messageRepository.create({
-            sender: user,
+            senderId: userId,
             content,
         });
         return this.messageRepository.save(message);

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { SystemHealthController } from './system-health.controller';
@@ -13,11 +13,13 @@ import { Purchase } from '../exams/entities/purchase.entity';
 import { User } from '../users/user.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { UserPass } from '../passes/entities/user-pass.entity';
+import { ExamsModule } from '../exams/exams.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Purchase, User, Exam, UserPass]),
-        ConfigModule
+        ConfigModule,
+        forwardRef(() => ExamsModule)
     ],
     controllers: [
         SystemHealthController,

@@ -28,11 +28,14 @@ import { PassesModule } from '../passes/passes.module';
 import { QualityModule } from '../quality/quality.module';
 import { StudentQuestionsController } from './student-questions.controller';
 
+import { AdminModule } from '../admin/admin.module';
+
 @Module({
     imports: [
         TypeOrmModule.forFeature([Exam, Subject, Chapter, Model, Question, Attempt, Response, Purchase, User]),
         forwardRef(() => PaymentsModule),
         forwardRef(() => TestSessionModule),
+        forwardRef(() => AdminModule),
         AIModule,
         GamificationModule,
         AdaptiveLearningModule,
@@ -41,6 +44,6 @@ import { StudentQuestionsController } from './student-questions.controller';
     ],
     controllers: [ExamsController, SubjectsController, ChaptersController, ModelsController, QuestionsController, StudentQuestionsController],
     providers: [ExamsService, ExamsSeederService, ScorerService, DifficultyService, QuestionsUploadService],
-    exports: [ExamsService, ScorerService, DifficultyService]
+    exports: [ExamsService, ScorerService, DifficultyService, ExamsSeederService]
 })
 export class ExamsModule { }

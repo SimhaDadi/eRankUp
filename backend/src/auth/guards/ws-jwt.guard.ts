@@ -17,6 +17,7 @@ export class WsJwtGuard implements CanActivate {
             client.user = decoded;
             return true;
         } catch (ex) {
+            console.error(`[WsJwtGuard] Authentication failed for token ${authToken?.substring(0, 10)}... : ${ex.message}`);
             return false;
         }
     }

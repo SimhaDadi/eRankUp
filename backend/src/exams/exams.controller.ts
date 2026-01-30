@@ -14,7 +14,10 @@ import { TestSessionService } from '../test-session/test-session.service';
 import { UserRole } from '@erankup/shared';
 import { CreateExamDto, UpdateExamDto, CreateSubjectDto, UpdateSubjectDto, CreateChapterDto, UpdateChapterDto, CreateModelDto, BulkCreateQuestionsDto } from '@erankup/shared';
 
+import { SystemLockdownGuard } from '../common/guards/system-lockdown.guard';
+
 @Controller('exams')
+@UseGuards(SystemLockdownGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class ExamsController {
     constructor(

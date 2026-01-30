@@ -16,12 +16,28 @@ export default function ChatSupport() {
 
     useEffect(() => {
         if (isOpen && !socketRef.current) {
-            socketRef.current = io('http://localhost:3001', {
+            const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+            console.log(`[ChatSupport] Connecting to ${socketUrl}...`);
+
+            socketRef.current = io(socketUrl, {
                 query: { token },
+                transports: ['websocket'],
+            });
+
+            socketRef.current.on('connect', () => {
+                console.log('[ChatSupport] Socket connected successfully');
+            });
+
+            socketRef.current.on('connect_error', (error) => {
+                console.error('[ChatSupport] Socket connection error:', error.message);
             });
 
             socketRef.current.on('receiveMessage', (data) => {
                 setMessages((prev) => [...prev, data]);
+            });
+
+            socketRef.current.on('previousMessages', (data) => {
+                setMessages(data);
             });
         }
 
@@ -101,7 +117,7 @@ export default function ChatSupport() {
                                         {!isMe && <div className="text-[10px] font-bold text-blue-400 mb-1">{msg.user}</div>}
                                         <p>{msg.message}</p>
                                         <div className="text-[9px] opacity-50 mt-1 text-right">
-                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                                         </div>
                                     </div>
                                 </div>

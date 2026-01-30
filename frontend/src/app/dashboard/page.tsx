@@ -31,6 +31,7 @@ export default function DashboardPage() {
     const [recentAttempts, setRecentAttempts] = useState<RecentAttempt[]>([]);
     const [allExams, setAllExams] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [showAiDoubtSolver, setShowAiDoubtSolver] = useState(true);
     const searchParams = useSearchParams();
     const searchQuery = searchParams.get('search') || '';
 
@@ -331,6 +332,72 @@ export default function DashboardPage() {
                         </motion.div>
 
                         <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
+                            {/* AI Doubt Solver & Gamification Widgets */}
+                            <div className="lg:col-span-2 space-y-4">
+                                {showAiDoubtSolver && <AiDoubtSolver onClose={() => setShowAiDoubtSolver(false)} />}
+
+                                {/* Gamification Quick Stats */}
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 1.2 }}
+                                    className="bg-white border border-slate-200/60 rounded-[2rem] p-6 shadow-xl shadow-slate-200/10 relative overflow-hidden group"
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
+                                                <Trophy className="w-5 h-5 text-amber-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-slate-900 tracking-tight leading-none">Level {stats?.level || 1}</h3>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Preparation Tier</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-sm font-black text-slate-900 leading-none">{stats?.totalXp || 0}</div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Total XP</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            <span>Progress to Level {(stats?.level || 1) + 1}</span>
+                                            <span>{Math.round(((stats?.totalXp || 0) % 500) / 5)}%</span>
+                                        </div>
+                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${((stats?.totalXp || 0) % 500) / 5}%` }}
+                                                className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Badges Preview */}
+                                    {stats?.badges && stats.badges.length > 0 && (
+                                        <div className="mt-6 pt-6 border-t border-slate-100">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recent Achievements</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {stats.badges.slice(0, 4).map((badge: any, i: number) => (
+                                                    <div
+                                                        key={i}
+                                                        className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-help"
+                                                        title={badge.name}
+                                                    >
+                                                        {badge.icon || '🏅'}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </motion.div>
+
+
+                            </div>
+
                             {/* Recent Activity */}
                             <div className="lg:col-span-3 space-y-4">
                                 <div className="flex items-center justify-between px-2">
@@ -481,206 +548,144 @@ export default function DashboardPage() {
                                         }
                                     })()}
                                 </div>
-                            </div>
 
-                            {/* AI Doubt Solver & Gamification Widgets */}
-                            <div className="lg:col-span-2 space-y-4">
-                                <AiDoubtSolver />
-
-                                {/* Gamification Quick Stats */}
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: 1.2 }}
-                                    className="bg-white border border-slate-200/60 rounded-[2rem] p-6 shadow-xl shadow-slate-200/10 relative overflow-hidden group"
-                                >
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
-                                                <Trophy className="w-5 h-5 text-amber-600" />
+                                <div className="mt-8 space-y-4">
+                                    <div className="px-2">
+                                        <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900 tracking-tight">
+                                            <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center">
+                                                <Zap className="w-5 h-5 text-orange-500" />
                                             </div>
-                                            <div>
-                                                <h3 className="font-black text-slate-900 tracking-tight leading-none">Level {stats?.level || 1}</h3>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Preparation Tier</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-sm font-black text-slate-900 leading-none">{stats?.totalXp || 0}</div>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Total XP</p>
-                                        </div>
+                                            For You
+                                        </h2>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            <span>Progress to Level {(stats?.level || 1) + 1}</span>
-                                            <span>{Math.round(((stats?.totalXp || 0) % 500) / 5)}%</span>
-                                        </div>
-                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${((stats?.totalXp || 0) % 500) / 5}%` }}
-                                                className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.3)]"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Badges Preview */}
-                                    {stats?.badges && stats.badges.length > 0 && (
-                                        <div className="mt-6 pt-6 border-t border-slate-100">
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recent Achievements</span>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                {stats.badges.slice(0, 4).map((badge: any, i: number) => (
-                                                    <div
-                                                        key={i}
-                                                        className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-help"
-                                                        title={badge.name}
-                                                    >
-                                                        {badge.icon || '🏅'}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </motion.div>
-
-                                <div className="px-2">
-                                    <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900 tracking-tight">
-                                        <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center">
-                                            <Zap className="w-5 h-5 text-orange-500" />
-                                        </div>
-                                        For You
-                                    </h2>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: 0.8 }}
-                                        className="bg-gradient-to-br from-[#1a237e] via-[#311b92] to-[#4527a0] p-6 rounded-[2.5rem] text-white relative overflow-hidden group shadow-xl shadow-indigo-500/30 border border-white/10"
-                                    >
-                                        <div className="relative z-10">
-                                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-2xl text-white text-[9px] font-black uppercase tracking-[0.15em] mb-4 border border-white/20 shadow-lg">
-                                                <Sparkles className="w-3 h-3 text-yellow-300" /> Focus Recommendation
-                                            </div>
-                                            <h3 className="text-2xl font-black mb-3 leading-[1.2] tracking-tight">Master History <br />& GS for SSC</h3>
-                                            <p className="text-indigo-100 text-xs leading-relaxed font-medium mb-8 opacity-80">
-                                                Your accuracy in Indian History is <span className="text-emerald-300 font-bold">15% lower</span> than RRB NTPC toppers.
-                                            </p>
-                                            <Link
-                                                href="/dashboard/study-plan"
-                                                className="group/deep relative block w-full text-center py-4 bg-white text-[#311b92] rounded-[1.2rem] font-bold text-xs uppercase tracking-[0.2em] shadow-xl transition-all hover:scale-[1.03] active:scale-95 overflow-hidden"
-                                            >
-                                                <span className="relative z-10 transition-colors group-hover/deep:text-white">Start Deep Dive</span>
-                                                <div className="absolute inset-0 bg-gradient-to-r from-teal-400 to-[#00bfa5] opacity-0 group-hover/deep:opacity-100 transition-opacity duration-300" />
-                                            </Link>
-                                        </div>
-                                        <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-[80px]" />
-                                        <Target className="absolute top-10 -right-10 w-40 h-40 text-white/5 rotate-12 group-hover:scale-110 group-hover:rotate-0 transition-transform duration-1000" />
-                                    </motion.div>
-
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: 1.0 }}
-                                        className="group relative p-[2px] rounded-[2.5rem] overflow-hidden"
-                                    >
-                                        {/* Animated Neon "Reactor" Border */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <motion.div
-                                            animate={{ rotate: 360 }}
-                                            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                                            className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,transparent_0%,transparent_40%,#fbbf24_50%,transparent_60%,transparent_100%)] opacity-40 group-hover:opacity-100 transition-opacity duration-1000"
-                                        />
-
-                                        <div className="relative bg-[#0b0f1a] backdrop-blur-3xl p-6 rounded-[2.4rem] h-full transition-colors duration-700 group-hover:bg-[#0f1424]">
-                                            <div className="relative z-10 font-inter">
-                                                <div className="flex items-center justify-between mb-8">
-                                                    <div className="relative overflow-hidden px-4 py-2 rounded-xl bg-white/5 border border-white/10 group/badge shadow-xl">
-                                                        {/* Holographic Shimmer Layer */}
-                                                        <motion.div
-                                                            animate={{ x: ['-100%', '200%'] }}
-                                                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                                                            className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent skew-x-12"
-                                                        />
-                                                        <div className="relative flex items-center gap-2">
-                                                            <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping shadow-[0_0_15px_#fbbf24]" />
-                                                            <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                                                                MOMENTUM <span className="text-amber-400">REACTOR</span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ delay: 0.8 }}
+                                            className="bg-gradient-to-br from-[#1a237e] via-[#311b92] to-[#4527a0] p-6 rounded-[2.5rem] text-white relative overflow-hidden group shadow-xl shadow-indigo-500/30 border border-white/10"
+                                        >
+                                            <div className="relative z-10">
+                                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-2xl text-white text-[9px] font-black uppercase tracking-[0.15em] mb-4 border border-white/20 shadow-lg">
+                                                    <Sparkles className="w-3 h-3 text-yellow-300" /> Focus Recommendation
                                                 </div>
+                                                <h3 className="text-2xl font-black mb-3 leading-[1.2] tracking-tight">Master History <br />& GS for SSC</h3>
+                                                <p className="text-indigo-100 text-xs leading-relaxed font-medium mb-8 opacity-80">
+                                                    Your accuracy in Indian History is <span className="text-emerald-300 font-bold">15% lower</span> than RRB NTPC toppers.
+                                                </p>
+                                                <Link
+                                                    href="/dashboard/study-plan"
+                                                    className="group/deep relative block w-full text-center py-4 bg-white text-[#311b92] rounded-[1.2rem] font-bold text-xs uppercase tracking-[0.2em] shadow-xl transition-all hover:scale-[1.03] active:scale-95 overflow-hidden"
+                                                >
+                                                    <span className="relative z-10 transition-colors group-hover/deep:text-white">Start Deep Dive</span>
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-teal-400 to-[#00bfa5] opacity-0 group-hover/deep:opacity-100 transition-opacity duration-300" />
+                                                </Link>
+                                            </div>
+                                            <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-[80px]" />
+                                            <Target className="absolute top-10 -right-10 w-40 h-40 text-white/5 rotate-12 group-hover:scale-110 group-hover:rotate-0 transition-transform duration-1000" />
+                                        </motion.div>
 
-                                                <div className="space-y-6 mb-8">
-                                                    <div className="flex items-center gap-6">
-                                                        <div className="relative">
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ delay: 1.0 }}
+                                            className="group relative p-[2px] rounded-[2.5rem] overflow-hidden"
+                                        >
+                                            {/* Animated Neon "Reactor" Border */}
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                                                className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,transparent_0%,transparent_40%,#fbbf24_50%,transparent_60%,transparent_100%)] opacity-40 group-hover:opacity-100 transition-opacity duration-1000"
+                                            />
+
+                                            <div className="relative bg-[#0b0f1a] backdrop-blur-3xl p-6 rounded-[2.4rem] h-full transition-colors duration-700 group-hover:bg-[#0f1424]">
+                                                <div className="relative z-10 font-inter">
+                                                    <div className="flex items-center justify-between mb-8">
+                                                        <div className="relative overflow-hidden px-4 py-2 rounded-xl bg-white/5 border border-white/10 group/badge shadow-xl">
+                                                            {/* Holographic Shimmer Layer */}
                                                             <motion.div
-                                                                animate={{ scale: [1, 1.05, 1], rotate: [0, 5, -5, 0] }}
-                                                                transition={{ duration: 5, repeat: Infinity }}
-                                                                className="text-6xl font-black text-white tracking-tighter leading-none select-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
-                                                            >
-                                                                {stats?.streak || 1}
-                                                            </motion.div>
-                                                            {/* Reactor Glow Ring */}
-                                                            <div className="absolute inset-0 bg-amber-500/5 blur-[30px] rounded-full -z-10 animate-pulse" />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <div className="text-amber-500 text-[11px] font-black uppercase tracking-[0.3em] leading-none">Day Streak</div>
-                                                            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-orange-500/10 text-orange-400 text-[9px] font-black uppercase tracking-widest border border-orange-500/20">
-                                                                <Zap className="w-3 h-3 fill-orange-400" /> Superconducting
+                                                                animate={{ x: ['-100%', '200%'] }}
+                                                                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                                                                className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent skew-x-12"
+                                                            />
+                                                            <div className="relative flex items-center gap-2">
+                                                                <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping shadow-[0_0_15px_#fbbf24]" />
+                                                                <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                                                                    MOMENTUM <span className="text-amber-400">REACTOR</span>
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    {/* Liquid Consistency Tracker */}
-                                                    <div className="pt-4 border-t border-white/5 relative">
-                                                        <div className="flex items-center justify-between mb-3">
-                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Efficiency Matrix</span>
-                                                            <div className="text-[10px] font-black text-amber-500 tracking-widest">S-RANK</div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            {[1, 2, 3, 4, 5, 6, 7].map((day, i) => (
-                                                                <div key={day} className="flex-1 group/bead relative h-2.5 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
-                                                                    {i < (stats?.streak || 1) % 8 && (
-                                                                        <motion.div
-                                                                            initial={{ y: "100%" }}
-                                                                            animate={{ y: "0%" }}
-                                                                            transition={{ duration: 1, delay: i * 0.1 }}
-                                                                            className="absolute inset-0 bg-gradient-to-t from-orange-600 via-amber-400 to-yellow-200"
-                                                                        >
-                                                                            {/* Liquid Bubble Animation */}
-                                                                            <motion.div
-                                                                                animate={{ y: [-10, 10], x: [-2, 2] }}
-                                                                                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                                                                className="w-full h-full opacity-30 bg-white blur-sm"
-                                                                            />
-                                                                        </motion.div>
-                                                                    )}
+                                                    <div className="space-y-6 mb-8">
+                                                        <div className="flex items-center gap-6">
+                                                            <div className="relative">
+                                                                <motion.div
+                                                                    animate={{ scale: [1, 1.05, 1], rotate: [0, 5, -5, 0] }}
+                                                                    transition={{ duration: 5, repeat: Infinity }}
+                                                                    className="text-6xl font-black text-white tracking-tighter leading-none select-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
+                                                                >
+                                                                    {stats?.streak || 1}
+                                                                </motion.div>
+                                                                {/* Reactor Glow Ring */}
+                                                                <div className="absolute inset-0 bg-amber-500/5 blur-[30px] rounded-full -z-10 animate-pulse" />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <div className="text-amber-500 text-[11px] font-black uppercase tracking-[0.3em] leading-none">Day Streak</div>
+                                                                <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-orange-500/10 text-orange-400 text-[9px] font-black uppercase tracking-widest border border-orange-500/20">
+                                                                    <Zap className="w-3 h-3 fill-orange-400" /> Superconducting
                                                                 </div>
-                                                            ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Liquid Consistency Tracker */}
+                                                        <div className="pt-4 border-t border-white/5 relative">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Efficiency Matrix</span>
+                                                                <div className="text-[10px] font-black text-amber-500 tracking-widest">S-RANK</div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                {[1, 2, 3, 4, 5, 6, 7].map((day, i) => (
+                                                                    <div key={day} className="flex-1 group/bead relative h-2.5 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
+                                                                        {i < (stats?.streak || 1) % 8 && (
+                                                                            <motion.div
+                                                                                initial={{ y: "100%" }}
+                                                                                animate={{ y: "0%" }}
+                                                                                transition={{ duration: 1, delay: i * 0.1 }}
+                                                                                className="absolute inset-0 bg-gradient-to-t from-orange-600 via-amber-400 to-yellow-200"
+                                                                            >
+                                                                                {/* Liquid Bubble Animation */}
+                                                                                <motion.div
+                                                                                    animate={{ y: [-10, 10], x: [-2, 2] }}
+                                                                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                                                                    className="w-full h-full opacity-30 bg-white blur-sm"
+                                                                                />
+                                                                            </motion.div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                     </div>
+
+                                                    <Link
+                                                        href="/dashboard/study-plan"
+                                                        className="group/btn block relative"
+                                                    >
+                                                        <div className="absolute inset-0 bg-amber-500 blur-xl opacity-0 group-hover/btn:opacity-20 transition-opacity duration-500" />
+                                                        <div className="relative text-center py-4 bg-gradient-to-r from-slate-800 to-slate-900 border border-white/10 text-white rounded-xl font-black text-xs uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-95 hover:border-amber-500/50 hover:text-amber-400">
+                                                            Ignite Pipeline
+                                                        </div>
+                                                    </Link>
                                                 </div>
 
-                                                <Link
-                                                    href="/dashboard/study-plan"
-                                                    className="group/btn block relative"
-                                                >
-                                                    <div className="absolute inset-0 bg-amber-500 blur-xl opacity-0 group-hover/btn:opacity-20 transition-opacity duration-500" />
-                                                    <div className="relative text-center py-4 bg-gradient-to-r from-slate-800 to-slate-900 border border-white/10 text-white rounded-xl font-black text-xs uppercase tracking-[0.3em] transition-all hover:scale-[1.02] active:scale-95 hover:border-amber-500/50 hover:text-amber-400">
-                                                        Ignite Pipeline
-                                                    </div>
-                                                </Link>
+                                                {/* Reactor Core Backdrop Effects */}
+                                                <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-amber-500/5 rounded-full blur-[100px]" />
+                                                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.05),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                                             </div>
-
-                                            {/* Reactor Core Backdrop Effects */}
-                                            <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-amber-500/5 rounded-full blur-[100px]" />
-                                            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.05),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-                                        </div>
-                                    </motion.div>
+                                        </motion.div>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>

@@ -33,13 +33,34 @@ class _ChatScreenState extends State<ChatScreen> {
       _myUserId = userId;
     });
 
-    socket = io.io('http://192.168.1.5:3001', io.OptionBuilder()
+    final socketUrl = ApiService.baseUrl.replaceFirst('/api', '');
+    debugPrint('[ChatScreen] Connecting to socket: $socketUrl');
+
+    socket = io.io(socketUrl, io.OptionBuilder()
       .setTransports(['websocket'])
       .setQuery({'token': token})
       .build());
 
     socket.onConnect((_) {
-      debugPrint('Connected to chat server');
+      debugPrint('[ChatScreen] Connected to chat server');
+    });
+
+    socket.onConnectError((err) {
+      debugPrint('[ChatScreen] Connection Error: $err');
+    });
+
+    socket.onDisconnect((_) {
+      debugPrint('[ChatScreen] Disconnected from chat server');
+    });
+
+    socket.on('previousMessages', (data) {
+      if (mounted) {
+        setState(() {
+          _messages.clear();
+          _messages.addAll(List<Map<String, dynamic>>.from(data));
+        });
+        _scrollToBottom();
+      }
     });
 
     socket.on('receiveMessage', (data) {
