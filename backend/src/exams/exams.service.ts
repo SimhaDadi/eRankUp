@@ -57,25 +57,17 @@ export class ExamsService implements OnApplicationBootstrap {
         const query = this.examsRepository.createQueryBuilder('exam')
             .leftJoinAndSelect('exam.models', 'models')
             .leftJoinAndSelect('models.chapter', 'chapter')
-            .leftJoinAndSelect('chapter.subject', 'subject');
+            .leftJoinAndSelect('chapter.subject', 'subject')
+            .loadRelationCountAndMap('exam.directQuestionCount', 'exam.questions');
 
         if (!includeUnpublished) {
             query.andWhere('exam.isPublished = :isPublished', { isPublished: true });
         }
-        if (type) {
+        if (type && type !== 'all') {
             query.andWhere('exam.type = :type', { type });
         }
 
         const exams = await query.getMany();
-
-        // Populate direct question count reliably
-        for (const exam of exams) {
-            (exam as any).directQuestionCount = await this.questionRepository
-                .createQueryBuilder('q')
-                .innerJoin('q.exams', 'e')
-                .where('e.id = :id', { id: exam.id })
-                .getCount();
-        }
 
         // [FIX] Reduced TTL to 5m (300s) to avoid stale data issues
         await this.cacheService.set(cacheKey, exams, 300);
@@ -166,12 +158,10 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     async findLiveExams() {
-        // Find exams where current date is between startTime and endTime
         return this.examsRepository
             .createQueryBuilder('exam')
             .leftJoinAndSelect('exam.models', 'model')
-            .where('exam.startTime <= :now', { now: new Date() })
-            .andWhere('exam.endTime >= :now', { now: new Date() })
+            .where('exam.type = :type', { type: ExamType.LIVE_EXAM })
             .orderBy('exam.startTime', 'DESC')
             .getMany();
     }
@@ -845,8 +835,17 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     async onApplicationBootstrap() {
+        // Run heavy maintenance tasks in background to avoid blocking server start
+        this.runBackgroundMaintenance().catch(err =>
+            console.error('[BOOTSTRAP] Background maintenance failed:', err)
+        );
+
+        await this.invalidateCache();
+    }
+
+    private async runBackgroundMaintenance() {
         // 1. Sync Model Question Counts (Self-Healing)
-        console.log('[BOOTSTRAP] Syncing model question counts...');
+        console.log('[BOOTSTRAP] Starting background model question count sync...');
 
         try {
             const counts = await this.modelRepository.createQueryBuilder('model')
@@ -857,8 +856,6 @@ export class ExamsService implements OnApplicationBootstrap {
                 .getRawMany();
 
             if (counts && counts.length > 0) {
-                // Bulk update or loop? Loop is safer for TypeORM logic, but slower. 
-                // Using raw update for speed on bootstrap.
                 for (const row of counts) {
                     await this.modelRepository.update(row.modelId, { totalQuestions: parseInt(row.count) });
                 }
@@ -868,53 +865,49 @@ export class ExamsService implements OnApplicationBootstrap {
             console.error('[BOOTSTRAP] Failed to sync model counts:', error);
         }
 
-        // 2. Repair orphaned questions (created via faulty seed script)
-        const orphanedQuestions = await this.questionRepository
-            .createQueryBuilder('question')
-            .leftJoinAndSelect('question.models', 'models')
-            .leftJoinAndSelect('question.chapter', 'chapter')
-            .leftJoinAndSelect('chapter.models', 'chapterModels') // Join models of the chapter
-            .where('models.id IS NULL')
-            .andWhere('question.chapterId IS NOT NULL')
-            .getMany();
+        // 2. Repair orphaned questions
+        try {
+            const orphanedQuestions = await this.questionRepository
+                .createQueryBuilder('question')
+                .leftJoinAndSelect('question.models', 'models')
+                .leftJoinAndSelect('question.chapter', 'chapter')
+                .leftJoinAndSelect('chapter.models', 'chapterModels')
+                .where('models.id IS NULL')
+                .andWhere('question.chapterId IS NOT NULL')
+                .getMany();
 
-        if (orphanedQuestions.length > 0) {
-            console.log(`[REPAIR] Found ${orphanedQuestions.length} orphaned questions. Attempting to link to models...`);
-            let fixedCount = 0;
+            if (orphanedQuestions.length > 0) {
+                console.log(`[REPAIR] Found ${orphanedQuestions.length} orphaned questions. Linking...`);
+                let fixedCount = 0;
 
-            for (const question of orphanedQuestions) {
-                if (question.chapter && question.chapter.models && question.chapter.models.length > 0) {
-                    // Start heuristically: Link to the first model in the chapter
-                    // Ideally questions belong to specific models, but if lost, this is the best recovery
-                    question.models = [question.chapter.models[0]];
-                    await this.questionRepository.save(question);
-                    fixedCount++;
+                for (const question of orphanedQuestions) {
+                    if (question.chapter && question.chapter.models && question.chapter.models.length > 0) {
+                        question.models = [question.chapter.models[0]];
+                        await this.questionRepository.save(question);
+                        fixedCount++;
+                    }
                 }
-            }
-            console.log(`[REPAIR] Successfully linked ${fixedCount} questions to models.`);
+                console.log(`[REPAIR] Successfully linked ${fixedCount} questions.`);
 
-            // Re-sync counts for these models if we just added questions
-            if (fixedCount > 0) {
-                const newCounts = await this.modelRepository.createQueryBuilder('model')
-                    .leftJoin('model.questions', 'question')
-                    .select('model.id', 'modelId')
-                    .addSelect('COUNT(question.id)', 'count')
-                    .groupBy('model.id')
-                    .getRawMany();
+                if (fixedCount > 0) {
+                    // Re-sync counts
+                    const newCounts = await this.modelRepository.createQueryBuilder('model')
+                        .leftJoin('model.questions', 'question')
+                        .select('model.id', 'modelId')
+                        .addSelect('COUNT(question.id)', 'count')
+                        .groupBy('model.id')
+                        .getRawMany();
 
-                for (const row of newCounts) {
-                    await this.modelRepository.update(row.modelId, { totalQuestions: parseInt(row.count) });
+                    for (const row of newCounts) {
+                        await this.modelRepository.update(row.modelId, { totalQuestions: parseInt(row.count) });
+                    }
                 }
+            } else {
+                console.log('[REPAIR] No orphaned questions found.');
             }
-
-            // Invalidate cache
-            await this.cacheService.del('question-bank:stats');
-            await this.cacheService.del('exams:all');
-        } else {
-            console.log('[REPAIR] No orphaned questions found.');
+        } catch (error) {
+            console.error('[REPAIR] Failed to repair orphaned questions:', error);
         }
-
-        await this.invalidateCache();
     }
 
     /**
@@ -1072,13 +1065,26 @@ export class ExamsService implements OnApplicationBootstrap {
             if (!model) throw new BadRequestException('Model not found');
         }
 
+        // 1. Extract content for batch embedding
+        const contents = questionsData.map(data => data.content || data.questionText);
+        let embeddings: number[][] = [];
+
+        try {
+            embeddings = await this.aiService.generateEmbeddingsBatch(contents);
+        } catch (err) {
+            console.error(`[ExamsService] Batch embedding failed, falling back to empty:`, err.message);
+        }
+
         const questions: Question[] = [];
 
-        for (const data of questionsData) {
+        // 2. Map data and join with embeddings
+        for (let i = 0; i < questionsData.length; i++) {
+            const data = questionsData[i];
             const questionData: any = {
                 ...data,
                 positiveMarks: data.positiveMarks || 1.0,
                 negativeMarks: data.negativeMarks || 0.25,
+                embedding: embeddings[i] || null
             };
 
             // Link to hierarchy if model exists
@@ -1087,26 +1093,15 @@ export class ExamsService implements OnApplicationBootstrap {
                 questionData.chapter = model.chapter;
                 questionData.models = [model];
             } else {
-                // Orphan question or direct exam link
-                // If direct exam link, we might want to infer subject/chapter from exam if possible? 
-                // For now, leave subject/chapter null if not in model.
                 questionData.models = [];
             }
 
-            // Explicit examId linking override?
+            // Explicit examId linking override
             if (examId) {
-                // Ensure exams array exists
                 if (!questionData.exams) questionData.exams = [];
                 if (!questionData.exams.some((e: any) => e.id === examId)) {
                     questionData.exams.push({ id: examId });
                 }
-            }
-
-            // Generate vector embedding
-            try {
-                questionData.embedding = await this.aiService.generateEmbedding(data.content);
-            } catch (err) {
-                console.error(`[ExamsService] Failed to generate embedding for bulk question:`, err.message);
             }
 
             const question = this.questionRepository.create(questionData);
@@ -1127,11 +1122,9 @@ export class ExamsService implements OnApplicationBootstrap {
             await this.modelRepository.save(model);
         }
 
-        // If we linked to an exam directly, we might need to invalidate that exam's cache
-        // Or if we created for model, we invalidate linked exams.
         await this.invalidateCache(examId);
 
-        // Background: Generate AI Explanations for new questions
+        // Background: Generate AI Explanations
         const questionIds = savedQuestions.map(q => q.id);
         this.explanationService.generateBulkExplanations(userId, role, questionIds).catch(err => {
             console.error('[ExamsService] Background AI explanation generation failed:', err);

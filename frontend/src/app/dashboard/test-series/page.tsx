@@ -49,7 +49,7 @@ export default function TestSeriesPage() {
             try {
                 const response = await api.get('/exams?type=real_exam');
                 const testSeries = Array.isArray(response.data)
-                    ? response.data.filter((e: Exam) => e.type === 'real_exam' && e.isPublished && e.category !== 'Free Quiz')
+                    ? response.data.filter((e: Exam) => e.type === 'real_exam' && e.isPublished && e.category !== 'Free Quiz' && e.category !== 'Quiz')
                     : [];
                 setExams(testSeries);
             } catch (error) {
@@ -184,7 +184,7 @@ export default function TestSeriesPage() {
                                                             <Layers className="w-7 h-7 text-indigo-600" strokeWidth={2} />
                                                         </div>
                                                         <div className="px-3 py-1 bg-white rounded-lg border border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400 shadow-sm">
-                                                            Full Mock
+                                                            {exam.category === 'Free Quiz' || exam.category === 'Quiz' ? 'Quiz Sprint' : 'Full Mock'}
                                                         </div>
                                                     </div>
 

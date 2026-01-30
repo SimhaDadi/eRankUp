@@ -7,7 +7,7 @@ import { Exam } from '../exams/entities/exam.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
 import { ConfigService } from '@nestjs/config';
 import { SystemHealthService } from '../admin/system-health.service';
-import { AIQueueService } from './ai-queue.service';
+import { AIQueueService, AIPriority } from './ai-queue.service';
 import { AIUsageService } from './ai-usage.service';
 import { AIService } from './ai.service';
 import { UserRole } from '../users/user.entity';
@@ -50,7 +50,8 @@ export class ExplanationService {
         role: UserRole,
         questionId: string,
         userAnswer?: string,
-        contextExamId?: string
+        contextExamId?: string,
+        priority: AIPriority = AIPriority.MEDIUM
     ): Promise<string> {
         // 1. Check cache first (Context-aware search)
         const cached = await this.explanationRepository.findOne({
@@ -99,7 +100,10 @@ export class ExplanationService {
 
             while (!isValid && attempts < 2) {
                 // Execute via centralized queue
-                const result = await this.queueService.add(async () => await this.model.generateContent(prompt));
+                const result = await this.queueService.add(
+                    async () => await this.model.generateContent(prompt),
+                    priority
+                );
                 explanation = result.response.text();
 
                 // Track Usage
@@ -244,7 +248,7 @@ Write a concise, high-impact explanation using the following Markdown structure 
 
         for (const [index, questionId] of questionIds.entries()) {
             try {
-                const explanation = await this.generateExplanation(userId, role, questionId);
+                const explanation = await this.generateExplanation(userId, role, questionId, undefined, undefined, AIPriority.LOW);
                 explanations.set(questionId, explanation);
                 console.log(`[ExplanationService] Generated ${index + 1}/${questionIds.length}: ${questionId}`);
 

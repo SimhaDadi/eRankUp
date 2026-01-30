@@ -184,7 +184,7 @@ export class ExamsSeederService implements OnApplicationBootstrap {
             title,
             description: 'Daily Quiz for Manual Testing',
             type: 'real_exam' as any,
-            category: 'Quiz',
+            category: 'Free Quiz',
             isActive: true,
             duration: 15
         });

@@ -11,6 +11,7 @@ import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { AIService } from '../ai/ai.service';
+import { ExamsService } from './exams.service';
 
 @Controller('questions')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -26,6 +27,7 @@ export class QuestionsController {
         @InjectRepository(Exam)
         private examRepository: Repository<Exam>,
         private readonly aiService: AIService,
+        private readonly examsService: ExamsService,
     ) { }
 
     @Get()
@@ -171,7 +173,7 @@ export class QuestionsController {
 
     @Post('bulk-upload')
     @UseInterceptors(FileInterceptor('file'))
-    async bulkUpload(@UploadedFile() file: Express.Multer.File) {
+    async bulkUpload(@UploadedFile() file: Express.Multer.File, @Request() req: any) {
         if (!file) {
             throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
         }
@@ -210,7 +212,6 @@ export class QuestionsController {
 
                 try {
                     const examId = row['examid'];
-                    let subjectId = row['subjectid'];
                     const chapterId = row['chapterid'];
 
                     if (!chapterId) {
@@ -218,27 +219,10 @@ export class QuestionsController {
                         continue;
                     }
 
-                    // Fetch hierarchy entities
-                    const exam = examId ? await this.examRepository.findOne({ where: { id: examId } }) : null;
-                    const chapter = await this.chapterRepository.findOne({
-                        where: { id: chapterId },
-                        relations: ['subject']
-                    });
-
+                    // Hierarchy verification (minimal, service handles the rest)
+                    const chapter = await this.chapterRepository.findOne({ where: { id: chapterId } });
                     if (!chapter) {
                         errors.push(`Line ${i + 1}: Chapter not found`);
-                        continue;
-                    }
-
-                    // Infer subjectId if missing
-                    if (!subjectId && chapter.subject) {
-                        subjectId = chapter.subject.id;
-                    }
-
-                    const subject = subjectId ? await this.subjectRepository.findOne({ where: { id: subjectId } }) : null;
-
-                    if (!subject || (examId && !exam)) {
-                        errors.push(`Line ${i + 1}: Invalid hierarchy IDs - subject or specified exam not found`);
                         continue;
                     }
 
@@ -249,7 +233,7 @@ export class QuestionsController {
                         { id: 'D', text: row['optiond'] || row['option4'] }
                     ];
 
-                    const question = this.questionRepository.create({
+                    const question = {
                         content: row['content'] || row['questiontext'],
                         options: options,
                         correctOptionId: (row['correctoptionid'] || row['correctoption'] || row['correctanswer']).toUpperCase(),
@@ -258,11 +242,9 @@ export class QuestionsController {
                         positiveMarks: parseFloat(row['positivemarks']) || 1.0,
                         negativeMarks: parseFloat(row['negativemarks']) || 0.25,
                         difficultyWeight: row['difficultyweight'] ? parseFloat(row['difficultyweight']) : (row['difficulty'] === 'easy' ? 0.3 : row['difficulty'] === 'hard' ? 0.7 : 0.5),
-                        exams: exam ? [exam] : [], // Now an array, can be empty for global questions
-                        subject: subject,
-                        chapter: chapter,
+                        exams: examId ? [{ id: examId }] : [],
                         chapterId: chapterId
-                    });
+                    };
 
                     validQuestions.push(question);
                 } catch (err) {
@@ -271,15 +253,13 @@ export class QuestionsController {
             }
 
             if (validQuestions.length > 0) {
-                // Generate embeddings for all valid questions before saving
-                for (const q of validQuestions) {
-                    try {
-                        q.embedding = await this.aiService.generateEmbedding(q.content);
-                    } catch (e) {
-                        console.error(`Failed to generate embedding for bulk question: ${e.message}`);
-                    }
-                }
-                await this.questionRepository.save(validQuestions);
+                const user = req.user;
+                await this.examsService.createQuestionsBulk(
+                    user.id,
+                    user.role,
+                    undefined, // No specific model
+                    validQuestions
+                );
             }
 
             return {
@@ -288,6 +268,7 @@ export class QuestionsController {
                 importedCount: validQuestions.length,
                 errors: errors
             };
+
         } catch (error) {
             throw new HttpException(error.message || 'Failed to upload questions', HttpStatus.BAD_REQUEST);
         }

@@ -7,7 +7,7 @@ import { Question } from '../exams/entities/question.entity';
 import { Attempt } from '../exams/entities/attempt.entity';
 import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
-import { AIQueueService } from './ai-queue.service';
+import { AIQueueService, AIPriority } from './ai-queue.service';
 
 interface QuestionScore {
     question: Question;
@@ -46,7 +46,7 @@ export class AIService {
     /**
      * Generate text using Gemini AI API (Multimodal support)
      */
-    async generateText(prompt: string, images: { data: string; mimeType: string }[] = []): Promise<string> {
+    async generateText(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority = AIPriority.HIGH): Promise<string> {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
@@ -74,7 +74,7 @@ export class AIService {
                 console.error('[AIService] Gemini API error:', error);
                 throw error;
             }
-        });
+        }, priority);
     }
 
     /**
@@ -112,9 +112,6 @@ export class AIService {
         }
     }
 
-    /**
-     * Generate an embedding for a piece of text using Gemini API
-     */
     async generateEmbedding(text: string): Promise<number[]> {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
@@ -132,6 +129,48 @@ export class AIService {
                 throw error;
             }
         });
+    }
+
+    /**
+     * Batch generate embeddings for multiple pieces of text
+     */
+    async generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
+        if (!texts || texts.length === 0) return [];
+
+        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+        // Split into chunks of 100 (Gemini limit)
+        const chunks = [];
+        for (let i = 0; i < texts.length; i += 100) {
+            chunks.push(texts.slice(i, i + 100));
+        }
+
+        const allEmbeddings: number[][] = [];
+
+        for (const chunk of chunks) {
+            const embeddings = await this.queueService.add(async () => {
+                try {
+                    const { GoogleGenerativeAI } = require("@google/generative-ai");
+                    const genAI = new GoogleGenerativeAI(apiKey);
+                    const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+
+                    const result = await model.batchEmbedContents({
+                        requests: chunk.map(text => ({
+                            content: { parts: [{ text }] },
+                        })),
+                    });
+
+                    return result.embeddings.map(e => e.values);
+                } catch (error) {
+                    console.error('[AIService] Batch embedding generation failed:', error);
+                    throw error;
+                }
+            }, AIPriority.LOW);
+            allEmbeddings.push(...embeddings);
+        }
+
+        return allEmbeddings;
     }
 
     /**

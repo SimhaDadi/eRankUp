@@ -91,14 +91,14 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
 
         if (isFreeQuiz) {
           // Special handling for Daily Quizzes tab
-          return exam.category == 'Free Quiz';
+          return exam.category == 'Free Quiz' || exam.category == 'Quiz';
         }
 
         if (typeFilter != 'all') {
           // Standard type filtering
           if (exam.type != typeFilter) return false;
-          // IMPORTANT: Exclude "Free Quiz" category items from "Mock Tests" (real_exam) to avoid duplication/clutter
-          if (typeFilter == 'real_exam' && exam.category == 'Free Quiz') return false;
+          // IMPORTANT: Exclude "Free Quiz" and legacy "Quiz" category items from "Mock Tests" (real_exam) to avoid duplication/clutter
+          if (typeFilter == 'real_exam' && (exam.category == 'Free Quiz' || exam.category == 'Quiz')) return false;
         } else {
              // In "All" tab, maybe show everything? Or keep Free Quizzes separate?
              // Let's keep them in "All" for visibility, or filter if deemed too cluttered.

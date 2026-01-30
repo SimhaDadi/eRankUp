@@ -148,14 +148,8 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
+                    _buildStatusBadge(startTime, endTime),
+                    const SizedBox(width: 8),
                     Icon(Icons.people, size: 16, color: Colors.white.withOpacity(0.8)),
                     const SizedBox(width: 4),
                     Text(
@@ -203,26 +197,97 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
                       ),
                     ),
                     const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Join Now',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                          color: isDark ? const Color(0xFFDC2626) : Colors.red.shade600,
-                        ),
-                      ),
-                    ),
+                    _buildActionButton(startTime, endTime, isDark),
                   ],
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String? start, String? end) {
+    if (start == null || end == null) return const SizedBox.shrink();
+    
+    final now = DateTime.now();
+    final startDate = DateTime.parse(start);
+    final endDate = DateTime.parse(end);
+
+    String label = 'LIVE';
+    Color bgColor = Colors.white.withOpacity(0.3);
+
+    if (now.isBefore(startDate)) {
+      label = 'UPCOMING';
+      bgColor = Colors.blue.withOpacity(0.3);
+    } else if (now.isAfter(endDate)) {
+      label = 'ENDED';
+      bgColor = Colors.black.withOpacity(0.3);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (label == 'LIVE') ...[
+            Icon(Icons.circle, size: 8, color: Colors.white),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(String? start, String? end, bool isDark) {
+    final now = DateTime.now();
+    final startDate = start != null ? DateTime.parse(start) : null;
+    final endDate = end != null ? DateTime.parse(end) : null;
+
+    bool isUpcoming = startDate != null && now.isBefore(startDate);
+    bool isEnded = endDate != null && now.isAfter(endDate);
+
+    String text = 'Join Now';
+    Color textColor = isDark ? const Color(0xFFDC2626) : Colors.red.shade600;
+    Color bgColor = Colors.white;
+
+    if (isUpcoming) {
+      text = 'Set Reminder';
+      textColor = Colors.white;
+      bgColor = Colors.blue.withOpacity(0.2);
+    } else if (isEnded) {
+      text = 'View Results';
+      textColor = Colors.white;
+      bgColor = Colors.black.withOpacity(0.2);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: (isUpcoming || isEnded) ? Border.all(color: Colors.white.withOpacity(0.3)) : null,
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+          color: textColor,
         ),
       ),
     );
