@@ -32,18 +32,20 @@ export default function DashboardPage() {
     const [allExams, setAllExams] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showAiDoubtSolver, setShowAiDoubtSolver] = useState(true);
+    const [revisionData, setRevisionData] = useState<any>(null);
     const searchParams = useSearchParams();
     const searchQuery = searchParams.get('search') || '';
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [statsRes, recentRes, examsRes, passRes, gamiRes] = await Promise.all([
+                const [statsRes, recentRes, examsRes, passRes, gamiRes, revisionRes] = await Promise.all([
                     api.get('/exams/user/stats'),
                     api.get('/exams/user/recent'),
                     api.get('/exams'),
                     api.get('/passes/current').catch(() => ({ data: null })),
-                    api.get('/gamification/profile').catch(() => ({ data: {} }))
+                    api.get('/gamification/profile').catch(() => ({ data: {} })),
+                    api.get('/ai-study/revision').catch(() => ({ data: null }))
                 ]);
 
                 const combinedStats = {
@@ -56,6 +58,7 @@ export default function DashboardPage() {
                 setStats(combinedStats);
                 setRecentAttempts(Array.isArray(recentRes.data) ? recentRes.data : []);
                 setAllExams(examsRes.data || []);
+                setRevisionData(revisionRes?.data || null);
                 setActivePass(passRes.data);
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);
@@ -121,8 +124,29 @@ export default function DashboardPage() {
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
-                        className="space-y-4"
+                        className="space-y-8"
                     >
+                        {/* AI Revision CTA */}
+                        {revisionData?.available && (
+                            <motion.div variants={itemVariants} className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl shadow-indigo-500/20">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md border border-white/10">AI Smart Study</span>
+                                        </div>
+                                        <h2 className="text-3xl font-black mb-2">Weekly Polish Ready!</h2>
+                                        <p className="text-indigo-100 font-medium max-w-xl text-lg">
+                                            {revisionData.message}
+                                        </p>
+                                    </div>
+                                    <button className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-3 group">
+                                        <Zap className="w-5 h-5 fill-indigo-600 group-hover:animate-pulse" />
+                                        Start Revision
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
                         {/* Welcome Section - SPLIT LAYOUT */}
                         <motion.div
                             variants={itemVariants}

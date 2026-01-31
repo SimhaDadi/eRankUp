@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Home,
     Zap,
+    Users,
     Tv,
     Book,
     Layers,
@@ -28,7 +29,8 @@ import {
     Settings,
     MonitorPlay,
     BookOpen,
-    History
+    History,
+    PieChart
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -99,7 +101,9 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                 { icon: BookOpen, label: 'Chapter Wise Tests', href: '/dashboard/practice' },
                 { icon: Zap, label: 'Current Affairs', href: '/dashboard/current-affairs', badge: 'FREE', badgeColor: 'bg-green-500' },
                 { icon: Clock, label: 'Daily Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },
+                { icon: Users, label: 'Community', href: '/dashboard/community', badge: 'HOT', badgeColor: 'bg-rose-500' },
                 { icon: CheckCircle, label: 'Attempted Tests', href: '/dashboard/performance' }, // Performance page
+                { icon: PieChart, label: 'Analytics', href: '/dashboard/analytics' },
                 { icon: Ticket, label: 'Pass', href: '/dashboard/plans' },
             ]
         },
@@ -130,6 +134,8 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             'Saved Questions': 'from-fuchsia-500 to-pink-600',
             'Reported Questions': 'from-red-500 to-rose-600',
             'Current Affairs': 'from-blue-400 to-cyan-500',
+            'Community': 'from-rose-500 to-pink-600',
+            'Analytics': 'from-indigo-500 to-violet-600',
             'Doubts': 'from-teal-400 to-emerald-600',
         };
         return colors[label] || 'from-slate-700 to-slate-900';

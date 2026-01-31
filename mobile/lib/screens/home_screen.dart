@@ -15,6 +15,7 @@ import 'study_plan_screen.dart';
 import '../widgets/daily_goal_widget.dart';
 import '../widgets/premium_card.dart';
 import 'practice_mode_screen.dart';
+import 'analytics_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic>? _recentAttempts;
   List<dynamic>? _liveTests;
   bool _isLoading = true;
+  bool _revisionAvailable = false;
+  String _revisionMessage = '';
 
   @override
   void initState() {
@@ -56,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
         apiService.get('/exams/user/recent'),
         apiService.get('/exams/live'),
         apiService.get('/gamification/profile'),
+        apiService.get('/ai-study/revision'), 
       ]).timeout(const Duration(seconds: 10));
 
       debugPrint('HomeScreen: Data fetched. Statuses: ${results.map((r) => r.statusCode)}');
@@ -96,6 +100,14 @@ class _HomeScreenState extends State<HomeScreen> {
           } else {
              debugPrint('HomeScreen: Live tests failed: ${results[2].body}');
           }
+
+          // Revision Data
+          if (results.length > 3 && results[3].statusCode == 200) {
+             final revData = jsonDecode(results[3].body);
+             _revisionAvailable = revData['available'] ?? false;
+             _revisionMessage = revData['message'] ?? '';
+          }
+
           _isLoading = false;
         });
       }
@@ -134,6 +146,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: AppSpacing.xxl),
                           _buildQuickStats(),
                            const SizedBox(height: AppSpacing.xxl),
+                           
+                           // Smart Revision Section
+                           if (_revisionAvailable) ...[
+                             _buildSmartRevisionCard(),
+                             const SizedBox(height: AppSpacing.xxl),
+                           ],
+
                            _buildAIStudyPlanSection(),
                            const SizedBox(height: AppSpacing.xxl),
                           if (_recentAttempts != null && _recentAttempts!.isNotEmpty)
@@ -332,6 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 '#$rank',
                 Icons.leaderboard,
                 Theme.of(context).brightness == Brightness.dark ? const Color(0xFFA855F7) : Colors.purple.shade600,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsScreen())),
               ),
             ],
           ),
@@ -340,14 +360,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return PremiumCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
       border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
       boxShadow: AppShadows.small,
-      onTap: () {
-          // Navigating to performance from any stat card for a fluid feel
+      onTap: onTap ?? () {
+          // Default to performance screen
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
       },
       child: Column(
@@ -718,6 +738,78 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+    );
+  }
+
+  Widget _buildSmartRevisionCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)], // Violet to Indigo
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4F46E5).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Weekly Polish Ready!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _revisionMessage,
+            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                // Navigate to Revision Test (Placeholder)
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   const SnackBar(content: Text('Starting Smart Revision Session...')),
+                 );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF4F46E5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text('Start Revision', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],

@@ -528,4 +528,105 @@ export class AnalyticsService {
             score: Math.round(a.score)
         }));
     }
+    async getPerformanceMatrix(userId: string) {
+        const cacheKey = `analytics:matrix:${userId}`;
+        const cached = await this.cacheService.get<any>(cacheKey);
+        if (cached) return cached;
+
+        const rawStats = await this.responseRepository.createQueryBuilder('response')
+            .innerJoin('response.attempt', 'attempt')
+            .innerJoin('response.question', 'question')
+            .leftJoin('question.subject', 'subject')
+            .where('attempt.userId = :userId', { userId })
+            .select([
+                'COALESCE(subject.title, \'General\') AS topic',
+                'COUNT(response.id) AS total',
+                'SUM(CASE WHEN response.isCorrect = true THEN 1 ELSE 0 END) AS correct',
+                'AVG(response.timeSpent) AS avg_time'
+            ])
+            .groupBy('subject.id')
+            .addGroupBy('subject.title')
+            .getRawMany();
+
+        const matrix = rawStats.map(stat => {
+            const total = parseInt(stat.total) || 0;
+            const correct = parseInt(stat.correct) || 0;
+            const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+            const speed = Math.round(parseFloat(stat.avg_time)) || 0;
+
+            return {
+                topic: stat.topic,
+                accuracy,
+                speed, // seconds per question
+                quadrant: this.determineQuadrant(accuracy, speed)
+            };
+        });
+
+        await this.cacheService.set(cacheKey, matrix, 300);
+        return matrix;
+    }
+
+    private determineQuadrant(accuracy: number, speed: number): string {
+        // Benchmarks: 60s per question, 70% accuracy
+        const isFast = speed < 60;
+        const isAccurate = accuracy > 70;
+
+        if (isFast && isAccurate) return 'Mastered'; // Q1
+        if (!isFast && isAccurate) return 'Building Strength'; // Q2
+        if (!isFast && !isAccurate) return 'Needs Focus'; // Q3
+        return 'Careless/Guessing'; // Q4 (Fast but Wrong)
+    }
+
+    async getPeerComparison(userId: string) {
+        const cacheKey = `analytics:peer:${userId}`;
+        const cached = await this.cacheService.get<any>(cacheKey);
+        if (cached) return cached;
+
+        // Calculate global average score
+        const { avgScore } = await this.attemptRepository.createQueryBuilder('attempt')
+            .select('AVG(attempt.score)', 'avgScore')
+            .getRawOne();
+
+        // Calculate user average
+        const { userAvg } = await this.attemptRepository.createQueryBuilder('attempt')
+            .where('attempt.userId = :userId', { userId })
+            .select('AVG(attempt.score)', 'userAvg')
+            .getRawOne();
+
+        if (!userAvg) return null;
+
+        // Calculate Percentile
+        // Count users with lower average score
+        const userScore = parseFloat(userAvg);
+
+        // This is expensive, in prod pre-calc this
+        const totalUsers = await this.userRepository.count({ where: { role: UserRole.STUDENT } });
+
+        // Logic: Count unique users whose AVG score is < userScore
+        // For simplicity/speed in this demo, we compare against all attempts (Attempt Percentile)
+        const totalAttempts = await this.attemptRepository.count();
+        const lowerAttempts = await this.attemptRepository.count({
+            where: { score: Between(0, userScore - 0.01) }
+        });
+
+        const percentile = totalAttempts > 0 ? (lowerAttempts / totalAttempts) * 100 : 0;
+
+        const result = {
+            percentile: Math.round(percentile),
+            userAverage: Math.round(userScore),
+            globalAverage: Math.round(parseFloat(avgScore) || 0),
+            rankPrediction: this.predictRank(percentile)
+        };
+
+        await this.cacheService.set(cacheKey, result, 600);
+        return result;
+    }
+
+    private predictRank(percentile: number): string {
+        if (percentile > 99) return 'Top 100';
+        if (percentile > 95) return 'Top 500';
+        if (percentile > 90) return 'Top 1000';
+        if (percentile > 80) return 'Top 5000';
+        return 'Need Improvement';
+    }
 }

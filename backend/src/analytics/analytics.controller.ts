@@ -57,6 +57,18 @@ export class AnalyticsController {
         return this.analyticsService.getUserAnalytics();
     }
 
+    @Get('user/matrix')
+    @UseGuards(AuthGuard('jwt'))
+    async getPerformanceMatrix(@Request() req) {
+        return this.analyticsService.getPerformanceMatrix(req.user.id);
+    }
+
+    @Get('user/peer')
+    @UseGuards(AuthGuard('jwt'))
+    async getPeerComparison(@Request() req) {
+        return this.analyticsService.getPeerComparison(req.user.id);
+    }
+
     @Get('exams')
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)

@@ -24,6 +24,9 @@ import { DoubtsModule } from './doubts/doubts.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { CategoriesModule } from './categories/categories.module';
+import { NewsModule } from './news/news.module';
+import { CommunityModule } from './community/community.module';
+import { AIStudyModule } from './ai-study/ai-study.module';
 
 @Module({
     imports: [
@@ -73,7 +76,11 @@ import { CategoriesModule } from './categories/categories.module';
         PassesModule,
         QualityModule,
         DoubtsModule,
+        DoubtsModule,
         CategoriesModule,
+        NewsModule,
+        CommunityModule,
+        AIStudyModule,
     ],
     controllers: [AppController],
     providers: [

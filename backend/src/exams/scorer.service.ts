@@ -128,16 +128,13 @@ export class ScorerService implements OnModuleInit {
             questionResults.push({ questionId: q.id, isCorrect });
         });
 
-        // 2. Update question stats (AWAITED to avoid race conditions/mangling)
-        try {
-            const statsPayload = questionResults.map(res => ({
-                ...res,
-                timeSpent: questionTimings[res.questionId] || 0
-            }));
-            await this.difficultyService.bulkUpdateStats(statsPayload);
-        } catch (err) {
-            console.error('[Scorer] Failed to update question stats', err);
-        }
+        // 2. Update question stats (Async - don't block user response)
+        const statsPayload = questionResults.map(res => ({
+            ...res,
+            timeSpent: questionTimings[res.questionId] || 0
+        }));
+        this.difficultyService.bulkUpdateStats(statsPayload)
+            .catch(err => console.error('[Scorer] Failed to update question stats (Async)', err));
 
         const score = totalPossiblePoints > 0 ? Math.max(0, (earnedPoints / totalPossiblePoints) * 100) : 0;
         const timeTaken = Math.floor((Date.now() - startTime) / 1000);
@@ -204,6 +201,19 @@ export class ScorerService implements OnModuleInit {
             this.cacheService.del('leaderboard:global').catch(err =>
                 console.error('[Scorer] Failed to invalidate leaderboard cache', err)
             );
+            // Invalidate user stats cache
+            // Invalidate user stats cache
+            this.cacheService.del(`stats:user:${user.id}`).catch(err =>
+                console.error('[Scorer] Failed to invalidate user stats cache', err)
+            );
+
+            // Invalidate advanced analytics caches
+            Promise.all([
+                this.cacheService.del(`analytics:matrix:${user.id}`),
+                this.cacheService.del(`analytics:peer:${user.id}`),
+                this.cacheService.del(`analytics:mastery:${user.id}`)
+                // 'analytics:patterns' might also need invalidation if implemented via cache
+            ]).catch(err => console.error('[Scorer] Failed to invalidate analytics cache', err));
 
             // === GAMIFICATION INTEGRATION ===
             try {
@@ -237,15 +247,10 @@ export class ScorerService implements OnModuleInit {
                 // Don't fail the attempt if gamification fails
             }
 
-            // === ADAPTIVE LEARNING INTEGRATION ===
-            try {
-                // Update topic mastery based on responses
-                await this.adaptiveLearningService.updateTopicMastery(user.id, responseEntities);
-                console.log(`[Scorer] Updated topic mastery for user ${user.id}`);
-            } catch (adaptiveErr) {
-                console.error('[Scorer] Failed to update topic mastery', adaptiveErr);
-                // Don't fail the attempt if adaptive learning fails
-            }
+            // === ADAPTIVE LEARNING INTEGRATION (Async) ===
+            this.adaptiveLearningService.updateTopicMastery(user.id, responseEntities)
+                .then(() => console.log(`[Scorer] Updated topic mastery (Async) for user ${user.id}`))
+                .catch(err => console.error('[Scorer] Failed to update topic mastery', err));
 
             return savedAttempt;
         } catch (dbErr) {
@@ -318,6 +323,10 @@ export class ScorerService implements OnModuleInit {
     }
 
     async getUserStats(userId: string) {
+        const cacheKey = `stats:user:${userId}`;
+        const cached = await this.cacheService.get<any>(cacheKey);
+        if (cached) return cached;
+
         // Fetch user to get signup date
         const user = await this.userRepository.findOne({ where: { id: userId } });
         if (!user) {
@@ -432,7 +441,7 @@ export class ScorerService implements OnModuleInit {
             ? Math.max(...attempts.map(a => a.score))
             : 0;
 
-        return {
+        const stats = {
             totalAttempts,
             averageScore: Math.round(totalScore / totalAttempts),
             bestScore,
@@ -443,6 +452,9 @@ export class ScorerService implements OnModuleInit {
             topicPerformance,
             topTopicRecommendation
         };
+
+        await this.cacheService.set(cacheKey, stats, 300); // Cache for 5 mins
+        return stats;
     }
     async getUserExamStats(userId: string) {
         const attempts = await this.attemptRepository.find({

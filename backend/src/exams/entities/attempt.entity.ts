@@ -7,6 +7,8 @@ import { Response } from './response.entity';
 
 @Entity()
 @Index(['score', 'timeTaken'])
+@Index(['user', 'exam']) // Fast lookup: "How many times did User X attempt Exam Y?"
+@Index(['user', 'createdAt']) // Fast lookup: "Get User X's history"
 export class Attempt {
     @PrimaryGeneratedColumn('uuid')
     id: string;

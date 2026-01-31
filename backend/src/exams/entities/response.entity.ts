@@ -4,6 +4,7 @@ import { Attempt } from './attempt.entity';
 import { Question } from './question.entity';
 
 @Entity()
+@Index(['attempt', 'isCorrect']) // Fast count: "How many correct in this attempt?"
 export class Response {
     @PrimaryGeneratedColumn('uuid')
     id: string;
