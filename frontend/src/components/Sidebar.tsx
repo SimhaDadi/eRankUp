@@ -97,6 +97,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                 { icon: MonitorPlay, label: 'Live Tests', href: '/dashboard/live-tests' },
                 { icon: History, label: 'Previous Year Papers', href: '/dashboard/pyp' },
                 { icon: BookOpen, label: 'Chapter Wise Tests', href: '/dashboard/practice' },
+                { icon: Zap, label: 'Current Affairs', href: '/dashboard/current-affairs', badge: 'FREE', badgeColor: 'bg-green-500' },
                 { icon: Clock, label: 'Daily Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },
                 { icon: CheckCircle, label: 'Attempted Tests', href: '/dashboard/performance' }, // Performance page
                 { icon: Ticket, label: 'Pass', href: '/dashboard/plans' },
@@ -128,6 +129,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             'Exams': 'from-indigo-400 to-blue-600',
             'Saved Questions': 'from-fuchsia-500 to-pink-600',
             'Reported Questions': 'from-red-500 to-rose-600',
+            'Current Affairs': 'from-blue-400 to-cyan-500',
             'Doubts': 'from-teal-400 to-emerald-600',
         };
         return colors[label] || 'from-slate-700 to-slate-900';
