@@ -13,6 +13,10 @@ export class UpdateExamDto {
 
     @IsString()
     @IsOptional()
+    videoSolutionUrl?: string;
+
+    @IsString()
+    @IsOptional()
     category?: string;
 
     @IsEnum(ExamType)

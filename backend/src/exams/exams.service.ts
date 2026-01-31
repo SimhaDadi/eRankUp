@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Inject, forwardRef, OnApplicationBootstrap, Logger, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef, OnApplicationBootstrap, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, In } from 'typeorm';
 import { User } from '../users/user.entity';
@@ -1217,7 +1217,27 @@ export class ExamsService implements OnApplicationBootstrap {
         };
     }
 
-    async getPracticeQuestions(chapterId: string, limit: number = 10) {
+    async getPracticeQuestions(userId: string, chapterId: string, limit: number = 10) {
+        // 1. Fetch chapter and its exam to check premium status
+        const chapter = await this.chapterRepository.findOne({
+            where: { id: chapterId },
+            relations: ['subject', 'subject.exam']
+        });
+
+        if (!chapter) throw new NotFoundException('Chapter not found');
+
+        const exam = chapter.subject?.exam;
+
+        // 2. Perform security check if exam is premium
+        if (exam?.isPremium) {
+            const hasPurchased = await this.paymentsService.hasPurchased(userId, exam.id);
+            const hasPass = await this.passesService.getActivePass(userId);
+
+            if (!hasPurchased && !hasPass) {
+                throw new ForbiddenException('Access Denied. This chapter belongs to a premium exam.');
+            }
+        }
+
         const take = typeof limit === 'string' ? parseInt(limit) : limit;
         return this.questionRepository
             .createQueryBuilder('question')

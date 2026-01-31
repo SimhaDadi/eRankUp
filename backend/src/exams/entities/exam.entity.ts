@@ -30,6 +30,9 @@ export class Exam {
     description: string;
 
     @Column({ nullable: true })
+    videoSolutionUrl: string;
+
+    @Column({ nullable: true })
     category: string;
 
     @Index()

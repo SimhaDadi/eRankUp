@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Edit, Plus, Library } from 'lucide-react';
+import { X, Loader2, Edit, Plus, Library, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '@/lib/api';
 
@@ -19,7 +19,9 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
         type: 'real_exam',
         defaultPositiveMarks: 1,
         defaultNegativeMarks: 0.25,
-        duration: 60
+        duration: 60,
+        isPremium: false,
+        videoSolutionUrl: ''
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,7 +37,9 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                 duration: exam.duration || 60,
                 category: (exam as any).category || '',
                 startTime: exam.startTime ? new Date(exam.startTime).toISOString().slice(0, 16) : '',
-                endTime: exam.endTime ? new Date(exam.endTime).toISOString().slice(0, 16) : ''
+                endTime: exam.endTime ? new Date(exam.endTime).toISOString().slice(0, 16) : '',
+                isPremium: exam.isPremium || false,
+                videoSolutionUrl: exam.videoSolutionUrl || ''
             } as any);
         }
     }, [exam]);
@@ -175,6 +179,30 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                         </div>
                     )}
 
+                    {/* Premium Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border-2 border-slate-100">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${formData.isPremium ? 'bg-amber-100 text-amber-600' : 'bg-slate-200 text-slate-500'}`}>
+                                <Zap className={`w-5 h-5 ${formData.isPremium ? 'fill-amber-600' : ''}`} />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-900">Premium Content</h4>
+                                <p className="text-[10px] text-gray-500">Requires a valid pass or purchase to access</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => handleChange('isPremium', !formData.isPremium)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.isPremium ? 'bg-blue-600' : 'bg-gray-300'
+                                }`}
+                        >
+                            <span
+                                className={`${formData.isPremium ? 'translate-x-6' : 'translate-x-1'
+                                    } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                            />
+                        </button>
+                    </div>
+
                     {/* Description */}
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -185,6 +213,20 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                             onChange={(e) => handleChange('description', e.target.value)}
                             rows={3}
                             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none text-gray-900 placeholder-gray-400"
+                        />
+                    </div>
+
+                    {/* Video Solution URL */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Video Solution URL <span className="text-xs text-gray-400 font-normal">(YouTube/Vimeo link)</span>
+                        </label>
+                        <input
+                            type="url"
+                            value={(formData as any).videoSolutionUrl || ''}
+                            onChange={(e) => handleChange('videoSolutionUrl', e.target.value)}
+                            placeholder="https://youtu.be/..."
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all text-gray-900 placeholder-gray-400"
                         />
                     </div>
 

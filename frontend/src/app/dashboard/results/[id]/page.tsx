@@ -225,6 +225,17 @@ export default function ResultsPage() {
 
                 {/* Primary Actions - Moved to Top */}
                 <div className="flex gap-3">
+                    {(attempt.exam as any)?.videoSolutionUrl || (attempt.model as any)?.videoSolutionUrl ? (
+                        <button
+                            onClick={() => window.open((attempt.exam as any)?.videoSolutionUrl || (attempt.model as any)?.videoSolutionUrl, '_blank')}
+                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-red-600/20 transition-all flex items-center gap-2 hover:scale-105 active:scale-95"
+                        >
+                            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                                <div className="w-0 h-0 border-t-[3px] border-t-transparent border-l-[6px] border-l-red-600 border-b-[3px] border-b-transparent ml-0.5" />
+                            </div>
+                            Watch Video Analysis
+                        </button>
+                    ) : null}
                     <button
                         onClick={() => router.push(`/dashboard/solutions/${params.id}`)}
                         className="bg-[#00bfa5] hover:bg-[#00a690] text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-[#00bfa5]/20 transition-all flex items-center gap-2 hover:scale-105 active:scale-95"
@@ -232,7 +243,7 @@ export default function ResultsPage() {
                         <Eye className="w-5 h-5" /> View Solutions
                     </button>
                     <button
-                        onClick={() => router.push(`/dashboard/test/${attempt.model?.id || attempt.exam?.id || params.id}`)}
+                        onClick={() => router.push(`/dashboard/exam-start/${attempt.model?.id || attempt.exam?.id || params.id}`)}
                         className="bg-white hover:bg-gray-50 text-slate-900 border border-gray-200 font-bold py-3 px-6 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95"
                     >
                         Retake Test

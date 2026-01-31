@@ -17,6 +17,10 @@ export class CreateExamDto {
 
     @IsString()
     @IsOptional()
+    videoSolutionUrl?: string;
+
+    @IsString()
+    @IsOptional()
     category?: string;
 
     @IsDateString()

@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../widgets/topper_comparison_widget.dart';
 import '../theme/app_theme.dart';
 import 'solution_explorer_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ResultsScreen extends StatefulWidget {
   final String attemptId;
@@ -96,6 +97,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
     
     final strengths = (insights?['strengths'] as List?)?.map((e) => e.toString()).toList() ?? [];
     final topicAnalysis = insights?['topicAnalysis'] as Map<String, dynamic>?;
+
+    String? videoUrl;
+    if (_results?['exam'] != null && _results!['exam']['videoSolutionUrl'] != null) {
+      videoUrl = _results!['exam']['videoSolutionUrl'];
+    } else if (exams != null && exams.isNotEmpty && exams[0]['videoSolutionUrl'] != null) {
+      videoUrl = exams[0]['videoSolutionUrl'];
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -384,7 +392,34 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
               ],
             ),
+              ],
+            ),
             const SizedBox(height: 12),
+            if (videoUrl != null && videoUrl!.isNotEmpty) ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final uri = Uri.parse(videoUrl!);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Could not launch video URL')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.play_circle_fill),
+                  label: const Text('Watch Video Analysis'),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(

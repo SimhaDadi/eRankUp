@@ -32,8 +32,42 @@ export default function ExamStartPage() {
     useEffect(() => {
         const fetchModel = async () => {
             try {
-                const response = await api.get(`/exams/models/${params.id}`);
-                setModel(response.data);
+                if (params.id?.toString().startsWith('adaptive-')) {
+                    // Adaptive sessions show a simplified instruction view
+                    setModel({
+                        id: params.id as string,
+                        title: 'Adaptive AI Practice',
+                        totalQuestions: 20, // Default for adaptive
+                        duration: 30,
+                        totalMarks: 20,
+                        positiveMarks: 1,
+                        negativeMarks: 0,
+                        difficulty: 'Adaptive',
+                        allowCalculator: true,
+                        allowReview: true,
+                        allowSkip: true
+                    });
+                } else if (params.id?.toString().startsWith('chapter-')) {
+                    const chapterId = params.id.toString().replace('chapter-', '');
+                    const res = await api.get(`/exams/chapters/${chapterId}/questions`);
+                    const questions = res.data;
+                    setModel({
+                        id: params.id as string,
+                        title: 'Chapter Practice',
+                        totalQuestions: questions.length,
+                        duration: questions.length * 2, // 2 mins per question
+                        totalMarks: questions.length,
+                        positiveMarks: 1,
+                        negativeMarks: 0.25,
+                        difficulty: 'Mixed',
+                        allowCalculator: true,
+                        allowReview: true,
+                        allowSkip: true
+                    });
+                } else {
+                    const response = await api.get(`/exams/models/${params.id}`);
+                    setModel(response.data);
+                }
             } catch (err: any) {
                 console.error('Failed to fetch model:', err);
                 const msg = err.response?.data?.message || err.message || "Failed to load exam details";

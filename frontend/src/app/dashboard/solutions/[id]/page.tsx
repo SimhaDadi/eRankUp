@@ -33,6 +33,7 @@ import { useAuthStore } from '@/store/authStore';
 import MathRenderer from '@/components/MathRenderer';
 import Link from 'next/link';
 import { prettifyMathText } from '@/utils/textFormatter';
+import ReportQuestionModal from '@/components/dashboard/ReportQuestionModal';
 
 interface QuestionResponse {
     id: string;
@@ -78,6 +79,7 @@ export default function SolutionPage() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchAttempt = async () => {
@@ -252,6 +254,13 @@ export default function SolutionPage() {
                                 >
                                     <Share2 className="w-5 h-5 group-active:translate-x-1 group-active:-translate-y-1 transition-transform" />
                                 </button>
+                                <button
+                                    onClick={() => setIsReportModalOpen(true)}
+                                    className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-xl transition-all border border-slate-200 text-slate-400 hover:text-rose-600 shadow-sm group"
+                                    title="Report Question"
+                                >
+                                    <Flag className="w-5 h-5 group-active:scale-90 transition-all" />
+                                </button>
                                 <div className="flex items-center gap-4">
                                     <div className="text-right flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
                                         <Clock className="w-4 h-4 text-slate-500" />
@@ -261,7 +270,7 @@ export default function SolutionPage() {
                                         </div>
                                     </div>
                                     {question.avgTopperTime !== undefined && question.avgTopperTime > 0 && (
-                                        <div className="text-right flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 ring-1 ring-emerald-900/5">
+                                        <div className="text-right flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 ring-1 ring-slate-900/5">
                                             <Trophy className="w-4 h-4 text-emerald-600" />
                                             <div className="text-emerald-900 font-black text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
                                                 <span className="text-[7px] text-emerald-400">TOPPER AVG</span>
@@ -422,8 +431,17 @@ export default function SolutionPage() {
                         </div>
                     </div>
                 </aside>
-            </div>
-        </div>
+            </div >
+
+            {/* Report Question Modal */}
+            < ReportQuestionModal
+                isOpen={isReportModalOpen}
+                onClose={() => setIsReportModalOpen(false)
+                }
+                questionId={question.id}
+                questionContent={question.content}
+            />
+        </div >
     );
 }
 

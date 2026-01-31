@@ -34,6 +34,9 @@ export class UserPass {
     razorpayPaymentId: string;
 
     @Column({ nullable: true })
+    paymentMethod: string;
+
+    @Column({ nullable: true })
     couponCode: string;
 
     @Column('decimal', { precision: 10, scale: 2, default: 0 })
@@ -50,9 +53,9 @@ export class UserPass {
     @Index()
     expiryDate: Date;
 
-    @Column({ default: 'ACTIVE' })
+    @Column({ default: 'INACTIVE' })
     @Index()
-    status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+    status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'INACTIVE';
 
     // Auto-renewal (future feature)
     @Column({ default: false })

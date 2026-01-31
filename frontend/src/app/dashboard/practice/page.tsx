@@ -90,13 +90,8 @@ export default function PracticePage() {
     }, [searchQuery, hierarchy]);
 
     const startChapterPractice = async (chapterId: string) => {
-        try {
-            await api.post('/test-session/start/chapter', { chapterId });
-            router.push(`/dashboard/test/chapter-${chapterId}`);
-        } catch (error) {
-            console.error("Failed to start chapter practice", error);
-            alert("Failed to initiate practice session. Please try again.");
-        }
+        // Redirect to instructions first
+        router.push(`/dashboard/exam-start/chapter-${chapterId}`);
     };
 
     // Removed direct return here to use AnimatePresence below

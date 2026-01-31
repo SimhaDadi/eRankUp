@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
-import { Camera, Save, User as UserIcon, Book, Building, MapPin, Globe, Loader2, Calendar, Mail, Tag, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Camera, Save, User as UserIcon, Book, Building, MapPin, Globe, Loader2, Calendar, Mail, Tag, ChevronDown, CheckCircle2, Crown, Zap as ZapIcon, Shield, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SettingsPage() {
@@ -21,7 +21,8 @@ export default function SettingsPage() {
         education: '',
         category: '',
         location: '',
-        defaultLanguage: 'English'
+        defaultLanguage: 'English',
+        preferredPaymentMethod: ''
     });
 
     // Help format dates consistently
@@ -61,7 +62,8 @@ export default function SettingsPage() {
                             education: res.data.education || '',
                             category: res.data.category || '',
                             location: res.data.location || '',
-                            defaultLanguage: res.data.defaultLanguage || 'English'
+                            defaultLanguage: res.data.defaultLanguage || 'English',
+                            preferredPaymentMethod: res.data.preferredPaymentMethod || ''
                         });
                     }
                 } catch (error) {
@@ -130,20 +132,37 @@ export default function SettingsPage() {
             {/* Success Alert */}
             <AnimatePresence>
                 {showSuccess && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: -20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                        className="fixed top-6 right-6 z-50 bg-emerald-50 border border-emerald-200 p-4 rounded-2xl shadow-xl flex items-center gap-3"
-                    >
-                        <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg">
-                            <CheckCircle2 className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="font-black text-emerald-900 text-sm">Success!</p>
-                            <p className="text-emerald-700 text-xs font-medium">Your profile has been updated.</p>
-                        </div>
-                    </motion.div>
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                            onClick={() => setShowSuccess(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative bg-white border border-slate-200 p-8 rounded-[2rem] shadow-2xl flex flex-col items-center gap-4 max-w-sm w-full text-center"
+                        >
+                            <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 mb-2">
+                                <CheckCircle2 className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900">Profile Updated!</h3>
+                                <p className="text-slate-500 mt-2 font-medium leading-relaxed">
+                                    Your personal settings have been synchronized successfully.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowSuccess(false)}
+                                className="mt-4 w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95"
+                            >
+                                Continue
+                            </button>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
@@ -158,9 +177,9 @@ export default function SettingsPage() {
 
                     <div className="max-w-4xl space-y-6">
                         {/* Profile Picture Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6 items-center">
+                        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 items-center">
                             <label className="text-[13px] font-black text-slate-800 uppercase tracking-[0.2em] md:text-left">
-                                Profile Picture
+                                Profile Picture:
                             </label>
                             <div className="flex items-center gap-8">
                                 <div className="group relative">
@@ -210,7 +229,7 @@ export default function SettingsPage() {
                                     type="date"
                                     value={formData.dob}
                                     onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                                    className="w-full max-w-[240px] h-11 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-extrabold text-base text-slate-900 outline-none transition-all focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm cursor-pointer"
+                                    className="w-full max-w-md h-11 px-5 bg-slate-50 border border-slate-200 rounded-2xl font-extrabold text-base text-slate-900 outline-none transition-all focus:bg-white focus:border-[#00bfa5] focus:ring-4 focus:ring-[#00bfa5]/10 shadow-sm cursor-pointer"
                                 />
                             </FormRow>
 
@@ -227,7 +246,7 @@ export default function SettingsPage() {
 
                             {/* Category */}
                             <FormRow label="Category" icon={<Tag className="w-4 h-4" />}>
-                                <div className="relative max-w-[240px]">
+                                <div className="relative max-w-md">
                                     <select
                                         value={formData.category}
                                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -257,7 +276,7 @@ export default function SettingsPage() {
 
                             {/* Default Language */}
                             <FormRow label="Default Language" icon={<Globe className="w-4 h-4" />}>
-                                <div className="relative max-w-[240px]">
+                                <div className="relative max-w-md">
                                     <select
                                         value={formData.defaultLanguage}
                                         onChange={(e) => setFormData({ ...formData, defaultLanguage: e.target.value })}
@@ -271,6 +290,21 @@ export default function SettingsPage() {
                                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                                 </div>
                             </FormRow>
+
+                            {/* Preferred Payment Method */}
+                            {formData.preferredPaymentMethod && (
+                                <FormRow label="Preferred Payment Method" icon={<Zap className="w-4 h-4" />}>
+                                    <div className="w-full max-w-md h-11 px-5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center shadow-sm">
+                                        <span className="font-extrabold text-base text-slate-400 uppercase tracking-widest">
+                                            {formData.preferredPaymentMethod}
+                                        </span>
+                                        <div className="ml-auto px-2 py-0.5 bg-sky-50 text-sky-600 rounded-lg border border-sky-100 text-[8px] font-black uppercase tracking-widest">
+                                            Captured
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider italic">Automatically updated via last transaction</p>
+                                </FormRow>
+                            )}
                         </div>
 
                         {/* Action Buttons */}
@@ -320,9 +354,9 @@ export default function SettingsPage() {
 
 function FormRow({ label, children, icon }: { label: string; children: React.ReactNode; icon: React.ReactNode }) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-2 md:gap-6 items-center group">
+        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-6 items-center group">
             <label className="text-[13px] font-black text-slate-800 uppercase tracking-[0.2em] md:text-left group-hover:text-slate-600 transition-colors">
-                {label} :
+                {label}:
             </label>
             <div className="flex items-center gap-4">
                 <div className="flex-1">
@@ -408,6 +442,12 @@ function PassSettingsTab() {
                 <div className="space-y-1">
                     <h2 className="text-3xl font-black text-slate-900 tracking-tight">Active Neural Pass</h2>
                     <p className="text-slate-500 font-medium">Strategic resource allocation and subscription management.</p>
+                    {pass.pass?.title?.toLowerCase().includes('elite') && (
+                        <div className="flex items-center gap-2 text-indigo-600 font-black text-xs uppercase tracking-widest mt-2 animate-bounce">
+                            <Crown className="w-4 h-4" />
+                            You are already an Elite User
+                        </div>
+                    )}
                 </div>
                 <div className="px-6 py-2.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-emerald-200 flex items-center gap-3 w-fit shadow-sm shadow-emerald-500/10">
                     <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-lg shadow-emerald-500/50"></div>

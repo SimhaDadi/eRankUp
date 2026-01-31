@@ -19,12 +19,10 @@ export class Question {
     @Column('simple-json', { nullable: true })
     options: { id: string; text: string }[];
 
-    @Exclude({ toPlainOnly: true })
     @Expose({ groups: ['admin', 'review'] })
     @Column()
     correctOptionId: string;
 
-    @Exclude({ toPlainOnly: true })
     @Expose({ groups: ['admin', 'review'] })
     @Column('text', { nullable: true })
     explanation: string;

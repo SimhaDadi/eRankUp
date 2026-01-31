@@ -441,11 +441,10 @@ INSTRUCTIONS:
    - **DIRECT METHOD**: Use only the fastest SSC tricks (Ratio, Successive %, Options elimination, or Digital Sum).
 2. **STRUCTURE**: 
    - Use ### for headers.
-   - Separate segments with **DOUBLE LINE BREAKS** for maximum spacing.
    - **Step 1**: The Trick/Logic (direct link to the answer).
    - **Step 2**: The Calculation (mental math style).
    - **[Final Result]**: Bold final answer.
-3. **NO SYMBOLS**: Strictly NO LaTeX math symbols. Use "x", "/", and "approx.".
+3. **NO SYMBOLS**: Strictly NO LaTeX math symbols. Use "x", "/", and "approx.". Use carets (^) for powers (e.g., x^2, P^3).
 4. **NO TABLES**: Use simple bullet points.
 5. **CONCISE & PUNCHY**: Every word must save the student time.
 

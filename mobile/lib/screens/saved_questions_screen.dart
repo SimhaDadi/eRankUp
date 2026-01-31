@@ -23,10 +23,12 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
   Future<void> _fetchSavedQuestions() async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
-      final response = await apiService.get('/questions/saved');
+      final response = await apiService.get('/users/saved-questions');
       if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
         setState(() {
-          _savedQuestions = jsonDecode(response.body) as List;
+          // Extract the nested question objects from SavedQuestion list
+          _savedQuestions = data.map((item) => item['question']).toList();
           _isLoading = false;
         });
       }
@@ -39,7 +41,8 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
   Future<void> _unsaveQuestion(String questionId) async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
-      await apiService.delete('/questions/$questionId/save');
+      // Using the unified toggle endpoint
+      await apiService.post('/users/saved-questions/$questionId/toggle', {});
       setState(() {
         _savedQuestions?.removeWhere((q) => q['id'] == questionId);
       });

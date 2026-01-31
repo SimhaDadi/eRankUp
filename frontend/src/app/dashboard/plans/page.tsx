@@ -21,6 +21,7 @@ export default function PlansPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isTrialAvailable, setIsTrialAvailable] = useState(true);
     const [hasPhone, setHasPhone] = useState(true);
+    const [activePassIds, setActivePassIds] = useState<string[]>([]);
     const router = useRouter();
 
     useEffect(() => {
@@ -33,6 +34,7 @@ export default function PlansPage() {
                 setPlans(plansRes.data);
                 setIsTrialAvailable(eligibilityRes.data.isTrialAvailable);
                 setHasPhone(eligibilityRes.data.hasPhone);
+                setActivePassIds(eligibilityRes.data.activePassIds || []);
             } catch (err) {
                 console.error('Failed to fetch data', err);
             } finally {
@@ -173,16 +175,20 @@ export default function PlansPage() {
                                     }
                                     handleSelectPlan(plan);
                                 }}
-                                disabled={parseFloat(plan.price) === 0 && !isTrialAvailable}
+                                disabled={(parseFloat(plan.price) === 0 && !isTrialAvailable) || activePassIds.includes(plan.id)}
                                 className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95
-                                    ${plan.isPopular
-                                        ? 'bg-[#00bfa5] hover:bg-[#00a891] text-white shadow-lg shadow-teal-500/20'
-                                        : 'bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10'}
-                                    ${(parseFloat(plan.price) === 0 && !isTrialAvailable) ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                                    ${activePassIds.includes(plan.id)
+                                        ? 'bg-emerald-50 text-emerald-600 border-2 border-emerald-100'
+                                        : plan.isPopular
+                                            ? 'bg-[#00bfa5] hover:bg-[#00a891] text-white shadow-lg shadow-teal-500/20'
+                                            : 'bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10'}
+                                    ${((parseFloat(plan.price) === 0 && !isTrialAvailable) || activePassIds.includes(plan.id)) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                {parseFloat(plan.price) === 0
-                                    ? (isTrialAvailable ? 'Start Free Trial' : 'Trial Already Claimed')
-                                    : 'Get Access Now'}
+                                {activePassIds.includes(plan.id)
+                                    ? 'Current Active Pass'
+                                    : parseFloat(plan.price) === 0
+                                        ? (isTrialAvailable ? 'Start Free Trial' : 'Trial Already Claimed')
+                                        : 'Get Access Now'}
                             </button>
                         </div>
                     ))}

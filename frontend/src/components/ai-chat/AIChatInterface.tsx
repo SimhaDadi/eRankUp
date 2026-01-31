@@ -389,9 +389,9 @@ export default function AIChatInterface() {
                                             }`}
                                     >
                                         {msg.role === 'assistant' && (
-                                            <div className="flex items-center gap-2 mb-3 text-[#00bfa5] text-[10px] font-black uppercase tracking-[0.2em]">
-                                                <div className="w-6 h-6 bg-[#00bfa5]/10 rounded-lg flex items-center justify-center">
-                                                    <span className="text-xs">🤖</span>
+                                            <div className="flex items-center gap-2 mb-2 text-[#00bfa5] text-xs font-black uppercase tracking-[0.2em] border-b border-[#00bfa5]/10 pb-2">
+                                                <div className="w-6 h-6 bg-[#00bfa5] rounded-lg flex items-center justify-center shadow-lg shadow-[#00bfa5]/20">
+                                                    <Sparkles className="w-3.5 h-3.5 text-white" />
                                                 </div>
                                                 <span>Tutor Solution</span>
                                             </div>
@@ -412,14 +412,14 @@ export default function AIChatInterface() {
 
                                         {/* RENDER ASSISTANT WITH MARKDOWN, USER WITH PLAIN TEXT (BUT STYLED) */}
                                         {msg.role === 'assistant' ? (
-                                            <div className="text-sm leading-relaxed whitespace-pre-wrap prose prose-slate max-w-none prose-p:leading-relaxed prose-li:leading-relaxed">
+                                            <div className="text-sm leading-relaxed whitespace-pre-wrap prose prose-slate max-w-none prose-p:leading-snug prose-li:leading-snug prose-h3:mt-3 prose-h3:mb-1">
                                                 <ReactMarkdown
                                                     remarkPlugins={[remarkGfm]}
                                                     components={{
-                                                        h3: ({ node, ...props }) => <h3 className="text-sm font-black mt-4 mb-2 text-[#00bfa5] uppercase tracking-wider" {...props} />,
-                                                        p: ({ node, ...props }) => <p className="mb-3 last:mb-0" {...props} />,
-                                                        ul: ({ node, ...props }) => <ul className="list-disc ml-4 mb-3 space-y-1" {...props} />,
-                                                        ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mb-3 space-y-1" {...props} />,
+                                                        h3: ({ node, ...props }) => <h3 className="text-xs font-black mt-3 mb-1 text-[#00bfa5] uppercase tracking-wider" {...props} />,
+                                                        p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                                                        ul: ({ node, ...props }) => <ul className="list-disc ml-4 mb-2 space-y-0.5" {...props} />,
+                                                        ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mb-2 space-y-0.5" {...props} />,
                                                         li: ({ node, ...props }) => <li className="pl-1" {...props} />,
                                                         code: ({ node, ...props }) => <code className="bg-slate-100 px-1 rounded font-mono text-xs" {...props} />,
                                                         strong: ({ node, ...props }) => <strong className="font-black text-slate-900" {...props} />

@@ -27,7 +27,8 @@ import {
     Menu,
     Settings,
     MonitorPlay,
-    BookOpen
+    BookOpen,
+    History
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -94,7 +95,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
             items: [
                 { icon: Layers, label: 'Mock Tests', href: '/dashboard/test-series' },
                 { icon: MonitorPlay, label: 'Live Tests', href: '/dashboard/live-tests' },
-                { icon: Clock, label: 'Previous Year Papers', href: '/dashboard/pyp' },
+                { icon: History, label: 'Previous Year Papers', href: '/dashboard/pyp' },
                 { icon: BookOpen, label: 'Chapter Wise Tests', href: '/dashboard/practice' },
                 { icon: Clock, label: 'Daily Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },
                 { icon: CheckCircle, label: 'Attempted Tests', href: '/dashboard/performance' }, // Performance page

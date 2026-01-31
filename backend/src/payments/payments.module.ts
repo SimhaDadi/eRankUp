@@ -10,9 +10,11 @@ import { ExamsModule } from '../exams/exams.module';
 import { MarketingModule } from '../marketing/marketing.module';
 import { PassesModule } from '../passes/passes.module';
 
+import { User } from '../users/user.entity';
+
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Purchase, Exam, Pass, UserPass]),
+        TypeOrmModule.forFeature([Purchase, Exam, Pass, UserPass, User]),
         forwardRef(() => ExamsModule),
         MarketingModule,
         PassesModule,

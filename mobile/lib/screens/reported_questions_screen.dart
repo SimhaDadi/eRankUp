@@ -23,7 +23,7 @@ class _ReportedQuestionsScreenState extends State<ReportedQuestionsScreen> {
   Future<void> _fetchReportedQuestions() async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
-      final response = await apiService.get('/questions/reported');
+      final response = await apiService.get('/quality/my-flags');
       if (response.statusCode == 200) {
         setState(() {
           _reportedQuestions = jsonDecode(response.body) as List;
@@ -87,7 +87,8 @@ class _ReportedQuestionsScreenState extends State<ReportedQuestionsScreen> {
   Widget _buildReportCard(Map<String, dynamic> report) {
     final question = report['question'] ?? {};
     final content = question['content'] ?? 'No content';
-    final reason = report['reason'] ?? 'No reason provided';
+    final reason = report['description'] ?? 'No description';
+    final type = report['type'] ?? 'OTHER';
     final status = report['status'] ?? 'pending';
     final createdAt = report['createdAt'];
 
@@ -175,19 +176,30 @@ class _ReportedQuestionsScreenState extends State<ReportedQuestionsScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: isDark ? const Color(0xFF991B1B) : Colors.red.shade100),
             ),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.report_problem, size: 16, color: isDark ? Colors.redAccent : Colors.red.shade700),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    reason,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.red.shade100 : Colors.red.shade900,
-                      height: 1.4,
+                Row(
+                  children: [
+                    Icon(Icons.report_problem, size: 16, color: isDark ? Colors.redAccent : Colors.red.shade700),
+                    const SizedBox(width: 8),
+                    Text(
+                      type.replaceAll('_', ' '),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.black,
+                        color: isDark ? Colors.red.shade200 : Colors.red.shade800,
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  reason,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.red.shade100 : Colors.red.shade900,
+                    height: 1.4,
                   ),
                 ),
               ],

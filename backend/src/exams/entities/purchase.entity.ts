@@ -22,6 +22,9 @@ export class Purchase {
     @Column({ nullable: true })
     razorpayPaymentId: string;
 
+    @Column({ nullable: true })
+    paymentMethod: string;
+
     @Column('float')
     amount: number;
 

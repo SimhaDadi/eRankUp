@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useRouter } from 'next/navigation';
 import { isValidEmail } from '@/utils/validators';
@@ -14,6 +15,8 @@ export default function Signup() {
         password: '',
         confirmPassword: ''
     });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [emailError, setEmailError] = useState('');
     const { signup, isLoading, error } = useAuthStore();
     const router = useRouter();
@@ -96,36 +99,54 @@ export default function Signup() {
                         <label className="block text-sm font-bold text-slate-700 mb-2">
                             Password
                         </label>
-                        <input
-                            name="password"
-                            type="password"
-                            required
-                            value={formData.password}
-                            onChange={handleChange}
-                            onPaste={(e) => e.preventDefault()}
-                            onCopy={(e) => e.preventDefault()}
-                            onCut={(e) => e.preventDefault()}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00bfa5]/20 focus:border-[#00bfa5] outline-none text-slate-900 placeholder:text-slate-400 transition-all font-medium"
-                            placeholder="Create a strong password"
-                        />
+                        <div className="relative">
+                            <input
+                                name="password"
+                                type={showPassword ? "text" : "password"}
+                                required
+                                value={formData.password}
+                                onChange={handleChange}
+                                onPaste={(e) => e.preventDefault()}
+                                onCopy={(e) => e.preventDefault()}
+                                onCut={(e) => e.preventDefault()}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00bfa5]/20 focus:border-[#00bfa5] outline-none text-slate-900 placeholder:text-slate-400 transition-all font-medium pr-12"
+                                placeholder="Create a strong password"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">
                             Confirm Password
                         </label>
-                        <input
-                            name="confirmPassword"
-                            type="password"
-                            required
-                            value={formData.confirmPassword}
-                            onChange={handleChange}
-                            onPaste={(e) => e.preventDefault()}
-                            onCopy={(e) => e.preventDefault()}
-                            onCut={(e) => e.preventDefault()}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00bfa5]/20 focus:border-[#00bfa5] outline-none text-slate-900 placeholder:text-slate-400 transition-all font-medium"
-                            placeholder="Repeat password"
-                        />
+                        <div className="relative">
+                            <input
+                                name="confirmPassword"
+                                type={showConfirmPassword ? "text" : "password"}
+                                required
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                                onPaste={(e) => e.preventDefault()}
+                                onCopy={(e) => e.preventDefault()}
+                                onCut={(e) => e.preventDefault()}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00bfa5]/20 focus:border-[#00bfa5] outline-none text-slate-900 placeholder:text-slate-400 transition-all font-medium pr-12"
+                                placeholder="Repeat password"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
                     </div>
 
                     <button

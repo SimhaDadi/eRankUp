@@ -12,8 +12,8 @@ export class PremiumGuard implements CanActivate {
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest();
-        const userId = request.user?.userId;
-        const testId = request.params.testId || request.body.testId;
+        const userId = request.user?.userId || request.user?.id;
+        const testId = request.params.testId || request.body.testId || request.params.chapterId || request.body.chapterId;
 
         if (!userId) {
             throw new ForbiddenException('User not authenticated');
@@ -21,8 +21,8 @@ export class PremiumGuard implements CanActivate {
 
         if (!testId) return true;
 
-        // [FIX] Skip check for Adaptive Sessions (generated for user) & Chapter Practice (handled separately)
-        if (testId.startsWith('adaptive') || testId.startsWith('chapter-')) {
+        // [FIX] Skip check for Adaptive Sessions (generated for user)
+        if (testId.startsWith('adaptive')) {
             return true;
         }
 
@@ -35,11 +35,12 @@ export class PremiumGuard implements CanActivate {
         if (!exam || !exam.isPremium) return true;
 
         // Check if user has active pass with access to this exam
-        const hasAccess = await this.passesService.canAccessExam(userId, exam.id, exam.type);
+        const hasPassAccess = await this.passesService.canAccessExam(userId, exam.id, exam.type);
+        const hasPurchased = await this.examsService['paymentsService'].hasPurchased(userId, exam.id);
 
-        if (!hasAccess) {
+        if (!hasPassAccess && !hasPurchased) {
             throw new ForbiddenException(
-                'You need an active pass to access this content. Please purchase a pass to continue.'
+                'You need an active pass or individual purchase to access this content. Please purchase to continue.'
             );
         }
 

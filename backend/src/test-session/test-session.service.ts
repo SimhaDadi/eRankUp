@@ -390,21 +390,21 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    async getUserActiveTestIds(userId: string): Promise<string[]> {
+    async getUserActiveSessions(userId: string): Promise<Record<string, 'IN_PROGRESS' | 'PAUSED'>> {
         const pattern = `session:${userId}:*`;
         const keys = await this.redis.keys(pattern);
-        const activeTestIds: string[] = [];
+        const activeSessions: Record<string, 'IN_PROGRESS' | 'PAUSED'> = {};
 
         for (const key of keys) {
             const data = await this.redis.get(key);
             if (data) {
                 const session: TestSession = JSON.parse(data);
                 if (session.status === 'IN_PROGRESS' || session.status === 'PAUSED') {
-                    activeTestIds.push(session.testId);
+                    activeSessions[session.testId] = session.status;
                 }
             }
         }
-        return activeTestIds;
+        return activeSessions;
     }
 
     async pauseSession(userId: string, testId: string) {

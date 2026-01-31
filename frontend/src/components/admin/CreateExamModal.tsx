@@ -22,7 +22,8 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
         defaultNegativeMarks: 0.25,
         duration: defaultCategory === 'Free Quiz' ? 15 : 60,
         startTime: '',
-        endTime: ''
+        endTime: '',
+        isPremium: false
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -100,7 +101,8 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
                 defaultNegativeMarks: 0.25,
                 duration: defaultCategory === 'Free Quiz' ? 15 : 60,
                 startTime: '',
-                endTime: ''
+                endTime: '',
+                isPremium: false
             });
             setErrors({});
         } catch (error: any) {
@@ -213,6 +215,30 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
                             </select>
                         </div>
                     )}
+
+                    {/* Premium Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border-2 border-slate-100">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${formData.isPremium ? 'bg-amber-100 text-amber-600' : 'bg-slate-200 text-slate-500'}`}>
+                                <Zap className={`w-5 h-5 ${formData.isPremium ? 'fill-amber-600' : ''}`} />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-900">Premium Content</h4>
+                                <p className="text-[10px] text-gray-500">Requires a valid pass or purchase to access</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => handleChange('isPremium', !formData.isPremium)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.isPremium ? 'bg-blue-600' : 'bg-gray-300'
+                                }`}
+                        >
+                            <span
+                                className={`${formData.isPremium ? 'translate-x-6' : 'translate-x-1'
+                                    } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                            />
+                        </button>
+                    </div>
 
                     {/* Live Exam Schedule */}
                     <AnimatePresence>

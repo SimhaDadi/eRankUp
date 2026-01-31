@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, LessThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import * as crypto from 'crypto';
 import { Pass, PassType } from './entities/pass.entity';
 import { UserPass } from './entities/user-pass.entity';
 import { User } from '../users/user.entity';
@@ -110,10 +111,38 @@ export class PassesService implements OnModuleInit {
             couponCode: paymentDetails.couponCode,
             discountAmount: paymentDetails.discountAmount || 0,
             paymentStatus: 'PENDING',
-            status: 'ACTIVE'
+            status: 'INACTIVE' // [FIX] Start as INACTIVE, only ACTIVE after payment
         });
 
         return this.userPassRepository.save(userPass);
+    }
+
+    async activateFreePass(user: any, pass: Pass): Promise<any> {
+        const userId = user.userId || user.id;
+        const available = await this.isTrialAvailable(userId);
+        if (!available) {
+            throw new BadRequestException('Free trial not available for this account/phone number');
+        }
+
+        const now = new Date();
+        const expiry = this.calculateExpiryDate(now, pass);
+
+        const userPass = this.userPassRepository.create({
+            user: { id: userId } as any,
+            pass,
+            userId: userId,
+            passId: pass.id,
+            purchaseDate: now,
+            expiryDate: expiry,
+            amount: 0,
+            status: 'ACTIVE',
+            paymentStatus: 'COMPLETED',
+            razorpayOrderId: `FREE_TRIAL_${Date.now()}`,
+            razorpayPaymentId: 'FREE_TRIAL'
+        });
+
+        await this.userPassRepository.save(userPass);
+        return { success: true, message: 'Free Trial Activated', isFree: true, orderId: userPass.razorpayOrderId };
     }
 
     async completePayment(razorpayOrderId: string, razorpayPaymentId: string): Promise<UserPass> {
@@ -129,6 +158,7 @@ export class PassesService implements OnModuleInit {
 
         this.logger.log(`[CompletePayment] UserPass found: ${userPass.id}. Updating to COMPLETED.`);
         userPass.paymentStatus = 'COMPLETED';
+        userPass.status = 'ACTIVE'; // [FIX] Activate pass on payment completion
         userPass.razorpayPaymentId = razorpayPaymentId;
 
         return this.userPassRepository.save(userPass);
@@ -154,12 +184,12 @@ export class PassesService implements OnModuleInit {
     // ==================== Access Control ====================
 
     async hasActivePass(userId: string): Promise<boolean> {
-        const activePass = await this.getActivePass(userId);
-        return !!activePass;
+        const activePasses = await this.getActivePasses(userId);
+        return activePasses.length > 0;
     }
 
-    async getActivePass(userId: string): Promise<UserPass | null> {
-        return this.userPassRepository.findOne({
+    async getActivePasses(userId: string): Promise<UserPass[]> {
+        return this.userPassRepository.find({
             where: {
                 userId,
                 status: 'ACTIVE',
@@ -169,6 +199,12 @@ export class PassesService implements OnModuleInit {
             relations: ['pass'],
             order: { expiryDate: 'DESC' }
         });
+    }
+
+    // Keep for legacy compatibility, returns the one with latest expiry
+    async getActivePass(userId: string): Promise<UserPass | null> {
+        const passes = await this.getActivePasses(userId);
+        return passes.length > 0 ? passes[0] : null;
     }
 
     async getUserPasses(userId: string): Promise<UserPass[]> {
@@ -187,9 +223,13 @@ export class PassesService implements OnModuleInit {
 
         if (!user) return false;
 
-        // 2. Check if THIS user has already claimed a trial
+        // 2. Check if THIS user has already claimed/purchased a trial
         const directTrial = await this.userPassRepository.findOne({
-            where: { userId, amount: 0 }
+            where: {
+                userId,
+                amount: 0,
+                paymentStatus: 'COMPLETED' // [FIX] Only check successful ones
+            }
         });
         if (directTrial) return false;
 
@@ -198,7 +238,8 @@ export class PassesService implements OnModuleInit {
             const phoneTrial = await this.userPassRepository.findOne({
                 where: {
                     user: { phone: user.phone },
-                    amount: 0
+                    amount: 0,
+                    paymentStatus: 'COMPLETED' // [FIX] Only check successful ones
                 },
                 relations: ['user']
             });
@@ -209,22 +250,28 @@ export class PassesService implements OnModuleInit {
     }
 
     async canAccessExam(userId: string, examId: string, examType: string): Promise<boolean> {
-        const activePass = await this.getActivePass(userId);
-        if (!activePass) return false;
+        const activePasses = await this.getActivePasses(userId);
+        if (activePasses.length === 0) return false;
 
-        const pass = activePass.pass;
+        // [FIX] Check all active passes. If any pass grants access, allow it.
+        for (const userPass of activePasses) {
+            const pass = userPass.pass;
 
-        // Check if exam type is included
-        if (pass.includedExamTypes.length > 0 && !pass.includedExamTypes.includes(examType)) {
-            return false;
+            // 1. Check if exam is explicitly excluded (overrides everything)
+            if (pass.excludedExamIds?.includes(examId)) {
+                continue; // This pass doesn't help, try another
+            }
+
+            // 2. Check if exam type is included
+            const typeIsIncluded = pass.includedExamTypes.length === 0 || pass.includedExamTypes.includes(examType);
+
+            if (typeIsIncluded) {
+                // Future check: maxExams limit would go here
+                return true;
+            }
         }
 
-        // Check if exam is explicitly excluded
-        if (pass.excludedExamIds.includes(examId)) {
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
     // ==================== Pass Lifecycle ====================
@@ -259,7 +306,7 @@ export class PassesService implements OnModuleInit {
 
     // ==================== Utilities ====================
 
-    private calculateExpiryDate(startDate: Date, pass: Pass): Date {
+    public calculateExpiryDate(startDate: Date, pass: Pass): Date {
         if (pass.passType === PassType.LIFETIME) {
             // Set to 100 years in the future (effectively lifetime)
             const expiryDate = new Date(startDate);
@@ -268,7 +315,7 @@ export class PassesService implements OnModuleInit {
         }
 
         const expiryDate = new Date(startDate);
-        expiryDate.setDate(expiryDate.getDate() + pass.durationDays);
+        expiryDate.setDate(expiryDate.getDate() + (pass.durationDays || 0));
         return expiryDate;
     }
 
@@ -320,7 +367,6 @@ export class PassesService implements OnModuleInit {
     async verifyPayment(user: any, payload: { razorpayOrderId: string, razorpayPaymentId: string, razorpaySignature: string }) {
         this.logger.log(`[VerifyPayment] Verifying for User: ${user.userId || user.id}, Order: ${payload.razorpayOrderId}`);
 
-        const crypto = require('crypto');
         const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
 
         if (!secret) {
@@ -348,26 +394,6 @@ export class PassesService implements OnModuleInit {
         }
     }
 
-    private async activateFreePass(user: any, pass: Pass) {
-        const now = new Date();
-        const expiry = this.calculateExpiryDate(now, pass);
-
-        const userPass = this.userPassRepository.create({
-            user: { id: user.userId } as any,
-            pass,
-            userId: user.userId,
-            passId: pass.id,
-            purchaseDate: now,
-            expiryDate: expiry,
-            amount: 0,
-            status: 'ACTIVE',
-            paymentStatus: 'COMPLETED',
-            razorpayOrderId: 'FREE_TRIAL',
-            razorpayPaymentId: 'FREE_TRIAL'
-        });
-
-        await this.userPassRepository.save(userPass);
-        return { success: true, message: 'Free Trial Activated', isFree: true };
-    }
+    // Removed private activateFreePass as it's now public activateFreePass
 }
 

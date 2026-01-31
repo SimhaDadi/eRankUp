@@ -21,11 +21,34 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
   List<dynamic> _filteredResponses = [];
   bool _isLoading = true;
   String _filter = 'all'; // all, correct, incorrect, unattempted
+  Set<String> _savedQuestionIds = {};
 
   @override
   void initState() {
     super.initState();
-    _fetchSolutionData();
+    _fetchInitialData();
+  }
+
+  Future<void> _fetchInitialData() async {
+    await Future.wait([
+      _fetchSolutionData(),
+      _fetchSavedQuestionIds(),
+    ]);
+  }
+
+  Future<void> _fetchSavedQuestionIds() async {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    try {
+      final response = await apiService.get('/users/saved-questions');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _savedQuestionIds = data.map((item) => item['questionId'].toString()).toSet();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching saved IDs: $e');
+    }
   }
 
   Future<void> _fetchSolutionData() async {
@@ -168,6 +191,26 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                   children: [
                     Text('QUESTION $displayIndex', style: AppTextStyles.overline.copyWith(color: AppColors.primaryBlue)),
                     _buildStatusBadge(selectedId == null, isCorrect),
+                    Row(
+                      children: [
+                        _buildActionButton(
+                          icon: _savedQuestionIds.contains(question['id']) 
+                              ? Icons.bookmark 
+                              : Icons.bookmark_border,
+                          color: _savedQuestionIds.contains(question['id']) 
+                              ? Colors.amber 
+                              : AppColors.textTertiary,
+                          onTap: () => _toggleSave(question['id']),
+                          tooltip: 'Save',
+                        ),
+                        _buildActionButton(
+                          icon: Icons.flag_outlined,
+                          color: AppColors.textTertiary,
+                          onTap: () => _showReportDialog(question['id'], question['content']),
+                          tooltip: 'Report',
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -409,6 +452,173 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
             style: AppTextStyles.bodySmall.copyWith(color: Theme.of(context).textTheme.bodySmall?.color)
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    required String tooltip,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticService.light();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Icon(icon, size: 20, color: color),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleSave(String questionId) async {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    try {
+      final response = await apiService.post('/users/saved-questions/$questionId/toggle', {});
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final isSaved = data['saved'] as bool;
+        setState(() {
+          if (isSaved) {
+            _savedQuestionIds.add(questionId);
+          } else {
+            _savedQuestionIds.remove(questionId);
+          }
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(isSaved ? 'Question saved' : 'Question removed from saved'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Toggle save error: $e');
+    }
+  }
+
+  void _showReportDialog(String questionId, String content) {
+    final textController = TextEditingController();
+    String? selectedType;
+    final types = [
+      {'id': 'wrong_answer', 'label': 'Wrong Answer'},
+      {'id': 'wrong_question', 'label': 'Incomplete/Wrong Question'},
+      {'id': 'formatting_error', 'label': 'Formatting/Image Issue'},
+      {'id': 'explanation_issue', 'label': 'Explanation Issue'},
+      {'id': 'other', 'label': 'Other'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 20,
+          ),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Report Question', style: AppTextStyles.h3),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text('What is the issue?', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: types.map((t) {
+                    final isSelected = selectedType == t['id'];
+                    return ChoiceChip(
+                      label: Text(t['label']!),
+                      selected: isSelected,
+                      onSelected: (val) {
+                        if (val) setModalState(() => selectedType = t['id']);
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 24),
+                Text('Additional details', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: textController,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: 'Describe the problem in detail...',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: Theme.of(context).cardTheme.color,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (selectedType == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please select an issue type')),
+                        );
+                        return;
+                      }
+                      
+                      final apiService = Provider.of<ApiService>(context, listen: false);
+                      try {
+                        await apiService.post('/quality/flag/$questionId', {
+                          'type': selectedType,
+                          'description': textController.text,
+                        });
+                        
+                        if (mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Thank you for reporting! Our team will review it.')),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to report: $e')),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('SUBMIT REPORT'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -321,6 +321,25 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                          if (!isUser)
+                              Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Row(
+                                      children: [
+                                          Icon(Icons.auto_awesome, size: 12, color: AppColors.primaryCyan),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                              'TUTOR SOLUTION',
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.primaryCyan.withOpacity(0.8),
+                                                  letterSpacing: 0.5,
+                                              ),
+                                          ),
+                                      ],
+                                  ),
+                              ),
                           if (localImage != null)
                               Padding(
                                   padding: const EdgeInsets.only(bottom: 8.0),

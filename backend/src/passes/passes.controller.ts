@@ -23,13 +23,15 @@ export class PassesController {
         const isTrialAvailable = await this.passesService.isTrialAvailable(userId);
 
         // Also check if phone is missing for free trial binding
-        const user = await this.passesService.getActivePass(userId).then(() =>
-            this.passesService['userPassRepository'].manager.getRepository(User).findOneBy({ id: userId })
-        );
+        const user = await this.passesService['userPassRepository'].manager.getRepository(User).findOneBy({ id: userId });
+
+        const activePasses = await this.passesService.getActivePasses(userId);
+        const activePassIds = activePasses.map(p => p.passId);
 
         return {
             isTrialAvailable,
-            hasPhone: !!user?.phone
+            hasPhone: !!user?.phone,
+            activePassIds
         };
     }
 

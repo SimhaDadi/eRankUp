@@ -1,3 +1,4 @@
+import { PremiumGuard } from '../payments/guards/premium.guard';
 import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query, ForbiddenException, ClassSerializerInterceptor, SerializeOptions, Res } from '@nestjs/common';
 import { instanceToPlain } from 'class-transformer';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -39,19 +40,20 @@ export class ExamsController {
         const userId = req.user.userId;
 
         // Concurrent fetching of base data
-        const [exams, attemptStats, activeTestIds, purchasedExamIds] = await Promise.all([
+        const [exams, attemptStats, activeSessions, purchasedExamIds] = await Promise.all([
             this.examsService.findAll({ includeUnpublished: isAdmin, type }),
             this.scorerService.getUserExamStats(userId),
-            this.testSessionService.getUserActiveTestIds(userId),
+            this.testSessionService.getUserActiveSessions(userId),
             this.paymentsService.getPurchasedExamIds(userId)
         ]);
 
         const purchasedSet = new Set(purchasedExamIds);
-        const activeSet = new Set(activeTestIds);
 
         for (const exam of exams) {
             if (exam.isPremium) {
-                (exam as any).hasPurchased = purchasedSet.has(exam.id);
+                const hasDirectlyPurchased = purchasedSet.has(exam.id);
+                const hasPassAccess = await this.passesService.canAccessExam(userId, exam.id, (exam as any).type);
+                (exam as any).hasPurchased = hasDirectlyPurchased || hasPassAccess;
             }
 
             // Calculate aggregated stats
@@ -76,7 +78,8 @@ export class ExamsController {
             // Check for active session
             const examModelIds = exam.models?.map(m => m.id) || [];
             const allRelevantIds = [...examModelIds, exam.id];
-            (exam as any).activeSession = allRelevantIds.find(id => activeSet.has(id)) || null;
+            const activeId = allRelevantIds.find(id => activeSessions[id]);
+            (exam as any).activeSession = activeId ? { id: activeId, status: activeSessions[activeId] } : null;
 
             // Calculate total models for progress tracking
             let totalModels = examModelIds.length;
@@ -140,9 +143,9 @@ export class ExamsController {
 
         if (exam.isPremium && !isAdmin) {
             const hasPurchased = await this.paymentsService.hasPurchased(req.user.userId, exam.id);
-            const hasPass = await this.passesService.getCurrentPass(req.user.userId);
+            const hasPassAccess = await this.passesService.canAccessExam(req.user.userId, exam.id, (exam as any).type);
 
-            (exam as any).hasPurchased = hasPurchased || !!hasPass;
+            (exam as any).hasPurchased = hasPurchased || hasPassAccess;
 
             // GATEKEEPER: If no purchase AND no active pass -> Deny details (or restricted view)
             // For now, we return data but client handles it? 
@@ -240,25 +243,7 @@ export class ExamsController {
         // Logic handled by frontend (only calls this page after finish).
         // Ensure user owns attempt (handled by getAttempt).
 
-        const plain = instanceToPlain(attempt, { groups: ['review'] });
-
-        // [FIX] Force injection of explanation if it was stripped
-        if (plain.responses && attempt.responses) {
-            plain.responses.forEach((resp: any, index: number) => {
-                const originalQ = attempt.responses[index]?.question;
-                if (resp.question && originalQ) {
-                    // Manually re-attach explanation and correctOptionId if they were stripped
-                    if (!resp.question.explanation && originalQ.explanation) {
-                        resp.question.explanation = originalQ.explanation;
-                    }
-                    if (!resp.question.correctOptionId && originalQ.correctOptionId) {
-                        resp.question.correctOptionId = originalQ.correctOptionId;
-                    }
-                }
-            });
-        }
-
-        return plain;
+        return instanceToPlain(attempt, { groups: ['review'] });
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -513,11 +498,12 @@ export class ExamsController {
         res.status(200).send(csv);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(AuthGuard('jwt'), PremiumGuard)
     @Get('practice/:chapterId/start')
-    async startPractice(@Param('chapterId') chapterId: string, @Query('limit') limit: any = 20) {
+    async startPractice(@Request() req: any, @Param('chapterId') chapterId: string, @Query('limit') limit: any = 20) {
         const numericLimit = isNaN(parseInt(limit)) ? 20 : parseInt(limit);
-        const questions = await this.examsService.getPracticeQuestions(chapterId, numericLimit);
+        const userId = req.user.userId || req.user.id;
+        const questions = await this.examsService.getPracticeQuestions(userId, chapterId, numericLimit);
         return {
             id: `practice-${chapterId}-${Date.now()}`, // Virtual Exam ID
             title: 'Chapter Practice',

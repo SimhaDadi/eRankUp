@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Search, Sparkles, Trophy, Users, Globe, ChevronRight, Bookmark, Rocket, BookOpen, CheckCircle2 } from 'lucide-react';
+import { Zap, Search, Sparkles, Trophy, Users, Globe, ChevronRight, Bookmark, Rocket, BookOpen, CheckCircle2, Pause } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -23,7 +23,7 @@ interface Exam {
         bestScore: number;
         attemptedModelIds: string[];
     };
-    activeSession?: string | null;
+    activeSession?: { id: string; status: 'IN_PROGRESS' | 'PAUSED' } | null;
     totalModels?: number;
 }
 
@@ -196,7 +196,8 @@ function ExamCard({ exam, index, itemVariants }: { exam: Exam, index: number, it
 
     const attemptsCount = exam.attempts?.count || 0;
     const isCompleted = exam.totalModels && exam.attempts && exam.attempts.attemptedModelIds && exam.attempts.attemptedModelIds.length >= exam.totalModels;
-    const isInProgress = !!exam.activeSession;
+    const isInProgress = exam.activeSession?.status === 'IN_PROGRESS';
+    const isPaused = exam.activeSession?.status === 'PAUSED';
     const progressCount = exam.attempts?.attemptedModelIds?.length || 0;
     const totalCount = exam.totalModels || 0;
 
@@ -231,7 +232,13 @@ function ExamCard({ exam, index, itemVariants }: { exam: Exam, index: number, it
                                 Resume
                             </div>
                         )}
-                        {!isInProgress && exam.attempts && exam.attempts.count > 0 && (
+                        {isPaused && (
+                            <div className="flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-amber-500/20 border border-amber-400">
+                                <Pause className="w-3.5 h-3.5" />
+                                Paused
+                            </div>
+                        )}
+                        {!isInProgress && !isPaused && exam.attempts && exam.attempts.count > 0 && (
                             <div className={`flex items-center gap-1.5 bg-emerald-100/80 text-emerald-700 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-200 shadow-sm shadow-emerald-100/50 backdrop-blur-sm`}>
                                 <Trophy className="w-3.5 h-3.5" />
                                 {Math.round(exam.attempts.bestScore)}% Best
@@ -266,23 +273,16 @@ function ExamCard({ exam, index, itemVariants }: { exam: Exam, index: number, it
                 </p>
 
                 {/* Actions */}
-                {/* Actions */}
                 <div className="flex items-center gap-3 mt-auto">
                     {(() => {
                         // Determine target URL
                         let targetUrl = `/dashboard/exams/${exam.id}`;
 
-                        if (isInProgress && exam.activeSession) {
-                            targetUrl = `/dashboard/test/${exam.activeSession}`;
+                        if ((isInProgress || isPaused) && exam.activeSession) {
+                            targetUrl = `/dashboard/test/${exam.activeSession.id}`;
                         } else if (isCompleted) {
-                            // If completed, ideally go to results or details. 
-                            // Logic here says 'View Results', maybe go to details to see list?
-                            // Or if multiple models, details is best.
                             targetUrl = `/dashboard/exams/${exam.id}`;
                         } else {
-                            // Check for single model skip
-                            // We need to find the first model id. 
-                            // exam.chapters -> models
                             let singleModelId: string | null = null;
                             let totalModelsFound = 0;
 
@@ -297,7 +297,6 @@ function ExamCard({ exam, index, itemVariants }: { exam: Exam, index: number, it
                                 }
                             }
 
-                            // Skip if: 1 model total, AND (Premium+Purchased OR Not Premium)
                             if (totalModelsFound === 1 && singleModelId && (!exam.isPremium || exam.hasPurchased)) {
                                 targetUrl = `/dashboard/exam-start/${singleModelId}`;
                             }
@@ -306,9 +305,9 @@ function ExamCard({ exam, index, itemVariants }: { exam: Exam, index: number, it
                         return (
                             <Link
                                 href={targetUrl}
-                                className={`flex-1 ${isInProgress ? 'bg-emerald-500 shadow-emerald-500/20' : isCompleted ? 'bg-emerald-600' : 'bg-sky-600'} text-white text-[10px] font-black py-3 rounded-xl transition-all hover:opacity-90 active:scale-95 text-center uppercase tracking-[0.2em] shadow-lg`}
+                                className={`flex-1 ${(isInProgress || isPaused) ? (isPaused ? 'bg-amber-500 shadow-amber-500/20' : 'bg-emerald-500 shadow-emerald-500/20') : isCompleted ? 'bg-emerald-600' : 'bg-sky-600'} text-white text-[10px] font-black py-3 rounded-xl transition-all hover:opacity-90 active:scale-95 text-center uppercase tracking-[0.2em] shadow-lg`}
                             >
-                                {isInProgress ? 'Continue Test' : isCompleted ? 'View Results' : 'Enter Series'}
+                                {isPaused ? 'Resume Test' : isInProgress ? 'Continue Test' : isCompleted ? 'View Results' : 'Enter Series'}
                             </Link>
                         );
                     })()}

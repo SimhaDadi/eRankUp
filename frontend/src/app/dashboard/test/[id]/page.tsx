@@ -370,6 +370,9 @@ export default function TestPage() {
         if (currentQuestionIndex < questions.length - 1) {
             const nextIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(nextIndex);
+        } else {
+            // [NEW] Trigger submit summary prompt on the last question
+            handleSubmit();
         }
     };
 
@@ -659,7 +662,8 @@ export default function TestPage() {
                             onClick={handleSaveAndNext}
                             className="px-8 py-2.5 rounded-lg bg-[#2563eb] text-white font-bold hover:bg-blue-700 shadow-md shadow-blue-500/20 text-sm flex items-center gap-2"
                         >
-                            Save & Next <ChevronRight className="w-4 h-4" />
+                            {currentQuestionIndex === questions.length - 1 ? 'Save & Submit' : 'Save & Next'}
+                            <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
                 </div>

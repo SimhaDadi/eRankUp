@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import Razorpay = require('razorpay');
 import * as crypto from 'crypto';
@@ -10,6 +10,7 @@ import { User } from '../users/user.entity';
 import { MarketingService } from '../marketing/marketing.service';
 import { Pass } from '../passes/entities/pass.entity';
 import { UserPass } from '../passes/entities/user-pass.entity';
+import { PassesService } from '../passes/passes.service';
 
 @Injectable()
 export class PaymentsService implements OnModuleInit {
@@ -26,6 +27,7 @@ export class PaymentsService implements OnModuleInit {
         @InjectRepository(Pass)
         private passRepository: Repository<Pass>,
         private marketingService: MarketingService,
+        private passesService: PassesService,
     ) { }
 
     onModuleInit() {
@@ -39,6 +41,12 @@ export class PaymentsService implements OnModuleInit {
         const exam = await this.examRepository.findOneBy({ id: examId });
         if (!exam || !exam.isPremium) {
             throw new Error('Exam not eligible for purchase');
+        }
+
+        // [FIX] Prevent double purchase of individual exams
+        const alreadyPurchased = await this.hasPurchased(user.id, examId);
+        if (alreadyPurchased) {
+            throw new Error('You have already purchased this exam.');
         }
 
         let finalPrice = exam.price;
@@ -140,68 +148,31 @@ export class PaymentsService implements OnModuleInit {
             }
         }
 
-        if (finalPrice <= 0) {
-            try {
-                const uid = user.userId || user.id;
-                // Fetch full user to get phone
-                const fullUser = await this.userPassRepository.manager.getRepository(User).findOneBy({ id: uid });
-
-                // Restricted Free Trial Logic: check if already claimed by user OR phone
-                const existingTrial = await this.userPassRepository.findOne({
-                    where: [
-                        { userId: uid, amount: 0 },
-                        ...(fullUser?.phone ? [{ user: { phone: fullUser.phone }, amount: 0 }] : [])
-                    ],
-                    relations: ['user']
-                });
-
-                if (existingTrial) {
-                    throw new Error('You (or another account with your phone number) have already claimed a free trial.');
-                }
-
-                // Free Pass Logic
-                const startDate = new Date();
-                const expiryDate = new Date(startDate);
-                expiryDate.setDate(expiryDate.getDate() + pass.durationDays);
-
-                if (!this.userPassRepository) {
-                    throw new Error('UserPassRepository is not initialized');
-                }
-
-                console.log('Creating free pass for user:', user.userId, 'pass:', pass.id);
-
-                const userPass = this.userPassRepository.create({
-                    // user, // REMOVED: Do not pass plain object as relation
-                    pass,
-                    userId: user.userId || user.id,
-                    passId: pass.id,
-                    purchaseDate: startDate,
-                    expiryDate: expiryDate,
-                    amount: 0,
-                    razorpayOrderId: `FREE_${Date.now()}`,
-                    couponCode: couponCode || null,
-                    discountAmount: discountAmount,
-                    paymentStatus: 'COMPLETED',
-                    status: 'ACTIVE'
-                });
-
-                console.log('Saving free userPass...');
-                await this.userPassRepository.save(userPass);
-                console.log('Saved free userPass:', userPass.id);
-
-                return {
-                    orderId: userPass.razorpayOrderId,
-                    amount: 0,
-                    currency: 'INR',
-                    keyId: null,
-                    user: { name: user.fullName, email: user.email },
-                    discountApplied: discountAmount,
-                    isFree: true
-                };
-            } catch (err) {
-                console.error('CRITICAL ERROR in createPassOrder (Free):', err);
-                throw err;
+        // [FIX] Prevent double purchase of the same pass if already active
+        const existingActivePass = await this.userPassRepository.findOne({
+            where: {
+                userId: user.id || user.userId,
+                passId: pass.id,
+                status: 'ACTIVE',
+                expiryDate: MoreThan(new Date())
             }
+        });
+
+        if (existingActivePass) {
+            throw new Error(`You already have an active "${pass.title}". Please wait for it to expire before purchasing again.`);
+        }
+
+        if (finalPrice <= 0) {
+            // [FIX] Use centralized PassesService logic for trials
+            const result = await this.passesService.activateFreePass(user, pass);
+            return {
+                ...result,
+                amount: 0,
+                currency: 'INR',
+                keyId: null,
+                user: { name: user.fullName, email: user.email },
+                discountApplied: discountAmount
+            };
         }
 
         if (finalPrice < 1) finalPrice = 1;
@@ -227,13 +198,10 @@ export class PaymentsService implements OnModuleInit {
 
         // Calculate expiry
         const startDate = new Date();
-        const expiryDate = new Date(startDate);
-        expiryDate.setDate(expiryDate.getDate() + pass.durationDays);
+        const expiryDate = this.passesService.calculateExpiryDate(startDate, pass);
 
         try {
             const userPass = this.userPassRepository.create({
-                // user, // REMOVED
-                // pass, // REMOVED: Use passId only to be safe
                 userId: user.id || user.userId,
                 passId: pass.id,
                 purchaseDate: startDate,
@@ -243,7 +211,7 @@ export class PaymentsService implements OnModuleInit {
                 couponCode: couponCode || null,
                 discountAmount: discountAmount,
                 paymentStatus: 'PENDING',
-                status: 'ACTIVE'
+                status: 'INACTIVE' // [FIX] Paid passes start as INACTIVE
             });
             await this.userPassRepository.save(userPass);
 
@@ -288,23 +256,52 @@ export class PaymentsService implements OnModuleInit {
             const paymentId = payload.payload?.payment?.entity?.id;
 
             if (orderId) {
+                const paymentMethod = payload.payload?.payment?.entity?.method;
+
                 // Robustness: Use transaction to ensure both updates succeed or fail together
                 await this.purchaseRepository.manager.transaction(async transactionalEntityManager => {
+                    // Update Purchase
                     await transactionalEntityManager.update(Purchase,
                         { razorpayOrderId: orderId },
                         {
                             status: 'COMPLETED',
-                            razorpayPaymentId: paymentId
+                            razorpayPaymentId: paymentId,
+                            paymentMethod: paymentMethod
                         }
                     );
 
+                    // Update UserPass
+                    const passUpdate: any = {
+                        paymentStatus: 'COMPLETED',
+                        status: 'ACTIVE',
+                        razorpayPaymentId: paymentId,
+                        paymentMethod: paymentMethod
+                    };
+
                     await transactionalEntityManager.update(UserPass,
                         { razorpayOrderId: orderId },
-                        {
-                            paymentStatus: 'COMPLETED',
-                            razorpayPaymentId: paymentId
-                        }
+                        passUpdate
                     );
+
+                    // Update User Preferred Payment Method
+                    if (paymentMethod) {
+                        const purchase = await transactionalEntityManager.findOne(Purchase, {
+                            where: { razorpayOrderId: orderId },
+                            relations: ['user']
+                        });
+                        const userPass = await transactionalEntityManager.findOne(UserPass, {
+                            where: { razorpayOrderId: orderId },
+                            relations: ['user']
+                        });
+
+                        const userId = purchase?.user?.id || userPass?.userId;
+                        if (userId) {
+                            await transactionalEntityManager.update(User,
+                                { id: userId },
+                                { preferredPaymentMethod: paymentMethod }
+                            );
+                        }
+                    }
                 });
             }
         }
