@@ -97,6 +97,11 @@ JWT_SECRET=your_super_secret_jwt_key
 # Payments
 RAZORPAY_KEY_ID=your_key
 RAZORPAY_KEY_SECRET=your_secret
+
+# Google login (Sign-in)
+GOOGLE_CLIENT_ID=your_id_here
+GOOGLE_CLIENT_SECRET=your_secret_here
+GOOGLE_CALLBACK_URL=http://your_domain_or_ip:3001/auth/google/callback
 ```
 
 ### 3. Fire up the Stack
@@ -148,6 +153,7 @@ To protect your business, **never** push your real API keys to GitHub. Follow th
 ### 1. Where to find your keys locally
 If you have forgotten your keys, check these locations on your development machine:
 - **Gemini AI**: Visit [Google AI Studio](https://aistudio.google.com/app/apikey).
+- **Google Login (OAuth)**: Visit [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 - **Razorpay**: Log in to the [Razorpay Dashboard](https://dashboard.razorpay.com/) -> Settings -> API Keys.
 - **Local Search**: Run this command in your local project folder to see where you last used the keys:
   ```powershell
@@ -155,6 +161,8 @@ If you have forgotten your keys, check these locations on your development machi
   Get-ChildItem -Recurse | Select-String "rzp_"
   # Search for Gemini keys
   Get-ChildItem -Recurse | Select-String "AIza"
+  # Search for Google Client ID
+  Get-ChildItem -Recurse | Select-String ".apps.googleusercontent.com"
   ```
 
 ### 2. Setting Keys on the Server
