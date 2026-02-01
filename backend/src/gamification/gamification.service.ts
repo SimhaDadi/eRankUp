@@ -291,4 +291,9 @@ export class GamificationService {
 
         await this.progressRepo.save(progress);
     }
+    async updateDailyTarget(userId: string, target: number): Promise<UserGamification> {
+        const profile = await this.getOrCreateProfile(userId);
+        profile.dailyQuestionTarget = target;
+        return await this.gamificationRepo.save(profile);
+    }
 }

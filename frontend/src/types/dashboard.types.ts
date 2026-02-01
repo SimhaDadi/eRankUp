@@ -8,6 +8,7 @@ export interface Stats {
     totalXp?: number;
     level?: number;
     badges?: any[];
+    dailyQuestionTarget?: number;
 }
 
 export interface RecentAttempt {

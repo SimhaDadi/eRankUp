@@ -61,4 +61,9 @@ export class GamificationController {
         );
         return { success: true };
     }
+
+    @Post('daily-target')
+    async updateDailyTarget(@Request() req: any, @Body() body: { target: number }) {
+        return this.gamificationService.updateDailyTarget(req.user.userId, body.target);
+    }
 }

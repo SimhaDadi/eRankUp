@@ -86,10 +86,12 @@ class _HomeScreenState extends State<HomeScreen> {
               _stats!['currentStreak'] = gamiStats['currentStreak'];
               // also merge topic performance for Subject Mastery
               _stats!['topicPerformance'] = gamiStats['topicPerformance'];
+              _stats!['dailyQuestionTarget'] = gamiStats['dailyQuestionTarget'];
             }
           }
           
-          if (_stats != null && (_stats?['dailyQuestions'] ?? 0) >= 100) {
+          final target = (_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100;
+          if (_stats != null && (_stats?['dailyQuestions'] ?? 0) >= target) {
             _confettiController.play();
           }
 
@@ -144,8 +146,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
                             child: DailyGoalWidget(
-                              currentQuestions: _stats?['dailyQuestions'] ?? 0,
-                              targetQuestions: 100, // Matching web default
+                              currentQuestions: (_stats?['dailyQuestions'] as num?)?.toInt() ?? 0,
+                              targetQuestions: (_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100,
+                              onEditGoal: _showGoalPicker,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.xxl),
@@ -989,6 +992,70 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  Future<void> _showGoalPicker() async {
+    final currentTarget = (_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100;
+    
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Set Daily Goal', style: AppTextStyles.h2),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'How many questions do you want to practice every day?',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodySmall,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Wrap(
+                spacing: AppSpacing.md,
+                runSpacing: AppSpacing.md,
+                alignment: WrapAlignment.center,
+                children: [25, 50, 100, 200, 500].map((t) {
+                  final isSelected = currentTarget == t;
+                  return InkWell(
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final apiService = Provider.of<ApiService>(context, listen: false);
+                      try {
+                        await apiService.post('/gamification/daily-target', {'target': t});
+                        await _fetchHomeData(); // Refresh to show new target
+                      } catch (e) {
+                        debugPrint('Error updating target: $e');
+                      }
+                    },
+                    child: Container(
+                      width: 80,
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primaryBlue : Colors.transparent,
+                        border: Border.all(color: AppColors.primaryBlue),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      ),
+                      child: Text(
+                        t.toString(),
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.buttonSmall.copyWith(
+                          color: isSelected ? Colors.white : AppColors.primaryBlue,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+            ],
+          ),
+        );
+      },
     );
   }
 }

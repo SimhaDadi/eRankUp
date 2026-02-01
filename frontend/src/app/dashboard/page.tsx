@@ -13,6 +13,8 @@ import {
     CheckCircle2,
     Sparkles,
     Search,
+    Edit2,
+    Settings2
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -52,7 +54,8 @@ export default function DashboardPage() {
                     ...statsRes.data,
                     totalXp: gamiRes.data.totalXp,
                     level: gamiRes.data.level,
-                    badges: gamiRes.data.badges
+                    badges: gamiRes.data.badges,
+                    dailyQuestionTarget: gamiRes.data.dailyQuestionTarget || 100
                 };
 
                 setStats(combinedStats);
@@ -206,9 +209,34 @@ export default function DashboardPage() {
                                     </div>
 
                                     {/* Right Visualization - Daily Goal Ring */}
-                                    <div className="relative w-full md:w-[280px] aspect-square flex-shrink-0">
+                                    <div className="relative w-full md:w-[280px] aspect-square flex-shrink-0 group/goal">
                                         <div className="absolute inset-0 bg-gradient-to-br from-teal-50 to-white rounded-full opacity-50 blur-3xl" />
                                         <div className="relative h-full bg-white/40 backdrop-blur-md rounded-full border border-white/60 shadow-2xl flex items-center justify-center p-6">
+                                            {/* Settings Button Overlay */}
+                                            <div className="absolute -top-2 -right-2 z-20 opacity-0 group-hover/goal:opacity-100 transition-opacity">
+                                                <div className="flex flex-col gap-2">
+                                                    {[25, 50, 100, 200].map((t) => (
+                                                        <button
+                                                            key={t}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await api.post('/gamification/daily-target', { target: t });
+                                                                    setStats(prev => prev ? { ...prev, dailyQuestionTarget: t } : null);
+                                                                } catch (e) {
+                                                                    console.error(e);
+                                                                }
+                                                            }}
+                                                            className={`w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-black border transition-all shadow-sm ${stats?.dailyQuestionTarget === t
+                                                                ? 'bg-[#00bfa5] text-white border-[#00bfa5]'
+                                                                : 'bg-white text-slate-600 border-slate-200 hover:border-[#00bfa5] hover:text-[#00bfa5]'
+                                                                }`}
+                                                        >
+                                                            {t}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
                                             {/* Rings */}
                                             <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
                                                 {/* Background Ring */}
@@ -216,7 +244,7 @@ export default function DashboardPage() {
                                                 {/* Progress Ring */}
                                                 <motion.circle
                                                     initial={{ pathLength: 0 }}
-                                                    animate={{ pathLength: Math.min((stats?.dailyQuestions || 0) / 100, 1) }}
+                                                    animate={{ pathLength: Math.min((stats?.dailyQuestions || 0) / (stats?.dailyQuestionTarget || 100), 1) }}
                                                     transition={{ duration: 2, ease: "easeOut" }}
                                                     cx="50" cy="50" r="45"
                                                     fill="none"
@@ -235,9 +263,12 @@ export default function DashboardPage() {
                                             </svg>
 
                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Daily Goal</div>
+                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Target: {stats?.dailyQuestionTarget || 100}</div>
                                                 <div className="text-5xl font-black text-slate-900 tracking-tighter">
-                                                    {Math.round(Math.min(((stats?.dailyQuestions || 0) / 100) * 100, 100))}%
+                                                    {Math.round(Math.min(((stats?.dailyQuestions || 0) / (stats?.dailyQuestionTarget || 100)) * 100, 100))}%
+                                                </div>
+                                                <div className="text-[9px] font-bold text-[#00bfa5] mt-1 flex items-center gap-1 cursor-default group-hover/goal:animate-pulse">
+                                                    <Settings2 className="w-3 h-3" /> Hover to Set
                                                 </div>
                                             </div>
                                         </div>

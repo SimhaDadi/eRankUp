@@ -5,11 +5,13 @@ import 'dart:math' as math;
 class DailyGoalWidget extends StatelessWidget {
   final int currentQuestions;
   final int targetQuestions;
+  final VoidCallback? onEditGoal;
 
   const DailyGoalWidget({
     super.key,
     required this.currentQuestions,
     this.targetQuestions = 100,
+    this.onEditGoal,
   });
 
   @override
@@ -88,13 +90,32 @@ class DailyGoalWidget extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  progress >= 1.0 
-                      ? "Goal achieved! You're on fire! 🔥" 
-                      : "Keep going! You're doing great. 🚀",
-                  style: AppTextStyles.caption.copyWith(
-                    color: isDark ? Colors.white60 : AppColors.textSecondary,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        progress >= 1.0 
+                            ? "Goal achieved! You're on fire! 🔥" 
+                            : "Keep going! You're doing great. 🚀",
+                        style: AppTextStyles.caption.copyWith(
+                          color: isDark ? Colors.white60 : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    if (onEditGoal != null)
+                      GestureDetector(
+                        onTap: onEditGoal,
+                        child: Text(
+                          'Set Goal',
+                          style: AppTextStyles.captionSmall.copyWith(
+                            color: AppColors.primaryCyan,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
