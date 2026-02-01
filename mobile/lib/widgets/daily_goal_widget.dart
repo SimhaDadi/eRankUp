@@ -16,7 +16,7 @@ class DailyGoalWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double progress = (currentQuestions / targetQuestions).clamp(0.0, 1.0);
+    final double progress = (currentQuestions / math.max(targetQuestions, 1)).clamp(0.0, 1.0);
     final int percentage = (progress * 100).round();
 
     final theme = Theme.of(context);

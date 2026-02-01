@@ -244,7 +244,7 @@ export default function DashboardPage() {
                                                 {/* Progress Ring */}
                                                 <motion.circle
                                                     initial={{ pathLength: 0 }}
-                                                    animate={{ pathLength: Math.min((stats?.dailyQuestions || 0) / (stats?.dailyQuestionTarget || 100), 1) }}
+                                                    animate={{ pathLength: Math.min((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1), 1) }}
                                                     transition={{ duration: 2, ease: "easeOut" }}
                                                     cx="50" cy="50" r="45"
                                                     fill="none"
