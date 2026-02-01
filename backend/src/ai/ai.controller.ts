@@ -120,7 +120,6 @@ export class AIController {
         }
     }
 
-    /*
     @Post('photo-search')
     @UseInterceptors(FileInterceptor('file'))
     async photoSearch(@UploadedFile() file: Express.Multer.File) {
@@ -131,5 +130,4 @@ export class AIController {
             throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    */
 }

@@ -24,6 +24,6 @@ class Config {
   static const bool enableCrashReporting = false;
 
   // Timeouts
-  static const Duration apiTimeout = Duration(seconds: 30);
+  static const Duration apiTimeout = Duration(seconds: 60);
   static const Duration connectionTimeout = Duration(seconds: 15);
 }

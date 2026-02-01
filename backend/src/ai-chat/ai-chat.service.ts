@@ -12,6 +12,7 @@ import { AIService } from '../ai/ai.service';
 import { AIUsageService } from '../ai/ai-usage.service';
 import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
 import { UserRole } from '../users/user.entity';
+import { AIQueueService, AIPriority } from '../ai/ai-queue.service';
 
 export interface SendMessageResponse {
     response: string;
@@ -38,6 +39,7 @@ export class AIChatService {
         private aiService: AIService,
         private aiUsageService: AIUsageService,
         private adaptiveLearningService: AdaptiveLearningService,
+        private queueService: AIQueueService,
     ) { }
 
     async sendMessageStream(
@@ -159,7 +161,11 @@ export class AIChatService {
             }
         }, history);
 
-        const stream = this.aiService.generateStream(prompt, image ? [image] : []);
+        // Execute via centralized queue with HIGH priority
+        const stream = await this.queueService.add(
+            async () => this.aiService.generateStream(prompt, image ? [image] : []),
+            AIPriority.HIGH
+        );
 
         return { stream, conversationId: conversation.id };
     }
@@ -310,7 +316,11 @@ export class AIChatService {
 
         let aiResponse: string;
         try {
-            aiResponse = await this.aiService.generateText(prompt, image ? [image] : []);
+            aiResponse = await this.queueService.add(
+                async () => this.aiService.generateText(prompt, image ? [image] : []),
+                AIPriority.HIGH
+            );
+
             aiResponse = this.aiService.cleanAIResponse(aiResponse); // Mechanically strip unwanted symbols
             await this.aiUsageService.trackUsage(userId, prompt, aiResponse);
 
@@ -359,7 +369,10 @@ export class AIChatService {
         Tutor: ${aiResp}`;
 
         try {
-            const result = await this.aiService.generateText(extractionPrompt);
+            const result = await this.queueService.add(
+                async () => this.aiService.generateText(extractionPrompt),
+                AIPriority.LOW // Insights are low priority
+            );
             const match = result?.match(/\{[\s\S]*\}/)?.[0];
             if (match) {
                 // Remove potential markdown blocks or extra characters around JSON
@@ -389,7 +402,10 @@ export class AIChatService {
         TUTOR: ${response}`;
 
         try {
-            return await this.aiService.generateText(auditPrompt) || response;
+            return await this.queueService.add(
+                async () => this.aiService.generateText(auditPrompt),
+                AIPriority.HIGH
+            ) || response;
         } catch (e) {
             return response;
         }

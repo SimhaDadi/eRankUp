@@ -18,7 +18,7 @@ interface RankedTask {
 export class AIQueueService {
     private queue: RankedTask[] = [];
     private isProcessing = false;
-    private readonly RATE_LIMIT_DELAY = 1500; // Reduced to 1.5s (40 RPM) for better throughput
+    private readonly RATE_LIMIT_DELAY = 6000; // Increased to 6s (10 RPM) for Maximum Gemini Free Tier safety
 
     async add<T>(task: () => Promise<T>, priority: AIPriority = AIPriority.MEDIUM): Promise<T> {
         return new Promise<T>((resolve, reject) => {
@@ -59,7 +59,7 @@ export class AIQueueService {
         }
 
         // Wait before next item. High priority might allow shorter cooldown in future.
-        const delay = rankedTask?.priority === AIPriority.HIGH ? 500 : this.RATE_LIMIT_DELAY;
+        const delay = this.RATE_LIMIT_DELAY; // Global rate limit enforcement for Free Tier safety
 
         if (this.queue.length > 0) {
             console.log(`[AIQueueService] Waiting ${delay}ms... (Queue: ${this.queue.length}, Next Priority: ${this.queue[0].priority})`);
