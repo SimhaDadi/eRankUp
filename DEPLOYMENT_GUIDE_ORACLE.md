@@ -119,7 +119,33 @@ docker exec -it erankup-backend npm run migration:run
 
 ---
 
-## 📊 Phase 4: Monitoring & Maintenance
+## 🔒 Phase 5: Domain & SSL (HTTPS) Setting
+
+To use Google Login and Razorpay Live, you **must** have a domain and SSL.
+
+### 1. Point your Domain
+- Buy a domain (GoDaddy, Namecheap, etc.).
+- Add an **A Record** in your DNS settings:
+  - **Host**: `@`
+  - **Value**: `<YOUR_ORACLE_IP>`
+
+### 2. Get SSL Certificate (Certbot)
+Run this command on your Oracle server to generate a free certificate:
+```bash
+sudo docker run -it --rm --name certbot \
+  -v "$(pwd)/nginx/certbot/conf:/etc/letsencrypt" \
+  -v "$(pwd)/nginx/certbot/www:/var/www/certbot" \
+  certbot/certbot certonly --webroot -w /var/www/certbot \
+  -d erankup.in -d www.erankup.in
+```
+
+### 3. Update Nginx Config
+- Open `nginx/conf.d/app.conf`. (I've already pre-filled this with `erankup.in` for you).
+- Restart Nginx: `docker restart erankup-nginx`
+
+---
+
+## 📊 Phase 6: Monitoring & Maintenance
 
 ### 📺 View Logs
 To see what your services are doing (especially Kafka and the AI Engine):
