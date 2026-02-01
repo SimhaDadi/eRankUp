@@ -20,7 +20,7 @@ DB_CONFIG = {
 
 # Kafka Config
 KAFKA_TOPIC = 'test_submission'
-KAFKA_BOOTSTRAP_SERVERS = ['localhost:9092']
+KAFKA_BOOTSTRAP_SERVERS = [os.getenv('KAFKA_BROKER', 'kafka:9092')]
 
 def get_db_connection():
     try:
@@ -143,7 +143,7 @@ def main():
             value_deserializer=lambda x: json.loads(x.decode('utf-8'))
         )
         
-        logger.info(f"Listening on topic: {KAFKA_TOPIC}")
+        logger.info(f"Listening on topic: {KAFKA_TOPIC} via {KAFKA_BOOTSTRAP_SERVERS}")
 
         for message in consumer:
             data = message.value

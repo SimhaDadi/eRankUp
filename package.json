@@ -9,7 +9,9 @@
     ],
     "scripts": {
         "build": "npm run build --workspaces",
-        "test": "npm run test --workspaces"
+        "test": "npm run test --workspaces",
+        "deploy:prod": "docker-compose -f docker-compose.prod.yml up -d --build",
+        "logs:prod": "docker-compose -f docker-compose.prod.yml logs -f"
     },
     "dependencies": {
         "@google/generative-ai": "^0.24.1"

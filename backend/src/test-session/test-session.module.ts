@@ -26,7 +26,7 @@ import { PassesModule } from '../passes/passes.module';
                     transport: Transport.KAFKA,
                     options: {
                         client: {
-                            brokers: configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(','),
+                            brokers: configService.get<string>('KAFKA_BROKERS', 'kafka:9092').split(','),
                         },
                         consumer: {
                             groupId: configService.get<string>('KAFKA_CONSUMER_GROUP', 'erankup-backend-consumer'),
