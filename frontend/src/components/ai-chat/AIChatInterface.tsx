@@ -335,23 +335,23 @@ export default function AIChatInterface() {
                 </div>
 
                 {/* Messages Container */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                <div className="flex-1 overflow-y-auto p-4 md:p-5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
                     <div className="max-w-4xl mx-auto space-y-6">
                         {messages.length === 0 && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="text-center mt-12"
+                                className="text-center mt-6 md:mt-10"
                             >
-                                <div className="text-6xl mb-6 drop-shadow-lg">👋</div>
-                                <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">
+                                <div className="text-5xl mb-4 drop-shadow-lg">👋</div>
+                                <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-2 tracking-tight">
                                     Your Study Companion
                                 </h2>
-                                <p className="text-slate-500 font-bold mb-10 max-w-lg mx-auto leading-relaxed">
+                                <p className="text-slate-500 font-bold mb-6 max-w-lg mx-auto leading-relaxed text-sm md:text-base">
                                     Instant doubts solving and curriculum coaching tailored perfectly for your preparation path.
                                 </p>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl mx-auto px-4">
                                     {SUGGESTED_PROMPTS.map((suggestion, idx) => (
                                         <motion.button
                                             key={suggestion}
@@ -359,13 +359,13 @@ export default function AIChatInterface() {
                                             animate={{ opacity: 1, scale: 1 }}
                                             transition={{ delay: idx * 0.05 }}
                                             onClick={() => handleUseSuggestion(suggestion)}
-                                            className="bg-white hover:bg-slate-50 border border-slate-200/60 hover:border-[#00bfa5]/40 text-slate-900 p-5 rounded-[2rem] text-left transition-all group shadow-sm hover:shadow-md"
+                                            className="bg-white hover:bg-slate-50 border border-slate-200/60 hover:border-[#00bfa5]/40 text-slate-900 p-4 rounded-3xl text-left transition-all group shadow-sm hover:shadow-md ring-1 ring-slate-900/5"
                                         >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-[#00bfa5]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                    <Sparkles className="w-5 h-5 text-[#00bfa5]" />
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-[#00bfa5]/10 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                                                    <Sparkles className="w-4 h-4 text-[#00bfa5]" />
                                                 </div>
-                                                <span className="text-sm font-bold leading-snug text-slate-700">{suggestion}</span>
+                                                <span className="text-xs md:text-sm font-bold leading-snug text-slate-700">{suggestion}</span>
                                             </div>
                                         </motion.button>
                                     ))}
@@ -468,7 +468,7 @@ export default function AIChatInterface() {
                 </div>
 
                 {/* Input Area */}
-                <div className="border-t border-slate-200 bg-white p-4 md:p-6 shrink-0 relative z-20">
+                <div className="border-t border-slate-200 bg-white p-4 md:p-5 shrink-0 relative z-20">
                     <div className="max-w-4xl mx-auto">
                         {/* Image Preview */}
                         <AnimatePresence>

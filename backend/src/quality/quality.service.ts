@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { QualityFlag, FlagStatus } from './entities/quality-flag.entity';
+import { QualityFlag, FlagStatus, FlagType } from './entities/quality-flag.entity';
 
 @Injectable()
 export class QualityService {
@@ -128,10 +128,14 @@ export class QualityService {
     }
 
     async flagQuestion(userId: string, questionId: string, type: any, description: string) {
+        // Defensive: Ensure type is a valid FlagType enum value
+        const validTypes = Object.values(FlagType);
+        const finalType = validTypes.includes(type) ? type : FlagType.OTHER;
+
         const flag = this.flagRepository.create({
             reporterId: userId,
             questionId,
-            type,
+            type: finalType,
             description,
             status: FlagStatus.PENDING
         });

@@ -83,7 +83,8 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
     const defaultSections: NavSection[] = [
         {
             items: [
-                { icon: Home, label: 'Home', href: '/dashboard' }
+                { icon: Home, label: 'Home', href: '/dashboard' },
+                { icon: HelpCircle, label: 'Tutor', href: '/dashboard/ai-chat', badge: 'BETA', badgeColor: 'bg-purple-500' },
             ]
         },
         {
@@ -112,7 +113,6 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                 { icon: List, label: 'Exams', href: '/dashboard/all-exams' },
                 { icon: Bookmark, label: 'Saved Questions', href: '/dashboard/saved' },
                 { icon: AlertTriangle, label: 'Reported Questions', href: '/dashboard/reported' },
-                { icon: HelpCircle, label: 'Tutor', href: '/dashboard/ai-chat', badge: 'BETA', badgeColor: 'bg-purple-500' },
             ]
         },
     ];

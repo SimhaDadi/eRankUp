@@ -25,8 +25,10 @@ export class AnalyticsController {
     @Get('students')
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
-    async getStudentList(@Query('page') page: number, @Query('limit') limit: number, @Query('search') search: string) {
-        return this.analyticsService.getStudentList(page, limit, search);
+    async getStudentList(@Query('page') page: any = 1, @Query('limit') limit: any = 20, @Query('search') search: string) {
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 20;
+        return this.analyticsService.getStudentList(pageNum, limitNum, search);
     }
 
     @Get('students/:id')

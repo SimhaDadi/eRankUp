@@ -26,6 +26,13 @@ export class NewsService implements OnModuleInit {
     }
 
     async findAll(page: number = 1, limit: number = 10, category?: string): Promise<{ items: NewsItem[], total: number }> {
+        // Validation/Normalization
+        const p = Number(page) || 1;
+        const l = Number(limit) || 10;
+        const validPage = Math.max(1, p);
+        const validLimit = Math.max(1, Math.min(100, l));
+        const skip = (validPage - 1) * validLimit;
+
         const query = this.newsRepository.createQueryBuilder('news');
 
         if (category && category !== 'All') {
@@ -33,8 +40,8 @@ export class NewsService implements OnModuleInit {
         }
 
         query.orderBy('news.publishedAt', 'DESC');
-        query.skip((page - 1) * limit);
-        query.take(limit);
+        query.skip(skip);
+        query.take(validLimit);
 
         const [items, total] = await query.getManyAndCount();
         return { items, total };

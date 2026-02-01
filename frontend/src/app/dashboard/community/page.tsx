@@ -105,6 +105,26 @@ export default function CommunityPage() {
                                 <div key={i} className="bg-white h-48 rounded-3xl animate-pulse shadow-sm border border-slate-100" />
                             ))}
                         </div>
+                    ) : posts.length === 0 ? (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-white p-12 rounded-[2.5rem] border border-slate-100 shadow-sm text-center space-y-4"
+                        >
+                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto border border-slate-100 mb-2">
+                                <MessageSquare className="w-10 h-10 text-slate-300" />
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-900">No discussions here yet</h3>
+                            <p className="text-slate-500 font-medium max-w-sm mx-auto">
+                                Be the first to start a conversation in the <span className="text-blue-600 font-bold">{category}</span> category!
+                            </p>
+                            <button
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-900/10"
+                            >
+                                <Plus className="w-5 h-5" /> Start Discussion
+                            </button>
+                        </motion.div>
                     ) : (
                         posts.map((post) => (
                             <motion.div

@@ -17,12 +17,14 @@ export class QualityController {
      */
     @Get('flags')
     async getFlags(
-        @Query('page') page: number = 1,
-        @Query('limit') limit: number = 20,
+        @Query('page') page: any = 1,
+        @Query('limit') limit: any = 20,
         @Query('status') status?: string,
         @Query('type') type?: string,
     ) {
-        return this.qualityService.getFlags(page, limit, status, type);
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 20;
+        return this.qualityService.getFlags(pageNum, limitNum, status, type);
     }
 
     /**

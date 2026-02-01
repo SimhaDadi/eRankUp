@@ -5,7 +5,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 
-@Controller('admin/notifications')
+@Controller('notifications')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class NotificationsController {
     constructor(private readonly notificationsService: NotificationsService) { }
@@ -35,7 +35,6 @@ export class NotificationsController {
     }
 
     @Get('my')
-    @UseGuards(AuthGuard('jwt'))
     async getMyNotifications(@Request() req) {
         return this.notificationsService.getUserNotifications(req.user.userId);
     }

@@ -37,6 +37,7 @@ async function seed() {
         sscExam = examRepo.create({
             title: 'SSC CGL 2024 (Full Prep)',
             description: 'Comprehensive preparation set with 100 questions.',
+            category: 'SSC CGL',
             isPremium: false,
             price: 0,
             type: 'real_exam' as any // Force cast to avoid circular dependency import issues if enum not available

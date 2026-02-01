@@ -14,50 +14,141 @@ class ExamsScreen extends StatefulWidget {
   State<ExamsScreen> createState() => _ExamsScreenState();
 }
 
-class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin {
-  List<Exam> _allExams = [];
-  List<Exam> _filteredExams = [];
-  bool _isLoading = true;
-  String _searchQuery = '';
-  late TabController _tabController;
-  
-  final TextEditingController _searchController = TextEditingController();
+  ScrollController _scrollController = ScrollController();
+  int _page = 1;
+  final int _limit = 10;
+  bool _hasMore = true;
+  bool _isLoadMoreRunning = false;
+  String _currentType = 'all';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
-    _tabController.addListener(() {
-      _applyFilters();
-    });
+    _tabController.addListener(_onTabChanged);
+    _scrollController.addListener(_onScroll);
     _fetchExams();
   }
 
-  // ... (dispose remains same)
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _scrollController.dispose();
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
-  Future<void> _fetchExams() async {
-    setState(() => _isLoading = true);
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    
+    // Map tab to type
+    String newType = 'all';
+    switch (_tabController.index) {
+        case 0: newType = 'all'; break;
+        case 1: newType = 'real_exam'; break;
+        case 2: newType = 'previous_year_paper'; break;
+        case 3: newType = 'question_bank'; break;
+        case 4: newType = 'all'; break; // Daily Quiz handled by filtering later or add specific type if backend supports
+    }
+    
+    // If Daily Quiz (index 4), we might still fetch 'all' and filter, OR we need a backend type.
+    // For now, let's reset and fetch.
+    if (_currentType != newType || _tabController.index == 4) {
+        setState(() {
+            _currentType = newType;
+            _searchController.clear();
+            _searchQuery = '';
+        });
+        _fetchExams(refresh: true);
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent &&
+        !_isLoading &&
+        !_isLoadMoreRunning &&
+        _hasMore) {
+      _fetchExams(loadMore: true);
+    }
+  }
+
+  Future<void> _fetchExams({bool refresh = false, bool loadMore = false}) async {
+    if (refresh) {
+      setState(() {
+        _isLoading = true;
+        _page = 1;
+        _hasMore = true;
+        _allExams = [];
+        _filteredExams = [];
+      });
+    } else if (loadMore) {
+      setState(() {
+        _isLoadMoreRunning = true;
+      });
+    }
+
     try {
       final api = ApiService();
-      // Fetch all list variations concurrently or just fetch 'all' and filter client side?
-      // Since backend supports filtering, let's fetch all generic exams first.
-      // But we want everything to filter locally as per _applyFilters logic.
-      final response = await api.get('/exams?type=all'); // Use 'all' or empty type to get everything if supported
+      // Construct URL with pagination and type
+      String url = '/exams?page=$_page&limit=$_limit';
+      if (_currentType != 'all') {
+          url += '&type=$_currentType';
+      }
+      
+      // Note: Daily Quiz logic is client-side filter on 'all' or we need backend support.
+      // Keeping 'all' for now if specific type missing.
+
+      final response = await api.get(url);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          _allExams = data.map((json) => Exam.fromJson(json)).toList();
-          _isLoading = false;
-        });
-        _applyFilters();
+        final dynamic jsonResponse = jsonDecode(response.body);
+        List<Exam> newExams = [];
+        int total = 0;
+
+        // Handle both paginated and legacy responses for robustness
+        if (jsonResponse is Map<String, dynamic> && jsonResponse.containsKey('data')) {
+            newExams = (jsonResponse['data'] as List).map((json) => Exam.fromJson(json)).toList();
+            total = jsonResponse['meta']['total'];
+        } else if (jsonResponse is List) {
+            // Legacy fallback
+            newExams = jsonResponse.map((json) => Exam.fromJson(json)).toList();
+            total = newExams.length; // Can't really know total, assume this is all
+            _hasMore = false; // Disable infinite scroll if legacy
+        }
+
+        if (mounted) {
+          setState(() {
+            if (refresh) {
+                _allExams = newExams;
+            } else {
+                _allExams.addAll(newExams);
+            }
+            
+            // Check if we have loaded all available items
+            // If strict pagination: _allExams.length < total
+            // Or simple check: if newExams.length < _limit
+            if (newExams.length < _limit) {
+                _hasMore = false;
+            } else {
+                _page++;
+            }
+            
+            _isLoading = false;
+            _isLoadMoreRunning = false;
+          });
+          _applyFilters();
+        }
       } else {
         throw Exception('Failed to load exams');
       }
     } catch (e) {
       print('Error fetching exams: $e');
-      setState(() => _isLoading = false);
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isLoadMoreRunning = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading exams: $e')),
         );
@@ -68,6 +159,7 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
   void _applyFilters() {
     setState(() {
       _filteredExams = _allExams.where((exam) {
+        // Search Filter
         if (_searchQuery.isNotEmpty) {
           final query = _searchQuery.toLowerCase();
           if (!exam.title.toLowerCase().contains(query) &&
@@ -79,30 +171,17 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
         // Strict filtering: Only show published exams
         if (!exam.isPublished) return false;
 
-        String typeFilter = 'all';
-        bool isFreeQuiz = false;
-
-        switch (_tabController.index) {
-          case 1: typeFilter = 'real_exam'; break; // Mock Tests
-          case 2: typeFilter = 'previous_year_paper'; break; // PYPs
-          case 3: typeFilter = 'question_bank'; break; // Banks
-          case 4: isFreeQuiz = true; break; // Daily Quizzes
+        // Tab specific filtering (Client Side refinement)
+        // Since we now check type on server, we mostly just handle special cases here
+        
+        if (_tabController.index == 4) {
+           // Daily Quizzes
+           return exam.category == 'Free Quiz' || exam.category == 'Quiz';
         }
 
-        if (isFreeQuiz) {
-          // Special handling for Daily Quizzes tab
-          return exam.category == 'Free Quiz' || exam.category == 'Quiz';
-        }
-
-        if (typeFilter != 'all') {
-          // Standard type filtering
-          if (exam.type != typeFilter) return false;
-          // IMPORTANT: Exclude "Free Quiz" and legacy "Quiz" category items from "Mock Tests" (real_exam) to avoid duplication/clutter
-          if (typeFilter == 'real_exam' && (exam.category == 'Free Quiz' || exam.category == 'Quiz')) return false;
-        } else {
-             // In "All" tab, maybe show everything? Or keep Free Quizzes separate?
-             // Let's keep them in "All" for visibility, or filter if deemed too cluttered.
-             // For now, "All" shows everything.
+        if (_tabController.index == 1) {
+             // Mock Tests - Exclude free quizzes
+             if (exam.category == 'Free Quiz' || exam.category == 'Quiz') return false;
         }
 
         return true;
@@ -200,7 +279,7 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
                 child: Row(
                   children: [
                     Text(
-                      '${_filteredExams.length} ${_filteredExams.length == 1 ? 'exam' : 'exams'} found',
+                      '${_filteredExams.length} ${_filteredExams.length == 1 ? 'exam' : 'exams'} loaded',
                       style: AppTextStyles.caption.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -215,17 +294,24 @@ class _ExamsScreenState extends State<ExamsScreen> with TickerProviderStateMixin
             Expanded(
               child: _isLoading
                   ? _buildLoadingState()
-                  : _filteredExams.isEmpty
+                  : _filteredExams.isEmpty && !_isLoadMoreRunning
                       ? _buildEmptyState()
                       : RefreshIndicator(
-                          onRefresh: _fetchExams,
+                          onRefresh: () => _fetchExams(refresh: true),
                           color: AppColors.primaryBlue,
                           child: ListView.builder(
+                            controller: _scrollController,
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.screenPadding,
                             ),
-                            itemCount: _filteredExams.length,
+                            itemCount: _filteredExams.length + (_isLoadMoreRunning ? 1 : 0),
                             itemBuilder: (context, index) {
+                              if (index == _filteredExams.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 20),
+                                  child: Center(child: CircularProgressIndicator()),
+                                );
+                              }
                               return _buildEnhancedExamCard(
                                 _filteredExams[index],
                               );

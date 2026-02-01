@@ -17,11 +17,13 @@ export class CommunityController {
     @Get('feed')
     getFeed(
         @Request() req,
-        @Query('page') page: number = 1,
-        @Query('limit') limit: number = 20,
+        @Query('page') page: any = 1,
+        @Query('limit') limit: any = 20,
         @Query('category') category: string
     ) {
-        return this.communityService.getFeed(req.user.userId, Number(page), Number(limit), category);
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 20;
+        return this.communityService.getFeed(req.user.userId, pageNum, limitNum, category);
     }
 
     @Post('posts/:id/like')

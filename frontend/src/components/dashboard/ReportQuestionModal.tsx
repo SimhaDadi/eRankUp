@@ -13,11 +13,11 @@ interface ReportQuestionModalProps {
 }
 
 const REPORT_TYPES = [
-    { id: 'wrong_answer', label: 'Wrong Answer' },
-    { id: 'wrong_question', label: 'Incomplete/Wrong Question' },
-    { id: 'formatting_error', label: 'Formatting/Image Issue' },
-    { id: 'explanation_issue', label: 'Explanation Issue' },
-    { id: 'other', label: 'Other' },
+    { id: 'INCORRECT_ANSWER', label: 'Wrong Answer' },
+    { id: 'UNCLEAR_QUESTION', label: 'Incomplete/Wrong Question' },
+    { id: 'TYPO', label: 'Formatting/Image Issue' },
+    { id: 'OFFENSIVE_CONTENT', label: 'Explanation Issue' }, // Map to Offensive/Explanation logic if needed, or stick to backend enum
+    { id: 'OTHER', label: 'Other' },
 ];
 
 export default function ReportQuestionModal({ isOpen, onClose, questionId, questionContent }: ReportQuestionModalProps) {
@@ -139,8 +139,8 @@ export default function ReportQuestionModal({ isOpen, onClose, questionId, quest
                                                 type="button"
                                                 onClick={() => setType(r.id)}
                                                 className={`px-4 py-3 rounded-xl border text-[11px] font-bold text-left transition-all duration-200 ${type === r.id
-                                                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                                                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                                                     }`}
                                             >
                                                 {r.label}

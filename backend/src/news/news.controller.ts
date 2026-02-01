@@ -19,11 +19,13 @@ export class NewsController {
 
     @Get()
     findAll(
-        @Query('page') page: number = 1,
-        @Query('limit') limit: number = 10,
+        @Query('page') page: any = 1,
+        @Query('limit') limit: any = 10,
         @Query('category') category: string
     ) {
-        return this.newsService.findAll(Number(page), Number(limit), category);
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 10;
+        return this.newsService.findAll(pageNum, limitNum, category);
     }
 
     @Get(':id')

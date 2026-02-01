@@ -60,7 +60,7 @@ export default function Topbar() {
 
     const fetchNotifications = async () => {
         try {
-            const res = await api.get('/admin/notifications/my');
+            const res = await api.get('/notifications/my');
             if (Array.isArray(res.data)) {
                 setNotifications(res.data);
                 setUnreadCount(res.data.filter((n: Notification) => !n.isRead).length);
@@ -81,7 +81,7 @@ export default function Topbar() {
 
     const markAsRead = async (id: string) => {
         try {
-            await api.put(`/admin/notifications/${id}/read`);
+            await api.put(`/notifications/${id}/read`);
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
             setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (error) {

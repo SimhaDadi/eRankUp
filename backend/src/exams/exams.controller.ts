@@ -39,8 +39,8 @@ export class ExamsController {
         const isAdmin = req.user.role === 'admin';
         const userId = req.user.userId;
 
-        const pageNum = page ? parseInt(page, 10) : undefined;
-        const limitNum = limit ? parseInt(limit, 10) : undefined;
+        const pageNum = parseInt(page as string) || 1;
+        const limitNum = parseInt(limit as string) || 20;
 
         // Concurrent fetching of base data
         const [result, attemptStats, activeSessions, purchasedExamIds, activePasses] = await Promise.all([

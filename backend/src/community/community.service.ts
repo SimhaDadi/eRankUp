@@ -20,13 +20,20 @@ export class CommunityService {
     }
 
     async getFeed(userId: string, page: number = 1, limit: number = 20, category?: string) {
+        // Validation/Normalization
+        const p = Number(page) || 1;
+        const l = Number(limit) || 20;
+        const validPage = Math.max(1, p);
+        const validLimit = Math.max(1, Math.min(100, l));
+        const skip = (validPage - 1) * validLimit;
+
         const query = this.postRepo.createQueryBuilder('post')
             .leftJoinAndSelect('post.user', 'user')
             .loadRelationCountAndMap('post.likesCount', 'post.likes')
             .loadRelationCountAndMap('post.commentsCount', 'post.comments')
             .orderBy('post.createdAt', 'DESC')
-            .skip((page - 1) * limit)
-            .take(limit);
+            .skip(skip)
+            .take(validLimit);
 
         if (category && category !== 'All') {
             query.where('post.category = :category', { category });

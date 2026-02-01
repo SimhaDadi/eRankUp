@@ -107,6 +107,7 @@ export class ExamsSeederService implements OnApplicationBootstrap {
         const model = await this.modelRepository.save({
             title: `${title} - Paper`,
             chapter,
+            category: 'Live Test',
             exams: [exam],
             totalQuestions: 10,
             duration: 60
@@ -134,6 +135,7 @@ export class ExamsSeederService implements OnApplicationBootstrap {
         const model = await this.modelRepository.save({
             title: `${title} - Paper`,
             chapter,
+            category: 'Previous Year',
             exams: [exam],
             totalQuestions: 10,
             duration: 90
@@ -154,6 +156,7 @@ export class ExamsSeederService implements OnApplicationBootstrap {
             title,
             description: 'Model Test for Manual Testing',
             type: 'real_exam' as any,
+            category: 'Full Mock',
             isActive: true
         });
         exam = await this.examsRepository.save(exam);

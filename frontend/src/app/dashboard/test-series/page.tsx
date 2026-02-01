@@ -62,10 +62,10 @@ export default function TestSeriesPage() {
         fetchExams();
     }, []);
 
-    const categories = ['All', ...Array.from(new Set(exams.map(e => e.category || 'Uncategorized')))];
+    const categories = ['All', ...Array.from(new Set(exams.map(e => e.category || 'General')))];
 
     const filteredExams = exams.filter(exam => {
-        const matchesCategory = selectedCategory === 'All' || (exam.category || 'Uncategorized') === selectedCategory;
+        const matchesCategory = selectedCategory === 'All' || (exam.category || 'General') === selectedCategory;
         const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCategory && matchesSearch;
     });
