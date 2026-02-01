@@ -141,3 +141,27 @@ Oracle might stop "Always Free" instances if they stay below 10% CPU for long pe
 
 ---
 
+## 🔐 Security & API Key Recovery
+
+To protect your business, **never** push your real API keys to GitHub. Follow these steps to prepare your keys for the Oracle server:
+
+### 1. Where to find your keys locally
+If you have forgotten your keys, check these locations on your development machine:
+- **Gemini AI**: Visit [Google AI Studio](https://aistudio.google.com/app/apikey).
+- **Razorpay**: Log in to the [Razorpay Dashboard](https://dashboard.razorpay.com/) -> Settings -> API Keys.
+- **Local Search**: Run this command in your local project folder to see where you last used the keys:
+  ```powershell
+  # Search for Razorpay keys
+  Get-ChildItem -Recurse | Select-String "rzp_"
+  # Search for Gemini keys
+  Get-ChildItem -Recurse | Select-String "AIza"
+  ```
+
+### 2. Setting Keys on the Server
+When you reach **Phase 3, Step 2** of this guide on your Oracle VPS:
+1. Open the file: `nano .env`
+2. Replace the placeholders with your **Live** keys.
+3. Save and Exit (`Ctrl+O`, `Enter`, `Ctrl+X`).
+
+---
+**Deployment Guide Authored by Antigravity AI for eRankUp.**
