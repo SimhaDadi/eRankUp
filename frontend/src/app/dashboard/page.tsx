@@ -215,23 +215,30 @@ export default function DashboardPage() {
                                             {/* Settings Button Overlay */}
                                             <div className="absolute -top-2 -right-2 z-20 opacity-0 group-hover/goal:opacity-100 transition-opacity">
                                                 <div className="flex flex-col gap-2">
-                                                    {[25, 50, 100, 200].map((t) => (
+                                                    {[
+                                                        { v: 25, l: 'Casual' },
+                                                        { v: 50, l: 'Regular' },
+                                                        { v: 100, l: 'Serious' },
+                                                        { v: 200, l: 'Intense' },
+                                                        { v: 500, l: 'Elite' }
+                                                    ].map((t) => (
                                                         <button
-                                                            key={t}
+                                                            key={t.v}
                                                             onClick={async () => {
                                                                 try {
-                                                                    await api.post('/gamification/daily-target', { target: t });
-                                                                    setStats(prev => prev ? { ...prev, dailyQuestionTarget: t } : null);
+                                                                    await api.post('/gamification/daily-target', { target: t.v });
+                                                                    setStats(prev => prev ? { ...prev, dailyQuestionTarget: t.v } : null);
                                                                 } catch (e) {
                                                                     console.error(e);
                                                                 }
                                                             }}
-                                                            className={`w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-black border transition-all shadow-sm ${stats?.dailyQuestionTarget === t
+                                                            className={`whitespace-nowrap px-3 h-10 rounded-full flex items-center justify-center text-[10px] font-black border transition-all shadow-sm gap-2 ${stats?.dailyQuestionTarget === t.v
                                                                 ? 'bg-[#00bfa5] text-white border-[#00bfa5]'
                                                                 : 'bg-white text-slate-600 border-slate-200 hover:border-[#00bfa5] hover:text-[#00bfa5]'
                                                                 }`}
                                                         >
-                                                            {t}
+                                                            <span>{t.v}</span>
+                                                            <span className="opacity-60">{t.l}</span>
                                                         </button>
                                                     ))}
                                                 </div>
@@ -263,12 +270,19 @@ export default function DashboardPage() {
                                             </svg>
 
                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Target: {stats?.dailyQuestionTarget || 100}</div>
-                                                <div className="text-5xl font-black text-slate-900 tracking-tighter">
-                                                    {Math.round(Math.min(((stats?.dailyQuestions || 0) / (stats?.dailyQuestionTarget || 100)) * 100, 100))}%
+                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00bfa5] mb-1">
+                                                    {stats?.dailyQuestionTarget === 25 ? 'Casual' :
+                                                        stats?.dailyQuestionTarget === 50 ? 'Regular' :
+                                                            stats?.dailyQuestionTarget === 100 ? 'Serious' :
+                                                                stats?.dailyQuestionTarget === 200 ? 'Intense' :
+                                                                    stats?.dailyQuestionTarget === 500 ? 'Beast Mode' : 'Serious'} Path
                                                 </div>
-                                                <div className="text-[9px] font-bold text-[#00bfa5] mt-1 flex items-center gap-1 cursor-default group-hover/goal:animate-pulse">
-                                                    <Settings2 className="w-3 h-3" /> Hover to Set
+                                                <div className="text-5xl font-black text-slate-900 tracking-tighter">
+                                                    {Math.round(Math.min(((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1)) * 100, 100))}%
+                                                </div>
+                                                <div className="text-[10px] font-bold text-slate-400 mt-1">Goal: {stats?.dailyQuestionTarget || 100} Qs</div>
+                                                <div className="text-[9px] font-bold text-[#00bfa5] mt-2 flex items-center gap-1 cursor-default group-hover/goal:animate-pulse">
+                                                    <Settings2 className="w-3 h-3" /> Set Intensity
                                                 </div>
                                             </div>
                                         </div>

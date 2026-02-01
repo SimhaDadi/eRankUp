@@ -1015,36 +1015,85 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: AppTextStyles.bodySmall,
               ),
               const SizedBox(height: AppSpacing.xl),
-              Wrap(
-                spacing: AppSpacing.md,
-                runSpacing: AppSpacing.md,
-                alignment: WrapAlignment.center,
-                children: [25, 50, 100, 200, 500].map((t) {
+              Column(
+                children: [
+                  {'v': 25, 'l': 'Casual', 'd': 'Light preparation'},
+                  {'v': 50, 'l': 'Regular', 'd': 'Steady progress'},
+                  {'v': 100, 'l': 'Serious', 'd': 'Standard path'},
+                  {'v': 200, 'l': 'Intense', 'd': 'Pushing limits'},
+                  {'v': 500, 'l': 'Beast Mode', 'd': 'Elite preparation'},
+                ].map((item) {
+                  final t = item['v'] as int;
+                  final label = item['l'] as String;
+                  final desc = item['d'] as String;
                   final isSelected = currentTarget == t;
-                  return InkWell(
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final apiService = Provider.of<ApiService>(context, listen: false);
-                      try {
-                        await apiService.post('/gamification/daily-target', {'target': t});
-                        await _fetchHomeData(); // Refresh to show new target
-                      } catch (e) {
-                        debugPrint('Error updating target: $e');
-                      }
-                    },
-                    child: Container(
-                      width: 80,
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primaryBlue : Colors.transparent,
-                        border: Border.all(color: AppColors.primaryBlue),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                      ),
-                      child: Text(
-                        t.toString(),
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.buttonSmall.copyWith(
-                          color: isSelected ? Colors.white : AppColors.primaryBlue,
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: InkWell(
+                      onTap: () async {
+                        Navigator.pop(context);
+                        final apiService = Provider.of<ApiService>(context, listen: false);
+                        try {
+                          await apiService.post('/gamification/daily-target', {'target': t});
+                          await _fetchHomeData();
+                        } catch (e) {
+                          debugPrint('Error updating target: $e');
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.primaryBlue.withOpacity(0.1) : Colors.transparent,
+                          border: Border.all(
+                            color: isSelected ? AppColors.primaryBlue : AppColors.divider,
+                            width: isSelected ? 2 : 1,
+                          ),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppColors.primaryBlue : AppColors.cardBackground,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  t.toString(),
+                                  style: AppTextStyles.buttonSmall.copyWith(
+                                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.lg),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    label,
+                                    style: AppTextStyles.bodyLarge.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    desc,
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (isSelected)
+                              const Icon(Icons.check_circle, color: AppColors.primaryBlue),
+                          ],
                         ),
                       ),
                     ),
