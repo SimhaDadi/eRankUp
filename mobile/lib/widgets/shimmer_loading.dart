@@ -123,8 +123,8 @@ class ShimmerLoading {
       child: Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           shape: BoxShape.circle,
         ),
       ),
@@ -174,11 +174,11 @@ class ShimmerLoading {
   }
 
   /// Shimmer effect for exam list
-  static Widget examList({int count = 5}) {
+  static Widget examList(BuildContext context, {int count = 5}) {
     return ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       itemCount: count,
-      itemBuilder: (context, index) => examCard(),
+      itemBuilder: (ctx, index) => examCard(context),
     );
   }
 }

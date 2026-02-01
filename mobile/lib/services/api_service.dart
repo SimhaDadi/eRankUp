@@ -95,6 +95,28 @@ class ApiService {
     return response;
   }
 
+  Future<http.Response> uploadFile(String endpoint, String filePath, String fieldName) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    final token = await getToken();
+    
+    final request = http.MultipartRequest('POST', url);
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    
+    request.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+    
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    
+    if (response.statusCode == 401) {
+      await logout();
+      throw Exception('Session expired. Please login again.');
+    }
+    
+    return response;
+  }
+
   Future<bool> updateProfile(Map<String, dynamic> data) async {
     try {
       final response = await patch('/users/profile', data);

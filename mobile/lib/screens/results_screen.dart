@@ -392,8 +392,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
               ],
             ),
-              ],
-            ),
             const SizedBox(height: 12),
             if (videoUrl != null && videoUrl!.isNotEmpty) ...[
               SizedBox(

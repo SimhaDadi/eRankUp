@@ -88,7 +88,7 @@ class NewsDetailScreen extends StatelessWidget {
                     style: {
                       "body": Style(
                         fontSize: FontSize(16),
-                        lineHeight: const LineHeight(1.6),
+                        lineHeight: LineHeight.number(1.6),
                         color: isDark ? Colors.white70 : Colors.black87,
                         margin: Margins.zero,
                       ),

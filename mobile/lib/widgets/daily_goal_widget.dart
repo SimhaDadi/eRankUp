@@ -87,14 +87,6 @@ class DailyGoalWidget extends StatelessWidget {
                     color: isDark ? Colors.white38 : AppColors.textTertiary,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '$currentQuestions / $targetQuestions questions',
-                  style: AppTextStyles.h3.copyWith(
-                    letterSpacing: -0.5,
-                    color: theme.textTheme.bodyLarge?.color,
-                  ),
-                ),
                 const SizedBox(height: 8),
                 Text(
                   progress >= 1.0 

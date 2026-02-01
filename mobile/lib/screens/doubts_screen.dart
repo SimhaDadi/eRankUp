@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
@@ -45,8 +48,6 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
     }
   }
 
-    }
-  }
 
   Future<void> _pickAndSearchPhoto(ImageSource source) async {
     final picker = ImagePicker();
@@ -62,14 +63,16 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
       barrierDismissible: false,
       builder: (context) => const Center(
         child: Card(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('AI is Analyzing Question...', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('AI is Analyzing Question...', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
           ),
         ),
       ),
@@ -155,7 +158,7 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
               ),
               const SizedBox(height: 24),
               if (result['similarQuestions'] != null && (result['similarQuestions'] as List).isNotEmpty) ...[
-                const Text('SIMILAR PRACTICE MATERIAL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.black, letterSpacing: 1.2, color: Colors.grey)),
+                const Text('SIMILAR PRACTICE MATERIAL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Colors.grey)),
                 const SizedBox(height: 12),
                 ... (result['similarQuestions'] as List).map((q) => _buildSimilarQuestionCard(q)).toList(),
               ],

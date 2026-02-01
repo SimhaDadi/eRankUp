@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:confetti/confetti.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -32,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   bool _revisionAvailable = false;
   String _revisionMessage = '';
+  Map<String, dynamic>? _user;
 
   @override
   void initState() {
@@ -59,54 +61,57 @@ class _HomeScreenState extends State<HomeScreen> {
         apiService.get('/exams/user/recent'),
         apiService.get('/exams/live'),
         apiService.get('/gamification/profile'),
-        apiService.get('/ai-study/revision'), 
+        apiService.get('/ai-study/revision'),
+        apiService.getUserProfile(),
       ]).timeout(const Duration(seconds: 10));
 
-      debugPrint('HomeScreen: Data fetched. Statuses: ${results.map((r) => r.statusCode)}');
+      debugPrint('HomeScreen: Data fetched. Statuses: ${results.take(5).map((r) => (r as http.Response).statusCode)}');
 
       if (mounted) {
         setState(() {
-          if (results[0].statusCode == 200) {
-            final examsStats = jsonDecode(results[0].body);
-            _stats = examsStats;
-            
-            // Merge gamification data
-            if (results[3].statusCode == 200) {
-              final gamiStats = jsonDecode(results[3].body);
+          // stats/exams
+          if (results[0] is http.Response && (results[0] as http.Response).statusCode == 200) {
+            _stats = jsonDecode((results[0] as http.Response).body);
+          } else if (results[0] is http.Response) {
+            debugPrint('HomeScreen: Stats failed: ${(results[0] as http.Response).body}');
+          }
+
+          // Merge gamification data
+          if (results[3] is http.Response && (results[3] as http.Response).statusCode == 200) {
+            final gamiStats = jsonDecode((results[3] as http.Response).body);
+            if (_stats != null) {
               _stats!['totalXp'] = gamiStats['totalXp'];
               _stats!['level'] = gamiStats['level'];
               _stats!['badges'] = gamiStats['badges'];
               _stats!['currentStreak'] = gamiStats['currentStreak'];
+              // also merge topic performance for Subject Mastery
+              _stats!['topicPerformance'] = gamiStats['topicPerformance'];
             }
-            
-            debugPrint('HomeScreen: Combined Stats loaded: $_stats');
-            if ((_stats?['dailyQuestions'] ?? 0) >= 100) {
-              _confettiController.play();
-            }
-          } else {
-            debugPrint('HomeScreen: Stats failed: ${results[0].body}');
+          }
+          
+          if (_stats != null && (_stats?['dailyQuestions'] ?? 0) >= 100) {
+            _confettiController.play();
           }
 
-          if (results[1].statusCode == 200) {
-            _recentAttempts = jsonDecode(results[1].body) as List;
-             debugPrint('HomeScreen: Recent attempts loaded: ${_recentAttempts?.length}');
-          } else {
-             debugPrint('HomeScreen: Recent attempts failed: ${results[1].body}');
+          // Recent Attempts
+          if (results[1] is http.Response && (results[1] as http.Response).statusCode == 200) {
+            _recentAttempts = jsonDecode((results[1] as http.Response).body) as List;
           }
 
-          if (results[2].statusCode == 200) {
-            _liveTests = jsonDecode(results[2].body) as List;
-             debugPrint('HomeScreen: Live tests loaded: ${_liveTests?.length}');
-          } else {
-             debugPrint('HomeScreen: Live tests failed: ${results[2].body}');
+          // Live Tests
+          if (results[2] is http.Response && (results[2] as http.Response).statusCode == 200) {
+            _liveTests = jsonDecode((results[2] as http.Response).body) as List;
           }
 
           // Revision Data
-          if (results.length > 3 && results[3].statusCode == 200) {
-             final revData = jsonDecode(results[3].body);
+          if (results.length > 4 && results[4] is http.Response && (results[4] as http.Response).statusCode == 200) {
+             final revData = jsonDecode((results[4] as http.Response).body);
              _revisionAvailable = revData['available'] ?? false;
              _revisionMessage = revData['message'] ?? '';
           }
+
+          // User Profile (from cache or API result index 5)
+          _user = results[5] as Map<String, dynamic>?;
 
           _isLoading = false;
         });
@@ -145,6 +150,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: AppSpacing.xxl),
                           _buildQuickStats(),
+                           const SizedBox(height: AppSpacing.xxl),
+                           
+                           _buildSubjectMastery(),
                            const SizedBox(height: AppSpacing.xxl),
                            
                            // Smart Revision Section
@@ -221,24 +229,81 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final streak = _stats?['streak'] ?? 0;
+    final userName = _user?['fullName']?.split(' ')[0] ?? 'Aspirant';
 
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '$greeting $emoji',
-            style: AppTextStyles.h3.copyWith(
-              color: Theme.of(context).brightness == Brightness.dark 
-                  ? Colors.white60 
-                  : AppColors.textSecondary,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$greeting $emoji',
+                    style: AppTextStyles.caption.copyWith(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.white60 
+                          : AppColors.textSecondary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Hey $userName!',
+                    style: AppTextStyles.h1.copyWith(letterSpacing: -1),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Stack(
+                    children: [
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.notifications_outlined),
+                        color: AppColors.textPrimary,
+                      ),
+                      Positioned(
+                        right: 12,
+                        top: 12,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+                    child: Text(
+                      userName[0],
+                      style: TextStyle(
+                        color: AppColors.primaryBlue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.lg),
           Text(
             'Conquer SSC & Railway 🎯',
-            style: AppTextStyles.h1,
+            style: AppTextStyles.h3.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           if (streak > 0) ...[
             const SizedBox(height: AppSpacing.md),
@@ -318,7 +383,16 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Your Progress', style: AppTextStyles.h2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Your Progress', style: AppTextStyles.h2),
+              TextButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsScreen())),
+                child: const Text('Details'),
+              ),
+            ],
+          ),
           const SizedBox(height: AppSpacing.lg),
           GridView.count(
             crossAxisCount: 2,
@@ -326,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: AppSpacing.md,
             crossAxisSpacing: AppSpacing.md,
-            childAspectRatio: 1.0,
+            childAspectRatio: 1.4,
             children: [
               _buildStatCard(
                 'Tests Taken',
@@ -338,19 +412,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Avg Score',
                 '$avgScore%',
                 Icons.trending_up,
-                Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green.shade600,
+                const Color(0xFF10B981),
               ),
               _buildStatCard(
                 'Best Score',
                 '$bestScore%',
                 Icons.emoji_events,
-                Theme.of(context).brightness == Brightness.dark ? Colors.amberAccent : Colors.amber.shade600,
+                const Color(0xFFF59E0B),
               ),
               _buildStatCard(
                 'Global Rank',
                 '#$rank',
                 Icons.leaderboard,
-                Theme.of(context).brightness == Brightness.dark ? const Color(0xFFA855F7) : Colors.purple.shade600,
+                const Color(0xFF8B5CF6),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsScreen())),
               ),
             ],
@@ -363,31 +437,44 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildStatCard(String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return PremiumCard(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
       boxShadow: AppShadows.small,
       onTap: onTap ?? () {
-          // Default to performance screen
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
       },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
-          Icon(icon, color: color, size: AppSpacing.iconXl),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            value,
-            style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: AppTextStyles.caption.copyWith(
-              color: Theme.of(context).brightness == Brightness.dark 
-                  ? Colors.white60 
-                  : AppColors.textSecondary,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            textAlign: TextAlign.center,
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  value,
+                  style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w900, height: 1.0),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: AppTextStyles.captionSmall.copyWith(
+                    color: isDark ? Colors.white60 : AppColors.textSecondary,
+                    fontSize: 10,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -576,6 +663,95 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildSubjectMastery() {
+    final topics = (_stats?['topicPerformance'] as List?) ?? [];
+    if (topics.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          child: Text('Subject Mastery', style: AppTextStyles.h2),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+            scrollDirection: Axis.horizontal,
+            itemCount: topics.length,
+            itemBuilder: (context, index) {
+              final topic = topics[index];
+              final subject = topic['subject'] ?? 'Subject';
+              final mastery = (topic['A'] as num?)?.round() ?? 0;
+              
+              // Define distinct colors for subjects
+              final colors = [
+                const Color(0xFF3B82F6), // Blue
+                const Color(0xFF10B981), // Emerald
+                const Color(0xFFF59E0B), // Amber
+                const Color(0xFF8B5CF6), // Violet
+                const Color(0xFFEC4899), // Pink
+              ];
+              final color = colors[index % colors.length];
+
+              return Container(
+                width: 130,
+                margin: const EdgeInsets.only(right: AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                  border: Border.all(color: color.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      subject,
+                      style: AppTextStyles.caption.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: mastery / 100,
+                              backgroundColor: color.withOpacity(0.1),
+                              valueColor: AlwaysStoppedAnimation<Color>(color),
+                              minHeight: 6,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$mastery%',
+                          style: AppTextStyles.captionSmall.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildQuickActions() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
@@ -742,7 +918,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-    );
     );
   }
 

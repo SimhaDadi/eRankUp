@@ -187,7 +187,7 @@ class _ReportedQuestionsScreenState extends State<ReportedQuestionsScreen> {
                       type.replaceAll('_', ' '),
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.black,
+                        fontWeight: FontWeight.w900,
                         color: isDark ? Colors.red.shade200 : Colors.red.shade800,
                       ),
                     ),

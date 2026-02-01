@@ -148,8 +148,14 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w900,
-                    _buildStatusBadge(startTime, endTime),
-                    const SizedBox(width: 8),
+                              color: Colors.white,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
                     Icon(Icons.people, size: 16, color: Colors.white.withOpacity(0.8)),
                     const SizedBox(width: 4),
                     Text(

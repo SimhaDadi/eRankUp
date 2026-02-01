@@ -14,7 +14,16 @@ class ExamsScreen extends StatefulWidget {
   State<ExamsScreen> createState() => _ExamsScreenState();
 }
 
-  ScrollController _scrollController = ScrollController();
+class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  
+  List<Exam> _allExams = [];
+  List<Exam> _filteredExams = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
+  
   int _page = 1;
   final int _limit = 10;
   bool _hasMore = true;
