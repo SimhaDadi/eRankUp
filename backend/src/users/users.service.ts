@@ -46,4 +46,11 @@ export class UsersService {
         await this.usersRepository.update(id, { isActive });
         return this.usersRepository.findOne({ where: { id } });
     }
+
+    async findOneByIdWithRefreshToken(id: string): Promise<User | null> {
+        return this.usersRepository.findOne({
+            where: { id },
+            select: ['id', 'email', 'refreshTokenHash', 'role']
+        });
+    }
 }

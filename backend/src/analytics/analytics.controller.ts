@@ -60,13 +60,13 @@ export class AnalyticsController {
     @Get('user/matrix')
     @UseGuards(AuthGuard('jwt'))
     async getPerformanceMatrix(@Request() req) {
-        return this.analyticsService.getPerformanceMatrix(req.user.id);
+        return this.analyticsService.getPerformanceMatrix(req.user.userId);
     }
 
     @Get('user/peer')
     @UseGuards(AuthGuard('jwt'))
     async getPeerComparison(@Request() req) {
-        return this.analyticsService.getPeerComparison(req.user.id);
+        return this.analyticsService.getPeerComparison(req.user.userId);
     }
 
     @Get('exams')

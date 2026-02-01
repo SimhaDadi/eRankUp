@@ -27,6 +27,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { NewsModule } from './news/news.module';
 import { CommunityModule } from './community/community.module';
 import { AIStudyModule } from './ai-study/ai-study.module';
+import { ContentModule } from './content/content.module';
 
 @Module({
     imports: [
@@ -81,6 +82,7 @@ import { AIStudyModule } from './ai-study/ai-study.module';
         NewsModule,
         CommunityModule,
         AIStudyModule,
+        ContentModule,
     ],
     controllers: [AppController],
     providers: [

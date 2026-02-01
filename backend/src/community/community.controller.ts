@@ -11,7 +11,7 @@ export class CommunityController {
 
     @Post('posts')
     createPost(@Request() req, @Body() createPostDto: CreatePostDto) {
-        return this.communityService.createPost(req.user.id, createPostDto);
+        return this.communityService.createPost(req.user.userId, createPostDto);
     }
 
     @Get('feed')
@@ -21,17 +21,17 @@ export class CommunityController {
         @Query('limit') limit: number = 20,
         @Query('category') category: string
     ) {
-        return this.communityService.getFeed(req.user.id, Number(page), Number(limit), category);
+        return this.communityService.getFeed(req.user.userId, Number(page), Number(limit), category);
     }
 
     @Post('posts/:id/like')
     toggleLike(@Request() req, @Param('id') id: string) {
-        return this.communityService.toggleLike(req.user.id, id);
+        return this.communityService.toggleLike(req.user.userId, id);
     }
 
     @Post('posts/:id/comments')
     addComment(@Request() req, @Param('id') id: string, @Body('content') content: string) {
-        return this.communityService.addComment(req.user.id, id, content);
+        return this.communityService.addComment(req.user.userId, id, content);
     }
 
     @Get('posts/:id/comments')

@@ -35,33 +35,48 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get()
-    async findAll(@Request() req: any, @Query('type') type?: string) {
+    async findAll(@Request() req: any, @Query('type') type?: string, @Query('page') page?: string, @Query('limit') limit?: string) {
         const isAdmin = req.user.role === 'admin';
         const userId = req.user.userId;
 
+        const pageNum = page ? parseInt(page, 10) : undefined;
+        const limitNum = limit ? parseInt(limit, 10) : undefined;
+
         // Concurrent fetching of base data
-        const [exams, attemptStats, activeSessions, purchasedExamIds] = await Promise.all([
-            this.examsService.findAll({ includeUnpublished: isAdmin, type }),
+        const [result, attemptStats, activeSessions, purchasedExamIds, activePasses] = await Promise.all([
+            this.examsService.findAll({ includeUnpublished: isAdmin, type, page: pageNum, limit: limitNum }),
             this.scorerService.getUserExamStats(userId),
             this.testSessionService.getUserActiveSessions(userId),
-            this.paymentsService.getPurchasedExamIds(userId)
+            this.paymentsService.getPurchasedExamIds(userId),
+            this.passesService.getActivePasses(userId) // [FIX] Fetch once to avoid N+1 queries
         ]);
+
+        let exams: any[]; // Using any[] to allow attachment of extra props
+        let meta: any = null;
+
+        if (Array.isArray(result)) {
+            exams = result;
+        } else {
+            exams = result.data;
+            meta = result.meta;
+        }
 
         const purchasedSet = new Set(purchasedExamIds);
 
         for (const exam of exams) {
             if (exam.isPremium) {
                 const hasDirectlyPurchased = purchasedSet.has(exam.id);
-                const hasPassAccess = await this.passesService.canAccessExam(userId, exam.id, (exam as any).type);
+                // [FIX] Pass pre-fetched activePasses
+                const hasPassAccess = await this.passesService.canAccessExam(userId, exam.id, (exam as any).type, activePasses);
                 (exam as any).hasPurchased = hasDirectlyPurchased || hasPassAccess;
             }
 
             // Calculate aggregated stats
-            const modelCount = exam.models?.reduce((acc, m) => acc + (m.totalQuestions || 0), 0) || 0;
+            const modelCount = exam.models?.reduce((acc: any, m: any) => acc + (m.totalQuestions || 0), 0) || 0;
             const directCount = (exam as any).directQuestionCount || 0;
             (exam as any).questionCount = Math.max(modelCount, directCount);
 
-            const uniqueChapters = new Set(exam.models?.map(m => m.chapter?.id).filter(id => !!id));
+            const uniqueChapters = new Set(exam.models?.map((m: any) => m.chapter?.id).filter((id: any) => !!id));
             (exam as any).chapters = Array.from(uniqueChapters).map(id => ({ id }));
 
             // Attach attempts stats
@@ -76,7 +91,7 @@ export class ExamsController {
             }
 
             // Check for active session
-            const examModelIds = exam.models?.map(m => m.id) || [];
+            const examModelIds = exam.models?.map((m: any) => m.id) || [];
             const allRelevantIds = [...examModelIds, exam.id];
             const activeId = allRelevantIds.find(id => activeSessions[id]);
             (exam as any).activeSession = activeId ? { id: activeId, status: activeSessions[activeId] } : null;
@@ -87,6 +102,10 @@ export class ExamsController {
                 totalModels = 1;
             }
             (exam as any).totalModels = totalModels;
+        }
+
+        if (meta) {
+            return { data: exams, meta };
         }
         return exams;
     }

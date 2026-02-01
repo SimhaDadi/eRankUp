@@ -249,8 +249,8 @@ export class PassesService implements OnModuleInit {
         return true;
     }
 
-    async canAccessExam(userId: string, examId: string, examType: string): Promise<boolean> {
-        const activePasses = await this.getActivePasses(userId);
+    async canAccessExam(userId: string, examId: string, examType: string, preFetchedPasses?: UserPass[]): Promise<boolean> {
+        const activePasses = preFetchedPasses || await this.getActivePasses(userId);
         if (activePasses.length === 0) return false;
 
         // [FIX] Check all active passes. If any pass grants access, allow it.

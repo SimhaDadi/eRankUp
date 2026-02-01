@@ -54,6 +54,14 @@ export class PaymentsService implements OnModuleInit {
 
         if (couponCode) {
             try {
+                // [FIX] Prevent coupon reuse by checking existing purchases
+                const couponUsed = await this.purchaseRepository.findOne({
+                    where: { user: { id: user.id }, couponCode: couponCode.toUpperCase(), status: 'COMPLETED' }
+                });
+                if (couponUsed) {
+                    throw new Error('You have already used this coupon code.');
+                }
+
                 // Determine discount
                 const coupon = await this.marketingService.validateCoupon(couponCode, user.id);
                 if (coupon) {
@@ -67,8 +75,6 @@ export class PaymentsService implements OnModuleInit {
                     finalPrice = finalPrice - discountAmount;
                 }
             } catch (error) {
-                // If validation fails, ignore coupon or throw? 
-                // Let's throw to inform user invalid coupon
                 throw new Error(`Invalid Coupon: ${error.message}`);
             }
         }
@@ -76,10 +82,13 @@ export class PaymentsService implements OnModuleInit {
         // Razorpay handles amounts >= 1 INR (100 paise)
         if (finalPrice < 1) finalPrice = 1;
 
+        // [FIX] Use a more robust idempotency key for receipt
+        const idempotencyKey = crypto.createHash('sha256').update(`${user.id}-${examId}-${couponCode || ''}`).digest('hex').substring(0, 16);
+
         const options = {
             amount: Math.round(finalPrice * 100), // amount in paise
             currency: "INR",
-            receipt: `receipt_order_${Date.now()}`,
+            receipt: `rcpt_${idempotencyKey}`,
         };
 
         let rzpOrder;
@@ -88,12 +97,15 @@ export class PaymentsService implements OnModuleInit {
         if (keyId === 'rzp_test_placeholder' || keyId === 'test') {
             console.log('[Payments] Mocking Razorpay order creation');
             rzpOrder = {
-                id: `order_mock_${Date.now()}`,
+                id: `order_mock_${idempotencyKey}`,
                 amount: options.amount,
                 currency: options.currency
             };
         } else {
-            rzpOrder = await this.razorpay.orders.create(options);
+            // [FIX] Pass idempotency header to Razorpay
+            rzpOrder = await this.razorpay.orders.create(options, {
+                'X-Razorpay-Idempotency-Key': idempotencyKey
+            });
         }
 
         const purchase = this.purchaseRepository.create({
@@ -101,7 +113,7 @@ export class PaymentsService implements OnModuleInit {
             exam,
             razorpayOrderId: rzpOrder.id,
             amount: finalPrice,
-            couponCode: couponCode || null,
+            couponCode: couponCode ? couponCode.toUpperCase() : null,
             discountAmount: discountAmount,
             status: 'PENDING',
         });
@@ -133,6 +145,18 @@ export class PaymentsService implements OnModuleInit {
 
         if (couponCode) {
             try {
+                // [FIX] Prevent coupon reuse for passes
+                const couponUsed = await this.userPassRepository.findOne({
+                    where: {
+                        userId: user.id || user.userId,
+                        couponCode: couponCode.toUpperCase(),
+                        paymentStatus: 'COMPLETED'
+                    }
+                });
+                if (couponUsed) {
+                    throw new Error('You have already used this coupon code.');
+                }
+
                 const coupon = await this.marketingService.validateCoupon(couponCode, user.userId || user.id);
                 if (coupon) {
                     if (coupon.discountType === 'percentage') {
@@ -177,10 +201,13 @@ export class PaymentsService implements OnModuleInit {
 
         if (finalPrice < 1) finalPrice = 1;
 
+        // [FIX] Robust idempotency key
+        const idempotencyKey = crypto.createHash('sha256').update(`${user.id || user.userId}-pass-${passId}-${couponCode || ''}`).digest('hex').substring(0, 16);
+
         const options = {
             amount: Math.round(finalPrice * 100), // amount in paise
             currency: "INR",
-            receipt: `receipt_pass_${Date.now()}`,
+            receipt: `rcpt_pass_${idempotencyKey}`,
         };
 
         let rzpOrder;
@@ -188,12 +215,15 @@ export class PaymentsService implements OnModuleInit {
 
         if (keyId === 'rzp_test_placeholder' || keyId === 'test') {
             rzpOrder = {
-                id: `order_mock_${Date.now()}`,
+                id: `order_mock_${idempotencyKey}`,
                 amount: options.amount,
                 currency: options.currency
             };
         } else {
-            rzpOrder = await this.razorpay.orders.create(options);
+            // [FIX] Pass idempotency header
+            rzpOrder = await this.razorpay.orders.create(options, {
+                'X-Razorpay-Idempotency-Key': idempotencyKey
+            });
         }
 
         // Calculate expiry
@@ -208,7 +238,7 @@ export class PaymentsService implements OnModuleInit {
                 expiryDate: expiryDate,
                 amount: finalPrice,
                 razorpayOrderId: rzpOrder.id,
-                couponCode: couponCode || null,
+                couponCode: couponCode ? couponCode.toUpperCase() : null,
                 discountAmount: discountAmount,
                 paymentStatus: 'PENDING',
                 status: 'INACTIVE' // [FIX] Paid passes start as INACTIVE

@@ -2,6 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Req, Res 
 import { AuthService } from './auth.service';
 import { LoginCredentialsDto, SignupDto } from '@erankup/shared';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 
@@ -12,12 +13,16 @@ export class AuthController {
         private readonly configService: ConfigService
     ) { }
 
+    @UseGuards(ThrottlerGuard)
+    @Throttle({ default: { limit: 5, ttl: 60000 } })
     @Post('signup')
     async signup(@Body() registerDto: SignupDto) {
         return this.authService.register(registerDto);
     }
 
 
+    @UseGuards(ThrottlerGuard)
+    @Throttle({ default: { limit: 5, ttl: 60000 } })
     @HttpCode(HttpStatus.OK)
     @Post('login')
     async login(@Body() loginDto: LoginCredentialsDto) {
@@ -28,6 +33,19 @@ export class AuthController {
     @Post('google/mobile')
     async googleMobileLogin(@Body('token') token: string) {
         return this.authService.verifyMobileGoogleToken(token);
+    }
+
+    @Post('refresh')
+    @HttpCode(HttpStatus.OK)
+    async refresh(@Body('userId') userId: string, @Body('refreshToken') refreshToken: string) {
+        return this.authService.refreshTokens(userId, refreshToken);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Post('logout')
+    @HttpCode(HttpStatus.OK)
+    async logout(@Req() req: any) {
+        return this.authService.logout(req.user.userId);
     }
 
     @Get('google')

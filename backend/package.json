@@ -23,7 +23,8 @@
         "typeorm": "typeorm-ts-node-commonjs",
         "migration:generate": "npm run typeorm migration:generate src/migrations/InitialMigration -- -d src/data-source.ts",
         "migration:run": "npm run typeorm migration:run -- -d src/data-source.ts",
-        "migration:revert": "npm run typeorm migration:revert -- -d src/data-source.ts"
+        "migration:revert": "npm run typeorm migration:revert -- -d src/data-source.ts",
+        "stress-test": "ts-node scripts/stress-test.ts"
     },
     "dependencies": {
         "@erankup/shared": "*",
@@ -78,6 +79,7 @@
         "@types/supertest": "^2.0.12",
         "@typescript-eslint/eslint-plugin": "^6.0.0",
         "@typescript-eslint/parser": "^6.0.0",
+        "autocannon": "^8.0.0",
         "eslint": "^8.42.0",
         "eslint-config-prettier": "^9.0.0",
         "eslint-plugin-prettier": "^5.0.0",

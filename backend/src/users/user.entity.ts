@@ -59,4 +59,7 @@ export class User {
 
     @Column({ nullable: true })
     preferredPaymentMethod: string;
+
+    @Column({ nullable: true, select: false })
+    refreshTokenHash: string;
 }

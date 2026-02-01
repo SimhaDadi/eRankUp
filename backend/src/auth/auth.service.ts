@@ -31,6 +31,7 @@ export class AuthService {
         const user = await this.usersService.create({
             ...registerDto,
             password: hashedPassword,
+            role: 'student' as any // Force student role on public signup
         });
 
         // Don't return the password
@@ -80,15 +81,59 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        const payload = { sub: user.id, email: user.email, role: user.role };
+        const tokens = await this.getTokens(user.id, user.email, user.role);
+        await this.updateRefreshTokenHash(user.id, tokens.refresh_token);
+
         return {
-            access_token: this.jwtService.sign(payload),
+            ...tokens,
             user: {
                 id: user.id,
                 email: user.email,
                 fullName: user.fullName,
                 role: user.role
             }
+        };
+    }
+
+    async refreshTokens(userId: string, refreshToken: string) {
+        const user = await this.usersService.findOneByIdWithRefreshToken(userId);
+        if (!user || !user.refreshTokenHash) throw new UnauthorizedException('Access Denied');
+
+        const refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+        if (!refreshTokenMatches) throw new UnauthorizedException('Access Denied');
+
+        const tokens = await this.getTokens(user.id, user.email, user.role);
+        await this.updateRefreshTokenHash(user.id, tokens.refresh_token);
+
+        return tokens;
+    }
+
+    async logout(userId: string) {
+        await this.usersService.updateProfile(userId, { refreshTokenHash: null });
+    }
+
+    async updateRefreshTokenHash(userId: string, refreshToken: string) {
+        const hash = await bcrypt.hash(refreshToken, 10);
+        await this.usersService.updateProfile(userId, { refreshTokenHash: hash });
+    }
+
+    async getTokens(userId: string, email: string, role: string) {
+        const payload = { sub: userId, email, role };
+
+        const [at, rt] = await Promise.all([
+            this.jwtService.signAsync(payload, {
+                secret: this.configService.get('JWT_SECRET'),
+                expiresIn: '15m', // Short-lived access token
+            }),
+            this.jwtService.signAsync(payload, {
+                secret: this.configService.get('JWT_REFRESH_SECRET') || this.configService.get('JWT_SECRET'),
+                expiresIn: '7d', // 7 days refresh token
+            }),
+        ]);
+
+        return {
+            access_token: at,
+            refresh_token: rt,
         };
     }
 
@@ -122,9 +167,11 @@ export class AuthService {
             });
         }
 
-        const payload = { sub: user.id, email: user.email, role: user.role };
+        const tokens = await this.getTokens(user.id, user.email, user.role);
+        await this.updateRefreshTokenHash(user.id, tokens.refresh_token);
+
         return {
-            access_token: this.jwtService.sign(payload),
+            ...tokens,
             user: {
                 id: user.id,
                 email: user.email,

@@ -24,7 +24,7 @@ export class ContentController {
         }
 
         try {
-            const result = await this.contentService.importQuestions(file.buffer);
+            const result = await this.contentService.importQuestions(file.buffer) as any;
             return {
                 success: true,
                 message: `Successfully imported ${result.importedCount} questions`,
@@ -38,13 +38,21 @@ export class ContentController {
     @Get('export')
     async exportQuestions(@Res() res: Response) {
         try {
-            const csvData = await this.contentService.exportQuestions();
+            const csvStream = this.contentService.exportQuestions();
 
             res.header('Content-Type', 'text/csv');
             res.header('Content-Disposition', 'attachment; filename=questions_export.csv');
-            res.send(csvData);
+
+            csvStream.pipe(res);
+
+            csvStream.on('error', (err) => {
+                console.error('Export stream error:', err);
+                if (!res.headersSent) {
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Error generating export');
+                }
+            });
         } catch (error) {
-            throw new HttpException('Failed to export questions', HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new HttpException('Failed to start export', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

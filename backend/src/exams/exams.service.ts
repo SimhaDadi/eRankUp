@@ -48,10 +48,15 @@ export class ExamsService implements OnApplicationBootstrap {
         private aiService: AIService,
     ) { }
 
-    async findAll(options: { includeUnpublished?: boolean; type?: string } = {}) {
-        const { includeUnpublished = false, type } = options;
-        const cacheKey = includeUnpublished ? `exams:all:admin:${type || 'all'}:v6` : `exams:all:${type || 'all'}:v6`;
-        const cached = await this.cacheService.get<Exam[]>(cacheKey);
+    async findAll(options: { includeUnpublished?: boolean; type?: string; page?: number; limit?: number } = {}) {
+        const { includeUnpublished = false, type, page, limit } = options;
+        const isPaginated = page !== undefined && limit !== undefined;
+
+        const cacheKey = includeUnpublished
+            ? `exams:all:admin:${type || 'all'}:${page || 'nopage'}:${limit || 'nolimit'}:v6`
+            : `exams:all:${type || 'all'}:${page || 'nopage'}:${limit || 'nolimit'}:v6`;
+
+        const cached = await this.cacheService.get<any>(cacheKey);
         if (cached) return cached;
 
         const query = this.examsRepository.createQueryBuilder('exam')
@@ -65,6 +70,29 @@ export class ExamsService implements OnApplicationBootstrap {
         }
         if (type && type !== 'all') {
             query.andWhere('exam.type = :type', { type });
+        }
+
+        // Default sort to ensure consistent pagination
+        query.orderBy('exam.createdAt', 'DESC');
+
+        if (isPaginated) {
+            query.skip((page - 1) * limit!)
+                .take(limit);
+
+            const [exams, total] = await query.getManyAndCount();
+
+            const result = {
+                data: exams,
+                meta: {
+                    total,
+                    page: +page,
+                    limit: +limit,
+                    totalPages: Math.ceil(total / limit!)
+                }
+            };
+
+            await this.cacheService.set(cacheKey, result, 300);
+            return result;
         }
 
         const exams = await query.getMany();

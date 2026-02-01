@@ -48,7 +48,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
             statusCode: status,
             timestamp: new Date().toISOString(),
             path: url,
-            message: message,
+            message: status === HttpStatus.INTERNAL_SERVER_ERROR
+                ? 'Internal server error'
+                : message,
         };
 
         const fs = require('fs');
@@ -65,18 +67,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
                 `[${method}] ${url} - Error: ${JSON.stringify(message)}`,
                 (exception as Error).stack,
             );
-            try {
-                fs.appendFileSync(logFile, logMsg + `${(exception as Error).stack}\n`);
-            } catch (e) {
-                console.error('Failed to write to log file', e);
-            }
+            // Non-blocking log write
+            fs.promises.appendFile(logFile, logMsg + `${(exception as Error).stack}\n`).catch(e => console.error('Log write failed', e));
         } else {
             this.logger.warn(`[${method}] ${url} - Warning: ${JSON.stringify(message)}`);
-            try {
-                fs.appendFileSync(logFile, logMsg);
-            } catch (e) {
-                console.error('Failed to write to log file', e);
-            }
+            // Non-blocking log write
+            fs.promises.appendFile(logFile, logMsg).catch(e => console.error('Log write failed', e));
         }
 
         httpAdapter.reply(response, responseBody, status);

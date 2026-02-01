@@ -30,9 +30,11 @@ import { StudentQuestionsController } from './student-questions.controller';
 
 import { AdminModule } from '../admin/admin.module';
 
+import { UserStats } from '../users/entities/user-stats.entity';
+
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Exam, Subject, Chapter, Model, Question, Attempt, Response, Purchase, User]),
+        TypeOrmModule.forFeature([Exam, Subject, Chapter, Model, Question, Attempt, Response, Purchase, User, UserStats]),
         forwardRef(() => PaymentsModule),
         forwardRef(() => TestSessionModule),
         forwardRef(() => AdminModule),

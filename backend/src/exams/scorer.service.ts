@@ -1,12 +1,13 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { Attempt } from './entities/attempt.entity';
 import { Question } from './entities/question.entity';
 import { Model } from './entities/model.entity';
 import { Exam } from './entities/exam.entity';
 import { Response } from './entities/response.entity';
 import { User } from '../users/user.entity';
+import { UserStats } from '../users/entities/user-stats.entity';
 import { DifficultyService } from './difficulty.service';
 import { CacheService } from '../common/cache.service';
 import { GamificationService } from '../gamification/gamification.service';
@@ -27,6 +28,8 @@ export class ScorerService implements OnModuleInit {
         private responseRepository: Repository<Response>,
         @InjectRepository(User)
         private userRepository: Repository<User>,
+        @InjectRepository(UserStats)
+        private userStatsRepository: Repository<UserStats>,
         private difficultyService: DifficultyService,
         private cacheService: CacheService,
         private gamificationService: GamificationService,
@@ -202,7 +205,6 @@ export class ScorerService implements OnModuleInit {
                 console.error('[Scorer] Failed to invalidate leaderboard cache', err)
             );
             // Invalidate user stats cache
-            // Invalidate user stats cache
             this.cacheService.del(`stats:user:${user.id}`).catch(err =>
                 console.error('[Scorer] Failed to invalidate user stats cache', err)
             );
@@ -251,6 +253,62 @@ export class ScorerService implements OnModuleInit {
             this.adaptiveLearningService.updateTopicMastery(user.id, responseEntities)
                 .then(() => console.log(`[Scorer] Updated topic mastery (Async) for user ${user.id}`))
                 .catch(err => console.error('[Scorer] Failed to update topic mastery', err));
+
+            // === USER STATS INCREMENTAL UPDATE ===
+            try {
+                let stats = await this.userStatsRepository.findOne({ where: { userId: user.id } });
+                if (!stats) {
+                    stats = this.userStatsRepository.create({
+                        userId: user.id,
+                        totalAttempts: 0,
+                        totalScore: 0,
+                        totalQuestionsAttempted: 0,
+                        totalCorrect: 0,
+                        totalTimeTaken: 0,
+                        currentStreak: 0,
+                        lastAttemptDate: new Date(0), // Epoch
+                        topicPerformance: {}
+                    });
+                }
+
+                // Streak Calculation
+                const now = new Date();
+                const today = now.toISOString().split('T')[0];
+                const lastDate = stats.lastAttemptDate ? new Date(stats.lastAttemptDate).toISOString().split('T')[0] : '';
+
+                const yesterdayDate = new Date();
+                yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                const yesterday = yesterdayDate.toISOString().split('T')[0];
+
+                if (lastDate === yesterday) {
+                    stats.currentStreak += 1;
+                } else if (lastDate !== today) {
+                    // If not today and not yesterday, reset (unless it's the very first one, where currStreak is 0 -> 1)
+                    stats.currentStreak = 1;
+                }
+                // If lastDate === today, do nothing to streak
+
+                stats.lastAttemptDate = now;
+                stats.totalAttempts += 1;
+                stats.totalScore += attempt.score;
+                stats.totalQuestionsAttempted += totalQuestions;
+                stats.totalCorrect += correctAnswers;
+                stats.totalTimeTaken += timeTaken;
+
+                // Topic Performance
+                const currentTopics = stats.topicPerformance || {};
+                Object.keys(topicAnalysis).forEach(topic => {
+                    if (!currentTopics[topic]) currentTopics[topic] = { correct: 0, total: 0 };
+                    currentTopics[topic].total += topicAnalysis[topic].total;
+                    currentTopics[topic].correct += topicAnalysis[topic].correct;
+                });
+                stats.topicPerformance = currentTopics;
+
+                await this.userStatsRepository.save(stats);
+                console.log(`[Scorer] Updated stats for user ${user.id}`);
+            } catch (statsErr) {
+                console.error('[Scorer] Failed to update user stats', statsErr);
+            }
 
             return savedAttempt;
         } catch (dbErr) {
@@ -327,91 +385,38 @@ export class ScorerService implements OnModuleInit {
         const cached = await this.cacheService.get<any>(cacheKey);
         if (cached) return cached;
 
-        // Fetch user to get signup date
-        const user = await this.userRepository.findOne({ where: { id: userId } });
-        if (!user) {
-            throw new Error('User not found');
-        }
+        let stats = await this.userStatsRepository.findOne({ where: { userId } });
 
-        const attempts = await this.attemptRepository.find({
-            where: { user: { id: userId } },
-            order: { createdAt: 'DESC' }
-        });
-
-        if (attempts.length === 0) {
+        if (!stats) {
             return {
                 totalAttempts: 0,
                 averageScore: 0,
+                bestScore: 0,
                 totalTimeTaken: 0,
                 accuracy: 0,
                 streak: 0,
+                dailyQuestions: 0,
+                topicPerformance: [],
+                topTopicRecommendation: 'Start your first test!'
             };
         }
 
-        const totalAttempts = attempts.length;
-        const totalScore = attempts.reduce((acc, curr) => acc + curr.score, 0);
-        const totalTimeTaken = attempts.reduce((acc, curr) => acc + curr.timeTaken, 0);
-        const totalCorrect = attempts.reduce((acc, curr) => acc + curr.correctAnswers, 0);
-        const totalQuestions = attempts.reduce((acc, curr) => acc + curr.totalQuestions, 0);
+        const accuracy = stats.totalQuestionsAttempted > 0
+            ? Math.round((stats.totalCorrect / stats.totalQuestionsAttempted) * 100)
+            : 0;
 
-        // Calculate Streak - ONLY count attempts after user signup
-        const userSignupDate = new Date(user.createdAt);
-        const attemptsAfterSignup = attempts.filter(a => new Date(a.createdAt) >= userSignupDate);
+        const averageScore = stats.totalAttempts > 0
+            ? Math.round(stats.totalScore / stats.totalAttempts)
+            : 0;
 
-        // Get unique dates of attempts AFTER signup (YYYY-MM-DD)
-        const uniqueDates = Array.from(
-            new Set(attemptsAfterSignup.map(a => new Date(a.createdAt).toISOString().split('T')[0]))
-        ).sort((a, b) => b.localeCompare(a)); // Descending order
+        // Transform topic perf
+        const topicPerformance = Object.keys(stats.topicPerformance || {}).map(topic => ({
+            subject: topic,
+            A: Math.round((stats.topicPerformance[topic].correct / stats.topicPerformance[topic].total) * 100),
+            fullMark: 100
+        }));
 
-        let streak = 0;
-        const today = new Date().toISOString().split('T')[0];
-        const yesterdayDate = new Date();
-        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-        const yesterday = yesterdayDate.toISOString().split('T')[0];
-
-        // Check if the most recent attempt is today or yesterday to start the streak
-        if (uniqueDates.length > 0 && (uniqueDates[0] === today || uniqueDates[0] === yesterday)) {
-            streak = 1;
-            let currentDate = new Date(uniqueDates[0]);
-
-            // Iterate backwards
-            for (let i = 1; i < uniqueDates.length; i++) {
-                const prevDate = new Date(currentDate);
-                prevDate.setDate(prevDate.getDate() - 1);
-                const expectedPrevStr = prevDate.toISOString().split('T')[0];
-
-                if (uniqueDates[i] === expectedPrevStr) {
-                    streak++;
-                    currentDate = prevDate;
-                } else {
-                    break;
-                }
-
-            }
-        }
-
-        // Calculate Topic Performance
-        const topicStats = await this.responseRepository.createQueryBuilder('response')
-            .leftJoin('response.question', 'question')
-            .innerJoin('response.attempt', 'attempt') // Ensure we only count user's attempts
-            .where('attempt.userId = :userId', { userId })
-            .select([
-                'question.topic AS topic',
-                'COUNT(response.id) AS total',
-                'SUM(CASE WHEN response.isCorrect THEN 1 ELSE 0 END) AS correct'
-            ])
-            .groupBy('question.topic')
-            .getRawMany();
-
-        const topicPerformance = topicStats
-            .filter(stat => parseInt(stat.total) > 0)
-            .map(stat => ({
-                subject: stat.topic || 'General',
-                A: Math.round((parseInt(stat.correct) / parseInt(stat.total)) * 100) || 0,
-                fullMark: 100
-            }));
-
-        // Fill with comprehensive defaults if empty (aesthetic fallback)
+        // Fill defaults
         if (topicPerformance.length < 3) {
             const defaults = ['Algebra', 'Geometry', 'Arithmetic', 'Reasoning', 'Verbal'];
             defaults.forEach(d => {
@@ -421,41 +426,56 @@ export class ScorerService implements OnModuleInit {
             });
         }
 
-        // Calculate Daily Progress (Questions Attempted Today)
-        let dailyQuestions = 0;
-        attempts.forEach(a => {
-            const attemptDate = new Date(a.createdAt).toISOString().split('T')[0];
-            if (attemptDate === today) {
-                dailyQuestions += a.totalQuestions;
+        // TODO: "Best Score" is not stored in stats. We might want to add it.
+        // For now, perform quick query for MAX score (indexed) - fast enough.
+        const maxResult = await this.attemptRepository.createQueryBuilder('attempt')
+            .select('MAX(attempt.score)', 'max')
+            .where('attempt.userId = :userId', { userId })
+            .getRawOne();
+        const bestScore = maxResult ? parseFloat(maxResult.max) || 0 : 0;
+
+        // Daily questions needs "today's" count. 
+        // We can't easily get this from summary table without a "daily_stats" table.
+        // We will skip daily questions count or use a quick count query for today only.
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dailyCount = await this.attemptRepository.count({
+            where: {
+                user: { id: userId },
+                createdAt: MoreThanOrEqual(today)
             }
         });
+        // Count represents exams, not questions... 
+        // Use SUM(totalQuestions)
+        const dailyQs = await this.attemptRepository.createQueryBuilder('attempt')
+            .select('SUM(attempt.totalQuestions)', 'total')
+            .where('attempt.userId = :userId', { userId })
+            .andWhere('attempt.createdAt >= :today', { today })
+            .getRawOne();
+        const dailyQuestions = dailyQs ? parseInt(dailyQs.total) || 0 : 0;
 
-        // Get AI recommendation for Home Screen
+        // AI Rec
         const weakAreas = await this.adaptiveLearningService.getWeakAreas(userId, 1);
         const topTopicRecommendation = weakAreas.length > 0
             ? `${weakAreas[0].topic}: Focus on this to boost your score`
             : 'Take a diagnostic test now';
 
-        // Calculate Best Score
-        const bestScore = attempts.length > 0
-            ? Math.max(...attempts.map(a => a.score))
-            : 0;
-
-        const stats = {
-            totalAttempts,
-            averageScore: Math.round(totalScore / totalAttempts),
+        const result = {
+            totalAttempts: stats.totalAttempts,
+            averageScore,
             bestScore,
-            totalTimeTaken,
-            accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0,
-            streak,
+            totalTimeTaken: stats.totalTimeTaken,
+            accuracy,
+            streak: stats.currentStreak,
             dailyQuestions,
             topicPerformance,
             topTopicRecommendation
         };
 
-        await this.cacheService.set(cacheKey, stats, 300); // Cache for 5 mins
-        return stats;
+        await this.cacheService.set(cacheKey, result, 300);
+        return result;
     }
+
     async getUserExamStats(userId: string) {
         const attempts = await this.attemptRepository.find({
             where: { user: { id: userId } },
