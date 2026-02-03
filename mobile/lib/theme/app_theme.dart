@@ -21,6 +21,8 @@ class AppColors {
   static const bgPrimary = Color(0xFFFFFFFF);
   static const bgSecondary = Color(0xFFF1F5F9);    // Slate 100
   static const bgTertiary = Color(0xFFE2E8F0);     // Slate 200
+  static const divider = Color(0xFFE2E8F0);        // Slate 200
+  static const cardBackground = bgPrimary;         // Alias for White
   
   // Success
   static const successBg = Color(0xFFDCFCE7);      // Emerald 100

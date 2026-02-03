@@ -7,16 +7,17 @@ import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
+import 'analytics_screen.dart';
+import 'current_affairs_screen.dart';
+import 'doubts_screen.dart';
 import 'exam_detail_screen.dart';
 import 'live_tests_screen.dart';
 import 'performance_screen.dart';
-import 'doubts_screen.dart';
 import 'saved_questions_screen.dart';
 import 'study_plan_screen.dart';
 import '../widgets/daily_goal_widget.dart';
 import '../widgets/premium_card.dart';
 import 'practice_mode_screen.dart';
-import 'analytics_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -145,11 +146,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildHeader(),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
-                            child: DailyGoalWidget(
-                              currentQuestions: (_stats?['dailyQuestions'] as num?)?.toInt() ?? 0,
-                              targetQuestions: (_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100,
-                              onEditGoal: _showGoalPicker,
-                            ),
+                              child: DailyGoalWidget(
+                                currentQuestions: (_stats?['dailyQuestions'] as num?)?.toInt() ?? 0,
+                                targetQuestions: (_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100,
+                                goalLabel: _getGoalLabel((_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100),
+                                onEditGoal: _showGoalPicker,
+                              ),
                           ),
                           const SizedBox(height: AppSpacing.xxl),
                           _buildQuickStats(),
@@ -803,6 +805,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
+              _buildQuickActionCard(
+                'Current Affairs',
+                Icons.newspaper,
+                Colors.pinkAccent,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CurrentAffairsScreen()),
+                  );
+                },
+              ),
             ],
           ),
         ],
@@ -902,20 +915,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudyPlanScreen())),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF4F46E5),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudyPlanScreen())),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF4F46E5),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Open Daily Plan', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                    child: const Text('Open Daily Plan', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                ),
               ],
             ),
           ),
@@ -993,18 +1006,21 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
   Future<void> _showGoalPicker() async {
     final currentTarget = (_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100;
     
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
       ),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(AppSpacing.xxl),
-          child: Column(
+          child: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Set Daily Goal', style: AppTextStyles.h2),
@@ -1102,9 +1118,18 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: AppSpacing.xxl),
             ],
+            ),
           ),
         );
       },
     );
+  }
+
+  String _getGoalLabel(int target) {
+    if (target <= 25) return 'Casual';
+    if (target <= 50) return 'Regular';
+    if (target <= 100) return 'Serious';
+    if (target <= 200) return 'Intense';
+    return 'Beast Mode';
   }
 }

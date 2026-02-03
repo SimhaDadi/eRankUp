@@ -24,7 +24,8 @@ import {
     Search,
     Plus,
     LogOut,
-    Zap
+    Zap,
+    Newspaper
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -44,6 +45,7 @@ const adminNavSections = [
             { icon: Plus, label: 'Question Management', href: '/admin/questions' },
             { icon: Layers, label: 'Hierarchy & Subjects', href: '/admin/hierarchy' },
             { icon: FileText, label: 'Previous Year Papers', href: '/admin/pyp' },
+            { icon: Newspaper, label: 'News & Updates', href: '/admin/news' },
         ]
     },
     {

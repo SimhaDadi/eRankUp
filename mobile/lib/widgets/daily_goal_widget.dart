@@ -5,12 +5,14 @@ import 'dart:math' as math;
 class DailyGoalWidget extends StatelessWidget {
   final int currentQuestions;
   final int targetQuestions;
+  final String? goalLabel;
   final VoidCallback? onEditGoal;
 
   const DailyGoalWidget({
     super.key,
     required this.currentQuestions,
     this.targetQuestions = 100,
+    this.goalLabel,
     this.onEditGoal,
   });
 
@@ -83,11 +85,40 @@ class DailyGoalWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Daily Goal',
-                  style: AppTextStyles.overline.copyWith(
-                    color: isDark ? Colors.white38 : AppColors.textTertiary,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Daily Goal',
+                      style: AppTextStyles.overline.copyWith(
+                        color: isDark ? Colors.white38 : AppColors.textTertiary,
+                      ),
+                    ),
+                    if (goalLabel != null) ...[
+                      const SizedBox(width: 8),
+                      // Styled separator dot
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.textTertiary.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Label
+                      Flexible(
+                        child: Text(
+                          goalLabel!,
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.primaryCyan,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Row(
