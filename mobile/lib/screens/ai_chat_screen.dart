@@ -94,6 +94,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   Widget _buildEmptyState() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -117,7 +118,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
             child: Text(
               'Get instant help with your doubts, customized to your performance.',
               textAlign: TextAlign.center,
-              style: AppTextStyles.body.copyWith(color: Colors.grey.shade500),
+              style: AppTextStyles.body.copyWith(
+                color: isDark ? Colors.white60 : AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -132,10 +136,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryBlue,
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
-            child: const Text('Start First Conversation'),
+            child: const Text(
+              'Start First Conversation',
+              style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5),
+            ),
           ),
         ],
       ),
@@ -199,7 +208,13 @@ class _AIChatScreenState extends State<AIChatScreen> {
                       const SizedBox(height: 4),
                       Text(
                         'Last updated ${_formatDate(updatedAt)}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        style: TextStyle(
+                            fontSize: 12, 
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? Colors.white60 
+                                : AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),

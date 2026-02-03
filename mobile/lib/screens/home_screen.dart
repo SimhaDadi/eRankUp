@@ -184,7 +184,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildQuickStats(),
                           const SizedBox(height: AppSpacing.xxxl),
                           
-                          _buildSubjectMastery(),
+                          _buildInSpotlight(),
+                          const SizedBox(height: AppSpacing.xxl),
+
+                          _buildResearchInsights(), // Renamed and redesigned from Subject Mastery
                           const SizedBox(height: AppSpacing.xxl),
                           
                           if (_revisionAvailable) ...[
@@ -253,158 +256,202 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeader() {
     final hour = DateTime.now().hour;
-    String greeting = 'Good Morning';
-    String emoji = '🌅';
+    String greeting = 'Good Afternoon';
+    String emoji = '☀️';
     
-    if (hour >= 12 && hour < 17) {
-      greeting = 'Good Afternoon';
-      emoji = '☀️';
+    if (hour < 12) {
+      greeting = 'Good Morning';
+      emoji = '🌅';
     } else if (hour >= 17) {
       greeting = 'Good Evening';
       emoji = '🌙';
     }
 
-    final streak = _stats?['streak'] ?? 0;
-    final userName = _user?['fullName']?.split(' ')[0] ?? 'Aspirant';
+    final userName = _user?['fullName']?.split(' ')[0] ?? 'dadi';
 
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$greeting $emoji',
-                    style: AppTextStyles.caption.copyWith(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Hey $userName!',
-                    style: AppTextStyles.h1.copyWith(
-                      color: Colors.white,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                ],
+              Text(
+                '$greeting $emoji',
+                style: AppTextStyles.caption.copyWith(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
-              Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Stack(
-                      children: [
-                        IconButton(
-                          onPressed: () {},
-                          icon: const Icon(Icons.notifications_outlined),
-                          color: Colors.white,
-                        ),
-                        Positioned(
-                          right: 12,
-                          top: 12,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Colors.redAccent,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.white,
-                    child: Text(
-                      userName[0],
-                      style: const TextStyle(
-                        color: AppColors.primaryBlue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                'Hey $userName!',
+                style: AppTextStyles.h1.copyWith(
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Conquer SSC & Railway 🎯',
+                style: AppTextStyles.h4.copyWith(
+                  color: Colors.white.withOpacity(0.9),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'Conquer SSC & Railway 🎯',
-            style: AppTextStyles.h3.copyWith(
-              color: Colors.white.withOpacity(0.9),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          if (streak > 0) ...[
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('🔥', style: TextStyle(fontSize: 18)),
-                      const SizedBox(width: 6),
-                      Text(
-                        '$streak day streak!',
-                        style: AppTextStyles.caption.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.notifications_rounded, color: Colors.white, size: 22),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  userName[0].toUpperCase(),
+                  style: const TextStyle(
+                    color: AppColors.primaryBlue,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInSpotlight() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          child: Text('In Spotlight', style: AppTextStyles.h2),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          height: 140,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+            children: [
+              _buildSpotlightCard(
+                'F&O Bazaar - LIVE YouTube Session',
+                'Expirey Strategies | Live OI Analysis • Expert Q&A',
+                'expert_avatar_1.png',
+                const Color(0xFF1E3A8A), // Deep Blue
+                'Every Tuesday - 12:00 PM',
+              ),
+              _buildSpotlightCard(
+                'PICK OF THE WEEK',
+                'Top Quantitative shortcuts by Experts for SSC CGL.',
+                'expert_avatar_2.png',
+                const Color(0xFF4C1D95), // Deep Purple
+                'Buy Range: ₹139 - ₹143',
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSpotlightCard(String title, String subtitle, String image, Color color, String bottomLabel) {
+    return Container(
+      width: 320,
+      margin: const EdgeInsets.only(right: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: 10,
+            bottom: 0,
+            child: Image.asset(
+              'assets/$image', 
+              height: 120,
+              fit: BoxFit.contain,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.captionSmall.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: 180,
+                  child: Text(
+                    subtitle,
+                    style: AppTextStyles.captionSmall.copyWith(
+                      color: Colors.white70,
+                      fontSize: 10,
+                    ),
+                    maxLines: 2,
                   ),
-                  child: Row(
-                    children: [
-                      const Text('⭐', style: TextStyle(fontSize: 16)),
-                      const SizedBox(width: 4),
-                      Text(
-                        'LVL ${_stats?['level'] ?? 1}',
-                        style: AppTextStyles.caption.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                        ),
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    Icon(Icons.schedule_rounded, size: 10, color: Colors.white.withOpacity(0.6)),
+                    const SizedBox(width: 4),
+                    Text(
+                      bottomLabel,
+                      style: AppTextStyles.captionSmall.copyWith(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 9,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Watch in App',
+                        style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -692,15 +739,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        color: Colors.red.shade600,
+                        borderRadius: BorderRadius.circular(100),
+                        boxShadow: [
+                          BoxShadow(color: Colors.red.withOpacity(0.4), blurRadius: 4)
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.circle, color: Colors.white, size: 8),
+                          const Icon(Icons.circle, color: Colors.white, size: 6),
                           const SizedBox(width: 4),
-                          Text('LIVE', style: AppTextStyles.overline.copyWith(color: Colors.white, fontSize: 10)),
+                          Text(
+                            'LIVE NOW',
+                            style: AppTextStyles.overline.copyWith(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -717,84 +775,112 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSubjectMastery() {
-    final topics = (_stats?['topicPerformance'] as List?) ?? [];
-    if (topics.isEmpty) return const SizedBox.shrink();
+  Widget _buildResearchInsights() {
+    final performance = _stats?['topicPerformance'] as Map<String, dynamic>?;
+    if (performance == null || performance.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
-          child: Text('Subject Mastery', style: AppTextStyles.h2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'RESEARCH INSIGHTS',
+                style: AppTextStyles.overline.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.primaryBlue),
+            ],
+          ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
         SizedBox(
-          height: 100,
+          height: 110,
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
             scrollDirection: Axis.horizontal,
-            itemCount: topics.length,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+            itemCount: performance.length,
             itemBuilder: (context, index) {
-              final topic = topics[index];
-              final subject = topic['subject'] ?? 'Subject';
-              final mastery = (topic['A'] as num?)?.round() ?? 0;
-              
-              // Define distinct colors for subjects
+              final subject = performance.keys.elementAt(index);
+              final mastery = (performance[subject] as num?)?.round() ?? 0;
               final colors = [
-                const Color(0xFF3B82F6), // Blue
-                const Color(0xFF10B981), // Emerald
-                const Color(0xFFF59E0B), // Amber
-                const Color(0xFF8B5CF6), // Violet
-                const Color(0xFFEC4899), // Pink
+                AppColors.primaryBlue,
+                const Color(0xFF10B981),
+                const Color(0xFFF59E0B),
+                const Color(0xFF8B5CF6),
               ];
               final color = colors[index % colors.length];
 
               return Container(
-                width: 130,
+                width: 180,
                 margin: const EdgeInsets.only(right: AppSpacing.md),
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                  border: Border.all(color: color.withOpacity(0.2)),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryBlue.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      subject,
-                      style: AppTextStyles.caption.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: mastery / 100,
-                              backgroundColor: color.withOpacity(0.1),
-                              valueColor: AlwaysStoppedAnimation<Color>(color),
-                              minHeight: 6,
+                          child: Text(
+                            subject.toUpperCase(),
+                            style: AppTextStyles.captionSmall.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.textSecondary,
+                              letterSpacing: 0.5,
+                              fontSize: 10,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Text(
                           '$mastery%',
-                          style: AppTextStyles.captionSmall.copyWith(
-                            fontWeight: FontWeight.w900,
+                          style: TextStyle(
                             color: color,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(100),
+                      child: LinearProgressIndicator(
+                        value: mastery / 100,
+                        backgroundColor: AppColors.divider.withOpacity(0.3),
+                        valueColor: AlwaysStoppedAnimation<Color>(color),
+                        minHeight: 5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'STABLE GROWTH',
+                      style: AppTextStyles.captionSmall.copyWith(
+                        fontSize: 8,
+                        color: Colors.green.shade600,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
@@ -812,58 +898,47 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Quick Actions', style: AppTextStyles.h2),
+          Text(
+            'SERVICES', 
+            style: AppTextStyles.overline.copyWith(
+              color: AppColors.textPrimary, 
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+              letterSpacing: 1.2,
+            )
+          ),
           const SizedBox(height: AppSpacing.lg),
           GridView.count(
-            crossAxisCount: 3,
+            crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: AppSpacing.md,
-            crossAxisSpacing: AppSpacing.md,
+            mainAxisSpacing: AppSpacing.sm,
+            crossAxisSpacing: AppSpacing.sm,
+            childAspectRatio: 2.8,
             children: [
-              _buildQuickActionCard(
-                'Chapter Wise Tests',
-                Icons.fitness_center,
-                Colors.teal,
-                () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PracticeModeScreen()),
-                  );
-                },
+              _buildModernAction(
+                'CHAPTER TESTS',
+                Icons.account_balance_rounded,
+                AppColors.primaryBlue,
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PracticeModeScreen())),
               ),
-              _buildQuickActionCard(
-                'Doubts',
-                Icons.question_answer,
-                Colors.indigo,
-                () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const DoubtsScreen()),
-                  );
-                },
+              _buildModernAction(
+                'AI DOUBTS',
+                Icons.psychology_rounded,
+                const Color(0xFF6366F1),
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DoubtsScreen())),
               ),
-              _buildQuickActionCard(
-                'Saved',
-                Icons.bookmark,
-                Colors.amber,
-                () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SavedQuestionsScreen()),
-                  );
-                },
+              _buildModernAction(
+                'BOOKMARKS',
+                Icons.bookmark_added_rounded,
+                const Color(0xFFF59E0B),
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SavedQuestionsScreen())),
               ),
-              _buildQuickActionCard(
-                'Current Affairs',
-                Icons.newspaper,
-                Colors.pinkAccent,
-                () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CurrentAffairsScreen()),
-                  );
-                },
+              _buildModernAction(
+                'CURR. AFFAIRS',
+                Icons.newspaper_rounded,
+                const Color(0xFF10B981),
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CurrentAffairsScreen())),
               ),
             ],
           ),
@@ -872,39 +947,48 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildQuickActionCard(
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
+  Widget _buildModernAction(String label, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            height: 64,
-            width: 64,
-            decoration: BoxDecoration(
-              color: isDark ? color.withOpacity(0.15) : color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: AppTextStyles.captionSmall.copyWith(
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white70 : AppColors.textPrimary,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 18),
             ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTextStyles.captionSmall.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                  fontSize: 10,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

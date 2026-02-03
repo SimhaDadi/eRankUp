@@ -307,16 +307,23 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
                   decoration: BoxDecoration(
                     color: isUser 
                         ? AppColors.primaryBlue 
-                        : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                        : (isDark ? const Color(0xFF1E293B) : AppColors.primaryBlue.withOpacity(0.06)),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(20),
                       topRight: const Radius.circular(20),
                       bottomLeft: Radius.circular(isUser ? 20 : 0),
                       bottomRight: Radius.circular(isUser ? 0 : 20),
                     ),
-                    boxShadow: isUser || isDark ? [] : [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2)),
-                    ],
+                    border: isUser ? null : Border.all(
+                      color: isDark ? const Color(0xFF334155) : AppColors.primaryBlue.withOpacity(0.1),
+                    ),
+                    boxShadow: isUser ? [
+                      BoxShadow(
+                        color: AppColors.primaryBlue.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      )
+                    ] : [],
                   ),
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,15 +333,14 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
                                   padding: const EdgeInsets.only(bottom: 8.0),
                                   child: Row(
                                       children: [
-                                          Icon(Icons.auto_awesome, size: 12, color: AppColors.primaryCyan),
+                                          Icon(Icons.auto_awesome, size: 14, color: AppColors.primaryBlue),
                                           const SizedBox(width: 4),
                                           Text(
                                               'TUTOR SOLUTION',
-                                              style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppColors.primaryCyan.withOpacity(0.8),
-                                                  letterSpacing: 0.5,
+                                              style: AppTextStyles.overline.copyWith(
+                                                  color: AppColors.primaryBlue,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 0.8,
                                               ),
                                           ),
                                       ],
@@ -525,14 +531,26 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
                   child: TextField(
                 controller: _messageController,
                 decoration: InputDecoration(
-                  hintText: 'Type your doubt...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
+                  hintText: 'Ask your doubt...',
+                  hintStyle: AppTextStyles.body.copyWith(
+                    color: isDark ? Colors.white38 : AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
                   ),
-                  fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+                  ),
+                  fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
                   filled: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 ),
                 maxLines: null,
                 keyboardType: TextInputType.multiline,

@@ -49,8 +49,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Community'),
-        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-        foregroundColor: isDark ? Colors.white : Colors.black,
         elevation: 0,
         actions: [
           IconButton(
@@ -73,8 +71,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: theme.cardTheme.color,
+                    color: theme.cardColor,
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.divider.withOpacity(0.5)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.05),

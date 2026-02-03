@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../models/exam.dart';
+import '../theme/app_theme.dart';
 import 'exam_detail_screen.dart';
 
 class LiveTestsScreen extends StatefulWidget {
@@ -40,6 +41,7 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -60,16 +62,16 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
                   const SizedBox(height: 16),
                   Text(
                     'No live tests available',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.grey.shade600,
+                    style: AppTextStyles.h3.copyWith(
+                      color: isDark ? Colors.white : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Check back later for live competitions',
-                    style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.grey.shade500),
+                    style: AppTextStyles.body.copyWith(
+                      color: isDark ? Colors.white54 : AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -99,17 +101,18 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark 
-            ? [const Color(0xFF7F1D1D), const Color(0xFF7C2D12)]
-            : [Colors.red.shade400, Colors.orange.shade600],
+            ? [const Color(0xFF1E1B4B), const Color(0xFF312E81)]
+            : [const Color(0xFF4F46E5), const Color(0xFF4338CA)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: isDark ? [] : [
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        boxShadow: [
           BoxShadow(
-            color: Colors.red.shade200,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: isDark ? Colors.black.withOpacity(0.2) : AppColors.primaryBlue.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -133,20 +136,23 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.red.shade600,
+                        borderRadius: BorderRadius.circular(100),
+                        boxShadow: [
+                          BoxShadow(color: Colors.red.withOpacity(0.4), blurRadius: 8)
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.circle, size: 8, color: Colors.white),
+                          const Icon(Icons.circle, size: 6, color: Colors.white),
                           const SizedBox(width: 6),
-                          const Text(
-                            'LIVE',
-                            style: TextStyle(
-                              fontSize: 11,
+                          Text(
+                            'LIVE NOW',
+                            style: AppTextStyles.overline.copyWith(
+                              fontSize: 10,
                               fontWeight: FontWeight.w900,
                               color: Colors.white,
                               letterSpacing: 1,

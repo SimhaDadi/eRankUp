@@ -226,9 +226,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
               controller: _tabController,
               isScrollable: true,
               tabAlignment: TabAlignment.start,
-              indicatorColor: AppColors.primaryBlue,
-              labelColor: AppColors.primaryBlue,
-              unselectedLabelColor: AppColors.textTertiary,
+              dividerColor: Colors.transparent, // Remove line under tabs
               tabs: const [
                 Tab(text: 'All'),
                 Tab(text: 'Mock Tests'),
@@ -251,9 +249,10 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
                 decoration: InputDecoration(
                   hintText: 'Search exams...',
                   hintStyle: AppTextStyles.body.copyWith(
-                    color: AppColors.textTertiary,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
                   ),
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search, color: AppColors.primaryBlue),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear),
@@ -264,15 +263,29 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
                         )
                       : null,
                   filled: true,
-                  fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : AppColors.bgTertiary,
+                  fillColor: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFF1E293B) 
+                      : Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    borderSide: BorderSide(color: AppColors.divider.withOpacity(0.5)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    borderSide: BorderSide(color: AppColors.divider.withOpacity(0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.md,
+                    horizontal: 20,
+                    vertical: 14,
                   ),
+                ),
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

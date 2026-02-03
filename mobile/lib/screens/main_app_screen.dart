@@ -56,8 +56,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
         child: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: _onTabTapped,
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          indicatorColor: AppColors.primaryBlue.withOpacity(0.1),
           height: 70,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           animationDuration: const Duration(milliseconds: 300),

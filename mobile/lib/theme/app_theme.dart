@@ -275,42 +275,74 @@ class AppTheme {
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
       centerTitle: false,
+      scrolledUnderElevation: 0,
       titleTextStyle: TextStyle(
         fontSize: 22,
         fontWeight: FontWeight.w900,
         color: AppColors.textPrimary,
+        letterSpacing: -0.5,
       ),
     ),
     cardTheme: CardThemeData(
       color: AppColors.bgPrimary,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        side: const BorderSide(color: AppColors.divider, width: 1),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.bgPrimary,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: BorderRadius.circular(100), // Pill style inputs
         borderSide: const BorderSide(color: AppColors.divider),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: BorderRadius.circular(100),
         borderSide: const BorderSide(color: AppColors.divider),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
       ),
     ),
+    dividerColor: Colors.transparent, // Remove line under tab bars globally
     tabBarTheme: TabBarThemeData(
-      labelColor: AppColors.primaryBlue,
+      labelColor: Colors.white,
       unselectedLabelColor: AppColors.textSecondary,
-      indicatorSize: TabBarIndicatorSize.label,
-      labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+      indicatorSize: TabBarIndicatorSize.tab,
+      indicator: BoxDecoration(
+        color: AppColors.primaryBlue,
+        borderRadius: BorderRadius.circular(100),
+      ),
+      labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.2),
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: Colors.white,
+      indicatorColor: AppColors.primaryBlue.withOpacity(0.12),
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return IconThemeData(color: AppColors.primaryBlue, size: 28);
+        }
+        return IconThemeData(color: AppColors.textSecondary, size: 24);
+      }),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return AppTextStyles.captionSmall.copyWith(
+            color: AppColors.primaryBlue,
+            fontWeight: FontWeight.w900,
+            fontSize: 11,
+          );
+        }
+        return AppTextStyles.captionSmall.copyWith(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        );
+      }),
     ),
   );
 
