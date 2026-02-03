@@ -130,69 +130,100 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          SafeArea(
-            child: RefreshIndicator(
-              onRefresh: _fetchHomeData,
-              color: AppColors.primaryBlue,
-              child: _isLoading
-                  ? _buildLoadingState()
-                  : SingleChildScrollView(
+      body: _isLoading 
+          ? _buildLoadingState() 
+          : Stack(
+              children: [
+                // Main Content
+                SafeArea(
+                  child: RefreshIndicator(
+                    onRefresh: _fetchHomeData,
+                    color: Colors.white,
+                    backgroundColor: AppColors.primaryBlue,
+                    child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildHeader(),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
-                              child: DailyGoalWidget(
-                                currentQuestions: (_stats?['dailyQuestions'] as num?)?.toInt() ?? 0,
-                                targetQuestions: (_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100,
-                                goalLabel: _getGoalLabel((_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100),
-                                onEditGoal: _showGoalPicker,
+                          // Top Hero Layer
+                          Stack(
+                            children: [
+                              // 1. Hero Background Gradient (Now part of scroll)
+                              Container(
+                                height: 280,
+                                width: double.infinity,
+                                decoration: const BoxDecoration(
+                                  gradient: AppColors.heroGradient,
+                                  borderRadius: BorderRadius.only(
+                                    bottomLeft: Radius.circular(AppSpacing.radiusXxl),
+                                    bottomRight: Radius.circular(AppSpacing.radiusXxl),
+                                  ),
+                                ),
                               ),
+                              // 2. Header and Daily Goal (Layered over background)
+                              Column(
+                                children: [
+                                  _buildHeader(),
+                                  const SizedBox(height: AppSpacing.lg),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+                                    child: DailyGoalWidget(
+                                      userId: _user?['id'],
+                                      currentQuestions: (_stats?['dailyQuestions'] as num?)?.toInt() ?? 0,
+                                      targetQuestions: (_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100,
+                                      goalLabel: _getGoalLabel((_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100),
+                                      onEditGoal: _showGoalPicker,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: AppSpacing.xxl),
+                          
+                          const SizedBox(height: AppSpacing.xxxl),
                           _buildQuickStats(),
-                           const SizedBox(height: AppSpacing.xxl),
-                           
-                           _buildSubjectMastery(),
-                           const SizedBox(height: AppSpacing.xxl),
-                           
-                           // Smart Revision Section
-                           if (_revisionAvailable) ...[
-                             _buildSmartRevisionCard(),
-                             const SizedBox(height: AppSpacing.xxl),
-                           ],
+                          const SizedBox(height: AppSpacing.xxxl),
+                          
+                          _buildSubjectMastery(),
+                          const SizedBox(height: AppSpacing.xxl),
+                          
+                          if (_revisionAvailable) ...[
+                            _buildSmartRevisionCard(),
+                            const SizedBox(height: AppSpacing.xxl),
+                          ],
 
-                           _buildAIStudyPlanSection(),
-                           const SizedBox(height: AppSpacing.xxl),
+                          _buildAIStudyPlanSection(),
+                          const SizedBox(height: AppSpacing.xxl),
+                          
                           if (_recentAttempts != null && _recentAttempts!.isNotEmpty)
                             _buildContinueLearning(),
+                            
                           if (_liveTests != null && _liveTests!.isNotEmpty) ...[
                             const SizedBox(height: AppSpacing.xxl),
                             _buildLiveTests(),
                           ],
+                          
                           const SizedBox(height: AppSpacing.xxl),
                           _buildQuickActions(),
-                          const SizedBox(height: AppSpacing.xxl),
+                          const SizedBox(height: AppSpacing.xxxl * 2), // Extra space for bottom nav
                         ],
                       ),
                     ),
+                  ),
+                ),
+                
+                // Confetti Layer (Still fixed at top)
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConfettiWidget(
+                    confettiController: _confettiController,
+                    blastDirectionality: BlastDirectionality.explosive,
+                    shouldLoop: false,
+                    colors: const [Colors.green, Colors.blue, Colors.pink, Colors.orange, Colors.purple],
+                  ),
+                ),
+              ],
             ),
-          ),
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              shouldLoop: false,
-              colors: const [Colors.green, Colors.blue, Colors.pink, Colors.orange, Colors.purple],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -250,49 +281,56 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     '$greeting $emoji',
                     style: AppTextStyles.caption.copyWith(
-                      color: Theme.of(context).brightness == Brightness.dark 
-                          ? Colors.white60 
-                          : AppColors.textSecondary,
+                      color: Colors.white70,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Hey $userName!',
-                    style: AppTextStyles.h1.copyWith(letterSpacing: -1),
+                    style: AppTextStyles.h1.copyWith(
+                      color: Colors.white,
+                      letterSpacing: -1,
+                    ),
                   ),
                 ],
               ),
               Row(
                 children: [
-                  Stack(
-                    children: [
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.notifications_outlined),
-                        color: AppColors.textPrimary,
-                      ),
-                      Positioned(
-                        right: 12,
-                        top: 12,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      children: [
+                        IconButton(
+                          onPressed: () {},
+                          icon: const Icon(Icons.notifications_outlined),
+                          color: Colors.white,
+                        ),
+                        Positioned(
+                          right: 12,
+                          top: 12,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 8),
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+                    backgroundColor: Colors.white,
                     child: Text(
                       userName[0],
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.primaryBlue,
                         fontWeight: FontWeight.bold,
                       ),
@@ -306,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             'Conquer SSC & Railway 🎯',
             style: AppTextStyles.h3.copyWith(
-              color: AppColors.textSecondary,
+              color: Colors.white.withOpacity(0.9),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -320,12 +358,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     vertical: AppSpacing.sm,
                   ),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: Theme.of(context).brightness == Brightness.dark 
-                        ? [const Color(0xFFC2410C), const Color(0xFF991B1B)]
-                        : [Colors.orange.shade400, Colors.red.shade400],
-                    ),
+                    color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -349,11 +384,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     vertical: AppSpacing.sm,
                   ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark 
-                        ? const Color(0xFF1E293B) 
-                        : Colors.white,
-                    border: Border.all(color: Colors.amber.shade300, width: 2),
+                    color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
@@ -363,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         'LVL ${_stats?['level'] ?? 1}',
                         style: AppTextStyles.caption.copyWith(
                           fontWeight: FontWeight.w900,
-                          color: Colors.amber.shade800,
+                          color: Colors.white,
                         ),
                       ),
                     ],
@@ -377,6 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Fixing the typo from the previous step as well
   Widget _buildQuickStats() {
     final totalTests = _stats?['totalAttempts'] ?? 0;
     final avgScore = (_stats?['averageScore'] as num?)?.round() ?? 0;
@@ -405,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: AppSpacing.md,
             crossAxisSpacing: AppSpacing.md,
-            childAspectRatio: 1.4,
+            childAspectRatio: 1.15,
             children: [
               _buildStatCard(
                 'Tests Taken',
@@ -442,44 +476,59 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildStatCard(String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return PremiumCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
-      boxShadow: AppShadows.small,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      border: Border.all(
+        color: color.withOpacity(0.3), 
+        width: 1.5,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: color.withOpacity(0.12),
+          blurRadius: 20,
+          offset: const Offset(0, 10),
+        ),
+      ],
       onTap: onTap ?? () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
       },
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              gradient: LinearGradient(
+                colors: [color.withOpacity(0.2), color.withOpacity(0.05)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withOpacity(0.2)),
             ),
             child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  value,
-                  style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w900, height: 1.0),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: AppTextStyles.captionSmall.copyWith(
-                    color: isDark ? Colors.white60 : AppColors.textSecondary,
-                    fontSize: 10,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          const Spacer(),
+          Text(
+            value,
+            style: AppTextStyles.h2.copyWith(
+              fontWeight: FontWeight.w900, 
+              height: 1.0,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.5,
+              fontSize: 22,
             ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label.toUpperCase(),
+            style: AppTextStyles.captionSmall.copyWith(
+              color: isDark ? Colors.white60 : AppColors.textSecondary,
+              fontWeight: FontWeight.w900,
+              fontSize: 8,
+              letterSpacing: 0.8,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -829,21 +878,31 @@ class _HomeScreenState extends State<HomeScreen> {
     Color color,
     VoidCallback onTap,
   ) {
-    return PremiumCard(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
       onTap: onTap,
-      color: color.withOpacity(0.1),
-      border: Border.all(color: color.withOpacity(0.3)),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: AppSpacing.iconXl),
-          const SizedBox(height: AppSpacing.sm),
+          Container(
+            height: 64,
+            width: 64,
+            decoration: BoxDecoration(
+              color: isDark ? color.withOpacity(0.15) : color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
           Text(
             label,
-            style: AppTextStyles.caption.copyWith(
-              fontWeight: FontWeight.bold,
-              color: color,
+            style: AppTextStyles.captionSmall.copyWith(
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white70 : AppColors.textPrimary,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1126,10 +1185,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getGoalLabel(int target) {
-    if (target <= 25) return 'Casual';
-    if (target <= 50) return 'Regular';
-    if (target <= 100) return 'Serious';
-    if (target <= 200) return 'Intense';
-    return 'Beast Mode';
+    if (target <= 25) return 'Starter Mode 🐣';
+    if (target <= 50) return 'Steady Mode 🐢';
+    if (target <= 100) return 'Pro Mode 🎯';
+    if (target <= 200) return 'Warrior Mode ⚔️';
+    return 'Beast Mode 🦁';
   }
 }

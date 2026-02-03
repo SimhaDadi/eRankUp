@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
 import '../models/news_item.dart';
 import '../theme/app_theme.dart';
 
@@ -82,19 +81,9 @@ class NewsDetailScreen extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  Html(
-                    data: newsItem.content,
-                    style: {
-                      "body": Style(
-                        fontSize: FontSize(16),
-                        lineHeight: LineHeight.number(1.6),
-                        color: isDark ? Colors.white70 : Colors.black87,
-                        margin: Margins.zero,
-                      ),
-                      "p": Style(margin: Margins.only(bottom: 16)),
-                      "ul": Style(margin: Margins.only(left: 16)),
-                    },
+                  Text(
+                    newsItem.content,
+                    style: AppTextStyles.bodyLarge.copyWith(height: 1.6),
                   ),
                   const SizedBox(height: 24),
                   if (newsItem.tags.isNotEmpty)
