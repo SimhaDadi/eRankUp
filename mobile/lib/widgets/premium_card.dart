@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/haptic_service.dart';
+import '../theme/app_theme.dart';
 
 /// A premium card wrapper that provides 
 /// micro-interactions (scaling) and haptic feedback.
@@ -87,7 +88,7 @@ class _PremiumCardState extends State<PremiumCard> with SingleTickerProviderStat
           padding: widget.padding,
           decoration: BoxDecoration(
             color: widget.color ?? theme.cardTheme.color ?? Colors.white,
-            borderRadius: widget.borderRadius ?? BorderRadius.circular(16),
+            borderRadius: widget.borderRadius ?? BorderRadius.circular(AppSpacing.radiusMd),
             border: widget.border ?? (theme.brightness == Brightness.dark 
               ? Border.all(color: const Color(0xFF334155)) 
               : null),

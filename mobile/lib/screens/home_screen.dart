@@ -384,8 +384,19 @@ class _HomeScreenState extends State<HomeScreen> {
       width: 320,
       margin: const EdgeInsets.only(right: AppSpacing.md),
       decoration: BoxDecoration(
-        color: color,
+        gradient: LinearGradient(
+          colors: [color, color.withBlue(color.blue + 30).withRed(color.red + 10)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Stack(
         children: [
@@ -523,13 +534,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildStatCard(String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
     return PremiumCard(
       padding: EdgeInsets.zero,
-      borderRadius: BorderRadius.circular(14), // Sharper corners
+      borderRadius: BorderRadius.circular(AppSpacing.radiusLg), // Sharper institutional corners
       onTap: onTap ?? () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
       },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,

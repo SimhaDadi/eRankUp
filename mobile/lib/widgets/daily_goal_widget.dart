@@ -108,7 +108,7 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
       key: _globalKey,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           boxShadow: [
             BoxShadow(
               color: config.primaryColor.withOpacity(0.15),
@@ -118,7 +118,7 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           child: Container(
             decoration: BoxDecoration(
               color: theme.cardTheme.color,
@@ -401,11 +401,11 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
         badgeText: 'Beast Mode',
         icon: Icons.bolt_rounded,
         gradient: const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFFA500), Color(0xFFFF8C00)],
+          colors: [Color(0xFFD97706), Color(0xFFB45309), Color(0xFF92400E)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        primaryColor: const Color(0xFFF59E0B), // Amber 500
+        primaryColor: const Color(0xFFD97706), // Thick Amber
         completionMessage: "APEX ACHIEVED! YOU'RE ON FIRE! 🔥",
         motivationalMessage: "KEEP GOING! UNLEASH THE BEAST. 🦁",
         shareMessage: "I just smashed my daily goal in BEAST MODE on eRankUp! 🦁🔥 Join me!",
@@ -416,11 +416,11 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
         badgeText: 'Warrior Mode',
         icon: Icons.shield_rounded,
         gradient: const LinearGradient(
-          colors: [Color(0xFFEF4444), Color(0xFFDC2626), Color(0xFF991B1B)],
+          colors: [Color(0xFFB91C1C), Color(0xFF991B1B), Color(0xFF7F1D1D)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        primaryColor: const Color(0xFFEF4444),
+        primaryColor: const Color(0xFFB91C1C), // Thick Red
         completionMessage: "VICTORY! WARRIOR GOAL MET! ⚔️",
         motivationalMessage: "CHARGE AHEAD! NEARLY THERE. 🛡️",
         shareMessage: "I'm fighting my way to the top in Warrior Mode on eRankUp! ⚔️ Join the battle!",
@@ -431,11 +431,11 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
         badgeText: 'Pro Mode',
         icon: Icons.stars_rounded,
         gradient: const LinearGradient(
-          colors: [Color(0xFF6366F1), Color(0xFF4F46E5), Color(0xFF3730A3)],
+          colors: [Color(0xFF1E40AF), Color(0xFF1E3A8A), Color(0xFF172554)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        primaryColor: const Color(0xFF6366F1),
+        primaryColor: const Color(0xFF1E40AF), // Thick Blue
         completionMessage: "PROFESSIONAL FINISH! 🎯",
         motivationalMessage: "FOCUS ON THE TARGET. 🎯",
         shareMessage: "Pro Mode activated! 🎯 My prep is on point with eRankUp. Join me!",
@@ -446,29 +446,28 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
         badgeText: 'Steady Mode',
         icon: Icons.trending_up_rounded,
         gradient: const LinearGradient(
-          colors: [Color(0xFF10B981), Color(0xFF059669), Color(0xFF065F46)],
+          colors: [Color(0xFF059669), Color(0xFF065F46), Color(0xFF064E3B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        primaryColor: const Color(0xFF10B981),
+        primaryColor: const Color(0xFF059669), // Thick Green
         completionMessage: "CONSISTENT GROWTH! 🐢",
         motivationalMessage: "SLOW AND STEADY WINS THE RACE. 🍀",
         shareMessage: "Maintaining consistency with Steady Mode on eRankUp! 🐢 Join the growth!",
       );
     }
-    // Starter
     return _ModeConfig(
-      badgeText: 'Starter',
-      icon: Icons.egg_rounded,
+      badgeText: 'Institutional Starter',
+      icon: Icons.business_rounded,
       gradient: const LinearGradient(
-        colors: [Color(0xFF94A3B8), Color(0xFF64748B), Color(0xFF334155)],
+        colors: [Color(0xFF1E293B), Color(0xFF0F172A), Color(0xFF020617)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      primaryColor: const Color(0xFF64748B),
-      completionMessage: "FIRST STEP COMPLETED! 🐣",
-      motivationalMessage: "GREAT START! AIM HIGHER. 🚀",
-      shareMessage: "Started my journey on eRankUp today! 🐣 Check out this amazing app!",
+      primaryColor: const Color(0xFF1E293B),
+      completionMessage: "PORTFOLIO INITIALIZED! 🐣",
+      motivationalMessage: "BUILDING STEADY MOMENTUM. 📈",
+      shareMessage: "Started my institutional prep journey on eRankUp! 🐣 Check out this amazing app!",
     );
   }
 }
