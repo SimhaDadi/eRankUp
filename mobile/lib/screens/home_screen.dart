@@ -486,7 +486,7 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: AppSpacing.md,
             crossAxisSpacing: AppSpacing.md,
-            childAspectRatio: 1.15,
+            childAspectRatio: 1.4, // More compact aspect ratio
             children: [
               _buildStatCard(
                 'Tests Taken',
@@ -521,63 +521,86 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return PremiumCard(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      border: Border.all(
-        color: color.withOpacity(0.3), 
-        width: 1.5,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: color.withOpacity(0.12),
-          blurRadius: 20,
-          offset: const Offset(0, 10),
-        ),
-      ],
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(14), // Sharper corners
       onTap: onTap ?? () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [color.withOpacity(0.2), color.withOpacity(0.05)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color,
+              color.withBlue(color.blue + 20).withRed(color.red + 20), // "Thick" vibrant color
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -5,
+              bottom: -5,
+              child: Icon(
+                icon,
+                size: 60,
+                color: Colors.white.withOpacity(0.15),
               ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color.withOpacity(0.2)),
             ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: AppTextStyles.h2.copyWith(
-              fontWeight: FontWeight.w900, 
-              height: 1.0,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.5,
-              fontSize: 22,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Icon(icon, color: Colors.white, size: 20),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 12,
+                        color: Colors.white70,
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900, 
+                      height: 1.0,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                      fontSize: 26,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label.toUpperCase(),
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 9,
+                      letterSpacing: 0.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label.toUpperCase(),
-            style: AppTextStyles.captionSmall.copyWith(
-              color: isDark ? Colors.white60 : AppColors.textSecondary,
-              fontWeight: FontWeight.w900,
-              fontSize: 8,
-              letterSpacing: 0.8,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
