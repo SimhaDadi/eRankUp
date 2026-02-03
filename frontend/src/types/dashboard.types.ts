@@ -9,6 +9,8 @@ export interface Stats {
     level?: number;
     badges?: any[];
     dailyQuestionTarget?: number;
+    bestScore?: number;
+    rank?: string;
 }
 
 export interface RecentAttempt {

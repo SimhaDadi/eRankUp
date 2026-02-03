@@ -485,19 +485,31 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Text('Your Progress', style: AppTextStyles.h2),
               TextButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsScreen())),
-                child: const Text('Details'),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen())),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  'VIEW ALL',
+                  style: AppTextStyles.captionSmall.copyWith(
+                    color: AppColors.primaryBlue,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: AppSpacing.md,
-            crossAxisSpacing: AppSpacing.md,
-            childAspectRatio: 1.4, // More compact aspect ratio
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1.55, // Ultra-compact
             children: [
               _buildStatCard(
                 'Tests Taken',
@@ -532,27 +544,38 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
+    // Rich Institutional Colors (Deep & Saturated)
+    final List<Color> gradientColors;
+    if (color.value == 0xFF1E40AF) { // Deep Blue
+      gradientColors = [const Color(0xFF1E3A8A), const Color(0xFF1E40AF)];
+    } else if (color.value == 0xFF10B981) { // Emerald
+      gradientColors = [const Color(0xFF065F46), const Color(0xFF059669)];
+    } else if (color.value == 0xFFF59E0B) { // Amber
+      gradientColors = [const Color(0xFFB45309), const Color(0xFFD97706)];
+    } else if (color.value == 0xFF8B5CF6) { // Violet
+      gradientColors = [const Color(0xFF5B21B6), const Color(0xFF7C3AED)];
+    } else {
+      gradientColors = [color.withOpacity(0.9), color];
+    }
+
     return PremiumCard(
       padding: EdgeInsets.zero,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusLg), // Sharper institutional corners
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       onTap: onTap ?? () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
       },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              color,
-              color.withBlue(color.blue + 20).withRed(color.red + 20), // "Thick" vibrant color
-            ],
+            colors: gradientColors,
           ),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 12,
+              color: gradientColors[0].withOpacity(0.3),
+              blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
@@ -569,21 +592,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Icon(icon, color: Colors.white, size: 20),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 12,
-                        color: Colors.white70,
-                      ),
-                    ],
-                  ),
+                  Icon(icon, color: Colors.white, size: 18),
                   const Spacer(),
                   Text(
                     value,
@@ -591,18 +604,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.w900, 
                       height: 1.0,
                       color: Colors.white,
-                      letterSpacing: -0.5,
-                      fontSize: 26,
+                      letterSpacing: -0.8,
+                      fontSize: 24,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     label.toUpperCase(),
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontWeight: FontWeight.w800,
-                      fontSize: 9,
-                      letterSpacing: 0.5,
+                      color: Colors.white.withOpacity(0.85),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 8,
+                      letterSpacing: 0.6,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

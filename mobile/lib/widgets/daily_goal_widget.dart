@@ -220,36 +220,44 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        gradient: config.gradient,
-                                        borderRadius: BorderRadius.circular(20),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: config.primaryColor.withOpacity(0.4),
-                                            blurRadius: 12,
-                                            offset: const Offset(0, 6),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(config.icon, color: Colors.white, size: 14),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            config.badgeText.toUpperCase(),
-                                            style: AppTextStyles.overline.copyWith(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: 0.8,
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          gradient: config.gradient,
+                                          borderRadius: BorderRadius.circular(20),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: config.primaryColor.withOpacity(0.4),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 6),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(config.icon, color: Colors.white, size: 12),
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                config.badgeText.toUpperCase(),
+                                                style: AppTextStyles.overline.copyWith(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 0.8,
+                                                  fontSize: 9,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                     IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
                                       icon: Opacity(
                                         opacity: _isSharing ? 0.5 : 1.0,
                                         child: Container(
@@ -260,7 +268,7 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
                                           ),
                                           child: Icon(
                                             _isSharing ? Icons.sync_rounded : Icons.share_rounded, 
-                                            size: 18, 
+                                            size: 16, 
                                             color: config.primaryColor
                                           ),
                                         ),
@@ -269,34 +277,31 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 8),
                                 Text(
                                   percentage >= 100 
                                       ? config.completionMessage 
                                       : config.motivationalMessage,
                                   style: AppTextStyles.h4.copyWith(
-                                    fontSize: 15,
+                                    fontSize: 14,
                                     color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.2,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.1,
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 6),
                                 GestureDetector(
                                   onTap: widget.onEditGoal,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'UPGRADE MODE',
-                                        style: AppTextStyles.captionSmall.copyWith(
-                                          color: config.primaryColor,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                      Icon(Icons.chevron_right_rounded, size: 14, color: config.primaryColor),
-                                    ],
+                                  child: Text(
+                                    'UPGRADE MODE >',
+                                    style: AppTextStyles.captionSmall.copyWith(
+                                      color: config.primaryColor,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                      fontSize: 10,
+                                    ),
                                   ),
                                 ),
                               ],

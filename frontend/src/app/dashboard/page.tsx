@@ -1,20 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toPng } from 'html-to-image';
 import {
     Trophy,
     Clock,
     Target,
     BookOpen,
     ChevronRight,
-    TrendingUp,
     Zap,
     CheckCircle2,
     Sparkles,
     Search,
     Edit2,
-    Settings2
+    Settings2,
+    Share2,
+    Shield,
+    Star,
+    TrendingUp as TrendingIcon,
+    Briefcase,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -34,7 +39,9 @@ export default function DashboardPage() {
     const [allExams, setAllExams] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showAiDoubtSolver, setShowAiDoubtSolver] = useState(true);
+    const [showIntensityMenu, setShowIntensityMenu] = useState(false);
     const [revisionData, setRevisionData] = useState<any>(null);
+    const cardRef = useRef<HTMLDivElement>(null);
     const searchParams = useSearchParams();
     const searchQuery = searchParams.get('search') || '';
 
@@ -73,6 +80,81 @@ export default function DashboardPage() {
 
         fetchDashboardData();
     }, [setActivePass]);
+
+    const getModeConfig = (target: number) => {
+        if (target >= 500) return {
+            label: 'Beast Mode',
+            icon: <Zap className="w-3 h-3 fill-white" />,
+            gradient: "from-[#f59e0b] via-[#ea580c] to-[#991b1b]",
+            primary: "#f59e0b",
+            message: "KEEP GOING! UNLEASH THE BEAST. 🦁",
+            share: "I just smashed my daily goal in BEAST MODE on eRankUp! 🦁🔥"
+        };
+        if (target >= 200) return {
+            label: 'Warrior Mode',
+            icon: <Shield className="w-3 h-3 fill-white" />,
+            gradient: "from-[#e11d48] via-[#be123c] to-[#881337]",
+            primary: "#e11d48",
+            message: "CHARGE AHEAD! NEARLY THERE. 🛡️",
+            share: "I'm fighting my way to the top in Warrior Mode on eRankUp! ⚔️"
+        };
+        if (target >= 100) return {
+            label: 'Pro Mode',
+            icon: <Star className="w-3 h-3 fill-white" />,
+            gradient: "from-[#2563eb] via-[#1d4ed8] to-[#1e3a8a]",
+            primary: "#2563eb",
+            message: "FOCUS ON THE TARGET. 🎯",
+            share: "Pro Mode activated! 🎯 My prep is on point with eRankUp."
+        };
+        if (target >= 50) return {
+            label: 'Steady Mode',
+            icon: <TrendingIcon className="w-3 h-3" />,
+            gradient: "from-[#059669] via-[#047857] to-[#064e3b]",
+            primary: "#059669",
+            message: "SLOW AND STEADY WINS THE RACE. 🍀",
+            share: "Maintaining consistency with Steady Mode on eRankUp! 🐢"
+        };
+        return {
+            label: 'Institutional Starter',
+            icon: <Briefcase className="w-3 h-3 fill-white" />,
+            gradient: "from-[#475569] via-[#1e293b] to-[#0f172a]",
+            primary: "#475569",
+            message: "BUILDING STEADY MOMENTUM. 📈",
+            share: "Started my institutional prep journey on eRankUp! 🐣"
+        };
+    };
+
+    const modeConfig = useMemo(() => getModeConfig(stats?.dailyQuestionTarget || 100), [stats?.dailyQuestionTarget]);
+
+    const handleShareProgress = async () => {
+        if (!cardRef.current) return;
+
+        try {
+            const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 2 });
+            const blob = await (await fetch(dataUrl)).blob();
+            const file = new File([blob], 'erankup-achievement.png', { type: 'image/png' });
+
+            const progress = Math.round(Math.min(((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1)) * 100, 100));
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'eRankUp Achievement',
+                    text: `${modeConfig.share} ${progress}% Completed! 🚀`,
+                });
+            } else {
+                // Fallback to direct download
+                const link = document.createElement('a');
+                link.download = 'erankup-achievement.png';
+                link.href = dataUrl;
+                link.click();
+                alert('Achievement image saved! Share it with your friends.');
+            }
+        } catch (error) {
+            console.error('Error sharing progress:', error);
+            alert('Failed to generate sharing image. Please try again.');
+        }
+    };
 
     const formatTime = (seconds: number) => {
         const hours = Math.floor(seconds / 3600);
@@ -208,83 +290,156 @@ export default function DashboardPage() {
                                         </div>
                                     </div>
 
-                                    {/* Right Visualization - Daily Goal Ring */}
-                                    <div className="relative w-full md:w-[280px] aspect-square flex-shrink-0 group/goal">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-teal-50 to-white rounded-full opacity-50 blur-3xl" />
-                                        <div className="relative h-full bg-white/40 backdrop-blur-md rounded-full border border-white/60 shadow-2xl flex items-center justify-center p-6">
-                                            {/* Settings Button Overlay */}
-                                            <div className="absolute -top-2 -right-2 z-20 opacity-0 group-hover/goal:opacity-100 transition-opacity">
-                                                <div className="flex flex-col gap-2">
-                                                    {[
-                                                        { v: 25, l: 'Casual' },
-                                                        { v: 50, l: 'Regular' },
-                                                        { v: 100, l: 'Serious' },
-                                                        { v: 200, l: 'Intense' },
-                                                        { v: 500, l: 'Elite' }
-                                                    ].map((t) => (
-                                                        <button
-                                                            key={t.v}
-                                                            onClick={async () => {
-                                                                try {
-                                                                    await api.post('/gamification/daily-target', { target: t.v });
-                                                                    setStats(prev => prev ? { ...prev, dailyQuestionTarget: t.v } : null);
-                                                                } catch (e) {
-                                                                    console.error(e);
-                                                                }
-                                                            }}
-                                                            className={`whitespace-nowrap px-3 h-10 rounded-full flex items-center justify-center text-[10px] font-black border transition-all shadow-sm gap-2 ${stats?.dailyQuestionTarget === t.v
-                                                                ? 'bg-[#00bfa5] text-white border-[#00bfa5]'
-                                                                : 'bg-white text-slate-600 border-slate-200 hover:border-[#00bfa5] hover:text-[#00bfa5]'
-                                                                }`}
+                                    {/* Right Visualization - Daily Goal Institutional Card */}
+                                    <div className="relative w-full md:w-[320px] flex-shrink-0 group/goal">
+                                        <div
+                                            ref={cardRef}
+                                            className={`rounded-[2rem] p-6 text-white relative overflow-hidden shadow-2xl border border-white/10 transition-all duration-500 bg-slate-900 bg-gradient-to-br ${modeConfig.gradient}`}
+                                        >
+                                            {/* Holographic Pattern Background */}
+                                            {/* Holographic Pattern Background */}
+                                            <div className="absolute inset-0 opacity-[0.05]" style={{
+                                                backgroundImage: `linear-gradient(45deg, transparent 45%, white 45%, white 55%, transparent 55%)`,
+                                                backgroundSize: '24px 24px'
+                                            }}></div>
+
+                                            {/* Top Glossy Light Source */}
+                                            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/10 to-transparent z-0 pointer-events-none"></div>
+
+                                            {/* Animated Background Glow */}
+                                            <motion.div
+                                                animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
+                                                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                                                className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-[80px] -mr-24 -mt-24"
+                                            ></motion.div>
+
+                                            <div className="relative z-10">
+                                                <div className="flex items-center justify-between mb-6">
+                                                    <div className="flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+                                                        {modeConfig.icon}
+                                                        {modeConfig.label}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 opacity-60">
+                                                        <Shield className="w-3 h-3" />
+                                                        <span className="text-[8px] font-black tracking-tighter uppercase">Verified Achievement</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mb-6">
+                                                    <h3 className="text-3xl font-black mb-1 leading-tight tracking-tighter">
+                                                        {Math.round(Math.min(((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1)) * 100, 100))}%
+                                                        <span className="text-sm ml-1 opacity-70">COMPLETED</span>
+                                                    </h3>
+                                                    <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider">
+                                                        {Math.min(((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1)) * 100, 100) >= 100
+                                                            ? "APEX ACHIEVED! 🔥"
+                                                            : modeConfig.message}
+                                                    </p>
+                                                </div>
+
+                                                {/* Thick Progress Bar */}
+                                                {/* Thick Progress Bar with Glow */}
+                                                <div className="relative h-4 bg-black/30 rounded-full overflow-hidden mb-6 border border-white/10 shadow-inner">
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${Math.min(((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1)) * 100, 100)}%` }}
+                                                        transition={{ duration: 1.5, ease: "easeOut" }}
+                                                        className="absolute inset-0 bg-white shadow-[0_0_15px_rgba(255,255,255,0.6)] rounded-full opacity-90"
+                                                    />
+                                                </div>
+
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <div
+                                                            onClick={() => setShowIntensityMenu(!showIntensityMenu)}
+                                                            className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+                                                            title="Adjust Intensity"
                                                         >
-                                                            <span>{t.v}</span>
-                                                            <span className="opacity-60">{t.l}</span>
+                                                            <Settings2 className="w-4 h-4 text-white" />
+                                                        </div>
+                                                        <div
+                                                            onClick={handleShareProgress}
+                                                            className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+                                                            title="Share Progress"
+                                                        >
+                                                            <Share2 className="w-4 h-4 text-white" />
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setShowIntensityMenu(!showIntensityMenu)}
+                                                        className="text-[10px] font-black text-white/90 uppercase tracking-widest hover:text-white transition-colors"
+                                                    >
+                                                        UPGRADE MODE {' > '}
+                                                    </button>
+                                                </div>
+
+                                                {/* Verification Footer */}
+                                                <div className="pt-4 border-t border-white/10 flex items-center justify-between opacity-50">
+                                                    <div className="text-[7px] font-black tracking-[0.1em] uppercase">
+                                                        {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                                    </div>
+                                                    <div className="bg-white/10 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold tracking-widest">
+                                                        ERU-{(user?.id?.slice(-4).toUpperCase() || 'ACHV') + Math.floor(Math.random() * 10000)}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Intensity Overlay Menu */}
+                                            <AnimatePresence>
+                                                {showIntensityMenu && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, scale: 0.95 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        exit={{ opacity: 0, scale: 0.95 }}
+                                                        className="absolute inset-0 z-20 bg-slate-950/98 backdrop-blur-xl p-6 flex flex-col justify-center gap-2 border border-white/20 rounded-[2rem]"
+                                                    >
+                                                        <div className="mb-4 text-center">
+                                                            <h4 className="text-[11px] font-black text-amber-500 uppercase tracking-[0.2em]">Select Intensity</h4>
+                                                            <div className="h-0.5 w-8 bg-amber-500 mx-auto mt-1 rounded-full opacity-50"></div>
+                                                        </div>
+
+                                                        <div className="flex flex-col gap-2 overflow-y-auto max-h-[220px] pr-1 custom-scrollbar">
+                                                            {[
+                                                                { v: 25, l: 'Starter' },
+                                                                { v: 50, l: 'Steady Mode' },
+                                                                { v: 100, l: 'Pro Mode' },
+                                                                { v: 200, l: 'Warrior' },
+                                                                { v: 500, l: 'Beast Mode' }
+                                                            ].map((t) => (
+                                                                <button
+                                                                    key={t.v}
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            await api.post('/gamification/daily-target', { target: t.v });
+                                                                            setStats(prev => prev ? { ...prev, dailyQuestionTarget: t.v } : null);
+                                                                            setShowIntensityMenu(false);
+                                                                        } catch (e) {
+                                                                            console.error(e);
+                                                                        }
+                                                                    }}
+                                                                    className={`w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${(stats?.dailyQuestionTarget || 100) === t.v
+                                                                            ? 'bg-amber-500 text-white border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+                                                                            : 'bg-white/10 text-white border-white/10 hover:bg-white/20'
+                                                                        }`}
+                                                                >
+                                                                    {t.l}
+                                                                    <span className="ml-2 opacity-60 text-[8px]">({t.v} Qs)</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+
+                                                        <button
+                                                            onClick={() => setShowIntensityMenu(false)}
+                                                            className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-colors"
+                                                        >
+                                                            Cancel
                                                         </button>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
 
-                                            {/* Rings */}
-                                            <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
-                                                {/* Background Ring */}
-                                                <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" strokeWidth="8" strokeLinecap="round" />
-                                                {/* Progress Ring */}
-                                                <motion.circle
-                                                    initial={{ pathLength: 0 }}
-                                                    animate={{ pathLength: Math.min((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1), 1) }}
-                                                    transition={{ duration: 2, ease: "easeOut" }}
-                                                    cx="50" cy="50" r="45"
-                                                    fill="none"
-                                                    stroke="url(#gradient)"
-                                                    strokeWidth="8"
-                                                    strokeLinecap="round"
-                                                    strokeDasharray="1 1"
-                                                    strokeDashoffset="0"
-                                                />
-                                                <defs>
-                                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                        <stop offset="0%" stopColor="#00bfa5" />
-                                                        <stop offset="100%" stopColor="#2dd4bf" />
-                                                    </linearGradient>
-                                                </defs>
-                                            </svg>
-
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00bfa5] mb-1">
-                                                    {stats?.dailyQuestionTarget === 25 ? 'Casual' :
-                                                        stats?.dailyQuestionTarget === 50 ? 'Regular' :
-                                                            stats?.dailyQuestionTarget === 100 ? 'Serious' :
-                                                                stats?.dailyQuestionTarget === 200 ? 'Intense' :
-                                                                    stats?.dailyQuestionTarget === 500 ? 'Beast Mode' : 'Serious'} Path
-                                                </div>
-                                                <div className="text-5xl font-black text-slate-900 tracking-tighter">
-                                                    {Math.round(Math.min(((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1)) * 100, 100))}%
-                                                </div>
-                                                <div className="text-[10px] font-bold text-slate-400 mt-1">Goal: {stats?.dailyQuestionTarget || 100} Qs</div>
-                                                <div className="text-[9px] font-bold text-[#00bfa5] mt-2 flex items-center gap-1 cursor-default group-hover/goal:animate-pulse">
-                                                    <Settings2 className="w-3 h-3" /> Set Intensity
-                                                </div>
-                                            </div>
+                                            {/* Streak Badge Overlay */}
+                                            <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-gradient-to-tr from-amber-500/20 to-transparent rounded-full blur-2xl"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -300,99 +455,65 @@ export default function DashboardPage() {
                         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             {[
                                 {
-                                    icon: <Trophy className="w-5 h-5" />,
+                                    icon: <BookOpen className="w-5 h-5 text-white" />,
+                                    label: "Tests Taken",
+                                    value: stats?.totalAttempts || 0,
+                                    trend: "Consistent",
+                                    gradient: "from-indigo-600 via-indigo-700 to-blue-800",
+                                    shadow: "shadow-indigo-500/20"
+                                },
+                                {
+                                    icon: <TrendingIcon className="w-5 h-5 text-white" />,
                                     label: "Average Score",
                                     value: `${stats?.averageScore || 0}%`,
-                                    trend: "+5.2%",
-                                    color: "from-amber-400 to-orange-500",
-                                    bgColor: "bg-amber-500/10",
-                                    textColor: "text-amber-600",
-                                    chart: (
-                                        <div className="h-10 flex items-end gap-1 opacity-50">
-                                            {[40, 60, 45, 70, 50, 65, 80].map((h, i) => (
-                                                <div key={i} className="flex-1 bg-amber-500 rounded-t-sm" style={{ height: `${h}%` }} />
-                                            ))}
-                                        </div>
-                                    )
+                                    trend: "Improving",
+                                    gradient: "from-emerald-600 via-emerald-700 to-teal-800",
+                                    shadow: "shadow-emerald-500/20"
                                 },
                                 {
-                                    icon: <CheckCircle2 className="w-5 h-5" />,
-                                    label: "Total Tests",
-                                    value: stats?.totalAttempts || 0,
-                                    trend: "On Track",
-                                    color: "from-emerald-400 to-teal-500",
-                                    bgColor: "bg-emerald-500/10",
-                                    textColor: "text-emerald-600",
-                                    chart: (
-                                        <div className="h-10 w-10 relative ml-auto">
-                                            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#d1fae5" strokeWidth="4" />
-                                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray="80, 100" />
-                                            </svg>
-                                        </div>
-                                    )
+                                    icon: <Trophy className="w-5 h-5 text-white" />,
+                                    label: "Best Performance",
+                                    value: `${stats?.bestScore || 0}%`,
+                                    trend: "Elite",
+                                    gradient: "from-amber-500 via-orange-600 to-orange-700",
+                                    shadow: "shadow-amber-500/20"
                                 },
                                 {
-                                    icon: <Target className="w-5 h-5" />,
-                                    label: "Accuracy",
-                                    value: `${stats?.accuracy || 0}%`,
-                                    trend: "Elite 5%",
-                                    color: "from-cyan-400 to-blue-500",
-                                    bgColor: "bg-cyan-500/10",
-                                    textColor: "text-cyan-600",
-                                    chart: (
-                                        <div className="h-10 flex items-center justify-end gap-1">
-                                            <div className="w-10 h-10 rounded-full border-[3px] border-cyan-500 flex items-center justify-center bg-cyan-50 text-[8px] font-black text-cyan-600">
-                                                TOP
-                                            </div>
-                                        </div>
-                                    )
-                                },
-                                {
-                                    icon: <Clock className="w-5 h-5" />,
-                                    label: "Study Time",
-                                    value: formatTime(stats?.totalTimeTaken || 0),
-                                    trend: "Peak Performance",
-                                    color: "from-indigo-400 to-violet-500",
-                                    bgColor: "bg-indigo-500/10",
-                                    textColor: "text-indigo-600",
-                                    chart: (
-                                        <div className="h-8 flex items-center gap-0.5 opacity-60">
-                                            {[1, 2, 3, 2, 4, 3, 5].map((h, i) => (
-                                                <div key={i} className="w-1.5 h-full bg-indigo-200 rounded-full overflow-hidden relative">
-                                                    <div className="absolute bottom-0 left-0 w-full bg-indigo-500 rounded-full" style={{ height: `${h * 20}%` }} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )
+                                    icon: <Target className="w-5 h-5 text-white" />,
+                                    label: "Global Rank",
+                                    value: stats?.rank || '#-',
+                                    trend: "Top 5%",
+                                    gradient: "from-violet-600 via-purple-700 to-fuchsia-800",
+                                    shadow: "shadow-violet-500/20"
                                 }
                             ].map((stat, i) => (
                                 <motion.div
                                     key={stat.label}
                                     variants={itemVariants}
-                                    whileHover={{ y: -5 }}
-                                    className="group relative"
+                                    whileHover={{ y: -5, scale: 1.02 }}
+                                    className="group relative h-full"
                                 >
-                                    <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl -z-10 bg-white/50" />
-                                    <div className="bg-white p-4 rounded-[1.5rem] border border-slate-200/60 shadow-lg shadow-slate-200/20 relative overflow-hidden h-full flex flex-col justify-between ring-1 ring-slate-900/5 hover:border-slate-300 transition-all">
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className={`w-10 h-10 rounded-2xl ${stat.bgColor} ${stat.textColor} flex items-center justify-center shadow-inner`}>
+                                    <div className={`bg-gradient-to-br ${stat.gradient} p-6 rounded-2xl ${stat.shadow} relative overflow-hidden h-full flex flex-col justify-between border border-white/5`}>
+                                        {/* Dynamic Icon Overaly */}
+                                        <div className="absolute top-0 right-0 p-8 transform translate-x-4 -translate-y-4 opacity-10 group-hover:scale-125 transition-transform duration-700">
+                                            {stat.icon}
+                                        </div>
+
+                                        <div className="flex items-center justify-between mb-8">
+                                            <div className="p-3 bg-white/10 rounded-xl backdrop-blur-md border border-white/10">
                                                 {stat.icon}
                                             </div>
-                                            {stat.chart}
+                                            <span className="text-[9px] font-black px-2 py-1 rounded-full bg-white/20 text-white uppercase tracking-widest backdrop-blur-sm">
+                                                {stat.trend}
+                                            </span>
                                         </div>
 
                                         <div className="relative z-10">
-                                            <div className="text-2xl font-black text-slate-900 tracking-tighter mb-1 leading-none">
+                                            <div className="text-4xl font-black text-white tracking-tighter mb-1 leading-none">
                                                 {stat.value}
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                                                    {stat.label}
-                                                </div>
-                                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${stat.bgColor} ${stat.textColor} uppercase tracking-wider`}>
-                                                    {stat.trend}
-                                                </span>
+                                            <div className="text-[11px] font-black text-white/70 uppercase tracking-widest mt-2">
+                                                {stat.label}
                                             </div>
                                         </div>
                                     </div>
@@ -437,7 +558,7 @@ export default function DashboardPage() {
                                     <div className="flex items-center justify-between px-2">
                                         <h2 className="text-2xl font-black flex items-center gap-3 text-slate-900 tracking-tight">
                                             <div className="w-10 h-10 bg-[#00bfa5]/10 rounded-xl flex items-center justify-center">
-                                                <TrendingUp className="w-5 h-5 text-[#00bfa5]" />
+                                                <TrendingIcon className="w-5 h-5 text-[#00bfa5]" />
                                             </div>
                                             Recent Activity
                                         </h2>
