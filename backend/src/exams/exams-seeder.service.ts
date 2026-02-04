@@ -33,6 +33,11 @@ export class ExamsSeederService implements OnApplicationBootstrap {
     }
 
     async onApplicationBootstrap() {
+        if (this.configService.get('SKIP_SEEDING') === 'true') {
+            console.log('SKIP_SEEDING is true. Skipping all automatic content seeding.');
+            return;
+        }
+
         const count = await this.examsRepository.count();
         if (count === 0) {
             console.log('Seeding Global Content Bank...');

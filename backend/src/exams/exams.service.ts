@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Inject, forwardRef, OnApplicationBootstrap, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, In } from 'typeorm';
+import { Repository, IsNull, In, Brackets } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Exam, ExamType } from './entities/exam.entity';
 import { Subject } from './entities/subject.entity';
@@ -338,7 +338,7 @@ export class ExamsService implements OnApplicationBootstrap {
     async getGlobalQuestions(filters?: any, page: number = 1, limit: number = 50) {
         const query = this.questionRepository.createQueryBuilder('question')
             .leftJoin('question.exams', 'exams')
-            .where('exams.id IS NULL') // Global questions have no exam links
+            // .where('exams.id IS NULL') -- REMOVED to support searching all questions
             .leftJoinAndSelect('question.subject', 'subject')
             .leftJoinAndSelect('question.chapter', 'chapter')
             .leftJoinAndSelect('question.models', 'models')
@@ -348,6 +348,17 @@ export class ExamsService implements OnApplicationBootstrap {
 
         if (filters?.subjectId) query.andWhere('subject.id = :subjectId', { subjectId: filters.subjectId });
         if (filters?.chapterId) query.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
+
+        if (filters?.search) {
+            query.andWhere(new Brackets(qb => {
+                qb.where('question.content ILIKE :search', { search: `%${filters.search}%` })
+                    .orWhere('question.topic ILIKE :search', { search: `%${filters.search}%` })
+                    .orWhere('question.explanation ILIKE :search', { search: `%${filters.search}%` })
+                    .orWhere('exams.title ILIKE :search', { search: `%${filters.search}%` })
+                    .orWhere('chapter.title ILIKE :search', { search: `%${filters.search}%` })
+                    .orWhere('subject.title ILIKE :search', { search: `%${filters.search}%` });
+            }));
+        }
 
         const [questions, total] = await query.getManyAndCount();
         return { questions, total, page, limit };
@@ -691,6 +702,9 @@ export class ExamsService implements OnApplicationBootstrap {
             for (const id of examIds) {
                 await this.invalidateCache(id);
             }
+        } else {
+            // [FIX] Still invalidate general caches (hierarchy, stats) even if no specific exam linked
+            await this.invalidateCache();
         }
 
         return savedModel;

@@ -300,8 +300,8 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Get('questions/global')
-    getGlobalQuestions() {
-        return this.examsService.getGlobalQuestions();
+    getGlobalQuestions(@Query() query: any) {
+        return this.examsService.getGlobalQuestions(query, query.page, query.limit);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -338,6 +338,18 @@ export class ExamsController {
     @Get('subjects/all')
     findAllSubjects() {
         return this.examsService.findAllSubjects();
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get(':examId/subjects')
+    getSubjectsByExam(@Param('examId') examId: string) {
+        return this.examsService.findSubjectsByExam(examId);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get('subjects/:subjectId/chapters')
+    getChaptersBySubject(@Param('subjectId') subjectId: string) {
+        return this.examsService.findChaptersBySubject(subjectId);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)

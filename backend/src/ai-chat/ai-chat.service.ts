@@ -161,11 +161,8 @@ export class AIChatService {
             }
         }, history);
 
-        // Execute via centralized queue with HIGH priority
-        const stream = await this.queueService.add(
-            async () => this.aiService.generateStream(prompt, image ? [image] : []),
-            AIPriority.HIGH
-        );
+        // Execute via AIService (which handles internal queuing)
+        const stream = await this.aiService.generateStream(prompt, image ? [image] : []);
 
         return { stream, conversationId: conversation.id };
     }
@@ -316,10 +313,7 @@ export class AIChatService {
 
         let aiResponse: string;
         try {
-            aiResponse = await this.queueService.add(
-                async () => this.aiService.generateText(prompt, image ? [image] : []),
-                AIPriority.HIGH
-            );
+            aiResponse = await this.aiService.generateText(prompt, image ? [image] : [], AIPriority.HIGH);
 
             aiResponse = this.aiService.cleanAIResponse(aiResponse); // Mechanically strip unwanted symbols
             await this.aiUsageService.trackUsage(userId, prompt, aiResponse);
@@ -369,10 +363,7 @@ export class AIChatService {
         Tutor: ${aiResp}`;
 
         try {
-            const result = await this.queueService.add(
-                async () => this.aiService.generateText(extractionPrompt),
-                AIPriority.LOW // Insights are low priority
-            );
+            const result = await this.aiService.generateText(extractionPrompt, [], AIPriority.LOW);
             const match = result?.match(/\{[\s\S]*\}/)?.[0];
             if (match) {
                 // Remove potential markdown blocks or extra characters around JSON
@@ -402,10 +393,7 @@ export class AIChatService {
         TUTOR: ${response}`;
 
         try {
-            return await this.queueService.add(
-                async () => this.aiService.generateText(auditPrompt),
-                AIPriority.HIGH
-            ) || response;
+            return await this.aiService.generateText(auditPrompt, [], AIPriority.HIGH) || response;
         } catch (e) {
             return response;
         }

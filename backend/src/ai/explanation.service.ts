@@ -99,12 +99,8 @@ export class ExplanationService {
             let attempts = 0;
 
             while (!isValid && attempts < 2) {
-                // Execute via centralized queue
-                const result = await this.queueService.add(
-                    async () => await this.model.generateContent(prompt),
-                    priority
-                );
-                explanation = result.response.text();
+                // Execute via AIService (which handles queuing)
+                explanation = await this.aiService.generateText(prompt, [], priority);
 
                 // Track Usage
                 await this.aiUsageService.trackUsage(userId, prompt, explanation);

@@ -87,7 +87,8 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
     const fetchExams = async () => {
         try {
             const response = await api.get('/exams');
-            setExams(response.data);
+            const data = response.data;
+            setExams(Array.isArray(data) ? data : (data.data || []));
         } catch (error) {
             console.error("Failed to fetch hierarchy", error);
         }

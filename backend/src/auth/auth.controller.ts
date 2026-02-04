@@ -22,7 +22,7 @@ export class AuthController {
 
 
     @UseGuards(ThrottlerGuard)
-    @Throttle({ default: { limit: 5, ttl: 60000 } })
+    @Throttle({ default: { limit: 100, ttl: 60000 } })
     @HttpCode(HttpStatus.OK)
     @Post('login')
     async login(@Body() loginDto: LoginCredentialsDto) {

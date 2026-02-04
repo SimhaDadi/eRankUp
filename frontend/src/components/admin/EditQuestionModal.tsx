@@ -72,7 +72,7 @@ export default function EditQuestionModal({ isOpen, onClose, onSuccess, question
                 negativeMarks: questionData.negativeMarks
             };
 
-            await api.patch(`/exams/questions/${question.id}`, payload);
+            await api.patch(`/questions/${question.id}`, payload);
             alert("Question updated successfully!");
             onSuccess();
             onClose();

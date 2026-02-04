@@ -35,7 +35,9 @@ export default function AddQuestionTab() {
         setError(null);
         try {
             const response = await api.get('/exams');
-            setExams(response.data);
+            // Handle pagination wrapper { data: [], meta: {} } vs direct array []
+            const data = response.data;
+            setExams(Array.isArray(data) ? data : (data.data || []));
         } catch (error: any) {
             const message = error.response?.data?.message || 'Failed to load exams';
             setError(message);

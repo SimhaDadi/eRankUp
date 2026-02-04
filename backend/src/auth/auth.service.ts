@@ -66,33 +66,53 @@ export class AuthService {
 
     async login(loginDto: LoginCredentialsDto) {
         this.logger.log(`Attempting login for email: ${loginDto.email}`);
-        const user = await this.usersService.findOneByEmailWithPassword(loginDto.email);
+        try {
+            const user = await this.usersService.findOneByEmailWithPassword(loginDto.email);
 
-        if (!user) {
-            throw new UnauthorizedException('Invalid credentials');
-        }
-
-        if (!user.password) {
-            throw new UnauthorizedException('Please login with your social account');
-        }
-
-        const isMatch = await bcrypt.compare(loginDto.password, user.password);
-        if (!isMatch) {
-            throw new UnauthorizedException('Invalid credentials');
-        }
-
-        const tokens = await this.getTokens(user.id, user.email, user.role);
-        await this.updateRefreshTokenHash(user.id, tokens.refresh_token);
-
-        return {
-            ...tokens,
-            user: {
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-                role: user.role
+            if (!user) {
+                this.logger.warn(`Login failed: User not found for email ${loginDto.email}`);
+                throw new UnauthorizedException('Invalid credentials');
             }
-        };
+
+            if (!user.password) {
+                this.logger.warn(`Login failed: No password set for user ${user.id} (${user.email})`);
+                throw new UnauthorizedException('Please login with your social account');
+            }
+
+            let isMatch = false;
+            try {
+                isMatch = await bcrypt.compare(loginDto.password, user.password);
+            } catch (error) {
+                this.logger.error(`Bcrypt compare failed for email: ${loginDto.email} - ${error.message}`, error.stack);
+                // Treat as invalid credentials
+                isMatch = false;
+            }
+
+            if (!isMatch) {
+                this.logger.warn(`Login failed: Password mismatch for user ${user.id}`);
+                throw new UnauthorizedException('Invalid credentials');
+            }
+
+            this.logger.log(`Password matched for user ${user.id}. Generating tokens...`);
+            const tokens = await this.getTokens(user.id, user.email, user.role);
+
+            this.logger.log(`Tokens generated. Updating refresh token hash...`);
+            await this.updateRefreshTokenHash(user.id, tokens.refresh_token);
+
+            this.logger.log(`Login successful for user ${user.id}`);
+            return {
+                ...tokens,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    fullName: user.fullName,
+                    role: user.role
+                }
+            };
+        } catch (error) {
+            this.logger.error(`CRITICAL LOGIN ERROR for ${loginDto.email}: ${error.message}`, error.stack);
+            throw error; // Re-throw to let it bubble up, but now we have logs
+        }
     }
 
     async refreshTokens(userId: string, refreshToken: string) {
