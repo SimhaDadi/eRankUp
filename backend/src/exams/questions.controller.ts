@@ -162,6 +162,23 @@ export class QuestionsController {
             if (updateData.explanation) question.explanation = updateData.explanation;
             if (updateData.topic) question.topic = updateData.topic;
             if (updateData.difficulty) question.difficultyWeight = updateData.difficulty === 'easy' ? 0.3 : updateData.difficulty === 'hard' ? 0.7 : 0.5;
+            if (updateData.difficultyWeight !== undefined) question.difficultyWeight = parseFloat(updateData.difficultyWeight);
+
+            // [FIX] Allow updating options and marks
+            if (updateData.options) {
+                // Expects array of strings or objects. If strings, remap to {id, text} preserving IDs if possible or regenerating
+                if (Array.isArray(updateData.options) && typeof updateData.options[0] === 'string') {
+                    question.options = updateData.options.map((text: string, index: number) => ({
+                        id: String.fromCharCode(65 + index),
+                        text: text
+                    }));
+                } else {
+                    question.options = updateData.options;
+                }
+            }
+            if (updateData.positiveMarks !== undefined) question.positiveMarks = parseFloat(updateData.positiveMarks);
+            if (updateData.negativeMarks !== undefined) question.negativeMarks = parseFloat(updateData.negativeMarks);
+            if (updateData.imageUrl !== undefined) question.imageUrl = updateData.imageUrl;
 
             const saved = await this.questionRepository.save(question);
             return { success: true, data: saved };

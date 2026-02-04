@@ -3,12 +3,14 @@ import { motion } from 'framer-motion';
 import { Search, FileText, Edit, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 import { Question } from './types';
+import EditQuestionModal from '../EditQuestionModal';
 
 export default function QuestionListTab() {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDifficulty, setSelectedDifficulty] = useState('all');
+    const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
     const fetchQuestions = useCallback(async () => {
         setLoading(true);
@@ -76,9 +78,7 @@ export default function QuestionListTab() {
                                         </div>
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => {
-                                                    alert('Edit functionality activated for: ' + q.id);
-                                                }}
+                                                onClick={() => setEditingQuestion(q)}
                                                 className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
                                             >
                                                 <Edit className="w-4 h-4" />
@@ -106,6 +106,18 @@ export default function QuestionListTab() {
                     )}
                 </div>
             </div>
+
+            {editingQuestion && (
+                <EditQuestionModal
+                    isOpen={!!editingQuestion}
+                    onClose={() => setEditingQuestion(null)}
+                    onSuccess={() => {
+                        fetchQuestions();
+                        setEditingQuestion(null);
+                    }}
+                    question={editingQuestion}
+                />
+            )}
         </motion.div>
     );
 }
