@@ -444,11 +444,9 @@ INSTRUCTIONS:
    - **NO DERIVATIONS**: Strictly skip "Let X be...", "Assuming...", or long algebraic formulas.
    - **DIRECT METHOD**: Use only the fastest SSC tricks (Ratio, Successive %, Options elimination, or Digital Sum).
 2. **STRUCTURE**: 
-   - Use ### for headers.
-   - **Step 1**: The Trick/Logic (direct link to the answer).
    - **Step 2**: The Calculation (mental math style).
    - **[Final Result]**: Bold final answer.
-3. **NO SYMBOLS**: Strictly NO LaTeX math symbols. Use "x", "/", and "approx.". Use carets (^) for powers (e.g., x^2, P^3).
+3. **USE UNICODE**: Use symbols like ∑, √, ∛, x², xᵢ, ∞, ∠, △, °, ≈, ≠. Avoid raw LaTeX.
 4. **NO TABLES**: Use simple bullet points.
 5. **CONCISE & PUNCHY**: Every word must save the student time.
 
