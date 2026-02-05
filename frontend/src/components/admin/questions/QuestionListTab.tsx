@@ -4,6 +4,7 @@ import { Search, FileText, Edit, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 import { Question } from './types';
 import EditQuestionModal from '../EditQuestionModal';
+import MathRenderer from '@/components/common/MathRenderer';
 
 export default function QuestionListTab() {
     const [questions, setQuestions] = useState<Question[]>([]);
@@ -129,7 +130,10 @@ export default function QuestionListTab() {
                             <div key={q.id} className="p-5 bg-slate-950/50 border border-slate-800 rounded-2xl hover:border-blue-500/50 transition-all">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex-1">
-                                        <p className="text-white font-medium mb-2">{q.content}</p>
+                                        <MathRenderer
+                                            content={q.content}
+                                            className="text-white font-medium mb-2 !prose-sm"
+                                        />
                                         <div className="flex flex-wrap gap-2">
                                             {q.exams?.map(ex => (
                                                 <span key={ex.id} className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] uppercase font-bold">

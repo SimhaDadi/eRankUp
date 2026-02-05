@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../widgets/math_rich_text.dart';
 
 class SavedQuestionsScreen extends StatefulWidget {
   const SavedQuestionsScreen({super.key});
@@ -175,8 +176,8 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
           const SizedBox(height: 12),
           
           // Question content
-          Text(
-            content,
+          MathRichText(
+            text: content,
             style: TextStyle(
               fontSize: 14,
               color: isDark ? Colors.white70 : Colors.black87,

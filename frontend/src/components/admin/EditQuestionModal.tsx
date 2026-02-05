@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save } from 'lucide-react';
 import api from '@/lib/api';
+import MathRenderer from '../common/MathRenderer';
 
 interface EditQuestionModalProps {
     isOpen: boolean;
@@ -116,12 +117,23 @@ export default function EditQuestionModal({ isOpen, onClose, onSuccess, question
 
                             {/* Content */}
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Question Text</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Question Text (Markdown/LaTeX)</label>
                                 <textarea
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-blue-500 outline-none min-h-[100px]"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:border-blue-500 outline-none min-h-[120px] font-mono"
                                     value={questionData.content}
                                     onChange={e => setQuestionData({ ...questionData, content: e.target.value })}
+                                    placeholder="Enter question text. Use $ ... $ for LaTeX math."
                                 />
+
+                                {questionData.content && (
+                                    <div className="mt-3 p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                                        <label className="block text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-3">Live Preview</label>
+                                        <MathRenderer
+                                            content={questionData.content}
+                                            className="text-white text-sm"
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Image URL */}

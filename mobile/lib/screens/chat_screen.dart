@@ -3,6 +3,7 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/math_rich_text.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -130,8 +131,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(0),
                       ),
                     ),
-                    child: Text(
-                      msg['message'] ?? '', 
+                    child: MathRichText(
+                      text: msg['message'] ?? '', 
                       style: TextStyle(
                         color: isMe 
                           ? Colors.white 

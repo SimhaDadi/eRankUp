@@ -446,7 +446,9 @@ INSTRUCTIONS:
 2. **STRUCTURE**: 
    - **Step 2**: The Calculation (mental math style).
    - **[Final Result]**: Bold final answer.
-3. **USE UNICODE**: Use symbols like ∑, √, ∛, x², xᵢ, ∞, ∠, △, °, ≈, ≠. Avoid raw LaTeX.
+3. **USE LaTeX**: Use LaTeX syntax ($ ... $) for ALL mathematical expressions, formulas, and symbols. 
+   - Example: "$ \sin^2\theta + \cos^2\theta = 1 $"
+   - Example: "$ \sqrt{x^2 + y^2} $"
 4. **NO TABLES**: Use simple bullet points.
 5. **CONCISE & PUNCHY**: Every word must save the student time.
 
