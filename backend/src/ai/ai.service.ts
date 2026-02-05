@@ -54,7 +54,7 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+                const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" });
 
                 const parts: any[] = [prompt];
                 if (images.length > 0) {
@@ -87,7 +87,7 @@ export class AIService {
 
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" });
 
         const parts: any[] = [prompt];
         if (images.length > 0) {
@@ -666,7 +666,7 @@ Return JSON ONLY:
         try {
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" }); // Use most stable alias
+            const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" }); // Survival mode: Gemma 3 has separate quota
 
             const prompt = `
                 You are an expert AI specialized in Mathematics and Competitive Exam Question Extraction (e.g., SSC CGL, Railway).
@@ -692,6 +692,14 @@ Return JSON ONLY:
                 - **OPTIONS**: Extract options (A, B, C, D). Strip labels like "(A)" or "D.".
                   - Example: "(A) 50" -> "50"
                 - **EXPLANATION**: Include a brief, logical step-by-step solution in the "explanation" field.
+
+                ### 4. IDENTITY AWARENESS (HINTS)
+                - These questions often use standard identities:
+                  - $ \sec^2\theta - \tan^2\theta = 1 $
+                  - $ \csc^2\theta - \cot^2\theta = 1 $
+                  - $ \sin^2\theta + \cos^2\theta = 1 $
+                  - $ \tan(90 - \theta) = \cot\theta $
+                - Use these to resolve blurry or ambiguous symbols.
                 
                 ### 4. DATA FORMAT
                 Return the result strictly as a RAW JSON Array of objects with this structure:
@@ -829,7 +837,7 @@ Extract all questions and format them as a JSON array with this structure:
 
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" });
 
         const prompt = `You are a top SSC CGL Quant mentor.
         Solve the given problem using the quickest shortcut possible (within 30–60 seconds).
