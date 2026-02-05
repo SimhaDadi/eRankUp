@@ -1107,23 +1107,49 @@ export class ExamsService implements OnApplicationBootstrap {
             if (!model) throw new BadRequestException('Model not found');
         }
 
-        // 1. Extract content for batch embedding
-        const contents = questionsData.map(data => data.content || data.questionText);
+        // 1. De-duplication: Check for existing questions
+        // Normalize content (trim) to ensure accurate matching
+        const contents = questionsData.map(data => (data.content || data.questionText || '').trim());
+
+        // Find existing questions with these contents
+        // Note: For very large batches, we might need to chunk this "IN" query.
+        // Assuming typical batch size < 1000, this is safe.
+        const existingQuestions = await this.questionRepository.find({
+            where: { content: In(contents) }
+        });
+
+        const existingContentSet = new Set(existingQuestions.map(q => q.content.trim()));
+
+        // Filter out duplicates
+        const newQuestionsData = questionsData.filter(data =>
+            !existingContentSet.has((data.content || data.questionText || '').trim())
+        );
+
+        console.log(`[ExamsService] Bulk Upload: Received ${questionsData.length}, Found ${existingQuestions.length} existing, Creating ${newQuestionsData.length} new.`);
+
+        if (newQuestionsData.length === 0) {
+            // All exist, just return existing
+            return existingQuestions;
+        }
+
+        // 2. Extract content for batch embedding (only for NEW questions)
+        const newContents = newQuestionsData.map(data => data.content || data.questionText);
         let embeddings: number[][] = [];
 
         try {
-            embeddings = await this.aiService.generateEmbeddingsBatch(contents);
+            embeddings = await this.aiService.generateEmbeddingsBatch(newContents);
         } catch (err) {
             console.error(`[ExamsService] Batch embedding failed, falling back to empty:`, err.message);
         }
 
         const questions: Question[] = [];
 
-        // 2. Map data and join with embeddings
-        for (let i = 0; i < questionsData.length; i++) {
-            const data = questionsData[i];
+        // 3. Map data and join with embeddings
+        for (let i = 0; i < newQuestionsData.length; i++) {
+            const data = newQuestionsData[i];
             const questionData: any = {
                 ...data,
+                content: (data.content || data.questionText || '').trim(), // Ensure we save the trimmed version
                 positiveMarks: data.positiveMarks || 1.0,
                 negativeMarks: data.negativeMarks || 0.25,
                 embedding: embeddings[i] || null
@@ -1152,6 +1178,9 @@ export class ExamsService implements OnApplicationBootstrap {
 
         const savedQuestions = await this.questionRepository.save(questions);
 
+        // Return combined list (Existing + Newly Saved)
+        const finalResult = [...existingQuestions, ...savedQuestions];
+
         // Update model question count if model exists
         if (model) {
             const count = await this.questionRepository
@@ -1166,13 +1195,15 @@ export class ExamsService implements OnApplicationBootstrap {
 
         await this.invalidateCache(examId);
 
-        // Background: Generate AI Explanations
-        const questionIds = savedQuestions.map(q => q.id);
-        this.explanationService.generateBulkExplanations(userId, role, questionIds).catch(err => {
-            console.error('[ExamsService] Background AI explanation generation failed:', err);
-        });
+        // Background: Generate AI Explanations ONLY for new questions
+        if (savedQuestions.length > 0) {
+            const questionIds = savedQuestions.map(q => q.id);
+            this.explanationService.generateBulkExplanations(userId, role, questionIds).catch(err => {
+                console.error('[ExamsService] Background AI explanation generation failed:', err);
+            });
+        }
 
-        return savedQuestions;
+        return finalResult;
     }
 
     async getQuestionBankModels() {

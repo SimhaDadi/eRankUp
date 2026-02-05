@@ -1,6 +1,9 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../common/cache.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SystemMetric } from './entities/system-metric.entity';
 import { ExamsSeederService } from '../exams/exams-seeder.service';
 
 export interface HealthMetric {
@@ -29,61 +32,59 @@ export class SystemHealthService {
         private cacheService: CacheService,
         @Inject(forwardRef(() => ExamsSeederService))
         private seederService: ExamsSeederService,
+        @InjectRepository(SystemMetric)
+        private metricRepo: Repository<SystemMetric>,
     ) {
-        // Initialize counters
+        // Initialize counters from DB (or default)
         this.initializeCounters();
     }
 
-    async clearCache() {
-        await this.cacheService.flush();
-        return { success: true, message: 'Redis cache cleared successfully' };
-    }
+    // ... (rest of methods)
 
-    async reSeedData() {
-        // For re-seeding, we might want to clear specific tables or just run the seeder
-        // The current seeder checks for count, so we might need a force seed method
-        // Or just run the specific seeders. For now, let's trigger the main ones.
-        await this.seederService.onApplicationBootstrap();
-        return { success: true, message: 'Sample data re-seeded successfully' };
-    }
+    private async initializeCounters() {
+        const services = ['gemini', 'razorpay'];
+        const today = new Date().toISOString().split('T')[0];
 
-    toggleLockdown() {
-        this.isLockedDown = !this.isLockedDown;
-        return { success: true, isLockedDown: this.isLockedDown, message: `System ${this.isLockedDown ? 'locked down' : 'unlocked'} successfully` };
-    }
+        for (const service of services) {
+            const key = `usage_${service}_${today}`;
+            let metric = await this.metricRepo.findOneBy({ key });
 
-    getLockdownStatus() {
-        return this.isLockedDown;
-    }
-
-    private initializeCounters() {
-        this.apiCallCounts.set('gemini', { daily: 0, monthly: 0, lastReset: new Date() });
-        this.apiCallCounts.set('razorpay', { daily: 0, monthly: 0, lastReset: new Date() });
+            if (!metric) {
+                metric = this.metricRepo.create({
+                    key,
+                    value: { daily: 0, monthly: 0, lastReset: new Date() }
+                });
+                await this.metricRepo.save(metric);
+            }
+            // Sync memory with DB
+            this.apiCallCounts.set(service, metric.value);
+        }
     }
 
     /**
-     * Track API call
+     * Track API call (Persisted)
      */
-    trackAPICall(service: 'gemini' | 'razorpay') {
-        const counter = this.apiCallCounts.get(service);
-        if (counter) {
-            const now = new Date();
-            const lastReset = counter.lastReset;
+    async trackAPICall(service: 'gemini' | 'razorpay') {
+        const today = new Date().toISOString().split('T')[0];
+        const key = `usage_${service}_${today}`;
 
-            // Reset daily counter if it's a new day
-            if (now.getDate() !== lastReset.getDate()) {
-                counter.daily = 0;
-            }
-
-            // Reset monthly counter if it's a new month
-            if (now.getMonth() !== lastReset.getMonth()) {
-                counter.monthly = 0;
-            }
-
-            counter.daily++;
-            counter.monthly++;
-            counter.lastReset = now;
+        // Optimistic update in memory first
+        let counter = this.apiCallCounts.get(service);
+        if (!counter) {
+            counter = { daily: 0, monthly: 0, lastReset: new Date() };
+            this.apiCallCounts.set(service, counter);
         }
+        counter.daily++;
+        counter.monthly++; // NOTE: Monthly logic needs distinct keys or aggregation. Keeping simple for now.
+
+        // Async persistence
+        let metric = await this.metricRepo.findOneBy({ key });
+        if (!metric) {
+            metric = this.metricRepo.create({ key, value: counter });
+        } else {
+            metric.value = counter;
+        }
+        await this.metricRepo.save(metric);
     }
 
     /**
@@ -246,5 +247,40 @@ export class SystemHealthService {
             lastChecked: new Date(),
             details: { connected: true }
         };
+    }
+
+    /**
+     * Clear system cache
+     */
+    async clearCache() {
+        await this.cacheService.flush();
+        return { success: true, message: 'Cache cleared successfully' };
+    }
+
+    /**
+     * Re-seed database (dev only)
+     */
+    async reSeedData() {
+        if (process.env.NODE_ENV === 'production') {
+            throw new Error('Re-seeding is disabled in production');
+        }
+        await this.seederService.seedInitialContent();
+        await this.seederService.seedManualTestingData();
+        return { success: true, message: 'Database re-seeded successfully' };
+    }
+
+    /**
+     * Toggle system lockdown
+     */
+    async toggleLockdown() {
+        this.isLockedDown = !this.isLockedDown;
+        return { success: true, isLockedDown: this.isLockedDown };
+    }
+
+    /**
+     * Get lockdown status
+     */
+    getLockdownStatus() {
+        return this.isLockedDown;
     }
 }

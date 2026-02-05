@@ -49,7 +49,7 @@ export class ExamsSeederService implements OnApplicationBootstrap {
         await this.seedManualTestingData();
     }
 
-    private async seedManualTestingData() {
+    public async seedManualTestingData() {
         console.log('Seeding Manual Testing Data (2 tests per category)...');
         // Live Tests
         await this.seedLiveTest('Sample Live Test 1', 'Arithmetic & Reasoning', new Date(Date.now() + 3600000)); // Starts in 1 hour
@@ -210,7 +210,7 @@ export class ExamsSeederService implements OnApplicationBootstrap {
         console.log(`Seeded Quiz: ${title}`);
     }
 
-    private async seedInitialContent() {
+    public async seedInitialContent() {
         const subject = await this.subjectRepository.save({
             title: 'Quantitative Aptitude',
             description: 'Numerical ability and mathematical skills.',

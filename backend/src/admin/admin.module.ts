@@ -15,9 +15,11 @@ import { Exam } from '../exams/entities/exam.entity';
 import { UserPass } from '../passes/entities/user-pass.entity';
 import { ExamsModule } from '../exams/exams.module';
 
+import { SystemMetric } from './entities/system-metric.entity';
+
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Purchase, User, Exam, UserPass]),
+        TypeOrmModule.forFeature([Purchase, User, Exam, UserPass, SystemMetric]),
         ConfigModule,
         forwardRef(() => ExamsModule)
     ],

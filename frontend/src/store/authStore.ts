@@ -5,6 +5,7 @@ import { User, AuthState } from '../types/auth.types';
 export const useAuthStore = create<AuthState>((set) => ({
     user: typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || 'null') : null,
     token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
+    refreshToken: typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null,
     isLoading: false,
     error: null,
     activePass: null,
@@ -13,9 +14,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await api.post('/auth/login', credentials);
-            const { access_token, user } = response.data;
+            const { access_token, refresh_token, user } = response.data;
 
             localStorage.setItem('token', access_token);
+            if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
             localStorage.setItem('user', JSON.stringify(user));
             set({ user, token: access_token, isLoading: false });
         } catch (error: any) {
@@ -48,6 +50,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     logout: () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         set({ user: null, token: null, activePass: null });
     },

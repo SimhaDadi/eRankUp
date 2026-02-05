@@ -37,7 +37,8 @@ export class QuestionsUploadService {
 
         return new Promise((resolve, reject) => {
             stream
-                .pipe(csv())
+                // Use strict mode to handle quoted fields correctly (e.g., "Question, with comma")
+                .pipe(csv({ strict: true, mapHeaders: ({ header }) => header.trim() }))
                 .on('data', (row) => {
                     // Validating required CSV columns with aliases
                     const content = row.content || row.questiontext;
@@ -82,6 +83,10 @@ export class QuestionsUploadService {
     private async parseDocumentWithAI(buffer: Buffer, mimetype: string): Promise<ParsedQuestion[]> {
         try {
             const aiResults = await this.aiService.parseDocument({ buffer, mimetype });
+
+            if (!aiResults || aiResults.length === 0) {
+                throw new BadRequestException('AI Parser returned 0 questions. Please ensure the document is clear and contains questions.');
+            }
 
             return aiResults.map((item: any) => ({
                 content: item.content,
