@@ -54,7 +54,7 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+                const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
                 const parts: any[] = [prompt];
                 if (images.length > 0) {
@@ -87,7 +87,7 @@ export class AIService {
 
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
         const parts: any[] = [prompt];
         if (images.length > 0) {
@@ -666,7 +666,7 @@ Return JSON ONLY:
         try {
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); // Use 2.0 Flash for better quota and high accuracy
+            const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" }); // Use most stable alias
 
             const prompt = `
                 You are an expert AI specialized in Mathematics and Competitive Exam Question Extraction (e.g., SSC CGL, Railway).
@@ -829,7 +829,7 @@ Extract all questions and format them as a JSON array with this structure:
 
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
         const prompt = `You are a top SSC CGL Quant mentor.
         Solve the given problem using the quickest shortcut possible (within 30–60 seconds).
