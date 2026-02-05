@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, ChevronRight, ChevronDown, BookOpen, FolderOpen, FileText, Search, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronRight, ChevronDown, BookOpen, FolderOpen, FileText, Search, Upload, Eraser } from 'lucide-react';
 import UploadModelModal from '@/components/admin/UploadModelModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
@@ -253,6 +253,18 @@ export default function HierarchyPage() {
         }
     }
 
+    const handleDeleteQuestions = async (modelId: string, modelTitle: string) => {
+        if (!confirm(`Are you sure you want to DELETE ALL QUESTIONS from model "${modelTitle}"? \n\nThis action cannot be undone.`)) return;
+        try {
+            const res = await api.delete(`/exams/models/${modelId}/questions`);
+            alert(res.data.message || 'Questions deleted successfully');
+            fetchHierarchy(); // Refresh counts
+        } catch (error: any) {
+            console.error('Error deleting questions:', error);
+            alert(error.response?.data?.message || 'Failed to delete questions');
+        }
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-8">
             <div className="max-w-7xl mx-auto">
@@ -475,6 +487,13 @@ export default function HierarchyPage() {
                                                                                             title="Bulk Upload Questions"
                                                                                         >
                                                                                             <Upload className="w-3 h-3" />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => handleDeleteQuestions(model.id, model.title)}
+                                                                                            className="p-1 text-gray-400 hover:text-red-500"
+                                                                                            title="Delete All Questions"
+                                                                                        >
+                                                                                            <Eraser className="w-3 h-3" />
                                                                                         </button>
                                                                                         <button
                                                                                             onClick={() => {

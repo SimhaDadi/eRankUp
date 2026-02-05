@@ -1344,4 +1344,81 @@ export class ExamsService implements OnApplicationBootstrap {
             remaining: afterCount
         };
     }
+
+    async deleteQuestion(id: string) {
+        // 1. Find question with relations
+        const question = await this.questionRepository.findOne({
+            where: { id },
+            relations: ['models', 'exams']
+        });
+
+        if (!question) {
+            throw new BadRequestException('Question not found');
+        }
+
+        // 2. Unlink from Models (Junction Table)
+        if (question.models && question.models.length > 0) {
+            await this.questionRepository
+                .createQueryBuilder()
+                .relation(Question, 'models')
+                .of(id)
+                .remove(question.models);
+        }
+
+        // 3. Unlink from Exams (Junction Table)
+        if (question.exams && question.exams.length > 0) {
+            await this.questionRepository
+                .createQueryBuilder()
+                .relation(Question, 'exams')
+                .of(id)
+                .remove(question.exams);
+        }
+
+        // 4. Delete Question
+        await this.questionRepository.delete(id);
+
+        await this.invalidateCache();
+        return { message: 'Question deleted successfully' };
+    }
+
+    async deleteModelQuestions(modelId: string) {
+        const model = await this.modelRepository.findOne({
+            where: { id: modelId },
+            relations: ['questions', 'questions.models', 'questions.exams']
+        });
+
+        if (!model) throw new BadRequestException('Model not found');
+
+        const questionsToDelete = model.questions;
+        const count = questionsToDelete.length;
+
+        if (count === 0) return { message: 'No questions to delete', count: 0 };
+
+        // Optimization: Use QueryBuilder for bulk deletion to handle relations efficiently
+        const questionIds = questionsToDelete.map(q => q.id);
+
+        // 1. Unlink from ALL models (including this one) in junction table
+        await this.questionRepository
+            .createQueryBuilder()
+            .relation(Question, 'models')
+            .of(questionIds)
+            .remove(questionsToDelete.flatMap(q => q.models)); // Remove all model links
+
+        // 2. Unlink from ALL exams in junction table
+        await this.questionRepository
+            .createQueryBuilder()
+            .relation(Question, 'exams')
+            .of(questionIds)
+            .remove(questionsToDelete.flatMap(q => q.exams)); // Remove all exam links
+
+        // 3. Delete the questions themselves
+        await this.questionRepository.delete(questionIds);
+
+        // 4. Update model to reflect empty questions (though relations are gone)
+        model.questions = [];
+        await this.modelRepository.save(model);
+
+        await this.invalidateCache();
+        return { message: `Successfully deleted ${count} questions from model`, count };
+    }
 }

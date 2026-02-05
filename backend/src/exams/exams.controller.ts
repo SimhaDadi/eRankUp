@@ -419,6 +419,13 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
+    @Delete('models/:id/questions')
+    deleteModelQuestions(@Param('id') modelId: string) {
+        return this.examsService.deleteModelQuestions(modelId);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
     @Delete('chapters/:id')
     deleteChapterDirect(@Param('id') id: string) {
         return this.examsService.deleteChapter(id);

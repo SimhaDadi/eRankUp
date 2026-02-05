@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Body, Param, Query, Request, UseGuards, UseInterceptors, UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Body, Param, Query, Request, UseGuards, UseInterceptors, UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -315,5 +315,10 @@ export class QuestionsController {
         }
         result.push(currentValue);
         return result;
+    }
+
+    @Delete(':id')
+    async delete(@Param('id') id: string) {
+        return this.examsService.deleteQuestion(id);
     }
 }
