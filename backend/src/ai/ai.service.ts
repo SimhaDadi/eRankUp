@@ -54,7 +54,7 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" });
+                const model = genAI.getGenerativeModel({ model: "models/gemini-2.5-flash" });
 
                 const parts: any[] = [prompt];
                 if (images.length > 0) {
@@ -87,7 +87,7 @@ export class AIService {
 
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" });
+        const model = genAI.getGenerativeModel({ model: "models/gemini-2.5-flash" });
 
         const parts: any[] = [prompt];
         if (images.length > 0) {
@@ -666,7 +666,7 @@ Return JSON ONLY:
         try {
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" }); // Version specific ID
+            const model = genAI.getGenerativeModel({ model: "models/gemini-2.5-pro" }); // Use Pro for maximum accuracy in math extraction
 
             const prompt = `
                 You are an expert AI specialized in Mathematics and Competitive Exam Question Extraction (e.g., SSC CGL, Railway).
@@ -729,8 +729,8 @@ Return JSON ONLY:
             console.log(`[AIService] Gemini API request completed in ${duration} s`);
             const text = response.text();
 
-            // Clean up markdown if present
-            console.log(`[AIService] Raw Response: ${text.substring(0, 500)}...`); // Log first 500 chars
+            // CRITICAL DEBUG: Log the full raw response to identify parsing issues
+            console.log(`[AIService] FULL AI RESPONSE:\n${text}\n[AIService] END RESPONSE`);
 
             // Robust JSON extraction: Find first [ and last ]
             let jsonStr = text;
@@ -829,7 +829,7 @@ Extract all questions and format them as a JSON array with this structure:
 
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "models/gemini-2.0-flash-001" });
+        const model = genAI.getGenerativeModel({ model: "models/gemini-2.5-flash" });
 
         const prompt = `You are a top SSC CGL Quant mentor.
         Solve the given problem using the quickest shortcut possible (within 30–60 seconds).
