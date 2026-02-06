@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddVectorSupport1706620000000 implements MigrationInterface {
+export class AddVectorSupport1769339000000 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         // Enable pgvector extension
         await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS vector`);
