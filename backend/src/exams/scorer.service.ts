@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository, MoreThanOrEqual, IsNull } from 'typeorm';
 import { Attempt } from './entities/attempt.entity';
 import { Question } from './entities/question.entity';
 import { Model } from './entities/model.entity';
@@ -521,9 +521,9 @@ export class ScorerService implements OnModuleInit {
         console.log('[Repair] Starting attempt connection repair...');
         const attempts = await this.attemptRepository.find({
             relations: ['model', 'model.exams', 'exam'],
-            where: [
-                { exam: { id: null } as any }, // Attempts with no exam
-            ]
+            where: {
+                exam: IsNull(),
+            },
         });
 
         let fixed = 0;

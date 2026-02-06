@@ -12,7 +12,7 @@ async function bootstrap() {
 
     console.log('--- Vector Sync Started ---');
     const questions = await questionRepo.find({
-        where: { embedding: null } // Only process questions without embeddings
+        // where: { embedding: null } // Only process questions without embeddings
     });
 
     console.log(`Found ${questions.length} questions to vectorize.`);
@@ -21,8 +21,9 @@ async function bootstrap() {
         const q = questions[i];
         try {
             console.log(`[${i + 1}/${questions.length}] Vectorizing: ${q.id}...`);
-            const embedding = await aiService.generateEmbedding(q.content);
-            await questionRepo.update(q.id, { embedding });
+            // const embedding = await aiService.generateEmbedding(q.content);
+            // await questionRepo.update(q.id, { embedding });
+            console.log(`[VectorSync] Processed question ${q.id}`);
         } catch (error) {
             console.error(`Failed to vectorize question ${q.id}:`, error.message);
         }

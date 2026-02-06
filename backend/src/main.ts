@@ -10,6 +10,12 @@ import { NestExpressApplication, ExpressAdapter } from '@nestjs/platform-express
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule, new ExpressAdapter());
 
+    // [FIX] Serve Static Assets (Uploads) directly via Express Adapter
+    const path = require('path');
+    app.useStaticAssets(path.join(process.cwd(), 'uploads'), {
+        prefix: '/uploads/',
+    });
+
     // Increase body parser limits for large image uploads
     const express = require('express');
     app.use(express.json({ limit: '50mb' }));
