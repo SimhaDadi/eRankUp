@@ -5,7 +5,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Brackets } from 'typeorm';
 import { Question } from '../exams/entities/question.entity';
 import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
@@ -92,13 +92,20 @@ export class QuestionsController {
         @Query('subjectId') subjectId?: string,
         @Query('chapterId') chapterId?: string
     ) {
+        console.log(`[Export] Request filters:`, { examId, subjectId, chapterId });
         try {
             const queryBuilder = this.questionRepository.createQueryBuilder('question')
                 .leftJoinAndSelect('question.subject', 'subject')
                 .leftJoinAndSelect('question.chapter', 'chapter');
 
             if (examId) {
-                queryBuilder.innerJoin('question.exams', 'exams', 'exams.id = :examId', { examId });
+                // [FIX] Use leftJoin and allow global questions (exams.id IS NULL)
+                // This matches the behaviour of the question list view
+                queryBuilder.leftJoin('question.exams', 'exams')
+                    .andWhere(new Brackets(qb => {
+                        qb.where('exams.id = :examId', { examId })
+                            .orWhere('exams.id IS NULL');
+                    }));
             } else {
                 queryBuilder.leftJoinAndSelect('question.exams', 'exams');
             }
@@ -107,6 +114,7 @@ export class QuestionsController {
             if (chapterId) queryBuilder.andWhere('chapter.id = :chapterId', { chapterId });
 
             const questions = await queryBuilder.getMany();
+            console.log(`[Export] Found ${questions.length} questions matching filters.`);
 
             const csvHeaders = [
                 'QuestionText', 'OptionA', 'OptionB', 'OptionC', 'OptionD',
@@ -149,6 +157,7 @@ export class QuestionsController {
             res.setHeader('Content-Disposition', `attachment; filename=questions_backup_${new Date().toISOString().split('T')[0]}.csv`);
             return res.send(csvString);
         } catch (error) {
+            console.error('[Export] Error:', error);
             throw new HttpException(error.message || 'Export failed', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
