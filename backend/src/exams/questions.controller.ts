@@ -13,6 +13,8 @@ import { Exam } from '../exams/entities/exam.entity';
 import { AIService } from '../ai/ai.service';
 import { ExamsService } from './exams.service';
 import { MediaService } from '../admin/media.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Controller('questions')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -120,10 +122,10 @@ export class QuestionsController {
             console.log(`[Export] Found ${questions.length} questions matching filters.`);
 
             const csvHeaders = [
-                'QuestionText', 'OptionA', 'OptionB', 'OptionC', 'OptionD',
-                'CorrectOption', 'Explanation', 'Topic', 'Difficulty',
+                'Content', 'OptionA', 'OptionB', 'OptionC', 'OptionD',
+                'CorrectOptionId', 'Explanation', 'Topic', 'DifficultyWeight',
                 'PositiveMarks', 'NegativeMarks',
-                'SubjectID', 'ChapterID', 'ExamID', 'ModelID', 'ImageUrl'
+                'SubjectId', 'ChapterId', 'ExamId', 'ModelId', 'ImageUrl'
             ];
 
             const csvRows = questions.map(q => {
@@ -312,18 +314,59 @@ export class QuestionsController {
         }
 
         try {
-            let csvContent = file.buffer.toString('utf-8');
+            const logFile = 'D:\\eRankUp\\bulk_upload_controller.log';
+            const log = (msg: string) => {
+                const timestampedMsg = `${new Date().toISOString()} ${msg}`;
+                console.log(timestampedMsg);
+                try {
+                    fs.appendFileSync(logFile, timestampedMsg + '\n');
+                } catch (e) {
+                    console.error('Failed to write to D:\\ log:', e.message);
+                }
+            };
+
+            log(`[BulkUpload] HEARTBEAT - Method Entered. File: ${file.originalname}`);
+            log(`[BulkUpload] Mime: ${file.mimetype}, Size: ${file.size} bytes`);
+
+            // Diagnostic: Check for common binary signatures
+            const buffer = file.buffer;
+            if (buffer[0] === 0x50 && buffer[1] === 0x4B) { // PK signature
+                log('[BulkUpload] ERROR: File appears to be a ZIP or XLSX file, NOT a CSV.');
+                throw new Error('File format mismatch: This appears to be an Excel (.xlsx) file. Please save it as "CSV (Comma delimited)" and try again.');
+            }
+
+            let csvContent = buffer.toString('utf-8');
+            // Check for UTF-16 (le)
+            if (buffer[0] === 0xFF && buffer[1] === 0xFE) {
+                log('[BulkUpload] Encoding detected: UTF-16LE. Converting...');
+                csvContent = buffer.toString('utf16le');
+            }
+
             // 1. Strip BOM (Byte Order Mark) if present (common in Excel CSVs)
             if (csvContent.charCodeAt(0) === 0xFEFF) {
                 csvContent = csvContent.slice(1);
             }
 
-            const lines = csvContent.split(/\r?\n/);
-            if (lines.length < 2) throw new Error('CSV file is empty or missing headers');
+            // Diagnostic: Show first 100 characters of the string
+            log(`[BulkUpload] Raw string dump (100 chars): ${JSON.stringify(csvContent.substring(0, 100))}`);
 
-            // 2. Clean headers: trim, lowercase, remove "
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
-            console.log('[BulkUpload] Headers found:', headers);
+            const lines = csvContent.split(/\r?\n/).filter(l => l.trim().length > 0);
+            log(`[BulkUpload] Total non-empty lines found: ${lines.length}`);
+
+            if (lines.length < 2) {
+                log(`[BulkUpload] File contains fewer than 2 lines. Content dump: ${JSON.stringify(csvContent)}`);
+                throw new Error('CSV file is empty or missing headers. Ensure you have a header row and data rows.');
+            }
+
+            const firstLine = lines[0];
+            log(`[BulkUpload] Raw Headers Line: ${firstLine}`);
+
+            // 2. Clean headers: Detect separator (comma vs semicolon)
+            const separator = firstLine.includes(';') && !firstLine.includes(',') ? ';' : ',';
+            log(`[BulkUpload] Detected separator: ${separator}`);
+
+            const headers = firstLine.split(separator).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+            log(`[BulkUpload] Headers found: ${headers.join(', ')}`);
 
             const validQuestions = [];
             const errors = [];
@@ -331,25 +374,24 @@ export class QuestionsController {
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
-                const values = this.parseCSVLine(line);
-                if (i === 1) console.log('[BulkUpload] First row values:', values);
 
-                // Allow empty trailing columns (Excel often adds extra commas)
-                if (values.length < headers.length) {
-                    errors.push(`Line ${i + 1}: Expected ${headers.length} columns, found ${values.length}`);
-                    continue;
-                }
-                // If extra values are just empty strings, ignore them
-                if (values.length > headers.length && values.slice(headers.length).some(v => v.trim() !== '')) {
-                    // warning but proceeding? No, let's just create the row with matching headers
-                }
-
+                const values = this.parseCSVLine(line, separator);
                 const row: any = {};
-                headers.forEach((h, index) => { row[h] = values[index]; });
+                headers.forEach((h, index) => {
+                    row[h] = values[index] ? values[index].trim().replace(/^"(.*)"$/, '$1') : '';
+                });
+
+                // Debug: Log first few parsed rows
+                if (i <= 3) log(`[BulkUpload] Row ${i} parsed: ${JSON.stringify(row)}`);
 
                 try {
-                    const examIdRaw = row['examid'];
-                    const chapterId = row['chapterid'];
+                    const content = row['content'] || row['questiontext'] || row['question_text'];
+                    if (!content) {
+                        errors.push(`Line ${i + 1}: Missing question content`);
+                        continue;
+                    }
+
+                    const chapterId = row['chapterid'] || row['chapter_id'];
                     if (!chapterId) {
                         errors.push(`Line ${i + 1}: Missing chapterId (required)`);
                         continue;
@@ -361,22 +403,27 @@ export class QuestionsController {
                         continue;
                     }
 
+                    const correctOptionRaw = row['correctoptionid'] || row['correctoption'] || row['correctanswer'] || row['correct_option_id'];
+                    if (!correctOptionRaw) {
+                        errors.push(`Line ${i + 1}: Missing correct answer`);
+                        continue;
+                    }
+
                     const options = [
-                        { id: 'A', text: row['optiona'] || row['option1'] },
-                        { id: 'B', text: row['optionb'] || row['option2'] },
-                        { id: 'C', text: row['optionc'] || row['option3'] },
-                        { id: 'D', text: row['optiond'] || row['option4'] }
+                        { id: 'A', text: row['optiona'] || row['option1'] || 'Option A' },
+                        { id: 'B', text: row['optionb'] || row['option2'] || 'Option B' },
+                        { id: 'C', text: row['optionc'] || row['option3'] || 'Option C' },
+                        { id: 'D', text: row['optiond'] || row['option4'] || 'Option D' }
                     ];
 
-                    // Support multi-exam split by semicolon
+                    const examIdRaw = row['examid'] || row['exam_id'];
                     const exams = [];
                     if (examIdRaw) {
                         const ids = String(examIdRaw).split(';').map(id => id.trim()).filter(id => !!id);
                         ids.forEach(id => exams.push({ id }));
                     }
 
-                    // Support multi-model split by semicolon
-                    const modelIdRaw = row['modelid'];
+                    const modelIdRaw = row['modelid'] || row['model_id'];
                     const models = [];
                     if (modelIdRaw) {
                         const ids = String(modelIdRaw).split(';').map(id => id.trim()).filter(id => !!id);
@@ -384,18 +431,18 @@ export class QuestionsController {
                     }
 
                     const question = {
-                        content: row['content'] || row['questiontext'],
+                        content: content,
                         options: options,
-                        correctOptionId: (row['correctoptionid'] || row['correctoption'] || row['correctanswer']).toUpperCase(),
+                        correctOptionId: correctOptionRaw.toUpperCase(),
                         explanation: row['explanation'] || '',
-                        topic: row['topic'],
+                        topic: row['topic'] || '',
                         positiveMarks: parseFloat(row['positivemarks']) || 1.0,
                         negativeMarks: parseFloat(row['negativemarks']) || 0.25,
                         difficultyWeight: row['difficultyweight'] ? parseFloat(row['difficultyweight']) : (row['difficulty'] === 'easy' ? 0.3 : row['difficulty'] === 'hard' ? 0.7 : 0.5),
                         exams: exams,
                         models: models,
                         chapterId: chapterId,
-                        imageUrl: row['imageurl'] || row['imageUrl'] || row['image']
+                        imageUrl: row['imageurl'] || row['image_url'] || row['image']
                     };
 
                     validQuestions.push(question);
@@ -404,16 +451,20 @@ export class QuestionsController {
                 }
             }
 
+            let actualImported = 0;
             if (validQuestions.length > 0) {
                 const user = req.user;
-                await this.examsService.createQuestionsBulk(user.id, user.role, undefined, validQuestions);
+                log(`[BulkUpload] Calling createQuestionsBulk with ${validQuestions.length} questions...`);
+                const result = await this.examsService.createQuestionsBulk(user.id, user.role, undefined, validQuestions);
+                actualImported = Array.isArray(result) ? result.length : validQuestions.length;
+                log(`[BulkUpload] Service completed. validQuestions: ${validQuestions.length}, results: ${actualImported}`);
             } else {
-                console.warn('[BulkUpload] No valid questions found. Errors:', errors.slice(0, 3));
+                log(`[BulkUpload] No valid questions found. Errors: ${JSON.stringify(errors.slice(0, 5))}`);
             }
 
             const message = validQuestions.length > 0
-                ? `Successfully imported ${validQuestions.length} questions`
-                : `Upload Failed: 0 imported. Errors: ${errors.slice(0, 2).join('; ')}`;
+                ? `Successfully processed ${validQuestions.length} questions. (Check Question Bank for updates)`
+                : `Upload Failed: 0 valid questions found. Errors: ${errors.slice(0, 3).join('; ')}`;
 
             return {
                 success: validQuestions.length > 0,
@@ -426,7 +477,7 @@ export class QuestionsController {
         }
     }
 
-    private parseCSVLine(line: string): string[] {
+    private parseCSVLine(line: string, separator: string = ','): string[] {
         const result = [];
         let currentValue = '';
         let inQuotes = false;
@@ -435,7 +486,7 @@ export class QuestionsController {
             if (char === '"') {
                 if (inQuotes && line[i + 1] === '"') { currentValue += '"'; i++; }
                 else { inQuotes = !inQuotes; }
-            } else if (char === ',' && !inQuotes) {
+            } else if (char === separator && !inQuotes) {
                 result.push(currentValue);
                 currentValue = '';
             } else { currentValue += char; }

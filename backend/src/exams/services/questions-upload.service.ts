@@ -43,11 +43,14 @@ export class QuestionsUploadService {
 
         return new Promise((resolve, reject) => {
             stream
-                .pipe(csv({ strict: true, mapHeaders: ({ header }) => header.trim() }))
+                .pipe(csv({
+                    strict: true,
+                    mapHeaders: ({ header }) => header.trim().toLowerCase()
+                }))
                 .on('data', (row) => {
-                    const content = row.content || row.questiontext;
-                    const optionA = row.optionA || row.option1;
-                    const correctOptionId = row.correctOptionId || row.correctOption || row.correctAnswer;
+                    const content = row.content || row.questiontext || row.question_text;
+                    const optionA = row.optiona || row.option1;
+                    const correctOptionId = row.correctoptionid || row.correctoption || row.correctanswer || row.correct_option_id;
 
                     if (!content || !optionA || !correctOptionId) {
                         return;
@@ -55,20 +58,21 @@ export class QuestionsUploadService {
 
                     const options = [
                         { id: 'A', text: optionA },
-                        { id: 'B', text: row.optionB || row.option2 },
-                        { id: 'C', text: row.optionC || row.option3 || '' },
-                        { id: 'D', text: row.optionD || row.option4 || '' },
+                        { id: 'B', text: row.optionb || row.option2 || '' },
+                        { id: 'C', text: row.optionc || row.option3 || '' },
+                        { id: 'D', text: row.optiond || row.option4 || '' },
                     ].filter(o => o.text);
 
                     questions.push({
                         content: content,
                         options,
-                        correctOptionId: correctOptionId.toUpperCase(),
-                        explanation: row.explanation,
+                        correctOptionId: correctOptionId.toString().toUpperCase(),
+                        explanation: row.explanation || '',
                         topic: row.topic || 'General',
-                        difficultyWeight: parseFloat(row.difficultyWeight || row.difficulty) || 0.5,
-                        positiveMarks: parseFloat(row.positiveMarks || row.positivemarks) || 1.0,
-                        negativeMarks: parseFloat(row.negativeMarks || row.negativemarks) || 0.25,
+                        difficultyWeight: parseFloat(row.difficultyweight || row.difficulty) || 0.5,
+                        positiveMarks: parseFloat(row.positivemarks) || 1.0,
+                        negativeMarks: parseFloat(row.negativemarks) || 0.25,
+                        imageUrl: row.imageurl || row.image_url || row.image
                     });
                 })
                 .on('end', () => resolve(questions))

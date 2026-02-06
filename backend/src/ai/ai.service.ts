@@ -825,32 +825,61 @@ Return JSON ONLY:
         }
 
         try {
+            const prompt = `
+                You are an expert AI specialized in Mathematics and Competitive Exam Question Extraction (e.g., SSC CGL, Railway).
+                I have uploaded an image containing several Multiple Choice Questions (MCQs).
+                
+                YOUR GOAL: Extract every question with 100% literal accuracy, especially handling mathematical symbols and diagrams.
+                
+                ### 1. STRICT LITERAL EXTRACTION (CRITICAL)
+                - **NO SOLVING**: Do NOT attempt to solve the problems.
+                - **EXACT TRANSCRIPTION**: Transcribe the text EXACTLY as printed. 
+                    - If you see symbols like π, √, or superscripts, use LaTeX: $\pi$, $\sqrt{x}$, $x^2$.
+                    - Fractions like "π/4" MUST be transcribed as $\frac{\pi}{4}$.
+                - **DIAGRAM HANDLING**: If a question refers to a figure (e.g., "as shown in the figure"), ensure the question text is complete. Mention the figure in the content if necessary.
+                
+                ### 2. MATHEMATICAL FORMULATION
+                - **LaTeX ONLY**: Use LaTeX syntax ($ ... $) for ALL mathematical expressions, formulas, and symbols.
+                - **MATH SYMBOLS**:
+                    - Pi: \pi, Square root: \sqrt{...}, Fractions: \frac{num}{den}, Degree: ^\circ
+                    - Perpendicular: \perp, Triangle: \triangle, Angle: \angle
+                
+                ### 3. LOOK FOR DIAGRAMS (VISUAL DETECTION)
+                - For each question, look at the image area NEXT to or BELOW the text. 
+                - If there is a geometric figure (circles, triangles, lines) that belongs to the question, set "hasDiagram": true.
+                - **STRICT BOUNDING BOX**: The "diagram_coordinates" [ymin, xmin, ymax, xmax] MUST encapsulate ONLY the drawing/figure.
+                    - **EXCLUDE ALL TEXT**: Do NOT include the question text, option labels (A, B, C, D), or the question number in this box.
+                    - **CROP TIGHTLY**: The box should hug the edges of the shape tightly.
+                - You MUST provide the bounding box [ymin, xmin, ymax, xmax] for that figure in "diagram_coordinates".
+                
+                ### 4. DATA FORMAT (CRITICAL)
+                Return the result strictly as a JSON Object with a "questions" key containing an array:
+                {
+                    "questions": [
+                        {
+                            "content": "The question text with $ LaTeX $",
+                            "options": ["Opt1", "Opt2", "Opt3", "Opt4"],
+                            "correctOptionIndex": number, // 0 for A, 1 for B, etc.
+                            "difficultyWeight": 0.1 to 1.0,
+                            "positiveMarks": number (default 1),
+                            "negativeMarks": number (default 0.25),
+                            "explanation": "Detailed step-by-step solution",
+                            "hasDiagram": boolean, // TRUE if a visual diagram exists
+                            "diagram_coordinates": [ymin, xmin, ymax, xmax] // REQUIRED if hasDiagram is true. 0-1000 scale.
+                        }
+                    ]
+                }
+                IGNORE checkmarks (✓) or handwritten marks. Focus on PRINTED text.
+                If "hasDiagram" is true, "diagram_coordinates" CANNOT be null.
+                **CRITICAL**: "diagram_coordinates" MUST NOT overlap with the question text area. It is for the FIGURE ONLY.
+                `;
+
             let text = '';
 
             if (provider === 'groq') {
-                console.log('[AIService] Using Groq (Llama 3.2 Vision) for Document Parsing...');
+                console.log('[AIService] Using Groq (Llama 4 Scout) for Document Parsing...');
                 const groq = new Groq({ apiKey });
-                const modelName = this.configService.get<string>('GROQ_MODEL', 'llama-3.2-11b-vision-preview');
-
-                const prompt = `
-                 You are a math extraction expert.
-                 Extract questions from the image into a JSON Array.
-                 Return ONLY RAW JSON. No Markdown.
-                 
-                 Format:
-                 [
-                   {
-                     "content": "Question text with $ LaTeX $",
-                     "options": ["A", "B", "C", "D"],
-                     "correctOptionIndex": 0,
-                     "explanation": "Solution...",
-                     "hasDiagram": false,
-                     "diagram_coordinates": null
-                   }
-                 ]
-                 
-                 Strictly exclude text from diagram_coordinates.
-                 `;
+                const modelName = this.getGroqModel('REASONING', true);
 
                 const completion = await groq.chat.completions.create({
                     messages: [
@@ -869,6 +898,7 @@ Return JSON ONLY:
                     ],
                     model: modelName,
                     temperature: 0.1,
+                    max_tokens: 4096,
                     response_format: { type: 'json_object' }
                 });
 
@@ -882,57 +912,6 @@ Return JSON ONLY:
                 const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
                 const model = genAI.getGenerativeModel({ model: modelName });
 
-                // Gemini Execution
-                const prompt = `
-                You are an expert AI specialized in Mathematics and Competitive Exam Question Extraction (e.g., SSC CGL, Railway).
-                I have uploaded an image containing several Multiple Choice Questions (MCQs) in Geometry.
-                
-                YOUR GOAL: Extract every question with 100% literal accuracy, especially handling mathematical symbols and diagrams.
-                
-                ### 1. STRICT LITERAL EXTRACTION (CRITICAL)
-                - **NO SOLVING**: Do NOT attempt to solve the problems.
-                - **EXACT TRANSCRIPTION**: Transcribe the text EXACTLY as printed. 
-                    - If you see symbols like π, √, or superscripts, use LaTeX: $\\pi$, $\\sqrt{x}$, $x^2$.
-                    - Fractions like "π/4" MUST be transcribed as $\\frac{\\pi}{4}$.
-                - **DIAGRAM HANDLING**: If a question refers to a figure (e.g., "as shown in the figure"), ensure the question text is complete. Mention the figure in the content if necessary.
-                
-                ### 2. MATHEMATICAL FORMULATION
-                - **LaTeX ONLY**: Use LaTeX syntax ($ ... $) for ALL mathematical expressions, formulas, and symbols.
-                - **MATH SYMBOLS**:
-                    - Pi: \\pi
-                    - Square root: \\sqrt{...}
-                    - Fractions: \\frac{num}{den}
-                    - Degree: ^\\circ
-                    - Perpendicular: \\perp
-                    - Triangle: \\triangle
-                    - Angle: \\angle
-                
-                ### 3. LOOK FOR DIAGRAMS (VISUAL DETECTION)
-                - For each question, look at the image area NEXT to or BELOW the text. 
-                - If there is a geometric figure (circles, triangles, lines) that belongs to the question, set "hasDiagram": true.
-                - **STRICT BOUNDING BOX**: The "diagram_coordinates" [ymin, xmin, ymax, xmax] MUST encapsulate ONLY the drawing/figure.
-                    - **EXCLUDE ALL TEXT**: Do NOT include the question text, option labels (A, B, C, D), or the question number in this box.
-                    - **CROP TIGHTLY**: The box should hug the edges of the shape (triangle, circle, graph, etc.) tightly.
-                - You MUST provide the bounding box [ymin, xmin, ymax, xmax] for that figure in "diagram_coordinates".
-                
-                ### 4. DATA FORMAT
-                Return the result strictly as a RAW JSON Array of objects:
-                {
-                    "content": "The question text with $ LaTeX $",
-                    "options": ["Opt1", "Opt2", "Opt3", "Opt4"],
-                    "correctOptionIndex": number, // 0 for A, 1 for B, etc.
-                    "difficultyWeight": 0.1 to 1.0,
-                    "positiveMarks": number (default 1),
-                    "negativeMarks": number (default 0.25),
-                    "explanation": "Detailed step-by-step solution",
-                    "hasDiagram": boolean, // TRUE if a visual diagram exists
-                    "diagram_coordinates": [ymin, xmin, ymax, xmax] // REQUIRED if hasDiagram is true. 0-1000 scale.
-                }
-                IGNORE checkmarks (✓) or handwritten marks. Focus on PRINTED text.
-                If "hasDiagram" is true, "diagram_coordinates" CANNOT be null.
-                **CRITICAL**: "diagram_coordinates" MUST NOT overlap with the question text area. It is for the FIGURE ONLY.
-                `;
-
                 const imagePart = {
                     inlineData: {
                         data: file.buffer.toString("base64"),
@@ -941,12 +920,9 @@ Return JSON ONLY:
                 };
 
                 const startTime = Date.now();
-
-                // Execute via Queue
                 const result = await this.queueService.add(async () => await model.generateContent([prompt, imagePart]));
                 const response = await result.response;
 
-                // Track successful API call
                 this.systemHealthService.trackAPICall('gemini');
 
                 const duration = (Date.now() - startTime) / 1000;
@@ -957,15 +933,27 @@ Return JSON ONLY:
             // CRITICAL DEBUG: Log the full raw response to identify parsing issues
             console.log(`[AIService] FULL AI RESPONSE: \n${text} \n[AIService] END RESPONSE`);
 
-            // Robust JSON extraction: Find first [ and last ]
+            // Robust JSON extraction
             let jsonStr = text;
+            const firstOpen = text.indexOf('{');
+            const lastClose = text.lastIndexOf('}');
             const firstBracket = text.indexOf('[');
             const lastBracket = text.lastIndexOf(']');
-            if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+
+            // Prioritize object { } since we updated prompt
+            if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+                jsonStr = text.substring(firstOpen, lastClose + 1);
+            } else if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
                 jsonStr = text.substring(firstBracket, lastBracket + 1);
             }
 
-            return this.safeJsonParse(jsonStr, []);
+            const parsed = this.safeJsonParse(jsonStr, {});
+
+            // Return the questions array regardless of wrapper
+            if (Array.isArray(parsed)) return parsed;
+            if (parsed.questions && Array.isArray(parsed.questions)) return parsed.questions;
+            return [];
+
         } catch (error) {
             console.error("AI Parsing Failed:", error);
             if (error.message?.includes("API_KEY_INVALID") || error.message?.includes("API key not valid")) {
