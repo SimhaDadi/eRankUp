@@ -156,10 +156,26 @@ export class QuestionsController {
                 ].join(',');
             });
 
+            let filename = `questions_backup_${new Date().toISOString().split('T')[0]}`;
+
+            if (chapterId) {
+                const chapter = await this.chapterRepository.findOne({ where: { id: chapterId } });
+                if (chapter) {
+                    const saneName = chapter.title.replace(/[^a-zA-Z0-9-_]/g, '_');
+                    filename = `${saneName}_${new Date().toISOString().split('T')[0]}`;
+                }
+            } else if (examId) {
+                const exam = await this.examRepository.findOne({ where: { id: examId } });
+                if (exam) {
+                    const saneTitle = exam.title.replace(/[^a-zA-Z0-9-_]/g, '_');
+                    filename = `${saneTitle}_${new Date().toISOString().split('T')[0]}`;
+                }
+            }
+
             const csvString = [csvHeaders.join(','), ...csvRows].join('\n');
             const res = req.res;
             res.setHeader('Content-Type', 'text/csv');
-            res.setHeader('Content-Disposition', `attachment; filename=questions_backup_${new Date().toISOString().split('T')[0]}.csv`);
+            res.setHeader('Content-Disposition', `attachment; filename=${filename}.csv`);
             return res.send(csvString);
         } catch (error) {
             console.error('[Export] Error:', error);
@@ -296,11 +312,19 @@ export class QuestionsController {
         }
 
         try {
-            const csvContent = file.buffer.toString('utf-8');
+            let csvContent = file.buffer.toString('utf-8');
+            // 1. Strip BOM (Byte Order Mark) if present (common in Excel CSVs)
+            if (csvContent.charCodeAt(0) === 0xFEFF) {
+                csvContent = csvContent.slice(1);
+            }
+
             const lines = csvContent.split(/\r?\n/);
             if (lines.length < 2) throw new Error('CSV file is empty or missing headers');
 
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            // 2. Clean headers: trim, lowercase, remove "
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+            console.log('[BulkUpload] Headers found:', headers);
+
             const validQuestions = [];
             const errors = [];
 
@@ -308,9 +332,16 @@ export class QuestionsController {
                 const line = lines[i].trim();
                 if (!line) continue;
                 const values = this.parseCSVLine(line);
-                if (values.length !== headers.length) {
-                    errors.push(`Line ${i + 1}: Mismatch column count`);
+                if (i === 1) console.log('[BulkUpload] First row values:', values);
+
+                // Allow empty trailing columns (Excel often adds extra commas)
+                if (values.length < headers.length) {
+                    errors.push(`Line ${i + 1}: Expected ${headers.length} columns, found ${values.length}`);
                     continue;
+                }
+                // If extra values are just empty strings, ignore them
+                if (values.length > headers.length && values.slice(headers.length).some(v => v.trim() !== '')) {
+                    // warning but proceeding? No, let's just create the row with matching headers
                 }
 
                 const row: any = {};
@@ -376,11 +407,17 @@ export class QuestionsController {
             if (validQuestions.length > 0) {
                 const user = req.user;
                 await this.examsService.createQuestionsBulk(user.id, user.role, undefined, validQuestions);
+            } else {
+                console.warn('[BulkUpload] No valid questions found. Errors:', errors.slice(0, 3));
             }
 
+            const message = validQuestions.length > 0
+                ? `Successfully imported ${validQuestions.length} questions`
+                : `Upload Failed: 0 imported. Errors: ${errors.slice(0, 2).join('; ')}`;
+
             return {
-                success: true,
-                message: `Successfully imported ${validQuestions.length} questions`,
+                success: validQuestions.length > 0,
+                message: message,
                 importedCount: validQuestions.length,
                 errors: errors
             };

@@ -75,6 +75,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
             fs.promises.appendFile(logFile, logMsg).catch(e => console.error('Log write failed', e));
         }
 
-        httpAdapter.reply(response, responseBody, status);
+        if (!httpAdapter.isHeadersSent(response)) {
+            httpAdapter.reply(response, responseBody, status);
+        } else {
+            this.logger.error(`[${method}] ${url} - Warning: Headers already sent, cannot send error response.`);
+        }
     }
 }

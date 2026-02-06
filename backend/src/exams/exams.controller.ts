@@ -1,5 +1,5 @@
 import { PremiumGuard } from '../payments/guards/premium.guard';
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query, ForbiddenException, ClassSerializerInterceptor, SerializeOptions, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete, Put, UseInterceptors, UploadedFile, BadRequestException, Inject, forwardRef, Query, ForbiddenException, ClassSerializerInterceptor, SerializeOptions, Res, ParseUUIDPipe } from '@nestjs/common';
 import { instanceToPlain } from 'class-transformer';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
@@ -519,7 +519,7 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Delete(':id')
-    deleteExam(@Param('id') id: string) {
+    deleteExam(@Param('id', new ParseUUIDPipe()) id: string) {
         return this.examsService.deleteExam(id);
     }
 

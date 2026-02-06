@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Question } from '../exams/entities/question.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
@@ -14,10 +13,6 @@ import { UserRole } from '../users/user.entity';
 
 @Injectable()
 export class ExplanationService {
-    private genAI: GoogleGenerativeAI;
-    private model;
-    private isInitialized = false;
-
     constructor(
         private configService: ConfigService,
         private systemHealthService: SystemHealthService,
@@ -31,18 +26,7 @@ export class ExplanationService {
         private aiUsageService: AIUsageService,
         private aiService: AIService,
     ) {
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-
-        if (!apiKey) {
-            console.warn('⚠️  GEMINI_API_KEY not set. AI explanations will use fallback mode.');
-            console.warn('Get your free API key: https://makersuite.google.com/app/apikey');
-            return;
-        }
-
-        this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: 'models/gemini-flash-latest' });
-        this.isInitialized = true;
-        console.log('✅ Gemini 1.5 Flash initialized successfully');
+        // Service delegates AI calls to AIService
     }
 
     async generateExplanation(
@@ -77,8 +61,8 @@ export class ExplanationService {
             throw new Error('Question not found');
         }
 
-        if (!this.isInitialized) {
-            return this.getFallbackExplanation(question);
+        if (!question) {
+            throw new Error('Question not found');
         }
 
         // Check Quota

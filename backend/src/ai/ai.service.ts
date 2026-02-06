@@ -8,6 +8,7 @@ import { Attempt } from '../exams/entities/attempt.entity';
 import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
 import { AIQueueService, AIPriority } from './ai-queue.service';
+import Groq from 'groq-sdk';
 
 interface QuestionScore {
     question: Question;
@@ -29,6 +30,16 @@ export interface MasteryReport {
 
 @Injectable()
 export class AIService {
+    private getGroqModel(complexity: 'FAST' | 'REASONING', hasImages: boolean): string {
+        if (hasImages) {
+            return this.configService.get<string>('GROQ_MODEL_VISION', 'meta-llama/llama-4-scout-17b-16e-instruct');
+        }
+        if (complexity === 'FAST') {
+            return this.configService.get<string>('GROQ_MODEL_FAST', 'llama-3.1-8b-instant');
+        }
+        return this.configService.get<string>('GROQ_MODEL_REASONING', 'llama-3.3-70b-versatile');
+    }
+
     constructor(
         @InjectRepository(Question)
         private questionRepository: Repository<Question>,
@@ -46,7 +57,13 @@ export class AIService {
     /**
      * Generate text using Gemini AI API (Multimodal support)
      */
-    async generateText(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority = AIPriority.HIGH): Promise<string> {
+    async generateText(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority = AIPriority.HIGH, complexity: 'FAST' | 'REASONING' = 'REASONING'): Promise<string> {
+        const provider = this.configService.get('AI_PROVIDER', 'gemini');
+
+        if (provider === 'groq') {
+            return this.generateTextWithGroq(prompt, images, priority, complexity);
+        }
+
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
@@ -79,10 +96,61 @@ export class AIService {
         }, priority);
     }
 
+    private async generateTextWithGroq(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority, complexity: 'FAST' | 'REASONING'): Promise<string> {
+        const apiKey = this.configService.get<string>('GROQ_API_KEY');
+        const modelName = this.getGroqModel(complexity, images.length > 0);
+
+        if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+
+        return this.queueService.add(async () => {
+            try {
+                const groq = new Groq({ apiKey });
+
+                const messages: any[] = [];
+                const content: any[] = [{ type: 'text', text: prompt }];
+
+                if (images.length > 0) {
+                    images.forEach(img => {
+                        content.push({
+                            type: 'image_url',
+                            image_url: {
+                                url: `data:${img.mimeType};base64,${img.data}`
+                            }
+                        });
+                    });
+                }
+
+                messages.push({ role: 'user', content });
+
+                const completion = await groq.chat.completions.create({
+                    messages: messages as any,
+                    model: modelName,
+                    temperature: 0.1,
+                });
+
+                this.systemHealthService.trackAPICall('groq');
+                return completion.choices[0]?.message?.content || '';
+            } catch (error) {
+                console.error('[AIService] Groq API error:', error);
+                if (error.status === 429) {
+                    console.warn('Groq Rate Limited. Consider fallback?');
+                }
+                throw error;
+            }
+        }, priority);
+    }
+
     /**
      * Generate streaming text using Gemini AI API (Multimodal support)
      */
-    async *generateStream(prompt: string, images: { data: string; mimeType: string }[] = []): AsyncIterableIterator<string> {
+    async *generateStream(prompt: string, images: { data: string; mimeType: string }[] = [], complexity: 'FAST' | 'REASONING' = 'FAST'): AsyncIterableIterator<string> {
+        const provider = this.configService.get('AI_PROVIDER', 'gemini');
+
+        if (provider === 'groq') {
+            yield* this.generateStreamWithGroq(prompt, images, complexity);
+            return;
+        }
+
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
@@ -113,6 +181,48 @@ export class AIService {
         } catch (error) {
             console.error('[AIService] Gemini Streaming error:', error);
             yield " [Communication interrupted. Please try again.]";
+        }
+    }
+
+    private async *generateStreamWithGroq(prompt: string, images: { data: string; mimeType: string }[] = [], complexity: 'FAST' | 'REASONING'): AsyncIterableIterator<string> {
+        const apiKey = this.configService.get<string>('GROQ_API_KEY');
+        const modelName = this.getGroqModel(complexity, images.length > 0);
+
+        if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+
+        try {
+            const groq = new Groq({ apiKey });
+            const messages: any[] = [];
+            const content: any[] = [{ type: 'text', text: prompt }];
+
+            if (images.length > 0) {
+                images.forEach(img => {
+                    content.push({
+                        type: 'image_url',
+                        image_url: {
+                            url: `data:${img.mimeType};base64,${img.data}`
+                        }
+                    });
+                });
+            }
+
+            messages.push({ role: 'user', content });
+
+            const stream = await groq.chat.completions.create({
+                messages: messages as any,
+                model: modelName,
+                temperature: 0.1,
+                stream: true,
+            });
+
+            this.systemHealthService.trackAPICall('groq');
+            for await (const chunk of stream) {
+                const text = chunk.choices[0]?.delta?.content || '';
+                if (text) yield text;
+            }
+        } catch (error) {
+            console.error('[AIService] Groq Streaming error:', error);
+            yield " [Groq Connection Failed. Please check API Key or try again.]";
         }
     }
 
@@ -674,7 +784,10 @@ Return JSON ONLY:
      * AI Document Parser - Extracts questions from PDF/Image using Computer Vision
      */
     async parseDocument(file: any): Promise<any[]> {
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        const provider = this.configService.get('AI_PROVIDER', 'gemini');
+        const apiKey = provider === 'groq'
+            ? this.configService.get<string>('GROQ_API_KEY')
+            : this.configService.get<string>('GEMINI_API_KEY');
 
 
         if (this.configService.get<string>('MOCK_AI') === 'true') {
@@ -705,17 +818,72 @@ Return JSON ONLY:
             ];
         }
 
+        console.log(`[AIService] ParseDocument - Provider: ${provider}, API Key Length: ${apiKey?.length}`);
+
         if (!apiKey || apiKey === 'dummy_key_for_test' || apiKey.length < 20) {
-            throw new Error("AI Parsing Configuration Error: Missing or invalid GEMINI_API_KEY. Please set a valid Google Gemini API key in the backend environment.");
+            throw new Error(`AI Parsing Configuration Error: Missing or invalid ${provider.toUpperCase()}_API_KEY. Please set a valid API key in the backend environment.`);
         }
 
         try {
-            const { GoogleGenerativeAI } = require("@google/generative-ai");
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
-            const model = genAI.getGenerativeModel({ model: modelName });
+            let text = '';
 
-            const prompt = `
+            if (provider === 'groq') {
+                console.log('[AIService] Using Groq (Llama 3.2 Vision) for Document Parsing...');
+                const groq = new Groq({ apiKey });
+                const modelName = this.configService.get<string>('GROQ_MODEL', 'llama-3.2-11b-vision-preview');
+
+                const prompt = `
+                 You are a math extraction expert.
+                 Extract questions from the image into a JSON Array.
+                 Return ONLY RAW JSON. No Markdown.
+                 
+                 Format:
+                 [
+                   {
+                     "content": "Question text with $ LaTeX $",
+                     "options": ["A", "B", "C", "D"],
+                     "correctOptionIndex": 0,
+                     "explanation": "Solution...",
+                     "hasDiagram": false,
+                     "diagram_coordinates": null
+                   }
+                 ]
+                 
+                 Strictly exclude text from diagram_coordinates.
+                 `;
+
+                const completion = await groq.chat.completions.create({
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: prompt },
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    model: modelName,
+                    temperature: 0.1,
+                    response_format: { type: 'json_object' }
+                });
+
+                text = completion.choices[0]?.message?.content || '';
+                this.systemHealthService.trackAPICall('groq');
+
+            } else {
+                // Gemini Logic
+                const { GoogleGenerativeAI } = require("@google/generative-ai");
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
+                const model = genAI.getGenerativeModel({ model: modelName });
+
+                // Gemini Execution
+                const prompt = `
                 You are an expert AI specialized in Mathematics and Competitive Exam Question Extraction (e.g., SSC CGL, Railway).
                 I have uploaded an image containing several Multiple Choice Questions (MCQs) in Geometry.
                 
@@ -765,25 +933,26 @@ Return JSON ONLY:
                 **CRITICAL**: "diagram_coordinates" MUST NOT overlap with the question text area. It is for the FIGURE ONLY.
                 `;
 
-            const imagePart = {
-                inlineData: {
-                    data: file.buffer.toString("base64"),
-                    mimeType: file.mimetype,
-                },
-            };
+                const imagePart = {
+                    inlineData: {
+                        data: file.buffer.toString("base64"),
+                        mimeType: file.mimetype,
+                    },
+                };
 
-            const startTime = Date.now();
+                const startTime = Date.now();
 
-            // Execute via Queue
-            const result = await this.queueService.add(async () => await model.generateContent([prompt, imagePart]));
-            const response = await result.response;
+                // Execute via Queue
+                const result = await this.queueService.add(async () => await model.generateContent([prompt, imagePart]));
+                const response = await result.response;
 
-            // Track successful API call
-            this.systemHealthService.trackAPICall('gemini');
+                // Track successful API call
+                this.systemHealthService.trackAPICall('gemini');
 
-            const duration = (Date.now() - startTime) / 1000;
-            console.log(`[AIService] Gemini API request completed in ${duration} s`);
-            const text = response.text();
+                const duration = (Date.now() - startTime) / 1000;
+                console.log(`[AIService] Gemini API request completed in ${duration} s`);
+                text = response.text();
+            }
 
             // CRITICAL DEBUG: Log the full raw response to identify parsing issues
             console.log(`[AIService] FULL AI RESPONSE: \n${text} \n[AIService] END RESPONSE`);
@@ -880,6 +1049,12 @@ Extract all questions and format them as a JSON array with this structure:
      * AI Photo-Search - Solves a question from an image and finds similar questions
      */
     async photoSearch(file: any): Promise<{ solution: string; similarQuestions: Question[] }> {
+        const provider = this.configService.get('AI_PROVIDER', 'gemini');
+
+        if (provider === 'groq') {
+            return this.photoSearchWithGroq(file);
+        }
+
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
@@ -955,6 +1130,101 @@ Extract all questions and format them as a JSON array with this structure:
             solution: this.cleanAIResponse(parsed.solution),
             similarQuestions
         };
+    }
+
+    private async photoSearchWithGroq(file: any): Promise<{ solution: string; similarQuestions: Question[] }> {
+        console.log('[AIService] Using Groq (Llama 3.2 Vision) for Photo Search...');
+        const apiKey = this.configService.get<string>('GROQ_API_KEY');
+        const modelName = this.configService.get<string>('GROQ_MODEL', 'llama-3.2-11b-vision-preview');
+
+        if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+
+        const groq = new Groq({ apiKey });
+
+        const prompt = `You are a top SSC CGL Quant mentor.
+        Solve the given problem using the quickest shortcut possible (within 30–60 seconds).
+        Prefer mental math, options elimination, and standard SSC tricks.
+        Do NOT use lengthy formulas unless unavoidable.
+
+                TASKS:
+            1. PROVIDE SOLUTION: A max 3 - step explanation focused on shortcuts.SKIP all "Let X be..." or derivations.
+        2. EXTRACT TEXT: The exact text of the question.
+        3. KEYWORDS: 3 - 5 keywords for searching similar questions.
+
+                INSTRUCTIONS:
+        - ** NO HEADERS **: Do NOT use "Core Concept", "Strategic Solution", or "Step 1".
+        - ** NO LaTeX **: Avoid $$ and \frac.
+        - ** USE UNICODE **: Use symbols like ∑, √, ∛, x², xᵢ, π, ≈, ≠ for math.
+        - ** SHORTCUTS ONLY **: Max 3 lines of calculation.
+        - ** FORMAT **:
+          • Trick: [Logic]
+          • Calc: [Numbers]
+          • Ans: [Option]
+                - Output strictly in JSON format.
+        
+        Output strictly in JSON:
+            {
+                "solution": "...",
+                    "questionText": "...",
+                        "keywords": ["...", "..."]
+            } `;
+
+        try {
+            const completion = await groq.chat.completions.create({
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            { type: 'text', text: prompt },
+                            {
+                                type: 'image_url',
+                                image_url: {
+                                    url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+                                }
+                            }
+                        ]
+                    }
+                ],
+                model: modelName,
+                temperature: 0.1,
+                response_format: { type: 'json_object' }
+            });
+
+            this.systemHealthService.trackAPICall('groq');
+            const responseText = completion.choices[0]?.message?.content || '';
+
+            const parsed = this.safeJsonParse(responseText, {
+                solution: "I analyzed the image but could not generate a structured solution. Please try cropping the image to focus on the question.",
+                trick: "Focus Phase",
+                step1: "Ensure image is clear",
+                step2: "Try identifying the text manually",
+                option: "None"
+            });
+
+            // Find similar questions using Vector Semantic Search (Relies on Gemini embeddings internally)
+            let similarQuestions: Question[] = [];
+            if (parsed.questionText) {
+                // Feature parity: Use existing generic embedding generation which might use Gemini
+                // but this is acceptable as we only promised faster VISION and CHAT
+                // const embedding = await this.generateEmbedding(parsed.questionText);
+                // similarQuestions = ... (Same logic as Gemini version - stubbed out in original too)
+                similarQuestions = await this.questionRepository
+                    .createQueryBuilder('q')
+                    .leftJoinAndSelect('q.subject', 'subject')
+                    .leftJoinAndSelect('q.chapter', 'chapter')
+                    .limit(3)
+                    .getMany();
+            }
+
+            return {
+                solution: this.cleanAIResponse(parsed.solution),
+                similarQuestions
+            };
+
+        } catch (error) {
+            console.error('[AIService] Groq Photo Search Error:', error);
+            throw new Error('Failed to process image with Groq.');
+        }
     }
 
     public cleanAIResponse(text: string): string {

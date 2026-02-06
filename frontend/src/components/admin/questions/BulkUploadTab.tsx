@@ -23,7 +23,12 @@ export default function BulkUploadTab() {
             const response = await api.post('/questions/bulk-upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            alert(`Successfully uploaded ${response.data.importedCount} questions!`);
+
+            if (response.data.success) {
+                alert(response.data.message);
+            } else {
+                setError(response.data.message || 'Upload failed with warnings');
+            }
         } catch (error: any) {
             const message = error.response?.data?.message || 'Failed to upload questions';
             setError(message);
@@ -98,7 +103,7 @@ export default function BulkUploadTab() {
                             ) : (
                                 <>
                                     <Upload className="w-5 h-5" />
-                                    Choose CSV/Excel
+                                    Choose CSV/Excel (v2)
                                 </>
                             )}
                         </button>

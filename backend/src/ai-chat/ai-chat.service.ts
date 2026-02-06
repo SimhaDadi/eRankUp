@@ -184,7 +184,7 @@ export class AIChatService {
         }, history);
 
         // Execute via AIService (which handles internal queuing)
-        const stream = await this.aiService.generateStream(prompt, promptImages);
+        const stream = await this.aiService.generateStream(prompt, promptImages, 'FAST');
 
         return { stream, conversationId: conversation.id };
     }

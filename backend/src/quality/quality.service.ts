@@ -23,11 +23,12 @@ export class QualityService {
             .take(limit);
 
         if (status && status !== 'ALL') {
-            queryBuilder.andWhere('flag.status = :status', { status });
+            // Enum values are uppercase in DB
+            queryBuilder.andWhere('flag.status = :status', { status: status.toUpperCase() });
         }
 
         if (type && type !== 'ALL') {
-            queryBuilder.andWhere('flag.type = :type', { type });
+            queryBuilder.andWhere('flag.type = :type', { type: type.toUpperCase() });
         }
 
         const [flags, total] = await queryBuilder.getManyAndCount();

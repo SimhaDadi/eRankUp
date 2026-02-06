@@ -42,7 +42,7 @@ export class SystemHealthService {
     // ... (rest of methods)
 
     private async initializeCounters() {
-        const services = ['gemini', 'razorpay'];
+        const services = ['gemini', 'razorpay', 'groq'];
         const today = new Date().toISOString().split('T')[0];
 
         for (const service of services) {
@@ -64,7 +64,7 @@ export class SystemHealthService {
     /**
      * Track API call (Persisted)
      */
-    async trackAPICall(service: 'gemini' | 'razorpay') {
+    async trackAPICall(service: 'gemini' | 'razorpay' | 'groq') {
         const today = new Date().toISOString().split('T')[0];
         const key = `usage_${service}_${today}`;
 
@@ -105,6 +105,9 @@ export class SystemHealthService {
         const geminiHealth = this.checkGeminiHealth();
         services.push(geminiHealth);
 
+        // Check Groq API
+        services.push(this.checkGroqHealth());
+
         // Check Redis (if available)
         const redisHealth = this.checkRedisHealth();
         services.push(redisHealth);
@@ -142,6 +145,13 @@ export class SystemHealthService {
                 callsToday: razorpayCounter?.daily || 0,
                 callsThisMonth: razorpayCounter?.monthly || 0,
                 estimatedCost: 0, // No per-call cost
+            },
+            {
+                service: 'Groq Cloud',
+                callsToday: this.apiCallCounts.get('groq')?.daily || 0,
+                callsThisMonth: this.apiCallCounts.get('groq')?.monthly || 0,
+                estimatedCost: 0, // Free Tier
+                limit: 14400 // ~30 RPM * 60 * 8 (working hours?) or 14k/day
             }
         ];
     }
@@ -235,6 +245,21 @@ export class SystemHealthService {
             details: {
                 configured: hasKey,
                 callsToday: this.apiCallCounts.get('gemini')?.daily || 0
+            }
+        };
+    }
+
+    private checkGroqHealth(): HealthMetric {
+        const apiKey = this.configService.get<string>('GROQ_API_KEY');
+        const hasKey = !!apiKey;
+
+        return {
+            service: 'Groq Cloud',
+            status: hasKey ? 'healthy' : 'degraded',
+            lastChecked: new Date(),
+            details: {
+                configured: hasKey,
+                callsToday: this.apiCallCounts.get('groq')?.daily || 0
             }
         };
     }
