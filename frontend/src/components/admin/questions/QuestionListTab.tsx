@@ -14,10 +14,11 @@ export default function QuestionListTab() {
     const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
     // Hierarchical Filters
-    const [filters, setFilters] = useState({ examId: '', subjectId: '', chapterId: '' });
+    const [filters, setFilters] = useState({ examId: '', subjectId: '', chapterId: '', modelId: '' });
     const [exams, setExams] = useState<any[]>([]);
     const [subjects, setSubjects] = useState<any[]>([]);
     const [chapters, setChapters] = useState<any[]>([]);
+    const [models, setModels] = useState<any[]>([]);
 
     // Fetch Exams on mount
     useEffect(() => {
@@ -27,12 +28,15 @@ export default function QuestionListTab() {
         });
     }, []);
 
-    // Fetch Subjects when Exam changes
+    // Fetch Subjects - Global or Exam-specific
     useEffect(() => {
         if (filters.examId) {
             api.get(`/exams/${filters.examId}/subjects`).then(res => setSubjects(res.data));
         } else {
-            setSubjects([]);
+            api.get('/exams/subjects/all').then(res => {
+                const data = Array.isArray(res.data) ? res.data : (res.data.subjects || []);
+                setSubjects(data);
+            });
         }
     }, [filters.examId]);
 
@@ -45,6 +49,15 @@ export default function QuestionListTab() {
         }
     }, [filters.subjectId]);
 
+    // Fetch Models when Chapter changes
+    useEffect(() => {
+        if (filters.chapterId) {
+            api.get(`/exams/chapters/${filters.chapterId}/models`).then(res => setModels(res.data));
+        } else {
+            setModels([]);
+        }
+    }, [filters.chapterId]);
+
     const fetchQuestions = useCallback(async () => {
         setLoading(true);
         try {
@@ -52,6 +65,7 @@ export default function QuestionListTab() {
             if (searchQuery) params.search = searchQuery;
             if (filters.subjectId) params.subjectId = filters.subjectId;
             if (filters.chapterId) params.chapterId = filters.chapterId;
+            if (filters.modelId) params.modelId = filters.modelId;
             if (selectedDifficulty !== 'all') params.difficulty = selectedDifficulty;
 
             const response = await api.get('/exams/questions/global', { params });
@@ -71,6 +85,7 @@ export default function QuestionListTab() {
             if (filters.examId) params.append('examId', filters.examId);
             if (filters.subjectId) params.append('subjectId', filters.subjectId);
             if (filters.chapterId) params.append('chapterId', filters.chapterId);
+            if (filters.modelId) params.append('modelId', filters.modelId);
 
             const response = await api.get(`/questions/export?${params.toString()}`, {
                 responseType: 'blob'
@@ -100,7 +115,7 @@ export default function QuestionListTab() {
                     <select
                         className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-blue-500"
                         value={filters.examId}
-                        onChange={(e) => setFilters(prev => ({ ...prev, examId: e.target.value, subjectId: '', chapterId: '' }))}
+                        onChange={(e) => setFilters(prev => ({ ...prev, examId: e.target.value, subjectId: '', chapterId: '', modelId: '' }))}
                     >
                         <option value="">All Question Banks</option>
                         {exams.map((ex: any) => <option key={ex.id} value={ex.id}>{ex.title}</option>)}
@@ -110,8 +125,7 @@ export default function QuestionListTab() {
                     <select
                         className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
                         value={filters.subjectId}
-                        onChange={(e) => setFilters(prev => ({ ...prev, subjectId: e.target.value, chapterId: '' }))}
-                        disabled={!filters.examId}
+                        onChange={(e) => setFilters(prev => ({ ...prev, subjectId: e.target.value, chapterId: '', modelId: '' }))}
                     >
                         <option value="">All Subjects</option>
                         {subjects.map((sub: any) => <option key={sub.id} value={sub.id}>{sub.title}</option>)}
@@ -121,11 +135,22 @@ export default function QuestionListTab() {
                     <select
                         className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
                         value={filters.chapterId}
-                        onChange={(e) => setFilters(prev => ({ ...prev, chapterId: e.target.value }))}
+                        onChange={(e) => setFilters(prev => ({ ...prev, chapterId: e.target.value, modelId: '' }))}
                         disabled={!filters.subjectId}
                     >
                         <option value="">All Chapters</option>
                         {chapters.map((chap: any) => <option key={chap.id} value={chap.id}>{chap.title}</option>)}
+                    </select>
+                </div>
+                <div className="md:col-span-1">
+                    <select
+                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                        value={filters.modelId}
+                        onChange={(e) => setFilters(prev => ({ ...prev, modelId: e.target.value }))}
+                        disabled={!filters.chapterId}
+                    >
+                        <option value="">All Models</option>
+                        {models.map((mod: any) => <option key={mod.id} value={mod.id}>{mod.title}</option>)}
                     </select>
                 </div>
                 <div className="md:col-span-1 relative flex gap-2">

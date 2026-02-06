@@ -90,13 +90,15 @@ export class QuestionsController {
         @Request() req: any,
         @Query('examId') examId?: string,
         @Query('subjectId') subjectId?: string,
-        @Query('chapterId') chapterId?: string
+        @Query('chapterId') chapterId?: string,
+        @Query('modelId') modelId?: string
     ) {
-        console.log(`[Export] Request filters:`, { examId, subjectId, chapterId });
+        console.log(`[Export] Request filters:`, { examId, subjectId, chapterId, modelId });
         try {
             const queryBuilder = this.questionRepository.createQueryBuilder('question')
                 .leftJoinAndSelect('question.subject', 'subject')
-                .leftJoinAndSelect('question.chapter', 'chapter');
+                .leftJoinAndSelect('question.chapter', 'chapter')
+                .leftJoinAndSelect('question.models', 'models');
 
             if (examId) {
                 // [FIX] Use leftJoin and allow global questions (exams.id IS NULL)
@@ -112,6 +114,7 @@ export class QuestionsController {
 
             if (subjectId) queryBuilder.andWhere('subject.id = :subjectId', { subjectId });
             if (chapterId) queryBuilder.andWhere('chapter.id = :chapterId', { chapterId });
+            if (modelId) queryBuilder.andWhere('models.id = :modelId', { modelId });
 
             const questions = await queryBuilder.getMany();
             console.log(`[Export] Found ${questions.length} questions matching filters.`);
@@ -120,7 +123,7 @@ export class QuestionsController {
                 'QuestionText', 'OptionA', 'OptionB', 'OptionC', 'OptionD',
                 'CorrectOption', 'Explanation', 'Topic', 'Difficulty',
                 'PositiveMarks', 'NegativeMarks',
-                'SubjectID', 'ChapterID', 'ExamID', 'ImageUrl'
+                'SubjectID', 'ChapterID', 'ExamID', 'ModelID', 'ImageUrl'
             ];
 
             const csvRows = questions.map(q => {
@@ -131,6 +134,7 @@ export class QuestionsController {
                 const examIdsArr = q.exams?.map(e => e.id) || [];
                 const examIds = examIdsArr.join(';');
                 const difficulty = q.difficultyWeight <= 0.3 ? 'easy' : q.difficultyWeight >= 0.7 ? 'hard' : 'medium';
+                const modelIds = q.models?.map(m => m.id).join(';') || '';
 
                 return [
                     `"${(q.content || '').replace(/"/g, '""')}"`,
@@ -147,6 +151,7 @@ export class QuestionsController {
                     q.subject?.id || '',
                     q.chapter?.id || '',
                     examIds,
+                    modelIds,
                     q.imageUrl || ''
                 ].join(',');
             });
@@ -339,6 +344,14 @@ export class QuestionsController {
                         ids.forEach(id => exams.push({ id }));
                     }
 
+                    // Support multi-model split by semicolon
+                    const modelIdRaw = row['modelid'];
+                    const models = [];
+                    if (modelIdRaw) {
+                        const ids = String(modelIdRaw).split(';').map(id => id.trim()).filter(id => !!id);
+                        ids.forEach(id => models.push({ id }));
+                    }
+
                     const question = {
                         content: row['content'] || row['questiontext'],
                         options: options,
@@ -349,6 +362,7 @@ export class QuestionsController {
                         negativeMarks: parseFloat(row['negativemarks']) || 0.25,
                         difficultyWeight: row['difficultyweight'] ? parseFloat(row['difficultyweight']) : (row['difficulty'] === 'easy' ? 0.3 : row['difficulty'] === 'hard' ? 0.7 : 0.5),
                         exams: exams,
+                        models: models,
                         chapterId: chapterId,
                         imageUrl: row['imageurl'] || row['imageUrl'] || row['image']
                     };
