@@ -54,7 +54,8 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite-001" });
+                const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
+                const model = genAI.getGenerativeModel({ model: modelName });
 
                 const parts: any[] = [prompt];
                 if (images.length > 0) {
@@ -87,7 +88,8 @@ export class AIService {
 
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite-001" });
+        const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
+        const model = genAI.getGenerativeModel({ model: modelName });
 
         const parts: any[] = [prompt];
         if (images.length > 0) {
@@ -710,7 +712,8 @@ Return JSON ONLY:
         try {
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite-001" });
+            const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
+            const model = genAI.getGenerativeModel({ model: modelName });
 
             const prompt = `
                 You are an expert AI specialized in Mathematics and Competitive Exam Question Extraction (e.g., SSC CGL, Railway).
