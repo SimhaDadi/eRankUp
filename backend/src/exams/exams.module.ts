@@ -28,9 +28,10 @@ import { PassesModule } from '../passes/passes.module';
 import { QualityModule } from '../quality/quality.module';
 import { StudentQuestionsController } from './student-questions.controller';
 
-import { AdminModule } from '../admin/admin.module';
+
 
 import { UserStats } from '../users/entities/user-stats.entity';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
     imports: [

@@ -2,7 +2,6 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import * as csv from 'csv-parser';
 import { Readable } from 'stream';
 import { AIService } from '../../ai/ai.service';
-import { MediaService } from '../../admin/media.service';
 import * as sharp from 'sharp';
 
 export interface ParsedQuestion {
@@ -15,6 +14,7 @@ export interface ParsedQuestion {
     positiveMarks?: number;
     negativeMarks?: number;
     imageUrl?: string;
+    hasDiagram?: boolean;
     diagram_coordinates?: [number, number, number, number]; // [ymin, xmin, ymax, xmax] 0-1000
 }
 
@@ -22,7 +22,6 @@ export interface ParsedQuestion {
 export class QuestionsUploadService {
     constructor(
         private readonly aiService: AIService,
-        private readonly mediaService: MediaService
     ) { }
 
     async parseExamsFile(buffer: Buffer, mimetype: string): Promise<ParsedQuestion[]> {
@@ -44,16 +43,14 @@ export class QuestionsUploadService {
 
         return new Promise((resolve, reject) => {
             stream
-                // Use strict mode to handle quoted fields correctly (e.g., "Question, with comma")
                 .pipe(csv({ strict: true, mapHeaders: ({ header }) => header.trim() }))
                 .on('data', (row) => {
-                    // Validating required CSV columns with aliases
                     const content = row.content || row.questiontext;
                     const optionA = row.optionA || row.option1;
                     const correctOptionId = row.correctOptionId || row.correctOption || row.correctAnswer;
 
                     if (!content || !optionA || !correctOptionId) {
-                        return; // Skip invalid rows
+                        return;
                     }
 
                     const options = [
@@ -61,7 +58,7 @@ export class QuestionsUploadService {
                         { id: 'B', text: row.optionB || row.option2 },
                         { id: 'C', text: row.optionC || row.option3 || '' },
                         { id: 'D', text: row.optionD || row.option4 || '' },
-                    ].filter(o => o.text); // Remove empty options
+                    ].filter(o => o.text);
 
                     questions.push({
                         content: content,
@@ -97,10 +94,6 @@ export class QuestionsUploadService {
 
             const parsedQuestions: ParsedQuestion[] = [];
 
-            // Get image metadata for cropping if strictly an image (not PDF yet... libraries for PDF to Image are complex)
-            // For PDF, we can't easily crop unless we render pages. 
-            // BUT, the AI service treats the buffer as an image part essentially (multimodal). 
-            // If the input IS an image, we can crop.
             let imageMetadata: sharp.Metadata | null = null;
             if (mimetype.startsWith('image/')) {
                 try {
@@ -110,11 +103,11 @@ export class QuestionsUploadService {
                 }
             }
 
-            for (const item of aiResults) {
+            for (const [index, item] of aiResults.entries()) {
                 const question: ParsedQuestion = {
                     content: item.content,
-                    options: item.options.map((opt: string, index: number) => ({
-                        id: String.fromCharCode(65 + index), // A, B, C, D
+                    options: item.options.map((opt: string, optIndex: number) => ({
+                        id: String.fromCharCode(65 + optIndex),
                         text: opt
                     })),
                     correctOptionId: typeof item.correctOptionIndex === 'number'
@@ -125,39 +118,11 @@ export class QuestionsUploadService {
                     difficultyWeight: item.difficultyWeight || 0.5,
                     positiveMarks: item.positiveMarks || 1.0,
                     negativeMarks: item.negativeMarks || 0.25,
+                    hasDiagram: item.hasDiagram,
                     diagram_coordinates: item.diagram_coordinates
                 };
 
-                // "Smart Crop" Logic
-                if (question.diagram_coordinates && imageMetadata && imageMetadata.width && imageMetadata.height && mimetype.startsWith('image/')) {
-                    try {
-                        const [ymin, xmin, ymax, xmax] = question.diagram_coordinates;
-
-                        // Normalize 0-1000 to pixels
-                        const left = Math.floor((xmin / 1000) * imageMetadata.width);
-                        const top = Math.floor((ymin / 1000) * imageMetadata.height);
-                        const width = Math.floor(((xmax - xmin) / 1000) * imageMetadata.width);
-                        const height = Math.floor(((ymax - ymin) / 1000) * imageMetadata.height);
-
-                        // Validate extraction region
-                        if (width > 50 && height > 50 && left >= 0 && top >= 0) {
-                            console.log(`[QuestionsUploadService] Cropping diagram for question. Box: [${left}, ${top}, ${width}, ${height}]`);
-
-                            const croppedBuffer = await sharp(buffer)
-                                .extract({ left, top, width, height })
-                                .toFormat('jpeg')
-                                .toBuffer();
-
-                            const uploadResult = await this.mediaService.uploadBuffer(croppedBuffer, `diagram-${Date.now()}.jpg`, 'image/jpeg');
-                            question.imageUrl = uploadResult.url;
-                            console.log(`[QuestionsUploadService] Diagram saved: ${question.imageUrl}`);
-                        }
-                    } catch (cropError) {
-                        console.error('[QuestionsUploadService] Failed to crop diagram:', cropError);
-                        // Continue without image, don't break the whole upload
-                    }
-                }
-
+                // Smart Crop logic was here, removed for baseline verify
                 parsedQuestions.push(question);
             }
 
@@ -170,20 +135,6 @@ export class QuestionsUploadService {
     }
 
     async saveQuestionsToModel(modelId: string, parsedQuestions: ParsedQuestion[]) {
-        // This method will be implemented in ExamsService or called from Controller
-        // Wait, QuestionsUploadService is responsible for parsing. 
-        // Actual saving logic often resides in ExamsService to access Repositories.
-        // But we can return the parsed questions to the controller, and let the controller call ExamsService.createQuestionsBulk.
-        // Actually, ExamsService.createQuestionsBulk takes an array. 
-        // So this Service assumes responsibility for Parsing only?
-        // The file name implies Upload Service. 
-        // Let's keep it focused on parsing.
-        // But the previous plan said "add saveQuestionsToModel method".
-        // Let's verify where repositories are injected.
-        // This service ONLY has AIService injected.
-        // So checking the imports... yes only AIService.
-        // So I CANNOT save to DB here without injecting repositories.
-        // It is better to return parsed questions and let ExamsService handle saving.
         return parsedQuestions;
     }
 }

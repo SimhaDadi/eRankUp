@@ -78,7 +78,7 @@ export class Question {
     @ManyToMany(() => Model, (model) => model.questions)
     models: Model[];
 
-    @Column('vector', { length: 768, nullable: true })
-    @Exclude({ toPlainOnly: true })
-    embedding: number[];
+    // @Column('vector', { length: 768, nullable: true })
+    // @Exclude({ toPlainOnly: true })
+    // embedding: number[];
 }

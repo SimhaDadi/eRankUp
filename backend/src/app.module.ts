@@ -28,6 +28,8 @@ import { NewsModule } from './news/news.module';
 import { CommunityModule } from './community/community.module';
 import { AIStudyModule } from './ai-study/ai-study.module';
 import { ContentModule } from './content/content.module';
+import { join } from 'path';
+import { ServeStaticModule } from '@nestjs/serve-static';
 
 @Module({
     imports: [
@@ -40,6 +42,14 @@ import { ContentModule } from './content/content.module';
             limit: 120, // Increased for dev/testing
         }]),
         ScheduleModule.forRoot(),
+        ServeStaticModule.forRoot({
+            rootPath: join(process.cwd(), 'uploads'),
+            serveRoot: '/uploads',
+            serveStaticOptions: {
+                index: false,
+                fallthrough: true
+            }
+        }),
         CommonModule,
         TypeOrmModule.forRootAsync({
             imports: [ConfigModule],
@@ -54,7 +64,7 @@ import { ContentModule } from './content/content.module';
                     database: config.get<string>('DB_NAME', 'erankup_db'),
                     // entities: [__dirname + '/**/*.entity{.ts,.js}'],
                     autoLoadEntities: true,
-                    synchronize: config.get<boolean>('DB_SYNCHRONIZE', false),
+                    synchronize: config.get<string | boolean>('DB_SYNCHRONIZE') === true || config.get<string | boolean>('DB_SYNCHRONIZE') === 'true',
                     ssl: false,
                 };
                 console.log('DB Config:', { ...dbConfig, password: '***' });
@@ -64,19 +74,18 @@ import { ContentModule } from './content/content.module';
         AuthModule,
         UsersModule,
         ExamsModule,
+        AdminModule,
         TestSessionModule,
         PaymentsModule,
         ChatModule,
         AnalyticsModule,
         AIModule,
-        AdminModule,
         GamificationModule,
         AdaptiveLearningModule,
         AIChatModule,
         NotificationsModule,
         PassesModule,
         QualityModule,
-        DoubtsModule,
         DoubtsModule,
         CategoriesModule,
         NewsModule,

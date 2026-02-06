@@ -130,6 +130,10 @@ export default function QuestionListTab() {
                             <div key={q.id} className="p-5 bg-slate-950/50 border border-slate-800 rounded-2xl hover:border-blue-500/50 transition-all">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex-1">
+                                        <MathRenderer
+                                            content={q.content}
+                                            className="text-white font-medium mb-2 !prose-sm"
+                                        />
                                         {q.imageUrl && (
                                             <div className="mb-3">
                                                 <img
@@ -139,10 +143,6 @@ export default function QuestionListTab() {
                                                 />
                                             </div>
                                         )}
-                                        <MathRenderer
-                                            content={q.content}
-                                            className="text-white font-medium mb-2 !prose-sm"
-                                        />
                                         <div className="flex flex-wrap gap-2">
                                             {q.exams?.map(ex => (
                                                 <span key={ex.id} className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] uppercase font-bold">

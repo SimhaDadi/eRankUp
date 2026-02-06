@@ -761,7 +761,7 @@ export class ExamsService implements OnApplicationBootstrap {
         }
 
         // Generate vector embedding for semantic search
-        const embedding = await this.aiService.generateEmbedding(data.content || data.questionText);
+        // const embedding = await this.aiService.generateEmbedding(data.content || data.questionText);
 
         // Link to hierarchy for bank categorization
         const questionData = {
@@ -770,7 +770,7 @@ export class ExamsService implements OnApplicationBootstrap {
             chapter: model?.chapter,
             models: [model],
             exams: data.examId ? [{ id: data.examId }] : [], // Use exams array instead of examId column
-            embedding
+            // embedding
         };
 
         const question = this.questionRepository.create(questionData);
@@ -1128,7 +1128,25 @@ export class ExamsService implements OnApplicationBootstrap {
         console.log(`[ExamsService] Bulk Upload: Received ${questionsData.length}, Found ${existingQuestions.length} existing, Creating ${newQuestionsData.length} new.`);
 
         if (newQuestionsData.length === 0) {
-            // All exist, just return existing
+            // Check if any existing questions need Image Repair (re-upload fixing missing images)
+            let updatedCount = 0;
+            for (const data of questionsData) {
+                if (data.imageUrl) {
+                    const existing = existingQuestions.find(q => q.content.trim() === (data.content || '').trim());
+                    if (existing && !existing.imageUrl) {
+                        existing.imageUrl = data.imageUrl;
+                        await this.questionRepository.save(existing);
+                        updatedCount++;
+                        console.log(`[ExamsService] Repaired question ${existing.id} with new image.`);
+                    }
+                }
+            }
+
+            if (updatedCount > 0) {
+                return existingQuestions; // Return updated entities
+            }
+
+            // All exist and no updates needed
             return existingQuestions;
         }
 
@@ -1160,7 +1178,7 @@ export class ExamsService implements OnApplicationBootstrap {
                 content: content,
                 positiveMarks: data.positiveMarks || 1.0,
                 negativeMarks: data.negativeMarks || 0.25,
-                embedding: (embeddings[i] && embeddings[i].length === 768) ? embeddings[i] : null
+                // embedding: (embeddings[i] && embeddings[i].length === 768) ? embeddings[i] : null
             };
 
             // Link to hierarchy if model exists

@@ -12,6 +12,7 @@ import { Chapter } from '../exams/entities/chapter.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { AIService } from '../ai/ai.service';
 import { ExamsService } from './exams.service';
+import { MediaService } from '../admin/media.service';
 
 @Controller('questions')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -28,7 +29,26 @@ export class QuestionsController {
         private examRepository: Repository<Exam>,
         private readonly aiService: AIService,
         private readonly examsService: ExamsService,
+        private readonly mediaService: MediaService,
     ) { }
+
+    @Post('upload-image')
+    @UseInterceptors(FileInterceptor('image'))
+    async uploadImage(@UploadedFile() file: Express.Multer.File) {
+        if (!file) {
+            throw new HttpException('No file uploaded', HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            const media = await this.mediaService.uploadFile(file);
+            return {
+                success: true,
+                url: media.url
+            };
+        } catch (error) {
+            throw new HttpException(error.message || 'Image upload failed', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     @Get()
     async findAll(
@@ -39,7 +59,6 @@ export class QuestionsController {
         @Query('difficulty') difficulty?: string
     ) {
         try {
-
             const queryBuilder = this.questionRepository.createQueryBuilder('question')
                 .leftJoinAndSelect('question.subject', 'subject')
                 .leftJoinAndSelect('question.chapter', 'chapter');
@@ -91,7 +110,7 @@ export class QuestionsController {
                 text: text
             }));
 
-            const embedding = await this.aiService.generateEmbedding(questionText);
+            // const embedding = await this.aiService.generateEmbedding(questionText);
 
             const question = this.questionRepository.create({
                 content: questionText,
@@ -106,7 +125,7 @@ export class QuestionsController {
                 chapter: chapter,
                 chapterId: chapterId,
                 exams: exam ? [exam] : [], // Now an array, can be empty for global questions
-                embedding: embedding
+                // embedding: embedding
             });
 
             const saved = await this.questionRepository.save(question);
@@ -151,12 +170,11 @@ export class QuestionsController {
 
             if (updateData.questionText) {
                 question.content = updateData.questionText;
-                // Update embedding when content changes
-                try {
-                    question.embedding = await this.aiService.generateEmbedding(updateData.questionText);
-                } catch (e) {
-                    console.error(`Failed to update embedding during question edit: ${e.message}`);
-                }
+                // try {
+                //     question.embedding = await this.aiService.generateEmbedding(updateData.questionText);
+                // } catch (e) {
+                //     console.error(`Failed to update embedding during question edit: ${e.message}`);
+                // }
             }
             if (updateData.correctAnswer !== undefined) question.correctOptionId = String.fromCharCode(65 + updateData.correctAnswer);
             if (updateData.explanation) question.explanation = updateData.explanation;
@@ -164,9 +182,7 @@ export class QuestionsController {
             if (updateData.difficulty) question.difficultyWeight = updateData.difficulty === 'easy' ? 0.3 : updateData.difficulty === 'hard' ? 0.7 : 0.5;
             if (updateData.difficultyWeight !== undefined) question.difficultyWeight = parseFloat(updateData.difficultyWeight);
 
-            // [FIX] Allow updating options and marks
             if (updateData.options) {
-                // Expects array of strings or objects. If strings, remap to {id, text} preserving IDs if possible or regenerating
                 if (Array.isArray(updateData.options) && typeof updateData.options[0] === 'string') {
                     question.options = updateData.options.map((text: string, index: number) => ({
                         id: String.fromCharCode(65 + index),
@@ -191,9 +207,7 @@ export class QuestionsController {
     @Post('bulk-upload')
     @UseInterceptors(FileInterceptor('file'))
     async bulkUpload(@UploadedFile() file: Express.Multer.File, @Request() req: any) {
-        if (!file) {
-            throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
-        }
+        if (!file) throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
 
         if (file.mimetype !== 'text/csv' && !file.originalname.endsWith('.csv')) {
             throw new HttpException('Only CSV files are allowed', HttpStatus.BAD_REQUEST);
@@ -202,10 +216,7 @@ export class QuestionsController {
         try {
             const csvContent = file.buffer.toString('utf-8');
             const lines = csvContent.split(/\r?\n/);
-
-            if (lines.length < 2) {
-                throw new Error('CSV file is empty or missing headers');
-            }
+            if (lines.length < 2) throw new Error('CSV file is empty or missing headers');
 
             const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
             const validQuestions = [];
@@ -214,29 +225,23 @@ export class QuestionsController {
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
-
                 const values = this.parseCSVLine(line);
-
                 if (values.length !== headers.length) {
                     errors.push(`Line ${i + 1}: Mismatch column count`);
                     continue;
                 }
 
                 const row: any = {};
-                headers.forEach((h, index) => {
-                    row[h] = values[index];
-                });
+                headers.forEach((h, index) => { row[h] = values[index]; });
 
                 try {
                     const examId = row['examid'];
                     const chapterId = row['chapterid'];
-
                     if (!chapterId) {
                         errors.push(`Line ${i + 1}: Missing chapterId (required)`);
                         continue;
                     }
 
-                    // Hierarchy verification (minimal, service handles the rest)
                     const chapter = await this.chapterRepository.findOne({ where: { id: chapterId } });
                     if (!chapter) {
                         errors.push(`Line ${i + 1}: Chapter not found`);
@@ -271,12 +276,7 @@ export class QuestionsController {
 
             if (validQuestions.length > 0) {
                 const user = req.user;
-                await this.examsService.createQuestionsBulk(
-                    user.id,
-                    user.role,
-                    undefined, // No specific model
-                    validQuestions
-                );
+                await this.examsService.createQuestionsBulk(user.id, user.role, undefined, validQuestions);
             }
 
             return {
@@ -285,7 +285,6 @@ export class QuestionsController {
                 importedCount: validQuestions.length,
                 errors: errors
             };
-
         } catch (error) {
             throw new HttpException(error.message || 'Failed to upload questions', HttpStatus.BAD_REQUEST);
         }
@@ -295,23 +294,15 @@ export class QuestionsController {
         const result = [];
         let currentValue = '';
         let inQuotes = false;
-
         for (let i = 0; i < line.length; i++) {
             const char = line[i];
-
             if (char === '"') {
-                if (inQuotes && line[i + 1] === '"') {
-                    currentValue += '"';
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
+                if (inQuotes && line[i + 1] === '"') { currentValue += '"'; i++; }
+                else { inQuotes = !inQuotes; }
             } else if (char === ',' && !inQuotes) {
                 result.push(currentValue);
                 currentValue = '';
-            } else {
-                currentValue += char;
-            }
+            } else { currentValue += char; }
         }
         result.push(currentValue);
         return result;

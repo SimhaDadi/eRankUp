@@ -54,7 +54,7 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({ model: "models/gemini-flash-latest" });
+                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite-001" });
 
                 const parts: any[] = [prompt];
                 if (images.length > 0) {
@@ -87,7 +87,7 @@ export class AIService {
 
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "models/gemini-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite-001" });
 
         const parts: any[] = [prompt];
         if (images.length > 0) {
@@ -674,6 +674,35 @@ Return JSON ONLY:
     async parseDocument(file: any): Promise<any[]> {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
 
+
+        if (this.configService.get<string>('MOCK_AI') === 'true') {
+            console.log('[AIService] MOCK_AI enabled. Returning dummy data.');
+            return [
+                {
+                    "content": "In the given figure, if $AB \\parallel CD$, find the value of $x$. The angle $\\angle APQ = 50^\\circ$ and $\\angle PRD = 127^\\circ$. (Mock Data)",
+                    "options": ["50", "77", "127", "60"],
+                    "correctOptionIndex": 1,
+                    "difficultyWeight": 0.5,
+                    "positiveMarks": 2,
+                    "negativeMarks": 0.5,
+                    "explanation": "Since AB || CD, we use alternate interior angles properties. $x = 127 - 50 = 77$.",
+                    "hasDiagram": true,
+                    "diagram_coordinates": [100, 100, 500, 500]
+                },
+                {
+                    "content": "Evaluate: $\\int_0^{\\pi/2} \\sin^2 x \\, dx$. (Mock Data)",
+                    "options": ["$\\pi/2$", "$\\pi/4$", "$\\pi$", "1"],
+                    "correctOptionIndex": 1,
+                    "difficultyWeight": 0.7,
+                    "positiveMarks": 2,
+                    "negativeMarks": 0.5,
+                    "explanation": "Using Walis formula or property $\\int_0^a f(x) = \\int_0^a f(a-x)$. Answer is $\\pi/4$.",
+                    "hasDiagram": false,
+                    "diagram_coordinates": null
+                }
+            ];
+        }
+
         if (!apiKey || apiKey === 'dummy_key_for_test' || apiKey.length < 20) {
             throw new Error("AI Parsing Configuration Error: Missing or invalid GEMINI_API_KEY. Please set a valid Google Gemini API key in the backend environment.");
         }
@@ -681,7 +710,7 @@ Return JSON ONLY:
         try {
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "models/gemini-flash-latest" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite-001" });
 
             const prompt = `
                 You are an expert AI specialized in Mathematics and Competitive Exam Question Extraction (e.g., SSC CGL, Railway).
@@ -707,10 +736,13 @@ Return JSON ONLY:
                     - Triangle: \\triangle
                     - Angle: \\angle
                 
-                ### 3. STRUCTURE & EXTRACTION
-                - **QUESTION NUMBERS**: Use the numbers from the image (e.g., 229, 230, 231).
-                - **OPTIONS**: Extract options (A, B, C, D). Strip labels like "(A)" or "D.".
-                - **EXPLANATION**: Provide a clear, step-by-step solution for the solution field.
+                ### 3. LOOK FOR DIAGRAMS (VISUAL DETECTION)
+                - For each question, look at the image area NEXT to or BELOW the text. 
+                - If there is a geometric figure (circles, triangles, lines) that belongs to the question, set "hasDiagram": true.
+                - **STRICT BOUNDING BOX**: The "diagram_coordinates" [ymin, xmin, ymax, xmax] MUST encapsulate ONLY the drawing/figure.
+                    - **EXCLUDE ALL TEXT**: Do NOT include the question text, option labels (A, B, C, D), or the question number in this box.
+                    - **CROP TIGHTLY**: The box should hug the edges of the shape (triangle, circle, graph, etc.) tightly.
+                - You MUST provide the bounding box [ymin, xmin, ymax, xmax] for that figure in "diagram_coordinates".
                 
                 ### 4. DATA FORMAT
                 Return the result strictly as a RAW JSON Array of objects:
@@ -722,10 +754,12 @@ Return JSON ONLY:
                     "positiveMarks": number (default 1),
                     "negativeMarks": number (default 0.25),
                     "explanation": "Detailed step-by-step solution",
-                    "diagram_coordinates": [ymin, xmin, ymax, xmax] // OPTIONAL: Bounding box of the DIAGRAM (0-1000 scale) for this specific question.
+                    "hasDiagram": boolean, // TRUE if a visual diagram exists
+                    "diagram_coordinates": [ymin, xmin, ymax, xmax] // REQUIRED if hasDiagram is true. 0-1000 scale.
                 }
                 IGNORE checkmarks (✓) or handwritten marks. Focus on PRINTED text.
-                If a question has a diagram, you MUST provide the 'diagram_coordinates'.
+                If "hasDiagram" is true, "diagram_coordinates" CANNOT be null.
+                **CRITICAL**: "diagram_coordinates" MUST NOT overlap with the question text area. It is for the FIGURE ONLY.
                 `;
 
             const imagePart = {
@@ -900,16 +934,16 @@ Extract all questions and format them as a JSON array with this structure:
         // Find similar questions using Vector Semantic Search
         let similarQuestions: Question[] = [];
         if (parsed.questionText) {
-            const embedding = await this.generateEmbedding(parsed.questionText);
+            // const embedding = await this.generateEmbedding(parsed.questionText);
 
             // Use Cosine Similarity (<=> operator in pgvector for distance)
-            const embeddingStr = `[${embedding.join(',')}]`;
+            // const embeddingStr = `[${embedding.join(',')}]`;
             similarQuestions = await this.questionRepository
                 .createQueryBuilder('q')
                 .leftJoinAndSelect('q.subject', 'subject')
                 .leftJoinAndSelect('q.chapter', 'chapter')
-                .orderBy(`q.embedding <=> : embedding`)
-                .setParameters({ embedding: embeddingStr })
+                // .orderBy(`q.embedding <=> : embedding`)
+                // .setParameters({ embedding: embeddingStr })
                 .limit(3)
                 .getMany();
         }

@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { AlertCircle, X, CheckCircle } from 'lucide-react';
+import { AlertCircle, X, CheckCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { Exam, Subject, Chapter } from './types';
 
@@ -27,8 +26,34 @@ export default function AddQuestionTab() {
         difficulty: 'medium',
         subjectId: '',
         chapterId: '',
-        explanation: ''
+        explanation: '',
+        imageUrl: ''
     });
+
+    const [uploading, setUploading] = useState(false);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        setError(null);
+
+        const formDataPayload = new FormData();
+        formDataPayload.append('image', file);
+
+        try {
+            const response = await api.post('/questions/image-upload', formDataPayload, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setFormData(prev => ({ ...prev, imageUrl: response.data.url }));
+        } catch (err: any) {
+            setError('Failed to upload image');
+            console.error(err);
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const fetchExams = useCallback(async () => {
         setLoadingExams(true);
@@ -113,7 +138,8 @@ export default function AddQuestionTab() {
                 subjectId: formData.subjectId,
                 exams: selectedExamId ? [{ id: selectedExamId }] : [],
                 chapterId: formData.chapterId,
-                explanation: formData.explanation
+                explanation: formData.explanation,
+                imageUrl: formData.imageUrl
             };
 
             await api.post('/questions', questionData);
@@ -130,7 +156,8 @@ export default function AddQuestionTab() {
                 difficulty: 'medium',
                 subjectId: '',
                 chapterId: '',
-                explanation: ''
+                explanation: '',
+                imageUrl: ''
             });
             setSelectedExamId('');
             setSelectedSubjectId('');
@@ -173,6 +200,57 @@ export default function AddQuestionTab() {
                             className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
                             placeholder="Enter the question text..."
                         />
+                    </div>
+
+                    {/* Image Upload */}
+                    <div className="bg-slate-950/50 p-6 rounded-2xl border border-dashed border-slate-800">
+                        <label className="block text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-blue-400" />
+                            Question Diagram / Image (Optional)
+                        </label>
+
+                        <div className="flex items-center gap-4">
+                            {formData.imageUrl ? (
+                                <div className="relative group w-32 h-32 rounded-xl overflow-hidden border border-slate-700">
+                                    <img
+                                        src={`${process.env.NEXT_PUBLIC_API_URL}${formData.imageUrl}`}
+                                        alt="Diagram"
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-slate-800 rounded-xl cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        {uploading ? (
+                                            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                                        ) : (
+                                            <>
+                                                <ImageIcon className="w-8 h-8 text-slate-500 group-hover:text-blue-400 mb-2" />
+                                                <p className="text-[10px] text-slate-500 group-hover:text-blue-400 font-bold uppercase tracking-wider">Upload</p>
+                                            </>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        disabled={uploading}
+                                    />
+                                </label>
+                            )}
+                            <div className="flex-1 text-xs text-slate-500">
+                                <p className="mb-1 font-semibold text-slate-400">Supported formats: JPG, PNG, WEBP</p>
+                                <p>Maximum size: 5MB. Diagrams help students understand geometry and physics problems better.</p>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Options */}

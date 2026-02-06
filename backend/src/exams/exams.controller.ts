@@ -243,7 +243,8 @@ export class ExamsController {
             topic: q.topic,
             difficultyWeight: q.difficultyWeight || 0.5,
             positiveMarks: q.positiveMarks,
-            negativeMarks: q.negativeMarks
+            negativeMarks: q.negativeMarks,
+            imageUrl: q.imageUrl // [FIX] Persist diagram URL
         }));
 
         const result = await this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, questionsData);
