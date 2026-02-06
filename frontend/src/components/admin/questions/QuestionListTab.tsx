@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Search, FileText, Edit, Trash2 } from 'lucide-react';
+import { Search, FileText, Edit, Trash2, Download } from 'lucide-react';
 import api from '@/lib/api';
 import { Question } from './types';
 import EditQuestionModal from '../EditQuestionModal';
@@ -65,6 +65,30 @@ export default function QuestionListTab() {
         }
     }, [searchQuery, selectedDifficulty, filters]);
 
+    const handleExport = async () => {
+        try {
+            const params = new URLSearchParams();
+            if (filters.examId) params.append('examId', filters.examId);
+            if (filters.subjectId) params.append('subjectId', filters.subjectId);
+            if (filters.chapterId) params.append('chapterId', filters.chapterId);
+
+            const response = await api.get(`/questions/export?${params.toString()}`, {
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `questions_backup_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Export failed", error);
+            alert("Failed to export backup");
+        }
+    };
+
     useEffect(() => {
         fetchQuestions();
     }, [fetchQuestions]);
@@ -104,15 +128,24 @@ export default function QuestionListTab() {
                         {chapters.map((chap: any) => <option key={chap.id} value={chap.id}>{chap.title}</option>)}
                     </select>
                 </div>
-                <div className="md:col-span-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Search..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
-                    />
+                <div className="md:col-span-1 relative flex gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                        />
+                    </div>
+                    <button
+                        onClick={handleExport}
+                        title="Export Backup"
+                        className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-blue-400 hover:border-blue-500/50 transition-all shadow-lg"
+                    >
+                        <Download className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
 

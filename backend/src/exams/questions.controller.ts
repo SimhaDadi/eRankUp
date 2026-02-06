@@ -85,6 +85,71 @@ export class QuestionsController {
         }
     }
 
+    @Get('export')
+    async exportQuestions(
+        @Request() req: any,
+        @Query('examId') examId?: string,
+        @Query('subjectId') subjectId?: string,
+        @Query('chapterId') chapterId?: string
+    ) {
+        try {
+            const queryBuilder = this.questionRepository.createQueryBuilder('question')
+                .leftJoinAndSelect('question.subject', 'subject')
+                .leftJoinAndSelect('question.chapter', 'chapter');
+
+            if (examId) {
+                queryBuilder.innerJoin('question.exams', 'exams', 'exams.id = :examId', { examId });
+            } else {
+                queryBuilder.leftJoinAndSelect('question.exams', 'exams');
+            }
+
+            if (subjectId) queryBuilder.andWhere('subject.id = :subjectId', { subjectId });
+            if (chapterId) queryBuilder.andWhere('chapter.id = :chapterId', { chapterId });
+
+            const questions = await queryBuilder.getMany();
+
+            const csvHeaders = [
+                'ID', 'QuestionText', 'OptionA', 'OptionB', 'OptionC', 'OptionD',
+                'CorrectOption', 'Explanation', 'Topic', 'Difficulty',
+                'SubjectID', 'ChapterID', 'ExamID', 'ImageUrl'
+            ];
+
+            const csvRows = questions.map(q => {
+                const optA = q.options.find(o => o.id === 'A')?.text || '';
+                const optB = q.options.find(o => o.id === 'B')?.text || '';
+                const optC = q.options.find(o => o.id === 'C')?.text || '';
+                const optD = q.options.find(o => o.id === 'D')?.text || '';
+                const examIds = q.exams?.map(e => e.id).join(';') || '';
+                const difficulty = q.difficultyWeight <= 0.3 ? 'easy' : q.difficultyWeight >= 0.7 ? 'hard' : 'medium';
+
+                return [
+                    q.id,
+                    `"${(q.content || '').replace(/"/g, '""')}"`,
+                    `"${optA.replace(/"/g, '""')}"`,
+                    `"${optB.replace(/"/g, '""')}"`,
+                    `"${optC.replace(/"/g, '""')}"`,
+                    `"${optD.replace(/"/g, '""')}"`,
+                    q.correctOptionId,
+                    `"${(q.explanation || '').replace(/"/g, '""')}"`,
+                    `"${(q.topic || '').replace(/"/g, '""')}"`,
+                    difficulty,
+                    q.subject?.id || '',
+                    q.chapter?.id || '',
+                    examIds,
+                    q.imageUrl || ''
+                ].join(',');
+            });
+
+            const csvString = [csvHeaders.join(','), ...csvRows].join('\n');
+            const res = req.res;
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename=questions_backup_${new Date().toISOString().split('T')[0]}.csv`);
+            return res.send(csvString);
+        } catch (error) {
+            throw new HttpException(error.message || 'Export failed', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @Post()
     async createQuestion(@Body() questionData: any) {
         try {
@@ -265,7 +330,8 @@ export class QuestionsController {
                         negativeMarks: parseFloat(row['negativemarks']) || 0.25,
                         difficultyWeight: row['difficultyweight'] ? parseFloat(row['difficultyweight']) : (row['difficulty'] === 'easy' ? 0.3 : row['difficulty'] === 'hard' ? 0.7 : 0.5),
                         exams: examId ? [{ id: examId }] : [],
-                        chapterId: chapterId
+                        chapterId: chapterId,
+                        imageUrl: row['imageurl'] || row['imageUrl'] || row['image']
                     };
 
                     validQuestions.push(question);

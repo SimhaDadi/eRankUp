@@ -839,7 +839,7 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     private formatQuestionsToCSV(questions: Question[], hierarchy?: { examId?: string, subjectId?: string, chapterId?: string }): string {
-        const baseHeaders = ['content', 'optionA', 'optionB', 'optionC', 'optionD', 'correctOptionId', 'explanation', 'topic', 'difficultyWeight', 'positiveMarks', 'negativeMarks'];
+        const baseHeaders = ['content', 'optionA', 'optionB', 'optionC', 'optionD', 'correctOptionId', 'explanation', 'topic', 'difficultyWeight', 'positiveMarks', 'negativeMarks', 'imageUrl'];
         const metaHeaders = ['examId', 'subjectId', 'chapterId'];
         const headers = [...baseHeaders, ...metaHeaders];
 
@@ -861,6 +861,7 @@ export class ExamsService implements OnApplicationBootstrap {
                 q.difficultyWeight,
                 q.positiveMarks,
                 q.negativeMarks,
+                q.imageUrl || '',
                 hierarchy?.examId || q.examId || '',
                 hierarchy?.subjectId || q.subject?.id || '',
                 hierarchy?.chapterId || q.chapterId || q.chapter?.id || ''
