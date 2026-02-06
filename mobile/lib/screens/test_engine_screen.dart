@@ -501,6 +501,23 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
+                    if (question.imageUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Builder(
+                            builder: (context) {
+                              // ApiService.baseUrl is static
+                              return Image.network(
+                                '${ApiService.baseUrl}${question.imageUrl}',
+                                fit: BoxFit.contain,
+                                errorBuilder: (c, e, s) => const SizedBox(), // Hide if error
+                              );
+                            }
+                          ),
+                        ),
+                      ),
                     MathRichText(
                       text: question.content,
                       style: TextStyle(

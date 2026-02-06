@@ -25,4 +25,5 @@ export interface Question {
     chapter?: { id: string; title: string };
     exams: Exam[];
     explanation?: string;
+    imageUrl?: string;
 }

@@ -1,7 +1,9 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import * as csv from 'csv-parser';
 import { Readable } from 'stream';
-import { AIService } from '../../ai/ai.service'; // Assuming AiService is here or shared
+import { AIService } from '../../ai/ai.service';
+import { MediaService } from '../../admin/media.service';
+import * as sharp from 'sharp';
 
 export interface ParsedQuestion {
     content: string;
@@ -12,11 +14,16 @@ export interface ParsedQuestion {
     difficultyWeight?: number;
     positiveMarks?: number;
     negativeMarks?: number;
+    imageUrl?: string;
+    diagram_coordinates?: [number, number, number, number]; // [ymin, xmin, ymax, xmax] 0-1000
 }
 
 @Injectable()
 export class QuestionsUploadService {
-    constructor(private readonly aiService: AIService) { }
+    constructor(
+        private readonly aiService: AIService,
+        private readonly mediaService: MediaService
+    ) { }
 
     async parseExamsFile(buffer: Buffer, mimetype: string): Promise<ParsedQuestion[]> {
         console.log(`[QuestionsUploadService] Processing file: ${mimetype}, Size: ${buffer.length} bytes`);
@@ -88,24 +95,76 @@ export class QuestionsUploadService {
                 throw new BadRequestException('AI Parser returned 0 questions. Please ensure the document is clear and contains questions.');
             }
 
-            return aiResults.map((item: any) => ({
-                content: item.content,
-                options: item.options.map((opt: string, index: number) => ({
-                    id: String.fromCharCode(65 + index), // A, B, C, D
-                    text: opt
-                })),
-                correctOptionId: typeof item.correctOptionIndex === 'number'
-                    ? String.fromCharCode(65 + item.correctOptionIndex)
-                    : 'A', // Default or handle appropriately
-                explanation: item.explanation,
-                topic: 'General',
-                difficultyWeight: item.difficultyWeight || 0.5,
-                positiveMarks: item.positiveMarks || 1.0,
-                negativeMarks: item.negativeMarks || 0.25
-            }));
+            const parsedQuestions: ParsedQuestion[] = [];
+
+            // Get image metadata for cropping if strictly an image (not PDF yet... libraries for PDF to Image are complex)
+            // For PDF, we can't easily crop unless we render pages. 
+            // BUT, the AI service treats the buffer as an image part essentially (multimodal). 
+            // If the input IS an image, we can crop.
+            let imageMetadata: sharp.Metadata | null = null;
+            if (mimetype.startsWith('image/')) {
+                try {
+                    imageMetadata = await sharp(buffer).metadata();
+                } catch (e) {
+                    console.error('[QuestionsUploadService] Failed to get image metadata:', e);
+                }
+            }
+
+            for (const item of aiResults) {
+                const question: ParsedQuestion = {
+                    content: item.content,
+                    options: item.options.map((opt: string, index: number) => ({
+                        id: String.fromCharCode(65 + index), // A, B, C, D
+                        text: opt
+                    })),
+                    correctOptionId: typeof item.correctOptionIndex === 'number'
+                        ? String.fromCharCode(65 + item.correctOptionIndex)
+                        : 'A',
+                    explanation: item.explanation,
+                    topic: 'General',
+                    difficultyWeight: item.difficultyWeight || 0.5,
+                    positiveMarks: item.positiveMarks || 1.0,
+                    negativeMarks: item.negativeMarks || 0.25,
+                    diagram_coordinates: item.diagram_coordinates
+                };
+
+                // "Smart Crop" Logic
+                if (question.diagram_coordinates && imageMetadata && imageMetadata.width && imageMetadata.height && mimetype.startsWith('image/')) {
+                    try {
+                        const [ymin, xmin, ymax, xmax] = question.diagram_coordinates;
+
+                        // Normalize 0-1000 to pixels
+                        const left = Math.floor((xmin / 1000) * imageMetadata.width);
+                        const top = Math.floor((ymin / 1000) * imageMetadata.height);
+                        const width = Math.floor(((xmax - xmin) / 1000) * imageMetadata.width);
+                        const height = Math.floor(((ymax - ymin) / 1000) * imageMetadata.height);
+
+                        // Validate extraction region
+                        if (width > 50 && height > 50 && left >= 0 && top >= 0) {
+                            console.log(`[QuestionsUploadService] Cropping diagram for question. Box: [${left}, ${top}, ${width}, ${height}]`);
+
+                            const croppedBuffer = await sharp(buffer)
+                                .extract({ left, top, width, height })
+                                .toFormat('jpeg')
+                                .toBuffer();
+
+                            const uploadResult = await this.mediaService.uploadBuffer(croppedBuffer, `diagram-${Date.now()}.jpg`, 'image/jpeg');
+                            question.imageUrl = uploadResult.url;
+                            console.log(`[QuestionsUploadService] Diagram saved: ${question.imageUrl}`);
+                        }
+                    } catch (cropError) {
+                        console.error('[QuestionsUploadService] Failed to crop diagram:', cropError);
+                        // Continue without image, don't break the whole upload
+                    }
+                }
+
+                parsedQuestions.push(question);
+            }
+
+            return parsedQuestions;
+
         } catch (error) {
             console.error('AI Parse Error:', error);
-            // Pass through the specific error message from AIService
             throw new BadRequestException(error.message || 'Failed to parse file via AI Service.');
         }
     }

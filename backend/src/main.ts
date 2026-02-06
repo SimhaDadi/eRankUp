@@ -8,7 +8,12 @@ import helmet from 'helmet';
 import { NestExpressApplication, ExpressAdapter } from '@nestjs/platform-express';
 
 async function bootstrap() {
-    const app = await NestFactory.create<NestExpressApplication>(AppModule, new ExpressAdapter(), { rawBody: true });
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, new ExpressAdapter());
+
+    // Increase body parser limits for large image uploads
+    const express = require('express');
+    app.use(express.json({ limit: '50mb' }));
+    app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
     // Enable Helmet for Security Headers
     app.use(helmet());

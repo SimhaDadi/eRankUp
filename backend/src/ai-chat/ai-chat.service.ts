@@ -108,6 +108,7 @@ export class AIChatService {
                     subject: question.subject?.title || 'Unknown Subject',
                     exam: question.exam?.title || 'General Competitive Exam',
                     topic: question.topic || 'General',
+                    imageUrl: question.imageUrl,
                     avgTopperTime: question.avgTopperTime || 60,
                     userPerformance: latestResponse ? {
                         selectedOption: latestResponse.selectedOptionId,
@@ -116,6 +117,27 @@ export class AIChatService {
                         wasSkipped: latestResponse.wasSkipped
                     } : null
                 };
+            }
+        }
+
+        // Logic to load Diagram Image if present in Question Context
+        const promptImages = [];
+        if (image) promptImages.push(image); // User uploaded image
+
+        if (questionContext && questionContext.imageUrl && questionContext.imageUrl.startsWith('/uploads')) {
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const absolutePath = path.join(process.cwd(), questionContext.imageUrl);
+                if (fs.existsSync(absolutePath)) {
+                    const buffer = fs.readFileSync(absolutePath);
+                    promptImages.push({
+                        data: buffer.toString('base64'),
+                        mimeType: 'image/jpeg'
+                    });
+                }
+            } catch (e) {
+                console.error('[AIChat] Failed to load question diagram:', e);
             }
         }
 
@@ -162,7 +184,7 @@ export class AIChatService {
         }, history);
 
         // Execute via AIService (which handles internal queuing)
-        const stream = await this.aiService.generateStream(prompt, image ? [image] : []);
+        const stream = await this.aiService.generateStream(prompt, promptImages);
 
         return { stream, conversationId: conversation.id };
     }
@@ -260,6 +282,7 @@ export class AIChatService {
                     subject: question.subject?.title || 'Unknown Subject',
                     exam: question.exam?.title || 'General Competitive Exam',
                     topic: question.topic || 'General',
+                    imageUrl: question.imageUrl,
                     avgTopperTime: question.avgTopperTime || 60,
                     userPerformance: latestResponse ? {
                         selectedOption: latestResponse.selectedOptionId,
@@ -268,6 +291,27 @@ export class AIChatService {
                         wasSkipped: latestResponse.wasSkipped
                     } : null
                 };
+            }
+        }
+
+        // Logic to load Diagram Image
+        const promptImages = [];
+        if (image) promptImages.push(image);
+
+        if (questionContext && questionContext.imageUrl && questionContext.imageUrl.startsWith('/uploads')) {
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const absolutePath = path.join(process.cwd(), questionContext.imageUrl);
+                if (fs.existsSync(absolutePath)) {
+                    const buffer = fs.readFileSync(absolutePath);
+                    promptImages.push({
+                        data: buffer.toString('base64'),
+                        mimeType: 'image/jpeg'
+                    });
+                }
+            } catch (e) {
+                console.error('[AIChat] Failed to load question diagram:', e);
             }
         }
 
@@ -313,7 +357,7 @@ export class AIChatService {
 
         let aiResponse: string;
         try {
-            aiResponse = await this.aiService.generateText(prompt, image ? [image] : [], AIPriority.HIGH);
+            aiResponse = await this.aiService.generateText(prompt, promptImages, AIPriority.HIGH);
 
             aiResponse = this.aiService.cleanAIResponse(aiResponse); // Mechanically strip unwanted symbols
             await this.aiUsageService.trackUsage(userId, prompt, aiResponse);

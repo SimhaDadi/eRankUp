@@ -130,6 +130,15 @@ export default function QuestionListTab() {
                             <div key={q.id} className="p-5 bg-slate-950/50 border border-slate-800 rounded-2xl hover:border-blue-500/50 transition-all">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex-1">
+                                        {q.imageUrl && (
+                                            <div className="mb-3">
+                                                <img
+                                                    src={`${process.env.NEXT_PUBLIC_API_URL}${q.imageUrl}`}
+                                                    alt="Question Diagram"
+                                                    className="max-h-48 rounded-lg border border-slate-800"
+                                                />
+                                            </div>
+                                        )}
                                         <MathRenderer
                                             content={q.content}
                                             className="text-white font-medium mb-2 !prose-sm"

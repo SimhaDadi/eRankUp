@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Inject, forwardRef, OnApplicationBootstrap, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef, OnApplicationBootstrap, Logger, ForbiddenException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, In, Brackets } from 'typeorm';
 import { User } from '../users/user.entity';
@@ -1147,12 +1147,20 @@ export class ExamsService implements OnApplicationBootstrap {
         // 3. Map data and join with embeddings
         for (let i = 0; i < newQuestionsData.length; i++) {
             const data = newQuestionsData[i];
+            const content = (data.content || data.questionText || '').trim();
+
+            // Critical Validation: Skip if content is missing
+            if (!content) {
+                console.warn(`[ExamsService] Skipping question ${i} due to missing content.`);
+                continue;
+            }
+
             const questionData: any = {
                 ...data,
-                content: (data.content || data.questionText || '').trim(), // Ensure we save the trimmed version
+                content: content,
                 positiveMarks: data.positiveMarks || 1.0,
                 negativeMarks: data.negativeMarks || 0.25,
-                embedding: embeddings[i] || null
+                embedding: (embeddings[i] && embeddings[i].length === 768) ? embeddings[i] : null
             };
 
             // Link to hierarchy if model exists
@@ -1172,11 +1180,27 @@ export class ExamsService implements OnApplicationBootstrap {
                 }
             }
 
-            const question = this.questionRepository.create(questionData);
-            questions.push(question as unknown as Question);
+            try {
+                const question = this.questionRepository.create(questionData);
+                questions.push(question as unknown as Question);
+            } catch (err) {
+                console.error(`[ExamsService] Failed to create question entity for item ${i}:`, err.message);
+            }
         }
 
-        const savedQuestions = await this.questionRepository.save(questions);
+        if (questions.length === 0) {
+            console.warn('[ExamsService] No valid questions to save after filtering and validation.');
+            return existingQuestions;
+        }
+
+        let savedQuestions: Question[] = [];
+        try {
+            savedQuestions = await this.questionRepository.save(questions);
+        } catch (dbError) {
+            console.error('[ExamsService] FATAL: Database save failed for bulk questions:', dbError.message);
+            // If it's a constraint violation or mapping error, we want to know why
+            throw new InternalServerErrorException(`Failed to save questions to database: ${dbError.message}`);
+        }
 
         // Return combined list (Existing + Newly Saved)
         const finalResult = [...existingQuestions, ...savedQuestions];

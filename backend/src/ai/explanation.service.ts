@@ -40,7 +40,7 @@ export class ExplanationService {
         }
 
         this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+        this.model = this.genAI.getGenerativeModel({ model: 'models/gemini-flash-latest' });
         this.isInitialized = true;
         console.log('✅ Gemini 1.5 Flash initialized successfully');
     }

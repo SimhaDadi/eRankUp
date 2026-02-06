@@ -54,7 +54,7 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" });
+                const model = genAI.getGenerativeModel({ model: "models/gemini-flash-latest" });
 
                 const parts: any[] = [prompt];
                 if (images.length > 0) {
@@ -87,7 +87,7 @@ export class AIService {
 
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" });
+        const model = genAI.getGenerativeModel({ model: "models/gemini-flash-latest" });
 
         const parts: any[] = [prompt];
         if (images.length > 0) {
@@ -217,7 +217,22 @@ export class AIService {
         GENERATE EXPLANATION FOLLOWING THE [GOOD RESPONSE] FORMAT:`;
 
         try {
-            const explanation = await this.generateText(prompt);
+            const images = [];
+            if (question.imageUrl && question.imageUrl.startsWith('/uploads')) {
+                const fs = require('fs');
+                const path = require('path');
+                // Resolve absolute path from project root
+                const absolutePath = path.join(process.cwd(), question.imageUrl);
+                if (fs.existsSync(absolutePath)) {
+                    const buffer = fs.readFileSync(absolutePath);
+                    images.push({
+                        data: buffer.toString('base64'),
+                        mimeType: 'image/jpeg' // Assuming jpeg from upload service, or detect
+                    });
+                }
+            }
+
+            const explanation = await this.generateText(prompt, images);
             return this.cleanAIResponse(explanation);
         } catch (error) {
             console.error('[AIService] Failed to generate explanation:', error);
@@ -666,49 +681,51 @@ Return JSON ONLY:
         try {
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" }); // Survival mode: Gemma 3 has separate quota
+            const model = genAI.getGenerativeModel({ model: "models/gemini-flash-latest" });
 
             const prompt = `
                 You are an expert AI specialized in Mathematics and Competitive Exam Question Extraction (e.g., SSC CGL, Railway).
-                I have uploaded a document (PDF or Image) containing several Multiple Choice Questions (MCQs) in Geometry, Arithmetic, etc.
+                I have uploaded an image containing several Multiple Choice Questions (MCQs) in Geometry.
                 
-                YOUR GOAL: Extract every question with 100% literal accuracy.
+                YOUR GOAL: Extract every question with 100% literal accuracy, especially handling mathematical symbols and diagrams.
                 
                 ### 1. STRICT LITERAL EXTRACTION (CRITICAL)
-                - **NO SOLVING**: Do NOT attempt to solve the problems. Do NOT guess what is "mathematically correct". 
+                - **NO SOLVING**: Do NOT attempt to solve the problems.
                 - **EXACT TRANSCRIPTION**: Transcribe the text EXACTLY as printed. 
-                    - If you see "$a^2 + b^2 + c^2 = ab + bc + ca$", do NOT change it to "$a^2 + b^2 = c^2$".
-                    - If you see "Let AX ⊥ BC", do NOT write "AX1BC".
-                - **NO PARAPHRASING**: Maintain the sentence structure. If it says "What is the ratio?", do not change it to a statement "The ratio is:".
+                    - If you see symbols like π, √, or superscripts, use LaTeX: $\\pi$, $\\sqrt{x}$, $x^2$.
+                    - Fractions like "π/4" MUST be transcribed as $\\frac{\\pi}{4}$.
+                - **DIAGRAM HANDLING**: If a question refers to a figure (e.g., "as shown in the figure"), ensure the question text is complete. Mention the figure in the content if necessary.
                 
                 ### 2. MATHEMATICAL FORMULATION
                 - **LaTeX ONLY**: Use LaTeX syntax ($ ... $) for ALL mathematical expressions, formulas, and symbols.
-                - **GEOMETRY SYMBOLS**: Ensure correct LaTeX tokens for geometry:
-                    - Perpendicular: \\perp (e.g., $AX \\perp BC$)
-                    - Triangle: \\triangle (e.g., $\\triangle ABC$)
-                    - Angle: \\angle (e.g., $\\angle BAC$)
-                    - Congruent: \\cong
-                    - Similar: \\sim
-                    - Degree: ^\\circ (e.g., $60^\\circ$)
+                - **MATH SYMBOLS**:
+                    - Pi: \\pi
+                    - Square root: \\sqrt{...}
+                    - Fractions: \\frac{num}{den}
+                    - Degree: ^\\circ
+                    - Perpendicular: \\perp
+                    - Triangle: \\triangle
+                    - Angle: \\angle
                 
                 ### 3. STRUCTURE & EXTRACTION
-                - Use question numbers (10, 11, 12, etc.) from the image. DO NOT SKIP QUESTIONS.
+                - **QUESTION NUMBERS**: Use the numbers from the image (e.g., 229, 230, 231).
                 - **OPTIONS**: Extract options (A, B, C, D). Strip labels like "(A)" or "D.".
-                - **EXPLANATION**: Provide a brief, logical step-by-step solution. While you must NOT solve during extraction, you SHOULD solve here for the explanation.
+                - **EXPLANATION**: Provide a clear, step-by-step solution for the solution field.
                 
                 ### 4. DATA FORMAT
                 Return the result strictly as a RAW JSON Array of objects:
                 {
                     "content": "The question text with $ LaTeX $",
                     "options": ["Opt1", "Opt2", "Opt3", "Opt4"],
-                    "correctOptionIndex": 0, // 0 for A, 1 for B, etc.
+                    "correctOptionIndex": number, // 0 for A, 1 for B, etc.
                     "difficultyWeight": 0.1 to 1.0,
-                    "positiveMarks": number,
-                    "negativeMarks": number,
-                    "explanation": "Brief reasoning / solve steps"
+                    "positiveMarks": number (default 1),
+                    "negativeMarks": number (default 0.25),
+                    "explanation": "Detailed step-by-step solution",
+                    "diagram_coordinates": [ymin, xmin, ymax, xmax] // OPTIONAL: Bounding box of the DIAGRAM (0-1000 scale) for this specific question.
                 }
-                IGNORE Handwritten scribbles or circles that are not answer - related. 
-                Focus on the PRINTED text and the intended mathematical problem.
+                IGNORE checkmarks (✓) or handwritten marks. Focus on PRINTED text.
+                If a question has a diagram, you MUST provide the 'diagram_coordinates'.
                 `;
 
             const imagePart = {
@@ -831,7 +848,7 @@ Extract all questions and format them as a JSON array with this structure:
 
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "models/gemma-3-4b-it" });
+        const model = genAI.getGenerativeModel({ model: "models/gemini-flash-latest" });
 
         const prompt = `You are a top SSC CGL Quant mentor.
         Solve the given problem using the quickest shortcut possible (within 30–60 seconds).
@@ -979,31 +996,35 @@ Extract all questions and format them as a JSON array with this structure:
         try {
             return JSON.parse(cleanStr);
         } catch (e) {
-            // 2. Fix common JSON escape issues (e.g., \text -> \\text)
-            const sanitizedJson = cleanStr.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+            // 2. Aggressive cleanup for common AI JSON mistakes
+            // Fix unescaped backslashes in math (e.g., \frac -> \\frac)
+            // But don't double escape if they are already escaped
+            const sanitizedJson = cleanStr
+                .replace(/\\(?!["\\/bfnrtu])/g, '\\\\')
+                // Fix missing quotes on keys (rare but happens)
+                .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+                // Fix single quotes to double quotes for strings
+                .replace(/'([^']*)'/g, '"$1"');
+
             try {
                 return JSON.parse(sanitizedJson);
             } catch (e2) {
-                // 3. Fix Trailing Commas
+                // 3. Fix Trailing Commas and Newlines
                 try {
-                    const noTrailing = cleanStr
+                    const repaired = cleanStr
                         .replace(/,\s*}/g, '}')
-                        .replace(/,\s*]/g, ']');
-                    return JSON.parse(noTrailing);
+                        .replace(/,\s*]/g, ']')
+                        .replace(/\n/g, ' ')
+                        .replace(/\r/g, ' ');
+                    return JSON.parse(repaired);
                 } catch (e3) {
-                    // 4. Fix Newlines in strings
+                    console.warn('[AIService] JSON Parse failed, attempting aggressive repair:', e2.message);
+                    // 4. Fallback: Nuclear option - remove all backslashes that aren't escapes
                     try {
-                        const noNewlines = cleanStr.replace(/\n/g, ' ');
-                        return JSON.parse(noNewlines);
+                        return JSON.parse(cleanStr.replace(/\\(?![nrt"\\/])/g, ''));
                     } catch (e4) {
-                        console.warn('[AIService] JSON Parse failed, attempting aggressive repair:', e2.message);
-                        // 5. Fallback: Nuclear option
-                        try {
-                            return JSON.parse(cleanStr.replace(/\\/g, ''));
-                        } catch (e5) {
-                            console.error('[AIService] Fatal JSON Parse Error. Ignoring.');
-                            return onErrorFallback;
-                        }
+                        console.error('[AIService] Fatal JSON Parse Error. Response content recorded above.');
+                        return onErrorFallback;
                     }
                 }
             }
