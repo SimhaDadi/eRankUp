@@ -1,5 +1,5 @@
-
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 export enum AIPriority {
     HIGH = 'HIGH',    // Real-time chat, UI blocking tasks
@@ -18,7 +18,10 @@ interface RankedTask {
 export class AIQueueService {
     private queue: RankedTask[] = [];
     private isProcessing = false;
-    private readonly RATE_LIMIT_DELAY = 6000; // Increased to 6s (10 RPM) for Maximum Gemini Free Tier safety
+    private readonly GEMINI_DELAY = 6000; // 6s (10 RPM) for Gemini Free Tier
+    private readonly GROQ_DELAY = 500;   // 0.5s for Groq (Fast Inference)
+
+    constructor(private configService: ConfigService) { }
 
     async add<T>(task: () => Promise<T>, priority: AIPriority = AIPriority.MEDIUM): Promise<T> {
         return new Promise<T>((resolve, reject) => {
@@ -58,11 +61,12 @@ export class AIQueueService {
             }
         }
 
-        // Wait before next item. High priority might allow shorter cooldown in future.
-        const delay = this.RATE_LIMIT_DELAY; // Global rate limit enforcement for Free Tier safety
+        // Dynamic Rate Limit
+        const provider = this.configService.get('AI_PROVIDER', 'gemini');
+        const delay = provider === 'groq' ? this.GROQ_DELAY : this.GEMINI_DELAY;
 
         if (this.queue.length > 0) {
-            console.log(`[AIQueueService] Waiting ${delay}ms... (Queue: ${this.queue.length}, Next Priority: ${this.queue[0].priority})`);
+            // console.log(`[AIQueueService] Waiting ${delay}ms... (Queue: ${this.queue.length}, Next Priority: ${this.queue[0].priority})`);
             setTimeout(() => this.processQueue(), delay);
         } else {
             this.isProcessing = false;

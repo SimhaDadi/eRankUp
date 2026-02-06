@@ -934,6 +934,7 @@ Return JSON ONLY:
 
             // CRITICAL DEBUG: Log the full raw response to identify parsing issues
             console.log(`[AIService] FULL AI RESPONSE: \n${text} \n[AIService] END RESPONSE`);
+            require('fs').writeFileSync('d:\\eRankUp\\backend\\groq_debug.log', text);
 
             // Robust JSON extraction
             let jsonStr = text;
@@ -949,7 +950,7 @@ Return JSON ONLY:
                 jsonStr = text.substring(firstBracket, lastBracket + 1);
             }
 
-            const parsed = this.safeJsonParse(jsonStr, {});
+            const parsed = this.safeJsonParse(jsonStr, []);
 
             // Return the questions array regardless of wrapper
             if (Array.isArray(parsed)) return parsed;
@@ -958,8 +959,8 @@ Return JSON ONLY:
 
         } catch (error) {
             console.error("AI Parsing Failed:", error);
-            if (error.message?.includes("API_KEY_INVALID") || error.message?.includes("API key not valid")) {
-                throw new Error("AI Parsing Authentication Failed: The provided GEMINI_API_KEY is invalid. Please check your Google AI Studio credentials.");
+            if (error.message?.includes("API_KEY_INVALID") || error.message?.includes("API key not valid") || error.message?.includes("401")) {
+                throw new Error(`AI Parsing Authentication Failed: The provided ${provider.toUpperCase()}_API_KEY is invalid. Please check your ${provider === 'groq' ? 'Groq Console' : 'Google AI Studio'} credentials.`);
             }
             if (error.message?.includes("404") || error.message?.includes("not found")) {
                 throw new Error(`AI Model Error(404): The selected model was not found or is not supported.Error details: ${error.message} `);
@@ -1265,7 +1266,6 @@ Extract all questions and format them as a JSON array with this structure:
         // Debug Log to see exactly what is causing the error
         console.log('[AIService] Raw AI Response for Analysis:', jsonStr.substring(0, 200) + '...');
 
-        // 0. Pre-processing: Extract JSON object if wrapped in text
         // 0. Pre-processing: Extract JSON object/array
         let cleanStr = jsonStr;
 
@@ -1276,7 +1276,14 @@ Extract all questions and format them as a JSON array with this structure:
                 cleanStr = jsonStr.substring(firstBracket, lastBracket + 1);
             } else {
                 console.error('[AIService] Expected JSON Array but none found.');
-                return onErrorFallback;
+                // Fallback to object search if array not found
+                const firstOpen = jsonStr.indexOf('{');
+                const lastClose = jsonStr.lastIndexOf('}');
+                if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+                    cleanStr = jsonStr.substring(firstOpen, lastClose + 1);
+                } else {
+                    return onErrorFallback;
+                }
             }
         } else {
             const firstOpen = jsonStr.indexOf('{');
@@ -1294,14 +1301,11 @@ Extract all questions and format them as a JSON array with this structure:
             return JSON.parse(cleanStr);
         } catch (e) {
             // 2. Aggressive cleanup for common AI JSON mistakes
-            // Fix unescaped backslashes in math (e.g., \frac -> \\frac)
-            // But don't double escape if they are already escaped
             const sanitizedJson = cleanStr
-                .replace(/\\(?!["\\/bfnrtu])/g, '\\\\')
-                // Fix missing quotes on keys (rare but happens)
-                .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
-                // Fix single quotes to double quotes for strings
-                .replace(/'([^']*)'/g, '"$1"');
+                .replace(/\\(?!["\\/bfnrtu])/g, '\\\\') // Fix unescaped backslashes
+                .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":') // Fix missing quotes on keys
+                .replace(/'([^']*)'/g, '"$1"') // Fix single quotes
+                .replace(/:\s*(\d+)\.\s+(\d+)/g, ': $1.$2'); // Fix Groq math spaces (0. 25 -> 0.25)
 
             try {
                 return JSON.parse(sanitizedJson);
@@ -1317,22 +1321,21 @@ Extract all questions and format them as a JSON array with this structure:
                         .replace(/\r/g, ' ');
                     return JSON.parse(repaired);
                 } catch (e3) {
-                    console.warn('[AIService] JSON Parse failed, attempting aggressive repair:', e3.message);
+                    // console.warn('[AIService] JSON Parse failed, attempting aggressive repair:', e3.message); not available if not any
 
-                    // 4. Structural Repair: Fix stray braces (common in LLM failures)
+                    // 4. Structural Repair & Nuclear Option
                     try {
                         const structuralRepair = cleanStr
-                            .replace(/,\s*{\s*"/g, ', "') // Remove stray opening brace after comma
-                            .replace(/}\s*,\s*{/g, '}, {') // Ensure proper comma separation
-                            .replace(/\\/g, '\\\\')        // Ensure backslashes are escaped
-                            .replace(/\\\\\\\\/g, '\\\\'); // Revert accidental double-escaping
+                            .replace(/,\s*{\s*"/g, ', "')
+                            .replace(/}\s*,\s*{/g, '}, {')
+                            .replace(/\\/g, '\\\\')
+                            .replace(/\\\\\\\\/g, '\\\\');
                         return JSON.parse(structuralRepair);
                     } catch (e4) {
-                        // 5. Fallback: Nuclear option
                         try {
                             return JSON.parse(cleanStr.replace(/\\(?![nrt"\\/])/g, ''));
                         } catch (e5) {
-                            console.error('[AIService] Fatal JSON Parse Error. Response content recorded above.');
+                            console.error('[AIService] Fatal JSON Parse Error. Response recorded.');
                             return onErrorFallback;
                         }
                     }
