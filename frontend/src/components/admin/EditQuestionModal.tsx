@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save } from 'lucide-react';
+import { X, Save, Image as ImageIcon, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import MathRenderer from '../common/MathRenderer';
 
@@ -26,6 +26,27 @@ export default function EditQuestionModal({ isOpen, onClose, onSuccess, question
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [uploading, setUploading] = useState(false);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const formDataPayload = new FormData();
+            formDataPayload.append('image', file);
+            const response = await api.post('/questions/upload-image', formDataPayload, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setQuestionData(prev => ({ ...prev, imageUrl: response.data.url }));
+        } catch (err: any) {
+            alert('Failed to upload image');
+            console.error(err);
+        } finally {
+            setUploading(false);
+        }
+    };
 
     useEffect(() => {
         if (question && isOpen) {
@@ -136,28 +157,61 @@ export default function EditQuestionModal({ isOpen, onClose, onSuccess, question
                                 )}
                             </div>
 
-                            {/* Image URL */}
+                            {/* Image URL / Upload */}
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Image URL (Optional)</label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-blue-500 outline-none placeholder:text-slate-600"
-                                    value={questionData.imageUrl}
-                                    onChange={e => setQuestionData({ ...questionData, imageUrl: e.target.value })}
-                                />
-                                {questionData.imageUrl && (
-                                    <div className="mt-2 p-2 bg-slate-900 rounded-xl border border-dashed border-slate-700 flex justify-center">
-                                        <Image
-                                            src={questionData.imageUrl}
-                                            alt="Preview"
-                                            width={192}
-                                            height={192}
-                                            className="max-h-48 rounded-lg object-contain"
-                                            unoptimized
-                                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                    <ImageIcon className="w-3 h-3" /> Question Image
+                                </label>
+
+                                <div className="flex gap-4 items-start">
+                                    <div className="flex-1 space-y-2">
+                                        <input
+                                            type="text"
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-blue-500 outline-none placeholder:text-slate-600"
+                                            value={questionData.imageUrl}
+                                            onChange={e => setQuestionData({ ...questionData, imageUrl: e.target.value })}
+                                            placeholder="Direct image URL or upload..."
                                         />
+                                        <div className="flex items-center gap-3">
+                                            <label className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg cursor-pointer transition-colors text-xs font-bold text-slate-300">
+                                                {uploading ? (
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                ) : (
+                                                    <ImageIcon className="w-3 h-3" />
+                                                )}
+                                                {uploading ? 'Uploading...' : 'Upload Image'}
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={handleImageUpload}
+                                                    disabled={uploading}
+                                                />
+                                            </label>
+                                            {questionData.imageUrl && (
+                                                <button
+                                                    onClick={() => setQuestionData({ ...questionData, imageUrl: '' })}
+                                                    className="text-xs text-red-400 hover:text-red-300 font-bold"
+                                                >
+                                                    Remove Image
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
+
+                                    {questionData.imageUrl && (
+                                        <div className="w-32 h-32 relative bg-slate-900 rounded-xl border border-slate-800 overflow-hidden group">
+                                            <Image
+                                                src={`${questionData.imageUrl.startsWith('/') ? process.env.NEXT_PUBLIC_API_URL : ''}${questionData.imageUrl}`}
+                                                alt="Preview"
+                                                fill
+                                                className="object-contain"
+                                                unoptimized
+                                                onError={(e) => (e.currentTarget.style.display = 'none')}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Options */}

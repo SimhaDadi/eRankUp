@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, X, CheckCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
@@ -43,7 +44,7 @@ export default function AddQuestionTab() {
         formDataPayload.append('image', file);
 
         try {
-            const response = await api.post('/questions/image-upload', formDataPayload, {
+            const response = await api.post('/questions/upload-image', formDataPayload, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             setFormData(prev => ({ ...prev, imageUrl: response.data.url }));
