@@ -109,8 +109,9 @@ export class QuestionsController {
             const questions = await queryBuilder.getMany();
 
             const csvHeaders = [
-                'ID', 'QuestionText', 'OptionA', 'OptionB', 'OptionC', 'OptionD',
+                'QuestionText', 'OptionA', 'OptionB', 'OptionC', 'OptionD',
                 'CorrectOption', 'Explanation', 'Topic', 'Difficulty',
+                'PositiveMarks', 'NegativeMarks',
                 'SubjectID', 'ChapterID', 'ExamID', 'ImageUrl'
             ];
 
@@ -119,11 +120,11 @@ export class QuestionsController {
                 const optB = q.options.find(o => o.id === 'B')?.text || '';
                 const optC = q.options.find(o => o.id === 'C')?.text || '';
                 const optD = q.options.find(o => o.id === 'D')?.text || '';
-                const examIds = q.exams?.map(e => e.id).join(';') || '';
+                const examIdsArr = q.exams?.map(e => e.id) || [];
+                const examIds = examIdsArr.join(';');
                 const difficulty = q.difficultyWeight <= 0.3 ? 'easy' : q.difficultyWeight >= 0.7 ? 'hard' : 'medium';
 
                 return [
-                    q.id,
                     `"${(q.content || '').replace(/"/g, '""')}"`,
                     `"${optA.replace(/"/g, '""')}"`,
                     `"${optB.replace(/"/g, '""')}"`,
@@ -133,6 +134,8 @@ export class QuestionsController {
                     `"${(q.explanation || '').replace(/"/g, '""')}"`,
                     `"${(q.topic || '').replace(/"/g, '""')}"`,
                     difficulty,
+                    q.positiveMarks,
+                    q.negativeMarks,
                     q.subject?.id || '',
                     q.chapter?.id || '',
                     examIds,
@@ -300,7 +303,7 @@ export class QuestionsController {
                 headers.forEach((h, index) => { row[h] = values[index]; });
 
                 try {
-                    const examId = row['examid'];
+                    const examIdRaw = row['examid'];
                     const chapterId = row['chapterid'];
                     if (!chapterId) {
                         errors.push(`Line ${i + 1}: Missing chapterId (required)`);
@@ -320,6 +323,13 @@ export class QuestionsController {
                         { id: 'D', text: row['optiond'] || row['option4'] }
                     ];
 
+                    // Support multi-exam split by semicolon
+                    const exams = [];
+                    if (examIdRaw) {
+                        const ids = String(examIdRaw).split(';').map(id => id.trim()).filter(id => !!id);
+                        ids.forEach(id => exams.push({ id }));
+                    }
+
                     const question = {
                         content: row['content'] || row['questiontext'],
                         options: options,
@@ -329,7 +339,7 @@ export class QuestionsController {
                         positiveMarks: parseFloat(row['positivemarks']) || 1.0,
                         negativeMarks: parseFloat(row['negativemarks']) || 0.25,
                         difficultyWeight: row['difficultyweight'] ? parseFloat(row['difficultyweight']) : (row['difficulty'] === 'easy' ? 0.3 : row['difficulty'] === 'hard' ? 0.7 : 0.5),
-                        exams: examId ? [{ id: examId }] : [],
+                        exams: exams,
                         chapterId: chapterId,
                         imageUrl: row['imageurl'] || row['imageUrl'] || row['image']
                     };

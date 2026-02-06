@@ -839,8 +839,8 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     private formatQuestionsToCSV(questions: Question[], hierarchy?: { examId?: string, subjectId?: string, chapterId?: string }): string {
-        const baseHeaders = ['content', 'optionA', 'optionB', 'optionC', 'optionD', 'correctOptionId', 'explanation', 'topic', 'difficultyWeight', 'positiveMarks', 'negativeMarks', 'imageUrl'];
-        const metaHeaders = ['examId', 'subjectId', 'chapterId'];
+        const baseHeaders = ['QuestionText', 'OptionA', 'OptionB', 'OptionC', 'OptionD', 'CorrectOption', 'Explanation', 'Topic', 'Difficulty', 'PositiveMarks', 'NegativeMarks', 'ImageUrl'];
+        const metaHeaders = ['ExamID', 'SubjectID', 'ChapterID'];
         const headers = [...baseHeaders, ...metaHeaders];
 
         const rows = questions.map(q => {
@@ -858,7 +858,7 @@ export class ExamsService implements OnApplicationBootstrap {
                 q.correctOptionId,
                 q.explanation || '',
                 q.topic || 'General',
-                q.difficultyWeight,
+                q.difficultyWeight <= 0.3 ? 'easy' : q.difficultyWeight >= 0.7 ? 'hard' : 'medium',
                 q.positiveMarks,
                 q.negativeMarks,
                 q.imageUrl || '',
