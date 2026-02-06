@@ -3,6 +3,8 @@ import * as csv from 'csv-parser';
 import { Readable } from 'stream';
 import { AIService } from '../../ai/ai.service';
 import * as sharp from 'sharp';
+import * as path from 'path';
+import * as fs from 'fs';
 
 export interface ParsedQuestion {
     content: string;
@@ -126,7 +128,19 @@ export class QuestionsUploadService {
                     diagram_coordinates: item.diagram_coordinates
                 };
 
-                // Smart Crop logic was here, removed for baseline verify
+                if (question.hasDiagram && question.diagram_coordinates && imageMetadata) {
+                    try {
+                        const diagramUrl = await this.cropAndSaveDiagram(
+                            buffer,
+                            question.diagram_coordinates,
+                            imageMetadata,
+                            `q_${Date.now()}_${index}.png`
+                        );
+                        question.imageUrl = diagramUrl;
+                    } catch (cropError) {
+                        console.error('[QuestionsUploadService] Diagram crop failed:', cropError);
+                    }
+                }
                 parsedQuestions.push(question);
             }
 
@@ -136,6 +150,51 @@ export class QuestionsUploadService {
             console.error('AI Parse Error:', error);
             throw new BadRequestException(error.message || 'Failed to parse file via AI Service.');
         }
+    }
+
+    private async cropAndSaveDiagram(
+        buffer: Buffer,
+        coords: [number, number, number, number],
+        meta: sharp.Metadata,
+        filename: string
+    ): Promise<string> {
+        let [ymin, xmin, ymax, xmax] = coords;
+
+        // Auto-detect scale: If any value is < 1 and they aren't all 0, assume 0-1 scale and convert to 0-1000
+        const isNormalized = coords.some(c => c > 0 && c <= 1.0);
+        if (isNormalized && Math.max(...coords) <= 1.5) { // Safety check to ensure it's not just small 1000-scale values
+            ymin *= 1000;
+            xmin *= 1000;
+            ymax *= 1000;
+            xmax *= 1000;
+        }
+
+        // Scale coordinates from 0-1000 to actual pixels
+        const left = Math.round((xmin / 1000) * (meta.width || 0));
+        const top = Math.round((ymin / 1000) * (meta.height || 0));
+        const width = Math.round(((xmax - xmin) / 1000) * (meta.width || 0));
+        const height = Math.round(((ymax - ymin) / 1000) * (meta.height || 0));
+
+        // Basic safety check for width/height
+        if (width <= 0 || height <= 0) {
+            console.warn(`[QuestionsUploadService] Invalid crop dimensions: w=${width}, h=${height} (Scaling: ${isNormalized ? '0-1' : '0-1000'})`);
+            return null;
+        }
+
+        const uploadDir = path.join(process.cwd(), 'uploads', 'questions');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        const filePath = path.join(uploadDir, filename);
+
+        await sharp(buffer)
+            .extract({ left, top, width, height })
+            .png()
+            .toFile(filePath);
+
+        // Return relative URL for static serving
+        return `/uploads/questions/${filename}`;
     }
 
     async saveQuestionsToModel(modelId: string, parsedQuestions: ParsedQuestion[]) {

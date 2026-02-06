@@ -100,8 +100,8 @@ export class ExplanationService {
                 }
             }
 
-            // Track successful API call
-            this.systemHealthService.trackAPICall('gemini');
+            // Explanation successfully generated and verified.
+            // Usage is already tracked inside aiService.generateText() and verifyExplanation().
 
             // 6. Cache the explanation
             const newExplanation = this.explanationRepository.create({
@@ -123,7 +123,7 @@ export class ExplanationService {
 
             // Handle Rate Limits (429) specifically if needed
             if (error.status === 429 || (error.message && error.message.includes('429'))) {
-                console.warn('⚠️ Gemini Rate Limit Exceeded. Using fallback explanation.');
+                console.warn('⚠️ AI Rate Limit Exceeded. Using fallback explanation.');
                 // Optional: We could implement a retry queue here, but for now fallback is safer to avoid blocking users.
             }
 

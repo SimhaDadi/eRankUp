@@ -865,7 +865,7 @@ Return JSON ONLY:
                             "negativeMarks": number (default 0.25),
                             "explanation": "Detailed step-by-step solution",
                             "hasDiagram": boolean, // TRUE if a visual diagram exists
-                            "diagram_coordinates": [ymin, xmin, ymax, xmax] // REQUIRED if hasDiagram is true. 0-1000 scale.
+                            "diagram_coordinates": [ymin, xmin, ymax, xmax] // REQUIRED if hasDiagram is true. Use INTEGERS on 0-1000 scale. (e.g., [100, 200, 400, 500])
                         }
                     ]
                 }
@@ -899,7 +899,9 @@ Return JSON ONLY:
                     model: modelName,
                     temperature: 0.1,
                     max_tokens: 4096,
-                    response_format: { type: 'json_object' }
+                    // Remove strict response_format to prevent 400 errors if AI makes minor typos.
+                    // Our safeJsonParse in AIService will handle the repair of raw text.
+                    // response_format: { type: 'json_object' }
                 });
 
                 text = completion.choices[0]?.message?.content || '';
@@ -1309,17 +1311,30 @@ Extract all questions and format them as a JSON array with this structure:
                     const repaired = cleanStr
                         .replace(/,\s*}/g, '}')
                         .replace(/,\s*]/g, ']')
+                        .replace(/(\$[\s\S]*?)(\s*[\]},])/g, '$1"$2') // Fix missing closing quote for LaTeX strings
+                        .replace(/(\n\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3') // Fix missing key quotes
                         .replace(/\n/g, ' ')
                         .replace(/\r/g, ' ');
                     return JSON.parse(repaired);
                 } catch (e3) {
-                    console.warn('[AIService] JSON Parse failed, attempting aggressive repair:', e2.message);
-                    // 4. Fallback: Nuclear option - remove all backslashes that aren't escapes
+                    console.warn('[AIService] JSON Parse failed, attempting aggressive repair:', e3.message);
+
+                    // 4. Structural Repair: Fix stray braces (common in LLM failures)
                     try {
-                        return JSON.parse(cleanStr.replace(/\\(?![nrt"\\/])/g, ''));
+                        const structuralRepair = cleanStr
+                            .replace(/,\s*{\s*"/g, ', "') // Remove stray opening brace after comma
+                            .replace(/}\s*,\s*{/g, '}, {') // Ensure proper comma separation
+                            .replace(/\\/g, '\\\\')        // Ensure backslashes are escaped
+                            .replace(/\\\\\\\\/g, '\\\\'); // Revert accidental double-escaping
+                        return JSON.parse(structuralRepair);
                     } catch (e4) {
-                        console.error('[AIService] Fatal JSON Parse Error. Response content recorded above.');
-                        return onErrorFallback;
+                        // 5. Fallback: Nuclear option
+                        try {
+                            return JSON.parse(cleanStr.replace(/\\(?![nrt"\\/])/g, ''));
+                        } catch (e5) {
+                            console.error('[AIService] Fatal JSON Parse Error. Response content recorded above.');
+                            return onErrorFallback;
+                        }
                     }
                 }
             }
