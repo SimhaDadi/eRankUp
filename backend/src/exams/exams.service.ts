@@ -288,6 +288,13 @@ export class ExamsService implements OnApplicationBootstrap {
         });
     }
 
+    async findModelsByChapter(chapterId: string) {
+        return this.modelRepository.find({
+            where: { chapter: { id: chapterId } },
+            order: { title: 'ASC' }
+        });
+    }
+
     async findOneChapter(id: string) {
         return this.chapterRepository.findOne({
             where: { id },

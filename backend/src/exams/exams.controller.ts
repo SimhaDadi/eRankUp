@@ -397,6 +397,12 @@ export class ExamsController {
         return this.examsService.deleteChapter(chapterId);
     }
 
+    @UseGuards(AuthGuard('jwt'))
+    @Get('chapters/:id/models')
+    getModelsByChapter(@Param('id') chapterId: string) {
+        return this.examsService.findModelsByChapter(chapterId);
+    }
+
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Post('chapters/:id/models')
