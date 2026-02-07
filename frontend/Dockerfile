@@ -40,14 +40,21 @@ RUN apk add --no-cache dumb-init
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
-# Copy shared package
+# Copy root package files
+COPY package*.json ./
+
+# Copy shared package (built)
 COPY --from=builder /app/packages ./packages
 
-# Copy frontend files
-COPY --from=builder /app/frontend/package*.json ./frontend/
+# Copy frontend package files
+COPY frontend/package*.json ./frontend/
+
+# Install only production dependencies for the workspace
+RUN npm ci --only=production --legacy-peer-deps --ignore-scripts
+
+# Copy built frontend files
 COPY --from=builder /app/frontend/.next ./frontend/.next
 COPY --from=builder /app/frontend/public ./frontend/public
-COPY --from=builder /app/frontend/node_modules ./frontend/node_modules
 COPY --from=builder /app/frontend/next.config.mjs ./frontend/
 
 WORKDIR /app/frontend
