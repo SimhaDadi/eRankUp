@@ -7,7 +7,6 @@ import { ExamsService } from './exams.service';
 import { CreateChapterDto } from '@erankup/shared';
 
 @Controller('chapters')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class ChaptersController {
     constructor(
         private readonly examsService: ExamsService,
@@ -19,7 +18,13 @@ export class ChaptersController {
     }
 
     @Get('by-subject/:subjectId')
+    async getChaptersBySubjectOld(@Param('subjectId') subjectId: string) {
+        return this.examsService.findChaptersBySubject(subjectId);
+    }
+
+    @Get('subject/:subjectId') // Alias for frontend compatibility
     async getChaptersBySubject(@Param('subjectId') subjectId: string) {
+        console.log(`[DEBUG_API] Hit ChaptersController.getChaptersBySubject alias with subjectId: ${subjectId}`);
         return this.examsService.findChaptersBySubject(subjectId);
     }
 

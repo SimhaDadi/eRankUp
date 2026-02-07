@@ -1,9 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, Index, OneToMany } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 import { Model } from './model.entity';
 import { Subject } from './subject.entity';
 import { Chapter } from './chapter.entity';
 import { Exam } from './exam.entity';
+import type { QuestionExplanation } from '../../ai/entities/question-explanation.entity';
 
 @Entity()
 export class Question {
@@ -77,6 +78,10 @@ export class Question {
 
     @ManyToMany(() => Model, (model) => model.questions)
     models: Model[];
+
+
+    @OneToMany('QuestionExplanation', (explanation: any) => explanation.question)
+    explanations: QuestionExplanation[];
 
     // @Column('vector', { length: 768, nullable: true })
     // @Exclude({ toPlainOnly: true })

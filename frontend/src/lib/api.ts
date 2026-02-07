@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: '/api',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
     timeout: 300000, // 5 minutes for AI parsing tasks
     headers: {
         'Content-Type': 'application/json',

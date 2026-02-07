@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, UpdateDateColumn, Index, JoinColumn } from 'typeorm';
-import { Question } from '../../exams/entities/question.entity';
+import type { Question } from '../../exams/entities/question.entity';
 import { Exam } from '../../exams/entities/exam.entity';
 
 @Entity('question_explanation')
@@ -7,7 +7,7 @@ export class QuestionExplanation {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @ManyToOne(() => Question, { onDelete: 'CASCADE' })
+    @ManyToOne('Question', { onDelete: 'CASCADE' })
     @Index('IDX_QE_QUESTION')
     question: Question;
 

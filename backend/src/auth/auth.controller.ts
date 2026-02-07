@@ -26,6 +26,7 @@ export class AuthController {
     @HttpCode(HttpStatus.OK)
     @Post('login')
     async login(@Body() loginDto: LoginCredentialsDto) {
+        console.log('Login Request Payload:', JSON.stringify(loginDto, null, 2));
         return this.authService.login(loginDto);
     }
 

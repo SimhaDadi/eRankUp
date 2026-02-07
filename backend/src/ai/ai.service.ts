@@ -872,6 +872,7 @@ Return JSON ONLY:
                 IGNORE checkmarks (✓) or handwritten marks. Focus on PRINTED text.
                 If "hasDiagram" is true, "diagram_coordinates" CANNOT be null.
                 **CRITICAL**: "diagram_coordinates" MUST NOT overlap with the question text area. It is for the FIGURE ONLY.
+                **CRITICAL**: Do NOT include comments, notes, or explanations inside the JSON. Return ONLY the JSON object.
                 `;
 
             let text = '';
@@ -899,9 +900,8 @@ Return JSON ONLY:
                     model: modelName,
                     temperature: 0.1,
                     max_tokens: 4096,
-                    // Remove strict response_format to prevent 400 errors if AI makes minor typos.
-                    // Our safeJsonParse in AIService will handle the repair of raw text.
-                    // response_format: { type: 'json_object' }
+                    // FORCE JSON OBJECT MODE - This prevents the AI from generating conversational text or broken formatting
+                    response_format: { type: 'json_object' }
                 });
 
                 text = completion.choices[0]?.message?.content || '';
@@ -1263,84 +1263,117 @@ Extract all questions and format them as a JSON array with this structure:
     private safeJsonParse(jsonStr: string, onErrorFallback: any = {}): any {
         if (!jsonStr) return onErrorFallback;
 
-        // Debug Log to see exactly what is causing the error
-        console.log('[AIService] Raw AI Response for Analysis:', jsonStr.substring(0, 200) + '...');
+        // Debug Log
+        // console.log('[AIService] Raw AI Response for Analysis:', jsonStr.substring(0, 200) + '...');
 
-        // 0. Pre-processing: Extract JSON object/array
-        let cleanStr = jsonStr;
+        // Strategy: Identify candidate JSON strings and try to parse them one by one.
+        const candidates: string[] = [];
 
-        if (Array.isArray(onErrorFallback)) {
-            const firstBracket = jsonStr.indexOf('[');
-            const lastBracket = jsonStr.lastIndexOf(']');
-            if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-                cleanStr = jsonStr.substring(firstBracket, lastBracket + 1);
-            } else {
-                console.error('[AIService] Expected JSON Array but none found.');
-                // Fallback to object search if array not found
-                const firstOpen = jsonStr.indexOf('{');
-                const lastClose = jsonStr.lastIndexOf('}');
-                if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
-                    cleanStr = jsonStr.substring(firstOpen, lastClose + 1);
-                } else {
-                    return onErrorFallback;
-                }
-            }
-        } else {
-            const firstOpen = jsonStr.indexOf('{');
-            const lastClose = jsonStr.lastIndexOf('}');
-            if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
-                cleanStr = jsonStr.substring(firstOpen, lastClose + 1);
-            } else {
-                console.error('[AIService] Expected JSON Object but none found.');
-                return onErrorFallback;
+        // 1. Extract from Markdown Code Blocks (```json ... ```)
+        const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)```/g;
+        let match;
+        while ((match = codeBlockRegex.exec(jsonStr)) !== null) {
+            if (match[1].trim()) {
+                candidates.push(match[1]); // Add found block
             }
         }
 
-        // 1. Try standard parse with cleaned string
-        try {
-            return JSON.parse(cleanStr);
-        } catch (e) {
-            // 2. Aggressive cleanup for common AI JSON mistakes
-            const sanitizedJson = cleanStr
-                .replace(/\\(?!["\\/bfnrtu])/g, '\\\\') // Fix unescaped backslashes
-                .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":') // Fix missing quotes on keys
-                .replace(/'([^']*)'/g, '"$1"') // Fix single quotes
-                .replace(/:\s*(\d+)\.\s+(\d+)/g, ': $1.$2'); // Fix Groq math spaces (0. 25 -> 0.25)
+        // 2. The whole string (cleaned of conversational text)
+        // Heuristic: If lines start with "Here is..." or "Sure...", strip them?
+        // Better: Just add the whole string as a candidate.
+        candidates.push(jsonStr);
 
+        // 3. Bracket extraction (Object)
+        const firstOpen = jsonStr.indexOf('{');
+        const lastClose = jsonStr.lastIndexOf('}');
+        if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+            candidates.push(jsonStr.substring(firstOpen, lastClose + 1));
+        }
+
+        // 4. Bracket extraction (Array)
+        const firstBracket = jsonStr.indexOf('[');
+        const lastBracket = jsonStr.lastIndexOf(']');
+        if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+            candidates.push(jsonStr.substring(firstBracket, lastBracket + 1));
+        }
+
+        // Process candidates in priority order (Blocks first, then specific bracket ranges)
+        // We reverse candidates from blocks to prioritize the LAST block (often the correction)
+        const prioritizedCandidates = [
+            ...candidates.filter(c => c !== jsonStr && c !== candidates[2] && c !== candidates[3]).reverse(),
+            candidates[2], // Object bracket
+            candidates[3], // Array bracket
+            jsonStr
+        ].filter(Boolean);
+
+        for (const candidate of prioritizedCandidates) {
             try {
-                return JSON.parse(sanitizedJson);
-            } catch (e2) {
-                // 3. Fix Trailing Commas and Newlines
-                try {
-                    const repaired = cleanStr
-                        .replace(/,\s*}/g, '}')
-                        .replace(/,\s*]/g, ']')
-                        .replace(/(\$[\s\S]*?)(\s*[\]},])/g, '$1"$2') // Fix missing closing quote for LaTeX strings
-                        .replace(/(\n\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3') // Fix missing key quotes
-                        .replace(/\n/g, ' ')
-                        .replace(/\r/g, ' ');
-                    return JSON.parse(repaired);
-                } catch (e3) {
-                    // console.warn('[AIService] JSON Parse failed, attempting aggressive repair:', e3.message); not available if not any
+                // Attempt 0: Pre-clean stray words (lines that are just "and", "or", etc.)
+                let cleanedCandidate = candidate
+                    .split('\n')
+                    .filter(line => !line.trim().match(/^(and|or|but|however|note|also)\s*$/i))
+                    .join('\n');
 
-                    // 4. Structural Repair & Nuclear Option
+                // Attempt 1: Direct Parse
+                return JSON.parse(cleanedCandidate);
+            } catch (e) {
+                // Attempt 2: Aggressive Cleanup
+                const sanitized = this.aggressiveJsonCleanup(candidate); // Use candidate to avoid over-cleaning
+                try {
+                    return JSON.parse(sanitized);
+                } catch (e2) {
+                    // Attempt 3: Structural Repair
+                    const repaired = this.structuralJsonRepair(sanitized);
                     try {
-                        const structuralRepair = cleanStr
-                            .replace(/,\s*{\s*"/g, ', "')
-                            .replace(/}\s*,\s*{/g, '}, {')
-                            .replace(/\\/g, '\\\\')
-                            .replace(/\\\\\\\\/g, '\\\\');
-                        return JSON.parse(structuralRepair);
-                    } catch (e4) {
+                        return JSON.parse(repaired);
+                    } catch (e3) {
+                        // Attempt 4: Super Aggressive "Fix Missing Quotes" regex
+                        // Targets:  "Value],  or "Value}, where Value is missing closing quote
                         try {
-                            return JSON.parse(cleanStr.replace(/\\(?![nrt"\\/])/g, ''));
-                        } catch (e5) {
-                            console.error('[AIService] Fatal JSON Parse Error. Response recorded.');
-                            return onErrorFallback;
+                            const fixedQuotes = sanitized
+                                .replace(/([0-9a-zA-Z%₹$]+)(\s*[\]},])/g, '$1"$2'); // Add quote if missing
+                            return JSON.parse(fixedQuotes);
+                        } catch (e4) {
+                            // Fail
                         }
                     }
                 }
             }
+        }
+
+        console.error('[AIService] parsing failed for all candidates.');
+        return onErrorFallback;
+    }
+
+    private aggressiveJsonCleanup(jsonStr: string): string {
+        // First, remove conversational lines
+        let clean = jsonStr
+            .split('\n')
+            .filter(line => !line.trim().match(/^(and|or|but|however|note|also)\s*$/i))
+            .join('\n');
+
+        return clean
+            .replace(/\\(?!["\\/bfnrtu])/g, '\\\\') // Fix unescaped backslashes
+            .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":') // Fix missing quotes on keys
+            .replace(/'([^']*)'/g, '"$1"') // Fix single quotes
+            .replace(/:\s*(\d+)\.\s+(\d+)/g, ': $1.$2') // Fix Groq math spaces
+            .replace(/,\s*}/g, '}') // Trailing commas
+            .replace(/,\s*]/g, ']')
+            .replace(/(\$[\s\S]*?)(\s*[\]},])/g, '$1"$2') // Fix LaTeX quote issues (generic)
+            .replace(/(\n\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3') // Fix newline key quotes
+            .replace(/\n/g, ' ')
+            .replace(/\r/g, ' ');
+    }
+
+    private structuralJsonRepair(jsonStr: string): string {
+        try {
+            return jsonStr
+                .replace(/,\s*{\s*"/g, ', "')
+                .replace(/}\s*,\s*{/g, '}, {')
+                .replace(/\\/g, '\\\\')
+                .replace(/\\\\\\\\/g, '\\\\');
+        } catch (e) {
+            return jsonStr;
         }
     }
 

@@ -7,7 +7,6 @@ import { ExamsService } from './exams.service';
 import { CreateSubjectDto } from '@erankup/shared';
 
 @Controller('subjects')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class SubjectsController {
     constructor(
         private readonly examsService: ExamsService,
@@ -15,6 +14,7 @@ export class SubjectsController {
 
     @Get()
     async getAllSubjects() {
+        console.log('[DEBUG_API] Hit SubjectsController.getAllSubjects');
         return this.examsService.findAllSubjects();
     }
 

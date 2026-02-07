@@ -1104,8 +1104,21 @@ export class ExamsService implements OnApplicationBootstrap {
 
 
     // --- Question Bank Browser Methods ---
-
     async createQuestionsBulk(userId: string, role: UserRole, modelId: string | undefined, questionsData: any[], examId?: string) {
+        const fs = require('fs');
+        const logFile = 'D:\\eRankUp\\bulk_upload_service.log';
+        const log = (msg: string) => {
+            const timestampedMsg = `${new Date().toISOString()} ${msg}`;
+            console.log(timestampedMsg);
+            try {
+                fs.appendFileSync(logFile, timestampedMsg + '\n');
+            } catch (e) {
+                console.error('Failed to write to service log:', e.message);
+            }
+        };
+
+        log(`[ExamsService] Bulk Upload: Received ${questionsData.length} questions. modelId: ${modelId}, examId: ${examId}`);
+
         let model: Model | null = null;
 
         if (modelId) {
@@ -1134,7 +1147,7 @@ export class ExamsService implements OnApplicationBootstrap {
             !existingContentSet.has((data.content || data.questionText || '').trim())
         );
 
-        console.log(`[ExamsService] Bulk Upload: Received ${questionsData.length}, Found ${existingQuestions.length} existing, Creating ${newQuestionsData.length} new.`);
+        log(`[ExamsService] Bulk Upload: Found ${existingQuestions.length} existing, Creating ${newQuestionsData.length} new.`);
 
         if (newQuestionsData.length === 0) {
             // Check if any existing questions need Image Repair (re-upload fixing missing images)
@@ -1216,15 +1229,17 @@ export class ExamsService implements OnApplicationBootstrap {
         }
 
         if (questions.length === 0) {
-            console.warn('[ExamsService] No valid questions to save after filtering and validation.');
+            log('[ExamsService] No valid questions to save after filtering and validation.');
             return existingQuestions;
         }
 
         let savedQuestions: Question[] = [];
         try {
+            log(`[ExamsService] Final Repository Save for ${questions.length} questions...`);
             savedQuestions = await this.questionRepository.save(questions);
+            log(`[ExamsService] Save complete. Imported: ${savedQuestions.length}`);
         } catch (dbError) {
-            console.error('[ExamsService] FATAL: Database save failed for bulk questions:', dbError.message);
+            log(`[ExamsService] FATAL: Database save failed: ${dbError.message}`);
             // If it's a constraint violation or mapping error, we want to know why
             throw new InternalServerErrorException(`Failed to save questions to database: ${dbError.message}`);
         }

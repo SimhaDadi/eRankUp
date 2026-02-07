@@ -5,6 +5,8 @@ import { Lightbulb, CheckCircle, XCircle, BookOpen, AlertTriangle, ThumbsUp, Thu
 import { useState } from 'react';
 import api from '@/lib/api';
 
+import { MarkdownRenderer } from './MarkdownRenderer';
+
 interface ExplanationCardProps {
     explanation: string;
     questionId: string;
@@ -31,8 +33,6 @@ export function ExplanationCard({ explanation, questionId, questionText, correct
         );
     }
 
-    // Parse explanation sections (AI generates structured format)
-    const sections = parseExplanation(explanation);
 
     const handleFeedback = async (helpful: boolean) => {
         if (submittingFeedback) return;
@@ -90,63 +90,8 @@ export function ExplanationCard({ explanation, questionId, questionText, correct
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="space-y-4">
-                {sections.whyCorrect && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
-                        <div className="flex items-start gap-3">
-                            <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <h4 className="font-semibold text-emerald-400 mb-2">Why it's correct</h4>
-                                <p className="text-sm text-slate-300 leading-relaxed">{sections.whyCorrect}</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {sections.whyWrong && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-                        <div className="flex items-start gap-3">
-                            <XCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <h4 className="font-semibold text-red-400 mb-2">Why others are wrong</h4>
-                                <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">{sections.whyWrong}</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {sections.keyConcept && (
-                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
-                        <div className="flex items-start gap-3">
-                            <BookOpen className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <h4 className="font-semibold text-purple-400 mb-2">Key Concept</h4>
-                                <p className="text-sm text-slate-300 leading-relaxed">{sections.keyConcept}</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {sections.commonMistake && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-                        <div className="flex items-start gap-3">
-                            <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <h4 className="font-semibold text-amber-400 mb-2">Common Mistake</h4>
-                                <p className="text-sm text-slate-300 leading-relaxed">{sections.commonMistake}</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Fallback: show raw explanation if parsing fails */}
-                {!sections.whyCorrect && !sections.whyWrong && !sections.keyConcept && !sections.commonMistake && (
-                    <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
-                        {explanation}
-                    </div>
-                )}
-            </div>
+            {/* Content: Rendered via Markdown + Math */}
+            <MarkdownRenderer content={explanation} />
 
             {/* Feedback confirmation */}
             {feedback && (
@@ -160,27 +105,4 @@ export function ExplanationCard({ explanation, questionId, questionText, correct
             )}
         </motion.div>
     );
-}
-
-// Helper function to parse AI-generated explanation
-function parseExplanation(explanation: string) {
-    const sections = {
-        whyCorrect: '',
-        whyWrong: '',
-        keyConcept: '',
-        commonMistake: ''
-    };
-
-    // Try to parse structured format
-    const whyCorrectMatch = explanation.match(/\*\*Why it's correct\*\*:?\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
-    const whyWrongMatch = explanation.match(/\*\*Why others are wrong\*\*:?\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
-    const keyConceptMatch = explanation.match(/\*\*Key concept\*\*:?\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
-    const commonMistakeMatch = explanation.match(/\*\*Common mistake\*\*:?\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
-
-    if (whyCorrectMatch) sections.whyCorrect = whyCorrectMatch[1].trim();
-    if (whyWrongMatch) sections.whyWrong = whyWrongMatch[1].trim();
-    if (keyConceptMatch) sections.keyConcept = keyConceptMatch[1].trim();
-    if (commonMistakeMatch) sections.commonMistake = commonMistakeMatch[1].trim();
-
-    return sections;
 }

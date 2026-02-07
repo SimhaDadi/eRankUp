@@ -12,6 +12,7 @@ import { Attempt } from '../exams/entities/attempt.entity';
 import { Response } from '../exams/entities/response.entity';
 import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
+import { Model } from '../exams/entities/model.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
 import { AIUsage } from './entities/ai-usage.entity';
 import { AIUsageService } from './ai-usage.service';
@@ -20,7 +21,7 @@ import { AdminModule } from '../admin/admin.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, QuestionExplanation, Exam, AIUsage]),
+        TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, Model, QuestionExplanation, Exam, AIUsage]),
         forwardRef(() => AdminModule),
         ConfigModule
     ],
