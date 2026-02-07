@@ -46,7 +46,14 @@ export default function AdminMockTestsPage() {
     const fetchExams = async () => {
         try {
             const response = await api.get('/exams');
-            setExams(Array.isArray(response.data) ? response.data : []);
+            const data = response.data;
+            if (data.data && Array.isArray(data.data)) {
+                setExams(data.data);
+            } else if (Array.isArray(data)) {
+                setExams(data);
+            } else {
+                setExams([]);
+            }
         } catch (error) {
             console.error("Failed to fetch exams", error);
         } finally {

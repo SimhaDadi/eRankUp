@@ -52,9 +52,9 @@ export default function FreeQuizzesPage() {
                 const response = await api.get('/exams', {
                     params: { type: 'real_exam' }
                 });
-                const quizzes = Array.isArray(response.data)
-                    ? response.data.filter((e: Exam) => e.category === 'Free Quiz' && e.isPublished)
-                    : [];
+                const data = response.data;
+                const allExams = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+                const quizzes = allExams.filter((e: Exam) => e.category === 'Free Quiz' && e.isPublished);
                 setExams(quizzes);
             } catch (error) {
                 console.error("Failed to fetch quizzes", error);

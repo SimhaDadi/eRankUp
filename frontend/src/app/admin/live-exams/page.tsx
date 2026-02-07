@@ -41,9 +41,15 @@ export default function LiveExamsPage() {
     const fetchExams = async () => {
         setLoading(true);
         try {
-            // Fetch only live exams to allow scheduling
             const res = await api.get('/exams?type=live_exam');
-            setExams(Array.isArray(res.data) ? res.data : []);
+            const data = res.data;
+            if (data.data && Array.isArray(data.data)) {
+                setExams(data.data);
+            } else if (Array.isArray(data)) {
+                setExams(data);
+            } else {
+                setExams([]);
+            }
         } catch (error) {
             console.error('Failed to fetch exams', error);
         } finally {

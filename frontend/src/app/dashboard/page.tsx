@@ -67,7 +67,17 @@ export default function DashboardPage() {
 
                 setStats(combinedStats);
                 setRecentAttempts(Array.isArray(recentRes.data) ? recentRes.data : []);
-                setAllExams(examsRes.data || []);
+
+                // Handle paginated response
+                const examsData = examsRes.data;
+                if (examsData?.data && Array.isArray(examsData.data)) {
+                    setAllExams(examsData.data);
+                } else if (Array.isArray(examsData)) {
+                    setAllExams(examsData);
+                } else {
+                    setAllExams([]);
+                }
+
                 setRevisionData(revisionRes?.data || null);
                 setActivePass(passRes.data);
             } catch (error) {

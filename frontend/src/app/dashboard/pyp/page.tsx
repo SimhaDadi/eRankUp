@@ -51,9 +51,9 @@ export default function PreviousYearPapersPage() {
         setError(null);
         try {
             const response = await api.get('/exams?type=previous_year_paper');
-            const pypExams = Array.isArray(response.data)
-                ? response.data.filter((e: Exam) => e.type === 'previous_year_paper' && e.isPublished)
-                : [];
+            const data = response.data;
+            const allExams = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+            const pypExams = allExams.filter((e: Exam) => e.type === 'previous_year_paper' && e.isPublished);
             setExams(pypExams);
         } catch (error: any) {
             console.error("Failed to fetch PYP exams", error);

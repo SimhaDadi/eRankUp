@@ -42,8 +42,14 @@ export default function ExamsPage() {
             const response = await api.get('/exams', {
                 params: { type: 'real_exam' }
             });
-            console.log('[DEBUG] Exams data received:', response.data);
-            setExams(response.data);
+            const data = response.data;
+            if (data.data && Array.isArray(data.data)) {
+                setExams(data.data);
+            } else if (Array.isArray(data)) {
+                setExams(data);
+            } else {
+                setExams([]);
+            }
         } catch (error) {
             console.error('Failed to fetch exams', error);
         } finally {

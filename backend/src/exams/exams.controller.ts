@@ -144,8 +144,7 @@ export class ExamsController {
     }
 
 
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
-    @Roles(UserRole.ADMIN)
+    @UseGuards(AuthGuard('jwt'))
     @Get('hierarchy')
     async getHierarchy(@Request() req: any) {
         const type = req.query.type;
