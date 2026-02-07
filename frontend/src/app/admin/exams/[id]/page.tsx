@@ -22,6 +22,7 @@ import api from '@/lib/api';
 import { QuestionBankBrowser } from '@/components/admin/QuestionBankBrowser';
 import UploadExamQuestionsModal from '@/components/admin/UploadExamQuestionsModal';
 import { EditExamModal } from '@/components/admin/EditExamModal';
+import { MathRichText } from '@/components/MathRichText';
 import { SafeHtml } from '@/components/SafeHtml';
 
 interface Question {
@@ -239,9 +240,9 @@ export default function ExamDetailPage() {
                                             Q{index + 1}
                                         </div>
                                         <div className="flex-1">
-                                            <SafeHtml
+                                            <MathRichText
                                                 className="prose prose-invert max-w-none text-slate-300 mb-4"
-                                                html={question.content}
+                                                content={question.content}
                                             />
 
                                             <div className="flex flex-wrap gap-2">

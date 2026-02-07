@@ -24,7 +24,8 @@
         "migration:generate": "npm run typeorm migration:generate src/migrations/InitialMigration -- -d src/data-source.ts",
         "migration:run": "npm run typeorm migration:run -- -d src/data-source.ts",
         "migration:revert": "npm run typeorm migration:revert -- -d src/data-source.ts",
-        "stress-test": "ts-node scripts/stress-test.ts"
+        "stress-test": "ts-node scripts/stress-test.ts",
+        "sync-vectors": "ts-node src/scripts/vector-sync.ts"
     },
     "dependencies": {
         "@erankup/shared": "*",

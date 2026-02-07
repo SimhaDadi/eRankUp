@@ -238,7 +238,9 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+                // Explicitly use v1 if possible or just use the model name that works.
+                // In this library version, we might need to use the model name with prefix.
+                const model = genAI.getGenerativeModel({ model: "text-embedding-004" }, { apiVersion: 'v1' });
 
                 const result = await model.embedContent(text);
                 this.systemHealthService.trackAPICall('gemini'); // TRACK USAGE

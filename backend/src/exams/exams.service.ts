@@ -303,21 +303,9 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     private async invalidateCache(examId?: string) {
-        // Clear all list variations
-        const keys = [
-            'exams:all:all:v6',
-            'exams:all:real_exam:v6',
-            'exams:all:previous_year_paper:v6',
-            'exams:all:question_bank:v6',
-            'exams:all:admin:all:v6',
-            'exams:all:admin:real_exam:v6',
-            'exams:all:admin:previous_year_paper:v6',
-            'exams:all:admin:question_bank:v6'
-        ];
-
-        for (const key of keys) {
-            await this.cacheService.del(key);
-        }
+        // Clear all list variations using patterns to handle pagination keys
+        await this.cacheService.invalidatePattern('exams:all:*');
+        await this.cacheService.invalidatePattern('exams:hierarchy:*');
 
         await this.cacheService.del('question-bank:stats');
         if (examId) {
