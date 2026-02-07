@@ -299,34 +299,28 @@ export class AIService {
 
         const correctOption = question.options.find((opt: any) => opt.id === question.correctOptionId);
 
-        const prompt = `You are an expert SSC CGL Quant mentor known for "30-second shortcuts".
+        const prompt = `You are an expert SSC CGL Quant mentor known for "Extreme Shortcut Mode".
         
-        GOAL: Provide a "Cheat Sheet" style solution.
-        CONSTRAINT: Use ONLY standard keyboard characters. NO LaTeX. NO Markdown Headers.
-
-        [BAD RESPONSE - DO NOT DO THIS]
-        **The Core Concept**
-        The ratio of A:B is 2:3...
-        $$ A = \\frac{2}{3} B $$
-        **Step 1:**
-        Multiply by 5...
-        **Conclusion:**
-        The answer is 12.
-
-        [GOOD RESPONSE - DO THIS]
-        💡 TRICK: LCM Method. A:B=2:3, B:C=4:5 -> Make B common (12).
-        🧮 CALC: A:B = 8:12, B:C = 12:15 -> A:B:C = 8:12:15.
-        ✅ ANS: Option B (8:12:15)
+        GOAL: Provide a "Cheat Sheet" style solution in maximum 3 steps.
+        CONSTRAINT: STRICTLY NO LaTeX ($$, \frac, etc.). Use only standard keyboard characters (/, *, -, +, =).
+        
+        [GOOD RESPONSE FORMAT]
+        💡 CORE: Identify the main concept in one line.
+        🚀 SHORTCUT:
+        1. Step one (mental math/logic)
+        2. Step two
+        3. Step three (Result)
+        🔥 HACK: 15-second "Ranker's" tip.
 
         Question Content:
         ${this.sanitizeInput(question.content)}
-
+ 
         Options:
         ${optionsText}
-
+ 
         Correct Answer: ${question.correctOptionId} - ${this.sanitizeInput(correctOption?.text || 'N/A')}
-
-        GENERATE EXPLANATION FOLLOWING THE [GOOD RESPONSE] FORMAT:`;
+ 
+        GENERATE EXPLANATION FOLLOWING THE [GOOD RESPONSE FORMAT] STRICTLY:`;
 
         try {
             const images = [];
