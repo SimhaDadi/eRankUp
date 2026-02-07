@@ -33,7 +33,7 @@
     "react-i18next": "^16.5.3",
     "react-is": "^16.13.1",
     "react-markdown": "^10.1.0",
-    "recharts": "^3.7.0",
+    "recharts": "^2.12.7",
     "regenerator-runtime": "^0.13.11",
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
