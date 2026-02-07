@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { MessageCircle, X, Send, User } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -9,7 +9,7 @@ export default function ChatSupport() {
     const [isOpen, setIsOpen] = useState(false);
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<any[]>([]);
-    const socketRef = useRef<Socket | null>(null);
+    const socketRef = useRef<any>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const token = useAuthStore((state) => state.token);
     const user = useAuthStore((state) => state.user);
@@ -28,15 +28,15 @@ export default function ChatSupport() {
                 console.log('[ChatSupport] Socket connected successfully');
             });
 
-            socketRef.current.on('connect_error', (error) => {
+            socketRef.current.on('connect_error', (error: Error) => {
                 console.error('[ChatSupport] Socket connection error:', error.message);
             });
 
-            socketRef.current.on('receiveMessage', (data) => {
+            socketRef.current.on('receiveMessage', (data: any) => {
                 setMessages((prev) => [...prev, data]);
             });
 
-            socketRef.current.on('previousMessages', (data) => {
+            socketRef.current.on('previousMessages', (data: any) => {
                 setMessages(data);
             });
         }
