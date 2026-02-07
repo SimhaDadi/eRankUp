@@ -22,10 +22,11 @@ COPY frontend ./frontend
 WORKDIR /app/packages/shared
 RUN npm run build 2>/dev/null || echo "No build script in shared"
 
-# Build the frontend
+# Build the frontend with increased memory
 WORKDIR /app/frontend
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # Production stage
