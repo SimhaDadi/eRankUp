@@ -66,8 +66,8 @@ services:
   # NestJS API
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: erankup-backend
     restart: always
     ports:
@@ -76,7 +76,7 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-admin}
-      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME:-erankup_db}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -98,6 +98,21 @@ services:
     networks:
       - erankup-net
 
+  # Next.js Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: erankup-frontend
+    restart: always
+    environment:
+      - NEXT_PUBLIC_API_URL=https://erankup.in/api
+      - NEXT_PUBLIC_SOCKET_URL=https://erankup.in
+    depends_on:
+      - backend
+    networks:
+      - erankup-net
+
   # AI Analytics Engine
   ai-engine:
     build:
@@ -110,7 +125,7 @@ services:
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-erankup_db}
       - DB_USER=${DB_USER:-admin}
-      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - KAFKA_BROKER=kafka:9092
@@ -138,6 +153,7 @@ services:
       - ./nginx/certbot/www:/var/www/certbot
     depends_on:
       - backend
+      - frontend
     networks:
       - erankup-net
 

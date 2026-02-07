@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 
 # Database Config (Matches docker-compose)
 DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "database": "erankup_db",
-    "user": "admin",
-    "password": "password"
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": int(os.getenv("DB_PORT", 5432)),
+    "database": os.getenv("DB_NAME", "erankup_db"),
+    "user": os.getenv("DB_USER", "admin"),
+    "password": os.getenv("DB_PASSWORD", "password")
 }
 
 # Kafka Config
