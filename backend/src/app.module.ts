@@ -66,6 +66,12 @@ import { ServeStaticModule } from '@nestjs/serve-static';
                     autoLoadEntities: true,
                     synchronize: config.get<string | boolean>('DB_SYNCHRONIZE') === true || config.get<string | boolean>('DB_SYNCHRONIZE') === 'true',
                     ssl: false,
+                    extra: {
+                        max: 20,
+                        min: 5,
+                        idleTimeoutMillis: 30000,
+                        connectionTimeoutMillis: 2000,
+                    },
                 };
                 console.log('DB Config:', { ...dbConfig, password: '***' });
                 return dbConfig;

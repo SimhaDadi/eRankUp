@@ -280,8 +280,9 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get('user/recent')
-    getRecent(@Request() req: any) {
-        return this.scorerService.getLatestAttempts(req.user.userId);
+    getRecent(@Request() req: any, @Query('limit') limit?: string) {
+        const limitNum = parseInt(limit) || 10;
+        return this.scorerService.getLatestAttempts(req.user.userId, limitNum);
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -292,8 +293,9 @@ export class ExamsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get('performance/trend')
-    getTrend(@Request() req: any) {
-        return this.scorerService.getPerformanceTrend(req.user.userId);
+    getTrend(@Request() req: any, @Query('limit') limit?: string) {
+        const limitNum = parseInt(limit) || 20;
+        return this.scorerService.getPerformanceTrend(req.user.userId, limitNum);
     }
 
     // --- Hybrid Question Bank Endpoints ---

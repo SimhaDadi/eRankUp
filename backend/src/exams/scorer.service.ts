@@ -324,11 +324,11 @@ export class ScorerService implements OnModuleInit {
         });
     }
 
-    async getLatestAttempts(userId: string) {
+    async getLatestAttempts(userId: string, limit: number = 10) {
         return this.attemptRepository.find({
             where: { user: { id: userId } },
             order: { createdAt: 'DESC' },
-            take: 10,
+            take: limit,
             relations: ['model', 'exam', 'model.chapter'],
         });
     }
@@ -372,10 +372,11 @@ export class ScorerService implements OnModuleInit {
         return leaderboard;
     }
 
-    async getPerformanceTrend(userId: string) {
+    async getPerformanceTrend(userId: string, limit: number = 20) {
         return this.attemptRepository.find({
             where: { user: { id: userId } },
             order: { createdAt: 'ASC' },
+            take: limit,
             relations: ['model', 'exam']
         });
     }

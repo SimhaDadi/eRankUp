@@ -50,7 +50,7 @@ export default function DashboardPage() {
             try {
                 const [statsRes, recentRes, examsRes, passRes, gamiRes, revisionRes] = await Promise.all([
                     api.get('/exams/user/stats'),
-                    api.get('/exams/user/recent'),
+                    api.get('/exams/user/recent?limit=5'),
                     api.get('/exams'),
                     api.get('/passes/current').catch(() => ({ data: null })),
                     api.get('/gamification/profile').catch(() => ({ data: {} })),
@@ -418,8 +418,8 @@ export default function DashboardPage() {
                                                                         }
                                                                     }}
                                                                     className={`w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${(stats?.dailyQuestionTarget || 100) === t.v
-                                                                            ? 'bg-amber-500 text-white border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
-                                                                            : 'bg-white/10 text-white border-white/10 hover:bg-white/20'
+                                                                        ? 'bg-amber-500 text-white border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+                                                                        : 'bg-white/10 text-white border-white/10 hover:bg-white/20'
                                                                         }`}
                                                                 >
                                                                     {t.l}

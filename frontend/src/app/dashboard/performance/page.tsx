@@ -43,7 +43,7 @@ export default function PerformancePage() {
         const fetchData = async () => {
             try {
                 const [trendRes, statsRes, topperRes] = await Promise.all([
-                    api.get('/exams/performance/trend'),
+                    api.get('/exams/performance/trend?limit=15'),
                     api.get('/exams/user/stats'),
                     api.get('/adaptive/mastery')
                 ]);

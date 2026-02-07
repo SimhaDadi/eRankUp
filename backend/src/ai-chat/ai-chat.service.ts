@@ -482,19 +482,21 @@ ${questionPrompt}
 HISTORY:
 ${historyText}
 
-INSTRUCTIONS:
-1. **EXTREME SHORTCUT MODE**: 
-   - ALWAYS solve in **3 STEPS OR LESS**.
-   - **NO DERIVATIONS**: Strictly skip "Let X be...", "Assuming...", or long algebraic formulas.
-   - **DIRECT METHOD**: Use only the fastest SSC tricks (Ratio, Successive %, Options elimination, or Digital Sum).
-2. **STRUCTURE**: 
-   - **Step 2**: The Calculation (mental math style).
-   - **[Final Result]**: Bold final answer.
-3. **USE LaTeX**: Use LaTeX syntax ($ ... $) for ALL mathematical expressions, formulas, and symbols. 
-   - Example: "$ \sin^2\theta + \cos^2\theta = 1 $"
-   - Example: "$ \sqrt{x^2 + y^2} $"
-4. **NO TABLES**: Use simple bullet points.
-5. **CONCISE & PUNCHY**: Every word must save the student time.
+ INSTRUCTIONS:
+ 1. **EXTREME SHORTCUT MODE**: 
+    - ALWAYS solve in **3 STEPS OR LESS**.
+    - **NO DERIVATIONS**: Strictly skip "Let X be...", "Assuming...", or long algebraic formulas.
+    - **DIRECT METHOD**: Use only the fastest SSC tricks (Ratio, Successive %, Options elimination, or Digital Sum).
+ 2. **STRICTLY NO LaTeX**: 
+    - Do NOT use $$, \frac, \sqrt, or any other math symbols. 
+    - Use ONLY standard keyboard characters (/, *, -, +, =).
+    - Example: Use "sqrt(2)" instead of $\sqrt{2}$ and "x^2" instead of $x^2$.
+ 3. **NO TABLES**: Use simple bullet points.
+ 4. **CONCISE & PUNCHY**: Every word must save the student time.
+ 5. **STRUCTURE**:
+    - **Core Concept**: One sharp sentence.
+    - **The Shortcut**: Max 3 quick lines.
+    - **Final Result**: Bold final answer.
 
 GOAL: Provide a 30-second shortcut that allows a student to solve and move to the next question immediately.
 

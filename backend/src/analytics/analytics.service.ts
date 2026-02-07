@@ -94,25 +94,31 @@ export class AnalyticsService {
         const cached = await this.cacheService.get<any>(cacheKey);
         if (cached) return cached;
 
-        // User Growth (Last 6 months)
-        const months = 6;
-        const growthData = [];
         const now = new Date();
+        // User Growth (Last 6 months) - Optimized: Single aggregate query
+        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+        const rawGrowth = await this.userRepository.createQueryBuilder('user')
+            .select("DATE_TRUNC('month', user.createdAt)", 'month_date')
+            .addSelect('COUNT(user.id)', 'user_count')
+            .where('user.createdAt >= :startDate', { startDate: sixMonthsAgo })
+            .andWhere('user.role = :role', { role: UserRole.STUDENT })
+            .groupBy('month_date')
+            .orderBy('month_date', 'ASC')
+            .getRawMany();
 
-        for (let i = months - 1; i >= 0; i--) {
+        const growthMap = new Map();
+        rawGrowth.forEach(row => {
+            const monthStr = new Date(row.month_date).toLocaleString('default', { month: 'short' });
+            growthMap.set(monthStr, parseInt(row.user_count));
+        });
+
+        const growthData = [];
+        for (let i = 5; i >= 0; i--) {
             const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const nextDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-
-            const count = await this.userRepository.count({
-                where: {
-                    createdAt: Between(date, nextDate),
-                    role: UserRole.STUDENT
-                }
-            });
-
+            const monthLabel = date.toLocaleString('default', { month: 'short' });
             growthData.push({
-                month: date.toLocaleString('default', { month: 'short' }),
-                users: count
+                month: monthLabel,
+                users: growthMap.get(monthLabel) || 0
             });
         }
 
@@ -306,15 +312,22 @@ export class AnalyticsService {
             .orderBy('user.createdAt', 'DESC')
             .getManyAndCount();
 
-        // Enrich with stats
-        const students = await Promise.all(users.map(async (user) => {
-            const stats = await this.attemptRepository
-                .createQueryBuilder('attempt')
-                .select('COUNT(attempt.id)', 'totalAttempts')
-                .addSelect('AVG(attempt.accuracy)', 'averageScore')
-                .where('attempt.userId = :userId', { userId: user.id })
-                .getRawOne();
+        // Enrich with stats - Optimized: Single bulk aggregate query
+        const userIds = users.map(u => u.id);
+        const allStats = await this.attemptRepository
+            .createQueryBuilder('attempt')
+            .select('attempt.userId', 'userId')
+            .addSelect('COUNT(attempt.id)', 'totalAttempts')
+            .addSelect('AVG(attempt.accuracy)', 'averageScore')
+            .where('attempt.userId IN (:...userIds)', { userIds: userIds.length > 0 ? userIds : ['none'] })
+            .groupBy('attempt.userId')
+            .getRawMany();
 
+        const statsMap = new Map();
+        allStats.forEach(s => statsMap.set(s.userId, s));
+
+        const students = users.map(user => {
+            const stats = statsMap.get(user.id) || { totalAttempts: 0, averageScore: 0 };
             return {
                 id: user.id,
                 fullName: user.fullName,
@@ -323,7 +336,7 @@ export class AnalyticsService {
                 totalAttempts: parseInt(stats.totalAttempts) || 0,
                 averageScore: Math.round(parseFloat(stats.averageScore) || 0)
             };
-        }));
+        });
 
         return {
             students,
