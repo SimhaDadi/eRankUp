@@ -83,7 +83,7 @@ export class Question {
     @OneToMany('QuestionExplanation', (explanation: any) => explanation.question)
     explanations: QuestionExplanation[];
 
-    // @Column('vector', { length: 768, nullable: true })
-    // @Exclude({ toPlainOnly: true })
-    // embedding: number[];
+    @Column({ type: 'text', nullable: true }) // Migrated to vector(768) in DB
+    @Exclude({ toPlainOnly: true })
+    embedding: any;
 }

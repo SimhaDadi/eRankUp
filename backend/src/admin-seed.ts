@@ -1,26 +1,31 @@
 import { createConnection } from 'typeorm';
 import { User, UserRole } from './users/user.entity';
 import * as bcrypt from 'bcrypt';
+import * as dotenv from 'dotenv';
+import { join } from 'path';
+
+// Load environment variables
+dotenv.config({ path: join(__dirname, '../.env') });
 
 async function seedAdmin() {
     const connection = await createConnection({
         type: 'postgres',
-        host: 'localhost',
-        port: 5432,
-        username: 'admin',
-        password: 'password',
-        database: 'erankup_db',
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        username: process.env.DB_USER || 'admin',
+        password: process.env.DB_PASSWORD || 'password',
+        database: process.env.DB_NAME || 'erankup_db',
         entities: [User],
         synchronize: true,
     });
 
     const userRepo = connection.getRepository(User);
-    const adminEmail = 'admin@erankup.com';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@erankup.com';
 
     let admin = await userRepo.findOne({ where: { email: adminEmail } });
 
     if (!admin) {
-        const hashedPassword = await bcrypt.hash('AdminPassword123!', 10);
+        const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'AdminPassword123!', 10);
         admin = userRepo.create({
             email: adminEmail,
             password: hashedPassword,

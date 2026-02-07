@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Calendar, Tag, ChevronRight, X, Clock, Globe } from 'lucide-react';
 import api from '@/lib/api';
+import { SafeHtml } from '@/components/SafeHtml';
 
 interface NewsItem {
     id: string;
@@ -168,7 +169,7 @@ export default function CurrentAffairsPage() {
 
                             <div className="overflow-y-auto p-8 md:p-10 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
                                 <div className="prose prose-lg prose-slate max-w-none prose-headings:font-black prose-p:text-slate-600 prose-a:text-blue-600">
-                                    <div dangerouslySetInnerHTML={{ __html: selectedNews.content }} />
+                                    <SafeHtml html={selectedNews.content} />
                                 </div>
 
                                 {selectedNews.tags && (

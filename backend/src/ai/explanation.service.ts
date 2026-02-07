@@ -127,16 +127,16 @@ export class ExplanationService {
   - **Topic**: ${question.topic}${question.chapter ? ` - ${question.chapter.title}` : ''}
   - **Question**: 
   [USER_DATA_START]
-  ${this.sanitizeInput(question.content)}
+  ${this.aiService.sanitizeInput(question.content)}
   [USER_DATA_END]
   
   - **Options**:
-  ${question.options.map(opt => `${opt.id}) ${this.sanitizeInput(opt.text)}`).join('\n')}
+  ${question.options.map(opt => `${opt.id}) ${this.aiService.sanitizeInput(opt.text)}`).join('\n')}
   - **Correct Answer**: ${question.correctOptionId}) ${correctOption?.text}
   `;
 
         if (userAnswer && userAnswer !== question.correctOptionId) {
-            prompt += `- **Student's Wrong Choice**: ${userAnswer}) ${this.sanitizeInput(userOption?.text || '')}\n`;
+            prompt += `- **Student's Wrong Choice**: ${userAnswer}) ${this.aiService.sanitizeInput(userOption?.text || '')}\n`;
         }
 
         prompt += `
@@ -162,25 +162,7 @@ export class ExplanationService {
         return prompt;
     }
 
-    private sanitizeInput(input: string): string {
-        if (!input) return '';
-        const maliciousPhrases = [
-            /ignore previous instructions/gi,
-            /forget your previous/gi,
-            /system prompt/gi,
-            /developer mode/gi,
-            /your instructions/gi,
-            /acting as/gi
-        ];
-        let sanitized = input;
-        maliciousPhrases.forEach(phrase => {
-            sanitized = sanitized.replace(phrase, '[REMOVED]');
-        });
-        if (sanitized.length > 2000) {
-            sanitized = sanitized.substring(0, 2000) + '... [TRUNCATED]';
-        }
-        return sanitized;
-    }
+
 
     async listExplanations(filters: {
         search?: string;

@@ -161,7 +161,7 @@ export class AIChatService {
             this.messageRepo.create({
                 conversationId: conversation.id,
                 role: 'user',
-                content: message,
+                content: this.aiService.sanitizeInput(message),
                 context,
                 image,
             })
@@ -174,7 +174,7 @@ export class AIChatService {
         });
 
         const hour = new Date().getHours();
-        const prompt = this.buildContextualPrompt(message, {
+        const prompt = this.buildContextualPrompt(this.aiService.sanitizeInput(message), {
             ...context,
             temperament: {
                 isLateNight: hour >= 23 || hour <= 4,
@@ -334,7 +334,7 @@ export class AIChatService {
             this.messageRepo.create({
                 conversationId: conversation.id,
                 role: 'user',
-                content: message,
+                content: this.aiService.sanitizeInput(message),
                 context,
                 image,
             })
@@ -353,7 +353,7 @@ export class AIChatService {
             currentTime: new Date().toLocaleTimeString(),
         };
 
-        const prompt = this.buildContextualPrompt(message, { ...context, temperament: temperamentContext }, history);
+        const prompt = this.buildContextualPrompt(this.aiService.sanitizeInput(message), { ...context, temperament: temperamentContext }, history);
 
         let aiResponse: string;
         try {
@@ -403,7 +403,7 @@ export class AIChatService {
         const extractionPrompt = `You are an expert Educational Data Scientist. 
         Analyze this interaction and extract exactly ONE "Core Conceptual Struggle" if present.
         Output JSON: {"topic": "Topic Name", "struggle": "Description", "severity": 0.1} or "NONE".
-        Student: ${userMsg}
+        Student: ${this.aiService.sanitizeInput(userMsg)}
         Tutor: ${aiResp}`;
 
         try {

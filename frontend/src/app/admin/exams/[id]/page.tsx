@@ -22,6 +22,7 @@ import api from '@/lib/api';
 import { QuestionBankBrowser } from '@/components/admin/QuestionBankBrowser';
 import UploadExamQuestionsModal from '@/components/admin/UploadExamQuestionsModal';
 import { EditExamModal } from '@/components/admin/EditExamModal';
+import { SafeHtml } from '@/components/SafeHtml';
 
 interface Question {
     id: string;
@@ -238,9 +239,9 @@ export default function ExamDetailPage() {
                                             Q{index + 1}
                                         </div>
                                         <div className="flex-1">
-                                            <div
+                                            <SafeHtml
                                                 className="prose prose-invert max-w-none text-slate-300 mb-4"
-                                                dangerouslySetInnerHTML={{ __html: question.content }}
+                                                html={question.content}
                                             />
 
                                             <div className="flex flex-wrap gap-2">

@@ -8,15 +8,20 @@ import { Attempt } from './exams/entities/attempt.entity';
 import { Response } from './exams/entities/response.entity';
 import { Purchase } from './exams/entities/purchase.entity';
 import { User, UserRole } from './users/user.entity';
+import * as dotenv from 'dotenv';
+import { join } from 'path';
+
+// Load environment variables
+dotenv.config({ path: join(__dirname, '../.env') });
 
 async function seed() {
     const dataSource = new DataSource({
         type: 'postgres',
-        host: 'localhost',
-        port: 5432,
-        username: 'admin',
-        password: 'password',
-        database: 'erankup_db',
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        username: process.env.DB_USER || 'admin',
+        password: process.env.DB_PASSWORD || 'password',
+        database: process.env.DB_NAME || 'erankup_db',
         entities: [Exam, Chapter, Subject, Model, Question, Attempt, Response, Purchase, User],
         synchronize: true,
     });
@@ -126,11 +131,11 @@ async function seed() {
 
     // 2. Create Admin User
     const userRepo = dataSource.getRepository(User);
-    const adminEmail = 'admin@erankup.com';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@erankup.com';
     let adminUser = await userRepo.findOne({ where: { email: adminEmail } });
     // dynamic import bcrypt to avoid issues if it's not top-level
     const bcrypt = require('bcrypt');
-    const hashedPassword = await bcrypt.hash('adminpassword', 10);
+    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'adminpassword', 10);
 
     if (!adminUser) {
         // Create new
@@ -142,20 +147,20 @@ async function seed() {
             isActive: true
         });
         await userRepo.save(adminUser);
-        console.log('SUCCESS: Admin user created: admin@erankup.com / adminpassword');
+        console.log(`SUCCESS: Admin user created: ${adminEmail} / [HIDDEN]`);
     } else {
         // Update existing to ensure password is correct
         adminUser.password = hashedPassword;
         adminUser.role = UserRole.ADMIN;
         adminUser.isActive = true;
         await userRepo.save(adminUser);
-        console.log('SUCCESS: Admin user updated: admin@erankup.com / adminpassword');
+        console.log(`SUCCESS: Admin user updated: ${adminEmail} / [HIDDEN]`);
     }
 
     // 3. Create Student User (for E2E testing)
-    const studentEmail = 'student@test.com';
+    const studentEmail = process.env.STUDENT_EMAIL || 'student@test.com';
     let studentUser = await userRepo.findOne({ where: { email: studentEmail } });
-    const hashedStudentPassword = await bcrypt.hash('student123', 10);
+    const hashedStudentPassword = await bcrypt.hash(process.env.STUDENT_PASSWORD || 'student123', 10);
 
     if (!studentUser) {
         studentUser = userRepo.create({
@@ -166,7 +171,7 @@ async function seed() {
             isActive: true
         });
         await userRepo.save(studentUser);
-        console.log('SUCCESS: Student user created: student@test.com / student123');
+        console.log(`SUCCESS: Student user created: ${studentEmail} / [HIDDEN]`);
     }
 
     console.log('------------------------------------------');

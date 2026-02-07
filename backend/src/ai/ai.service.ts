@@ -144,34 +144,35 @@ export class AIService {
      * Generate streaming text using Gemini AI API (Multimodal support)
      */
     async *generateStream(prompt: string, images: { data: string; mimeType: string }[] = [], complexity: 'FAST' | 'REASONING' = 'FAST'): AsyncIterableIterator<string> {
-        const provider = this.configService.get('AI_PROVIDER', 'gemini');
-
-        if (provider === 'groq') {
-            yield* this.generateStreamWithGroq(prompt, images, complexity);
-            return;
-        }
-
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-        if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
-
-        const { GoogleGenerativeAI } = require("@google/generative-ai");
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
-        const model = genAI.getGenerativeModel({ model: modelName });
-
-        const parts: any[] = [prompt];
-        if (images.length > 0) {
-            images.forEach(img => {
-                parts.push({
-                    inlineData: {
-                        data: img.data,
-                        mimeType: img.mimeType
-                    }
-                });
-            });
-        }
-
+        const release = await this.queueService.acquire(AIPriority.HIGH);
         try {
+            const provider = this.configService.get('AI_PROVIDER', 'gemini');
+
+            if (provider === 'groq') {
+                yield* this.generateStreamWithGroq(prompt, images, complexity);
+                return;
+            }
+
+            const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+            if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+            const { GoogleGenerativeAI } = require("@google/generative-ai");
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
+            const model = genAI.getGenerativeModel({ model: modelName });
+
+            const parts: any[] = [prompt];
+            if (images.length > 0) {
+                images.forEach(img => {
+                    parts.push({
+                        inlineData: {
+                            data: img.data,
+                            mimeType: img.mimeType
+                        }
+                    });
+                });
+            }
+
             const result = await model.generateContentStream(parts);
             this.systemHealthService.trackAPICall('gemini'); // TRACK USAGE
             for await (const chunk of result.stream) {
@@ -181,10 +182,13 @@ export class AIService {
         } catch (error) {
             console.error('[AIService] Gemini Streaming error:', error);
             yield " [Communication interrupted. Please try again.]";
+        } finally {
+            release();
         }
     }
 
     private async *generateStreamWithGroq(prompt: string, images: { data: string; mimeType: string }[] = [], complexity: 'FAST' | 'REASONING'): AsyncIterableIterator<string> {
+        // Note: Slot is acquired by the caller (generateStream)
         const apiKey = this.configService.get<string>('GROQ_API_KEY');
         const modelName = this.getGroqModel(complexity, images.length > 0);
 
@@ -243,7 +247,7 @@ export class AIService {
                 console.error('[AIService] Embedding generation failed:', error);
                 throw error;
             }
-        });
+        }, AIPriority.MEDIUM, 'gemini');
     }
 
     /**
@@ -282,7 +286,7 @@ export class AIService {
                     console.error('[AIService] Batch embedding generation failed:', error);
                     throw error;
                 }
-            }, AIPriority.LOW);
+            }, AIPriority.LOW, 'gemini');
             allEmbeddings.push(...embeddings);
         }
 
@@ -428,9 +432,9 @@ Verification Result:`;
         const prompt = `You are a cognitive learning expert. A student chose the wrong option for a multiple-choice question.
 Analyze the choice and identify the likely mental error.
 
-Question: ${question.content}
-Correct Option: ${question.correctOptionId} (${correctOption?.text || 'N/A'})
-Student Selected: ${studentAnswerId} (${selectedOption?.text || 'N/A'})
+Question: ${this.sanitizeInput(question.content)}
+Correct Option: ${question.correctOptionId} (${this.sanitizeInput(correctOption?.text || 'N/A')})
+Student Selected: ${studentAnswerId} (${this.sanitizeInput(selectedOption?.text || 'N/A')})
 
 Tasks:
 1. Identify if this is a "Calculation Error", "Conceptual Gap", "Misreading", or "Confusion between related terms".
@@ -871,31 +875,30 @@ Return JSON ONLY:
                 const groq = new Groq({ apiKey });
                 const modelName = this.getGroqModel('REASONING', true);
 
-                const completion = await groq.chat.completions.create({
-                    messages: [
-                        {
-                            role: 'user',
-                            content: [
-                                { type: 'text', text: prompt },
-                                {
-                                    type: 'image_url',
-                                    image_url: {
-                                        url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+                text = await this.queueService.add(async () => {
+                    const completion = await groq.chat.completions.create({
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    { type: 'text', text: prompt },
+                                    {
+                                        type: 'image_url',
+                                        image_url: {
+                                            url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+                                        }
                                     }
-                                }
-                            ]
-                        }
-                    ],
-                    model: modelName,
-                    temperature: 0.1,
-                    max_tokens: 4096,
-                    // FORCE JSON OBJECT MODE - This prevents the AI from generating conversational text or broken formatting
-                    response_format: { type: 'json_object' }
-                });
-
-                text = completion.choices[0]?.message?.content || '';
-                this.systemHealthService.trackAPICall('groq');
-
+                                ]
+                            }
+                        ],
+                        model: modelName,
+                        temperature: 0.1,
+                        max_tokens: 4096,
+                        response_format: { type: 'json_object' }
+                    });
+                    this.systemHealthService.trackAPICall('groq');
+                    return completion.choices[0]?.message?.content || '';
+                }, AIPriority.LOW);
             } else {
                 // Gemini Logic
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -1094,16 +1097,16 @@ Extract all questions and format them as a JSON array with this structure:
         // Find similar questions using Vector Semantic Search
         let similarQuestions: Question[] = [];
         if (parsed.questionText) {
-            // const embedding = await this.generateEmbedding(parsed.questionText);
+            const embedding = await this.generateEmbedding(parsed.questionText);
+            const embeddingStr = `[${embedding.join(',')}]`;
 
-            // Use Cosine Similarity (<=> operator in pgvector for distance)
-            // const embeddingStr = `[${embedding.join(',')}]`;
             similarQuestions = await this.questionRepository
                 .createQueryBuilder('q')
                 .leftJoinAndSelect('q.subject', 'subject')
                 .leftJoinAndSelect('q.chapter', 'chapter')
-                // .orderBy(`q.embedding <=> : embedding`)
-                // .setParameters({ embedding: embeddingStr })
+                .where('q.embedding IS NOT NULL')
+                .orderBy(`q.embedding <=> :embedding`)
+                .setParameters({ embedding: embeddingStr })
                 .limit(3)
                 .getMany();
         }
@@ -1152,28 +1155,31 @@ Extract all questions and format them as a JSON array with this structure:
             } `;
 
         try {
-            const completion = await groq.chat.completions.create({
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            { type: 'text', text: prompt },
-                            {
-                                type: 'image_url',
-                                image_url: {
-                                    url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+            const result = await this.queueService.add(async () => {
+                const completion = await groq.chat.completions.create({
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: prompt },
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+                                    }
                                 }
-                            }
-                        ]
-                    }
-                ],
-                model: modelName,
-                temperature: 0.1,
-                response_format: { type: 'json_object' }
-            });
+                            ]
+                        }
+                    ],
+                    model: modelName,
+                    temperature: 0.1,
+                    response_format: { type: 'json_object' }
+                });
+                this.systemHealthService.trackAPICall('groq');
+                return completion.choices[0]?.message?.content || '';
+            }, AIPriority.HIGH);
 
-            this.systemHealthService.trackAPICall('groq');
-            const responseText = completion.choices[0]?.message?.content || '';
+            const responseText = result;
 
             const parsed = this.safeJsonParse(responseText, {
                 solution: "I analyzed the image but could not generate a structured solution. Please try cropping the image to focus on the question.",
@@ -1186,14 +1192,16 @@ Extract all questions and format them as a JSON array with this structure:
             // Find similar questions using Vector Semantic Search (Relies on Gemini embeddings internally)
             let similarQuestions: Question[] = [];
             if (parsed.questionText) {
-                // Feature parity: Use existing generic embedding generation which might use Gemini
-                // but this is acceptable as we only promised faster VISION and CHAT
-                // const embedding = await this.generateEmbedding(parsed.questionText);
-                // similarQuestions = ... (Same logic as Gemini version - stubbed out in original too)
+                const embedding = await this.generateEmbedding(parsed.questionText);
+                const embeddingStr = `[${embedding.join(',')}]`;
+
                 similarQuestions = await this.questionRepository
                     .createQueryBuilder('q')
                     .leftJoinAndSelect('q.subject', 'subject')
                     .leftJoinAndSelect('q.chapter', 'chapter')
+                    .where('q.embedding IS NOT NULL')
+                    .orderBy(`q.embedding <=> :embedding`)
+                    .setParameters({ embedding: embeddingStr })
                     .limit(3)
                     .getMany();
             }
@@ -1372,9 +1380,22 @@ Extract all questions and format them as a JSON array with this structure:
 
     public sanitizeInput(input: string): string {
         if (!input) return '';
-        const maliciousPhrases = [/ignore previous instructions/gi, /forget your previous/gi, /system prompt/gi, /developer mode/gi];
+        const maliciousPhrases = [
+            /ignore previous instructions/gi,
+            /forget your previous/gi,
+            /system prompt/gi,
+            /developer mode/gi,
+            /your instructions/gi,
+            /acting as/gi,
+            /you are a/gi
+        ];
         let sanitized = input;
-        maliciousPhrases.forEach(phrase => sanitized = sanitized.replace(phrase, '[REMOVED]'));
-        return sanitized.length > 3000 ? sanitized.substring(0, 3000) : sanitized;
+        maliciousPhrases.forEach(phrase => {
+            sanitized = sanitized.replace(phrase, '[REMOVED]');
+        });
+        if (sanitized.length > 3000) {
+            sanitized = sanitized.substring(0, 3000) + '... [TRUNCATED]';
+        }
+        return sanitized;
     }
 }

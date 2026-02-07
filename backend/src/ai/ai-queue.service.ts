@@ -10,6 +10,7 @@ export enum AIPriority {
 interface RankedTask {
     task: () => Promise<any>;
     priority: AIPriority;
+    provider: 'gemini' | 'groq';
     resolve: (value: any) => void;
     reject: (reason?: any) => void;
 }
@@ -18,19 +19,26 @@ interface RankedTask {
 export class AIQueueService {
     private queue: RankedTask[] = [];
     private isProcessing = false;
+    private lastProviderUsed: 'gemini' | 'groq' = 'gemini';
     private readonly GEMINI_DELAY = 6000; // 6s (10 RPM) for Gemini Free Tier
     private readonly GROQ_DELAY = 500;   // 0.5s for Groq (Fast Inference)
     private readonly MAX_QUEUE_SIZE = 300; // Security Cap to prevent OOM
 
     constructor(private configService: ConfigService) { }
 
-    async add<T>(task: () => Promise<T>, priority: AIPriority = AIPriority.MEDIUM): Promise<T> {
+    async add<T>(
+        task: () => Promise<T>,
+        priority: AIPriority = AIPriority.MEDIUM,
+        providerOverride?: 'gemini' | 'groq'
+    ): Promise<T> {
         if (this.queue.length >= this.MAX_QUEUE_SIZE) {
             throw new ServiceUnavailableException('AI Service is under heavy load (Queue Full). Please try again in a minute.');
         }
 
+        const provider = providerOverride || this.configService.get('AI_PROVIDER', 'gemini') as 'gemini' | 'groq';
+
         return new Promise<T>((resolve, reject) => {
-            const rankedTask: RankedTask = { task, priority, resolve, reject };
+            const rankedTask: RankedTask = { task, priority, provider, resolve, reject };
 
             this.queue.push(rankedTask);
 
@@ -46,6 +54,20 @@ export class AIQueueService {
         });
     }
 
+    /**
+     * Acquires a slot in the queue and returns a release function.
+     * Use this for streaming responses where the "task" duration is controlled by the caller.
+     */
+    async acquire(priority: AIPriority = AIPriority.MEDIUM, providerOverride?: 'gemini' | 'groq'): Promise<() => void> {
+        return new Promise<() => void>((resolve) => {
+            this.add(() => {
+                return new Promise<void>((release) => {
+                    resolve(() => release());
+                });
+            }, priority, providerOverride);
+        });
+    }
+
     private async processQueue() {
         if (this.queue.length === 0) {
             this.isProcessing = false;
@@ -56,22 +78,21 @@ export class AIQueueService {
         const rankedTask = this.queue.shift();
 
         if (rankedTask) {
-            const { task, resolve, reject, priority } = rankedTask;
+            const { task, resolve, reject, priority, provider } = rankedTask;
+            this.lastProviderUsed = provider;
             try {
                 const result = await task();
                 resolve(result);
             } catch (error) {
-                console.error(`[AIQueueService] Task failed (Priority: ${priority}):`, error);
+                console.error(`[AIQueueService] Task failed (Priority: ${priority}, Provider: ${provider}):`, error);
                 reject(error);
             }
         }
 
-        // Dynamic Rate Limit
-        const provider = this.configService.get('AI_PROVIDER', 'gemini');
-        const delay = provider === 'groq' ? this.GROQ_DELAY : this.GEMINI_DELAY;
+        // Dynamic Rate Limit based on the PROVIDER THAT JUST FINISHED
+        const delay = this.lastProviderUsed === 'groq' ? this.GROQ_DELAY : this.GEMINI_DELAY;
 
         if (this.queue.length > 0) {
-            // console.log(`[AIQueueService] Waiting ${delay}ms... (Queue: ${this.queue.length}, Next Priority: ${this.queue[0].priority})`);
             setTimeout(() => this.processQueue(), delay);
         } else {
             this.isProcessing = false;
