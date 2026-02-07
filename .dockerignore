@@ -1,10 +1,16 @@
 node_modules
+**/node_modules
 .next
+**/.next
 .git
 *.log
 *.md
 .env.local
+*/.env.local
+**/.env.local
 .env.development
+*/.env.development
+**/.env.development
 .env.development.local
 .env.test.local
 *.swp
@@ -17,3 +23,4 @@ dist
 build
 tmp
 .cache
+frontend/.env.local
