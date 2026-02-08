@@ -143,17 +143,11 @@ export class ExplanationService {
   ### Instructions for the Explanation
   Write a concise, high-impact "Cheat Sheet" style explanation using the following Markdown structure strictly:
   
-  **1. The Core Concept** 💡
-  - In one sharp sentence, identify the underlying principle applied here.
-  
-  **2. Extreme Shortcut Solution** 🚀
+  **1. Extreme Shortcut Solution** 🚀
   - Provide a maximum of 3 quick steps using ONLY standard keyboard characters.
   - No derivations. No complex formulas. Straight to the result.
   
-  **3. Why Options are Incorrect** (Optional)
-  - Briefly mention why the most common distractor is wrong.
-  
-  **4. Ranker's Hack** 🔥
+  **2. Ranker's Hack** 🔥
   - A mnemonic, mental math trick, or logical check to solve this in under 15 seconds.
   
   ---

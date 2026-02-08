@@ -40,10 +40,9 @@ export default function AdminDailyQuizzesPage() {
 
     const fetchQuizzes = async () => {
         try {
-            // Fetch raw exams. In a larger app, we'd want a backend filter parameter for category
             const response = await api.get('/exams');
-            const allExams = Array.isArray(response.data) ? response.data : [];
-            // Filter strictly for Free Quiz AND Published
+            const data = response.data;
+            const allExams = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
             setQuizzes(allExams.filter((e: Exam) => e.category === 'Free Quiz' && e.isPublished));
         } catch (error) {
             console.error("Failed to fetch quizzes", error);

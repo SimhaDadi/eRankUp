@@ -3,21 +3,33 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from './user.entity';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AdminSeeder implements OnApplicationBootstrap {
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+        private readonly configService: ConfigService,
     ) { }
 
     async onApplicationBootstrap() {
-        const adminEmail = 'admin@erankup.com';
+        const seedAdmin = this.configService.get<string | boolean>('SEED_ADMIN');
+        const shouldSeed = seedAdmin === true || seedAdmin === 'true';
+
+        if (!shouldSeed) {
+            console.log('Admin seeding is disabled (SEED_ADMIN=false). Skipping.');
+            return;
+        }
+
+        const adminEmail = this.configService.get<string>('ADMIN_EMAIL', 'admin@erankup.com');
+        const adminPassword = this.configService.get<string>('ADMIN_PASSWORD', 'adminpassword');
+
         const adminExists = await this.userRepository.findOne({ where: { email: adminEmail } });
 
         if (!adminExists) {
-            console.log('Seeding Admin User...');
-            const hashedPassword = await bcrypt.hash('adminpassword', 10);
+            console.log(`Seeding Admin User: ${adminEmail}...`);
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
             const adminUser = this.userRepository.create({
                 email: adminEmail,
                 password: hashedPassword,
@@ -26,7 +38,7 @@ export class AdminSeeder implements OnApplicationBootstrap {
                 isActive: true,
             });
             await this.userRepository.save(adminUser);
-            console.log('Admin User Seeded: admin@erankup.com / adminpassword');
+            console.log(`Admin User Seeded successfully: ${adminEmail}`);
         } else {
             // Ensure role is admin if it exists
             if (adminExists.role !== UserRole.ADMIN) {

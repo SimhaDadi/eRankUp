@@ -30,7 +30,8 @@ import {
     MonitorPlay,
     BookOpen,
     History,
-    PieChart
+    PieChart,
+    XCircle
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -61,6 +62,17 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
     const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalIsCollapsed;
     const handleToggle = onToggle || (() => setInternalIsCollapsed(!internalIsCollapsed));
     const sidebarRef = useRef<HTMLDivElement>(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Track screen size for mobile view
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 1024);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Close sidebar when clicking outside
     useEffect(() => {
@@ -142,8 +154,10 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
     };
 
     const sidebarVariants = {
-        expanded: { width: 290 },
-        collapsed: { width: 90 }
+        expanded: { width: 290, x: 0 },
+        collapsed: { width: 90, x: 0 },
+        mobileHidden: { x: "-100%", width: 290 },
+        mobileVisible: { x: 0, width: 290 }
     };
 
     const navContainerVariants = {
@@ -168,163 +182,178 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
     };
 
     return (
-        <motion.div
-            ref={sidebarRef}
-            initial={isCollapsed ? "collapsed" : "expanded"}
-            animate={isCollapsed ? "collapsed" : "expanded"}
-            variants={sidebarVariants}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto overflow-x-hidden z-50 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50"
-        >
-            {/* Larger Logo Area */}
-            <div className={`px-3 py-4 flex items-center sticky top-0 bg-white/95 backdrop-blur-sm z-20 transition-all duration-300 w-full ${isCollapsed ? 'flex-col gap-4 justify-center' : 'flex-row justify-between'}`}>
-                <Link
-                    href="/dashboard"
-                    className="flex items-center gap-3 cursor-pointer overflow-hidden group z-50 transition-opacity hover:opacity-90"
-                >
-                    <div className="w-11 h-11 min-w-[44px] bg-slate-900 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-xl shadow-slate-900/20 ring-1 ring-slate-900/10 relative overflow-hidden transition-transform group-hover:scale-105">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <span className="relative z-10">e</span>
-                    </div>
-
+        <>
+            {/* Mobile Backdrop */}
+            <AnimatePresence>
+                {isMobile && !isCollapsed && (
                     <motion.div
-                        variants={textVariants}
-                        className="flex flex-col whitespace-nowrap"
-                    >
-                        <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">
-                            eRankUp
-                        </span>
-                    </motion.div>
-                </Link>
-
-                <button
-                    onClick={handleToggle}
-                    className={`z-50 w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'bg-slate-50 text-slate-900 shadow-sm' : ''}`}
-                >
-                    {isCollapsed ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
-                </button>
-
-                {isCollapsed && (
-                    <button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
                         onClick={handleToggle}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-40"
-                        title="Expand Sidebar"
+                        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[45]"
                     />
                 )}
-            </div>
+            </AnimatePresence>
 
-            {/* Living Navigation */}
-            <div className="flex-1 py-2 px-3 space-y-2 overflow-y-auto scrollbar-none">
-                {sections.map((section, idx) => (
-                    <div key={idx} className={`space-y-1 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
-                        {section.title && (
-                            <motion.div
-                                variants={textVariants}
-                                className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-60 whitespace-nowrap overflow-hidden"
-                            >
-                                {section.title}
-                            </motion.div>
-                        )}
+            <motion.div
+                ref={sidebarRef}
+                initial={isMobile ? "mobileHidden" : (isCollapsed ? "collapsed" : "expanded")}
+                animate={isMobile ? (isCollapsed ? "mobileHidden" : "mobileVisible") : (isCollapsed ? "collapsed" : "expanded")}
+                variants={sidebarVariants}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto overflow-x-hidden z-50 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50"
+            >
+                {/* Larger Logo Area */}
+                <div className={`px-3 py-4 flex items-center sticky top-0 bg-white/95 backdrop-blur-sm z-20 transition-all duration-300 w-full ${isCollapsed ? 'flex-col gap-4 justify-center' : 'flex-row justify-between'}`}>
+                    <Link
+                        href="/dashboard"
+                        className="flex items-center gap-3 cursor-pointer overflow-hidden group z-50 transition-opacity hover:opacity-90"
+                    >
+                        <div className="w-11 h-11 min-w-[44px] bg-slate-900 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-xl shadow-slate-900/20 ring-1 ring-slate-900/10 relative overflow-hidden transition-transform group-hover:scale-105">
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <span className="relative z-10">e</span>
+                        </div>
+
                         <motion.div
-                            variants={navContainerVariants}
-                            initial="hidden"
-                            animate="visible"
-                            className="space-y-1 w-full relative"
+                            variants={textVariants}
+                            className="flex flex-col whitespace-nowrap"
                         >
-                            {section.items.map((item) => {
-                                const isActive = pathname === item.href;
-                                const gradient = getItemColor(item.label);
+                            <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">
+                                eRankUp
+                            </span>
+                        </motion.div>
+                    </Link>
 
-                                return (
-                                    <motion.div
-                                        key={item.href}
-                                        variants={navItemVariants}
-                                        whileHover={{ x: 5 }}
-                                        className="w-full"
-                                    >
-                                        <Link
-                                            href={item.href}
-                                            className={`relative flex items-center gap-4 px-3 py-2 transition-all duration-200 group active:scale-95 ${isActive
-                                                ? isCollapsed ? 'z-10' : 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 z-10 rounded-2xl'
-                                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-2xl'
-                                                } ${isCollapsed ? 'justify-center w-14 h-14 mx-auto p-0 rounded-xl' : ''}`}
-                                            title={isCollapsed ? item.label : ''}
+                    <button
+                        onClick={handleToggle}
+                        className={`z-50 w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'bg-slate-50 text-slate-900 shadow-sm' : ''}`}
+                    >
+                        {isMobile ? <XCircle className="w-6 h-6" /> : (isCollapsed ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />)}
+                    </button>
+
+                    {isCollapsed && (
+                        <button
+                            onClick={handleToggle}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-40"
+                            title="Expand Sidebar"
+                        />
+                    )}
+                </div>
+
+                {/* Living Navigation */}
+                <div className="flex-1 py-2 px-3 space-y-2 overflow-y-auto scrollbar-none">
+                    {sections.map((section, idx) => (
+                        <div key={idx} className={`space-y-1 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
+                            {section.title && (
+                                <motion.div
+                                    variants={textVariants}
+                                    className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-60 whitespace-nowrap overflow-hidden"
+                                >
+                                    {section.title}
+                                </motion.div>
+                            )}
+                            <motion.div
+                                variants={navContainerVariants}
+                                initial="hidden"
+                                animate="visible"
+                                className="space-y-1 w-full relative"
+                            >
+                                {section.items.map((item) => {
+                                    const isActive = pathname === item.href;
+                                    const gradient = getItemColor(item.label);
+
+                                    return (
+                                        <motion.div
+                                            key={item.href}
+                                            variants={navItemVariants}
+                                            whileHover={{ x: 5 }}
+                                            className="w-full"
                                         >
-                                            {/* Living Icon Container */}
-                                            <div className={`relative z-10 w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-300 shrink-0 ${item.label === 'Tutor'
-                                                ? 'bg-transparent scale-125'
-                                                : isActive
-                                                    ? `bg-gradient-to-br ${gradient} text-white shadow-lg shadow-sm scale-105`
-                                                    : 'bg-white border-2 border-slate-200 text-slate-500 shadow-sm group-hover:border-slate-300 group-hover:text-slate-700 group-hover:scale-110'
-                                                }`}>
-                                                {item.label === 'Tutor' ? (
-                                                    <Image
-                                                        src="/south_indian_teacher.png"
-                                                        alt="Tutor"
-                                                        width={44}
-                                                        height={44}
-                                                        className="w-full h-full object-contain drop-shadow-md"
-                                                    />
-                                                ) : (
-                                                    <item.icon className="w-5 h-5" strokeWidth={isActive ? 3 : 2.5} />
-                                                )}
-                                            </div>
-
-                                            <motion.span
-                                                variants={textVariants}
-                                                animate={isCollapsed ? "collapsed" : "expanded"}
-                                                className={`text-[15px] tracking-tight whitespace-nowrap font-black leading-none pt-0.5 overflow-hidden ${isActive ? 'text-white' : ''}`}
+                                            <Link
+                                                href={item.href}
+                                                className={`relative flex items-center gap-4 px-3 py-2 transition-all duration-200 group active:scale-95 ${isActive
+                                                    ? isCollapsed ? 'z-10' : 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 z-10 rounded-2xl'
+                                                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-2xl'
+                                                    } ${isCollapsed ? 'justify-center w-14 h-14 mx-auto p-0 rounded-xl' : ''}`}
+                                                title={isCollapsed ? item.label : ''}
                                             >
-                                                {item.label}
-                                            </motion.span>
+                                                {/* Living Icon Container */}
+                                                <div className={`relative z-10 w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-300 shrink-0 ${item.label === 'Tutor'
+                                                    ? 'bg-transparent scale-125'
+                                                    : isActive
+                                                        ? `bg-gradient-to-br ${gradient} text-white shadow-lg shadow-sm scale-105`
+                                                        : 'bg-white border-2 border-slate-200 text-slate-500 shadow-sm group-hover:border-slate-300 group-hover:text-slate-700 group-hover:scale-110'
+                                                    }`}>
+                                                    {item.label === 'Tutor' ? (
+                                                        <Image
+                                                            src="/south_indian_teacher.png"
+                                                            alt="Tutor"
+                                                            width={44}
+                                                            height={44}
+                                                            className="w-full h-full object-contain drop-shadow-md"
+                                                        />
+                                                    ) : (
+                                                        <item.icon className="w-5 h-5" strokeWidth={isActive ? 3 : 2.5} />
+                                                    )}
+                                                </div>
 
-                                            {item.badge && (
                                                 <motion.span
                                                     variants={textVariants}
                                                     animate={isCollapsed ? "collapsed" : "expanded"}
-                                                    className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full text-white shadow-sm ${item.badgeColor || 'bg-blue-500'}`}
+                                                    className={`text-[15px] tracking-tight whitespace-nowrap font-black leading-none pt-0.5 overflow-hidden ${isActive ? 'text-white' : ''}`}
                                                 >
-                                                    {item.badge}
+                                                    {item.label}
                                                 </motion.span>
-                                            )}
-                                        </Link>
-                                    </motion.div>
-                                );
-                            })}
-                        </motion.div>
-                    </div>
-                ))}
-            </div>
 
-            {/* Upgrade / Pro Access Area */}
-            <motion.div
-                variants={{
-                    expanded: { opacity: 1, scale: 1, height: "auto", margin: "1rem" },
-                    collapsed: { opacity: 1, scale: 1, height: "auto", margin: "0.5rem" }
-                }}
-                className="mt-auto bg-slate-50 border border-slate-100 rounded-2xl relative overflow-hidden group mb-4 transition-all duration-300"
-            >
-                {isCollapsed ? (
-                    <Link
-                        href="/dashboard/plans"
-                        className="w-14 h-14 mx-auto flex items-center justify-center bg-slate-900 text-white rounded-2xl shadow-lg relative overflow-hidden group/mini"
-                        title="Upgrade to Pro"
-                    >
-                        <Crown className="w-6 h-6 z-10" />
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover/mini:opacity-100 transition-opacity" />
-                    </Link>
-                ) : (
-                    <Link href="/dashboard/plans" className="p-4 relative z-10 flex items-center justify-between gap-3 min-w-[200px]">
-                        <div>
-                            <h4 className="font-black text-sm text-slate-900 leading-none mb-1">Pro Access</h4>
-                            <p className="text-[10px] text-slate-500 font-bold leading-tight uppercase tracking-tight">Unlock premium</p>
+                                                {item.badge && (
+                                                    <motion.span
+                                                        variants={textVariants}
+                                                        animate={isCollapsed ? "collapsed" : "expanded"}
+                                                        className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full text-white shadow-sm ${item.badgeColor || 'bg-blue-500'}`}
+                                                    >
+                                                        {item.badge}
+                                                    </motion.span>
+                                                )}
+                                            </Link>
+                                        </motion.div>
+                                    );
+                                })}
+                            </motion.div>
                         </div>
-                        <div className="px-3 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all hover:bg-black">
-                            UPGRADE
-                        </div>
-                    </Link>
-                )}
-            </motion.div>
-        </motion.div >
+                    ))}
+                </div>
+
+                {/* Upgrade / Pro Access Area */}
+                <motion.div
+                    variants={{
+                        expanded: { opacity: 1, scale: 1, height: "auto", margin: "1rem" },
+                        collapsed: { opacity: 1, scale: 1, height: "auto", margin: "0.5rem" }
+                    }}
+                    className="mt-auto bg-slate-50 border border-slate-100 rounded-2xl relative overflow-hidden group mb-4 transition-all duration-300"
+                >
+                    {isCollapsed ? (
+                        <Link
+                            href="/dashboard/plans"
+                            className="w-14 h-14 mx-auto flex items-center justify-center bg-slate-900 text-white rounded-2xl shadow-lg relative overflow-hidden group/mini"
+                            title="Upgrade to Pro"
+                        >
+                            <Crown className="w-6 h-6 z-10" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover/mini:opacity-100 transition-opacity" />
+                        </Link>
+                    ) : (
+                        <Link href="/dashboard/plans" className="p-4 relative z-10 flex items-center justify-between gap-3 min-w-[200px]">
+                            <div>
+                                <h4 className="font-black text-sm text-slate-900 leading-none mb-1">Pro Access</h4>
+                                <p className="text-[10px] text-slate-500 font-bold leading-tight uppercase tracking-tight">Unlock premium</p>
+                            </div>
+                            <div className="px-3 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all hover:bg-black">
+                                UPGRADE
+                            </div>
+                        </Link>
+                    )}
+                </motion.div>
+            </motion.div >
+        </>
     );
 }

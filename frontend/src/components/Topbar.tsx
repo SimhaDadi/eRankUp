@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useAuthStore } from '../store/authStore';
-import { Bell, Search, ChevronDown, User, Settings, LogOut, Check, XCircle } from 'lucide-react';
+import { Bell, Search, ChevronDown, User, Settings, LogOut, Check, XCircle, Menu } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 
@@ -17,7 +17,7 @@ interface Notification {
     type?: string;
 }
 
-export default function Topbar() {
+export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
     const { user, logout } = useAuthStore();
     const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
@@ -129,7 +129,15 @@ export default function Topbar() {
 
     return (
         <div className="h-20 sticky top-0 z-[60] transition-all duration-300 backdrop-blur-md bg-white/80 border-b border-white/50 shadow-sm shadow-slate-200/50">
-            <div className="h-full flex items-center justify-between px-4 lg:px-6 max-w-7xl mx-auto">
+            <div className="h-full flex items-center justify-between px-4 lg:px-6 max-w-7xl mx-auto gap-4">
+                {/* Hamburger for mobile */}
+                <button
+                    onClick={onToggleSidebar}
+                    className="lg:hidden p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95"
+                >
+                    <Menu className="w-6 h-6" />
+                </button>
+
                 {/* Search Bar - Visible on all main dashboard pages */}
                 {(pathname?.startsWith('/dashboard') && !pathname?.includes('/test/') && !pathname?.includes('/results/') && !pathname?.includes('/solutions/')) ? (
                     <div className="flex items-center bg-slate-100/50 hover:bg-slate-100 transition-all duration-300 rounded-2xl px-4 py-2 w-full max-w-[420px] border border-slate-200/60 focus-within:border-blue-500/50 focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:bg-white shadow-sm shadow-slate-200/20 group">
@@ -152,7 +160,7 @@ export default function Topbar() {
                         )}
                     </div>
                 ) : (
-                    <div className="flex-1 px-4">
+                    <div className="flex-1 px-4 hidden md:block">
                         {pathname !== '/dashboard' && (
                             <nav className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
                                 <Link href="/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</Link>

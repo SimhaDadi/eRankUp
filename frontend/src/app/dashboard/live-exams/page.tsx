@@ -52,9 +52,9 @@ export default function LiveExamsPage() {
         const fetchExams = async () => {
             try {
                 const response = await api.get('/exams?type=live_exam');
-                const liveExams = Array.isArray(response.data)
-                    ? response.data.filter((e: Exam) => e.type === 'live_exam')
-                    : [];
+                const data = response.data;
+                const allExams = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+                const liveExams = allExams.filter((e: Exam) => e.type === 'live_exam');
                 setExams(liveExams);
             } catch (error) {
                 console.error("Failed to fetch Live exams", error);

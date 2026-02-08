@@ -48,9 +48,9 @@ export default function TestSeriesPage() {
         const fetchExams = async () => {
             try {
                 const response = await api.get('/exams?type=real_exam');
-                const testSeries = Array.isArray(response.data)
-                    ? response.data.filter((e: Exam) => e.type === 'real_exam' && e.isPublished && e.category !== 'Free Quiz' && e.category !== 'Quiz')
-                    : [];
+                const data = response.data;
+                const allExams = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+                const testSeries = allExams.filter((e: Exam) => e.type === 'real_exam' && e.isPublished && e.category !== 'Free Quiz' && e.category !== 'Quiz');
                 setExams(testSeries);
             } catch (error) {
                 console.error("Failed to fetch Test Series", error);

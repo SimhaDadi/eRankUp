@@ -25,7 +25,9 @@ import {
     Plus,
     LogOut,
     Zap,
-    Newspaper
+    Newspaper,
+    Menu,
+    XCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -130,15 +132,23 @@ export default function AdminLayout({
                 isCollapsed={isSidebarCollapsed}
                 onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             />
-            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-[90px]' : 'ml-[290px]'}`}>
-                <header className="h-20 border-b border-slate-800/50 bg-[#0c111d]/50 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-8">
-                    <div className="flex items-center gap-4 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
-                        <Search className="w-4 h-4 text-slate-500" />
-                        <input
-                            type="text"
-                            placeholder="Search Command..."
-                            className="bg-transparent border-none outline-none text-sm w-64 text-slate-300 placeholder:text-slate-600"
-                        />
+            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-[90px]' : 'lg:ml-[290px]'} ml-0`}>
+                <header className="h-20 border-b border-slate-800/50 bg-[#0c111d]/50 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 gap-4">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                            className="lg:hidden p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all active:scale-95"
+                        >
+                            <Menu className="w-6 h-6" />
+                        </button>
+                        <div className="hidden md:flex items-center gap-4 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
+                            <Search className="w-4 h-4 text-slate-500" />
+                            <input
+                                type="text"
+                                placeholder="Search Command..."
+                                className="bg-transparent border-none outline-none text-sm w-48 lg:w-64 text-slate-300 placeholder:text-slate-600"
+                            />
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-6">
@@ -151,7 +161,7 @@ export default function AdminLayout({
                         </motion.button>
 
                         <div ref={dropdownRef} className="flex items-center gap-3 pl-6 border-l border-slate-800 relative">
-                            <div className="text-right">
+                            <div className="text-right hidden sm:block">
                                 <div className="text-sm font-bold text-slate-200">{user?.fullName || 'Admin User'}</div>
                                 <div className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">{user?.role || 'Administrator'}</div>
                             </div>
@@ -195,7 +205,7 @@ export default function AdminLayout({
                     </div>
                 </header>
 
-                <main className="flex-1 p-8 text-slate-100">
+                <main className="flex-1 p-4 lg:p-8 text-slate-100">
                     {children}
                 </main>
             </div>

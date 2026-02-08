@@ -18,13 +18,13 @@ export default function PreviousYearPapersPage() {
         const fetchPapers = async () => {
             try {
                 const res = await api.get('/exams?type=previous_year_paper');
-                setPapers(res.data.filter((p: any) => p.isPublished));
-                if (res.data.length > 0) {
-                    // Auto-select first category if available, else 'All' or specific logic
-                    // For now default to 'All' or user can switch.
-                    // Actually better to default to the most popular or first one found?
-                    // Let's keep 'SSC' as default if present, else first one.
-                    const cats = Array.from(new Set(res.data.map((p: any) => p.category || 'Other')));
+                const data = res.data;
+                const allExams = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+                const publishedPapers = allExams.filter((p: any) => p.isPublished);
+                setPapers(publishedPapers);
+
+                if (publishedPapers.length > 0) {
+                    const cats = Array.from(new Set(publishedPapers.map((p: any) => p.category || 'Other')));
                     if (cats.includes('SSC')) setActiveCategory('SSC');
                     else if (cats.length > 0) setActiveCategory(cats[0] as string);
                 }

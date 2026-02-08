@@ -55,6 +55,8 @@ interface Stats {
 interface FilterOption {
     id: string;
     title: string;
+    subjectId?: string;
+    chapterId?: string;
 }
 
 export default function AIExplanationsPage() {
@@ -371,7 +373,9 @@ export default function AIExplanationsPage() {
                             className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer"
                         >
                             <option value="">All Models</option>
-                            {models.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+                            {models
+                                .filter(m => (!subjectId || m.subjectId === subjectId) && (!chapterId || m.chapterId === chapterId))
+                                .map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
                         </select>
                     </div>
                 </div>
