@@ -61,7 +61,7 @@ services:
       redis:
         condition: service_healthy
     command: >
-      sh -c "npm run migration:run:prod && node dist/backend/src/main"
+      sh -c "npm run migration:run:prod && if [ \"$SEED_ADMIN\" = 'true' ]; then node dist/backend/src/admin-seed.js 2>/dev/null || echo 'Admin seed skipped'; fi && node dist/backend/src/main"
     networks:
       - erankup-network
 
