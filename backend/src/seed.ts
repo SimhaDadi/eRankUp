@@ -20,7 +20,7 @@ async function seed() {
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432'),
         username: process.env.DB_USER || 'admin',
-        password: process.env.DB_PASSWORD || 'password',
+        password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME || 'erankup_db',
         entities: [Exam, Chapter, Subject, Model, Question, Attempt, Response, Purchase, User],
         synchronize: true,
@@ -131,11 +131,18 @@ async function seed() {
 
     // 2. Create Admin User
     const userRepo = dataSource.getRepository(User);
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@erankup.com';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+        throw new Error('SEED ERROR: ADMIN_EMAIL and ADMIN_PASSWORD environment variables are required for seeding.');
+    }
+
     let adminUser = await userRepo.findOne({ where: { email: adminEmail } });
+
     // dynamic import bcrypt to avoid issues if it's not top-level
     const bcrypt = require('bcrypt');
-    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'adminpassword', 10);
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
     if (!adminUser) {
         // Create new
@@ -158,9 +165,20 @@ async function seed() {
     }
 
     // 3. Create Student User (for E2E testing)
-    const studentEmail = process.env.STUDENT_EMAIL || 'student@test.com';
+    const studentEmail = process.env.STUDENT_EMAIL;
+    const studentPassword = process.env.STUDENT_PASSWORD;
+
+    if (!studentEmail || !studentPassword) {
+        console.warn('SKIPPING STUDENT SEEDING: STUDENT_EMAIL or STUDENT_PASSWORD not set.');
+        console.log('------------------------------------------');
+        console.log('SUCCESS: 100 Questions seeded across 4 chapters!');
+        console.log('------------------------------------------');
+        await dataSource.destroy();
+        return;
+    }
+
     let studentUser = await userRepo.findOne({ where: { email: studentEmail } });
-    const hashedStudentPassword = await bcrypt.hash(process.env.STUDENT_PASSWORD || 'student123', 10);
+    const hashedStudentPassword = await bcrypt.hash(studentPassword, 10);
 
     if (!studentUser) {
         studentUser = userRepo.create({

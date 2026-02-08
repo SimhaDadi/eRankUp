@@ -39,28 +39,6 @@ export class AuthService {
         return result;
     }
 
-    async seedAdmin() {
-        // ... (keep existing implementation, assuming it doesn't need DTO argument change)
-        const email = 'admin@erankup.com';
-        const existingUser = await this.usersService.findOneByEmail(email);
-        const hashedPassword = await bcrypt.hash('adminpassword', 10);
-
-        if (existingUser) {
-            // Update existing admin
-            existingUser.password = hashedPassword;
-            existingUser.role = 'admin' as any; // Type casting for now if strict
-            // We need a save/update method in UsersService, but create can often save if entity has ID
-            return this.usersService.create({ ...existingUser, password: hashedPassword, role: 'admin' as any });
-        }
-
-        // Create new
-        return this.usersService.create({
-            email,
-            password: hashedPassword,
-            fullName: 'System Admin',
-            role: 'admin' as any
-        });
-    }
 
     private readonly logger = new Logger(AuthService.name);
 

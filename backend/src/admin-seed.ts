@@ -20,12 +20,17 @@ async function seedAdmin() {
     });
 
     const userRepo = connection.getRepository(User);
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@erankup.com';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+        throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD are required in .env for seeding.');
+    }
 
     let admin = await userRepo.findOne({ where: { email: adminEmail } });
 
     if (!admin) {
-        const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'AdminPassword123!', 10);
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
         admin = userRepo.create({
             email: adminEmail,
             password: hashedPassword,
