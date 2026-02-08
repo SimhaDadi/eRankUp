@@ -10,9 +10,16 @@ dotenv.config({ path: join(__dirname, '../.env') });
 async function seedAdmin() {
     // Check if seeding is enabled
     const shouldSeed = process.env.SEED_ADMIN === 'true';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
     if (!shouldSeed) {
         console.log('SKIP: Admin seeding disabled (SEED_ADMIN is not true)');
+        return;
+    }
+
+    if (!adminEmail || !adminPassword) {
+        console.log('ERROR: ADMIN_EMAIL or ADMIN_PASSWORD environment variable is not set');
         return;
     }
 
@@ -28,8 +35,7 @@ async function seedAdmin() {
     });
 
     const userRepo = connection.getRepository(User);
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@erankup.com';
-    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'AdminPassword123!', 10);
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
     let admin = await userRepo.findOne({ where: { email: adminEmail } });
 

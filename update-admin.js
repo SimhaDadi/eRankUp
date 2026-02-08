@@ -21,8 +21,15 @@ async function updateAdmin() {
 
     await client.connect();
 
-    const adminEmail = process.env.ADMIN_EMAIL || "admin@erankup.com";
-    const adminPassword = process.env.ADMIN_PASSWORD || "adminpassword";
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+        console.log("ERROR: ADMIN_EMAIL or ADMIN_PASSWORD environment variable is not set");
+        await client.end();
+        return;
+    }
+
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
     // Check if admin exists
