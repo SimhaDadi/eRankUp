@@ -494,9 +494,8 @@ ${historyText}
  3. **NO TABLES**: Use simple bullet points.
  4. **CONCISE & PUNCHY**: Every word must save the student time.
  5. **STRUCTURE**:
-    - **Core Concept**: One sharp sentence.
-    - **The Shortcut**: Max 3 quick lines.
-    - **Final Result**: Bold final answer.
+    - **The Shortcut** 🚀: Max 3 quick lines using ONLY standard keyboard characters.
+    - **Ranker's Hack** 🔥: A 15-second logic check or mental math trick to solve this in your head.
 
 GOAL: Provide a 30-second shortcut that allows a student to solve and move to the next question immediately.
 
