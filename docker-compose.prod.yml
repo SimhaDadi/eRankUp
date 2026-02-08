@@ -72,7 +72,7 @@ services:
     container_name: erankup-frontend
     restart: unless-stopped
     environment:
-      - NEXT_PUBLIC_API_URL=https://erankup.in/api
+      - NEXT_PUBLIC_API_URL=http://89.167.49.18/api
       - NODE_ENV=production
     ports:
       - "3000:3000"
