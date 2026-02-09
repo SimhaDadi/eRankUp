@@ -97,7 +97,7 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden"
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
@@ -119,7 +119,7 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
                     {/* Exam Title */}
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">

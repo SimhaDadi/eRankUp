@@ -20,6 +20,7 @@ import api from '@/lib/api';
 import Link from 'next/link';
 import { Database } from 'lucide-react'; // Import Database icon for Bank
 import { CreateExamModal } from '@/components/admin/CreateExamModal';
+import { EditExamModal } from '@/components/admin/EditExamModal';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface Exam {
@@ -39,6 +40,8 @@ export default function AdminExamsPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
     const router = useRouter();
     const searchParams = useSearchParams();
     const searchQuery = searchParams.get('search') || '';
@@ -242,7 +245,14 @@ export default function AdminExamsPage() {
                                     >
                                         {exam.isPublished ? 'Published' : 'Draft'}
                                     </button>
-                                    <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
+                                    <button
+                                        onClick={() => {
+                                            setSelectedExam(exam);
+                                            setIsEditModalOpen(true);
+                                        }}
+                                        className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                        title="Edit Exam"
+                                    >
                                         <Edit className="w-4 h-4" />
                                     </button>
                                     <button
@@ -313,6 +323,20 @@ export default function AdminExamsPage() {
                 onClose={() => setIsCreateModalOpen(false)}
                 onSuccess={(examId) => {
                     router.push(`/admin/exams/${examId}`);
+                }}
+            />
+            {/* Edit Exam Modal */}
+            <EditExamModal
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setSelectedExam(null);
+                }}
+                exam={selectedExam}
+                onSuccess={() => {
+                    fetchExams();
+                    setIsEditModalOpen(false);
+                    setSelectedExam(null);
                 }}
             />
         </div>
