@@ -387,6 +387,34 @@ export class ExplanationService {
         };
     }
 
+    async verifyStoredExplanation(id: string): Promise<{ isValid: boolean; feedback: string }> {
+        const explanation = await this.explanationRepository.findOne({
+            where: { id },
+            relations: ['question', 'question.options']
+        });
+
+        if (!explanation) {
+            throw new Error('Explanation not found');
+        }
+
+        const verification = await this.aiService.verifyExplanation(
+            explanation.question,
+            explanation.adminApprovedExplanation || explanation.aiExplanation
+        );
+
+        if (verification.isValid) {
+            explanation.isVerified = true;
+            await this.explanationRepository.save(explanation);
+
+            // Also update the question's active explanation
+            await this.questionRepository.update(explanation.questionId, {
+                explanation: explanation.adminApprovedExplanation || explanation.aiExplanation
+            });
+        }
+
+        return verification;
+    }
+
     async approveExplanation(id: string, editedText?: string) {
         const explanation = await this.explanationRepository.findOne({ where: { id } });
 

@@ -242,6 +242,24 @@ export class ExplanationController {
     }
 
     /**
+     * Trigger AI verification for an existing explanation
+     * Admin only
+     */
+    @Post(':id/verify-ai')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async verifyExplanationAI(@Param('id') id: string) {
+        try {
+            return await this.explanationService.verifyStoredExplanation(id);
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to verify explanation',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
      * Approve an explanation (with optional edits)
      * Admin only
      */
