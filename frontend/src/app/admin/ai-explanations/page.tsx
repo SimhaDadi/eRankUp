@@ -16,7 +16,7 @@ import {
     AlertCircle,
     BookOpen,
     Layers,
-    Layers,
+
     Box,
     Bot
 } from 'lucide-react';
