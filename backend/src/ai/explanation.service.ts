@@ -174,7 +174,9 @@ export class ExplanationService {
                 .leftJoinAndSelect('question.chapter', 'chapter')
                 // Join only global explanations (contextExamId is null)
                 .leftJoinAndSelect('question.explanations', 'explanation', 'explanation.contextExamId IS NULL')
-                // [FIX] Join exams relationship for examId filtering
+                // [FIX] Join for exam filtering through the hierarchical path: Question → Subject → Exam
+                .leftJoin('subject.exam', 'subjectExam')
+                // Legacy relationships for backward compatibility
                 .leftJoin('question.exams', 'exams')
                 .leftJoin('question.models', 'models')
                 .leftJoin('models.exams', 'modelExams');
@@ -200,12 +202,14 @@ export class ExplanationService {
             }
 
             // [FIX] Filter by examId - finds questions linked via:
-            // 1. Direct examId column (ManyToOne)
-            // 2. exams ManyToMany junction table
-            // 3. models -> exams junction (via Model entity)
+            // 1. Subject → Exam (PRIMARY PATH - Subject belongs to Exam)
+            // 2. Direct examId column (ManyToOne - legacy)
+            // 3. exams ManyToMany junction table (legacy)
+            // 4. models → exams junction (via Model entity)
             if (filters.examId) {
                 qb.andWhere(new Brackets(sqb => {
-                    sqb.where('question.examId = :examId', { examId: filters.examId })
+                    sqb.where('subjectExam.id = :examId', { examId: filters.examId })
+                        .orWhere('question.examId = :examId', { examId: filters.examId })
                         .orWhere('exams.id = :examId', { examId: filters.examId })
                         .orWhere('modelExams.id = :examId', { examId: filters.examId });
                 }));

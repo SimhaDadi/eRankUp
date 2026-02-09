@@ -332,12 +332,13 @@ export class ExamsService implements OnApplicationBootstrap {
      */
     async getGlobalQuestions(filters?: any, page: number = 1, limit: number = 50) {
         const query = this.questionRepository.createQueryBuilder('question')
-            .leftJoin('question.exams', 'exams')
-            // .where('exams.id IS NULL') -- REMOVED to support searching all questions
             .leftJoinAndSelect('question.subject', 'subject')
             .leftJoinAndSelect('question.chapter', 'chapter')
             .leftJoinAndSelect('question.models', 'models')
-            // Join Model -> Exam relationship to find questions linked via models
+            // Join for exam filtering through the hierarchical path: Question → Subject → Exam
+            .leftJoin('subject.exam', 'subjectExam')
+            // Legacy relationships for backward compatibility
+            .leftJoin('question.exams', 'exams')
             .leftJoin('models.exams', 'modelExams')
             .orderBy('question.difficultyWeight', 'ASC')
             .take(limit)
@@ -348,12 +349,14 @@ export class ExamsService implements OnApplicationBootstrap {
         if (filters?.modelId) query.andWhere('models.id = :modelId', { modelId: filters.modelId });
 
         // [FIX] Enhanced examId filter: Find questions linked to exam via:
-        // 1. Direct examId column (ManyToOne)
-        // 2. exams ManyToMany junction table
-        // 3. models -> exams junction (via Model entity)
+        // 1. Subject → Exam (PRIMARY PATH - Subject belongs to Exam)
+        // 2. Direct examId column (ManyToOne - legacy)
+        // 3. exams ManyToMany junction table (legacy)
+        // 4. models → exams junction (via Model entity)
         if (filters?.examId) {
             query.andWhere(new Brackets(qb => {
-                qb.where('question.examId = :examId', { examId: filters.examId })
+                qb.where('subjectExam.id = :examId', { examId: filters.examId })
+                    .orWhere('question.examId = :examId', { examId: filters.examId })
                     .orWhere('exams.id = :examId', { examId: filters.examId })
                     .orWhere('modelExams.id = :examId', { examId: filters.examId });
             }));
