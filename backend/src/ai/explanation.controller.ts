@@ -10,13 +10,17 @@ import {
     UseGuards,
     HttpException,
     HttpStatus,
-    Request
+    Request,
+    UseInterceptors,
+    UploadedFile
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 import { ExplanationService } from './explanation.service';
+import { AIPriority } from './ai-queue.service';
 
 @Controller('explanations')
 // @UseGuards(AuthGuard('jwt'))
@@ -37,14 +41,13 @@ export class ExplanationController {
         @Body('examId') examId?: string
     ) {
         try {
-
-
             const explanation = await this.explanationService.generateExplanation(
                 req.user.userId,
                 req.user.role,
                 questionId,
                 userAnswer,
-                examId
+                examId,
+                AIPriority.HIGH // Force High Priority for manual requests
             );
 
             return {
@@ -77,8 +80,6 @@ export class ExplanationController {
         @Body('limit') limit?: number
     ) {
         try {
-
-
             const count = await this.explanationService.generateMissingExplanations(
                 req.user.userId,
                 req.user.role,
@@ -116,8 +117,6 @@ export class ExplanationController {
         }
     ) {
         try {
-
-
             const questionIds = body.questionIds || [];
 
             // If no specific IDs provided, find questions without explanations

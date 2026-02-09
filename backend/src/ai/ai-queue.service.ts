@@ -20,8 +20,8 @@ export class AIQueueService {
     private queue: RankedTask[] = [];
     private isProcessing = false;
     private lastProviderUsed: 'gemini' | 'groq' = 'gemini';
-    private readonly GEMINI_DELAY = 6000; // 6s (10 RPM) for Gemini Free Tier
-    private readonly GROQ_DELAY = 500;   // 0.5s for Groq (Fast Inference)
+    private readonly GEMINI_DELAY = parseInt(this.configService.get('AI_DELAY_GEMINI')) || 6000; // Default 6s
+    private readonly GROQ_DELAY = parseInt(this.configService.get('AI_DELAY_GROQ')) || 500;     // Default 0.5s
     private readonly MAX_QUEUE_SIZE = 300; // Security Cap to prevent OOM
 
     constructor(private configService: ConfigService) { }
@@ -97,5 +97,14 @@ export class AIQueueService {
         } else {
             this.isProcessing = false;
         }
+    }
+
+    getStats() {
+        return {
+            queueLength: this.queue.length,
+            isProcessing: this.isProcessing,
+            lastProvider: this.lastProviderUsed,
+            maxQueueSize: this.MAX_QUEUE_SIZE
+        };
     }
 }
