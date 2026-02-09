@@ -83,6 +83,7 @@ export default function AIExplanationsPage() {
     // Edit State
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editText, setEditText] = useState('');
+    const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
 
     // Fetch Metadata (Exams, Subjects, Models) on mount
     useEffect(() => {
@@ -183,13 +184,18 @@ export default function AIExplanationsPage() {
     // Special handler for generating explanation for a pending question
     const handleGenerate = async (questionId: string) => {
         try {
-            setLoading(true);
+            setGeneratingIds(prev => new Set(prev).add(questionId));
             await api.post(`/explanations/generate/${questionId}`);
             fetchData();
         } catch (error) {
             console.error('Failed to generate:', error);
             alert('Failed to generate explanation');
-            setLoading(false);
+        } finally {
+            setGeneratingIds(prev => {
+                const next = new Set(prev);
+                next.delete(questionId);
+                return next;
+            });
         }
     };
 
@@ -493,37 +499,38 @@ export default function AIExplanationsPage() {
                                     ) : (
                                         <>
                                             {item.status === 'pending' ? (
-                                                <button
-                                                    onClick={() => handleGenerate(item.questionId)}
-                                                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-bold text-xs flex items-center gap-2"
+                                                onClick = {() => handleGenerate(item.questionId)}
+                                            disabled={generatingIds.has(item.questionId)}
+                                            className={`px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-bold text-xs flex items-center gap-2 ${generatingIds.has(item.questionId) ? 'opacity-75 cursor-not-allowed' : ''}`}
                                                 >
-                                                    <RefreshCw className="w-3 h-3" /> Generate
-                                                </button>
-                                            ) : (
-                                                <>
-                                                    {!item.isVerified && (
-                                                        <button onClick={() => handleApprove(item.id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center gap-2">
-                                                            <CheckCircle className="w-3 h-3" /> Approve
-                                                        </button>
-                                                    )}
-                                                    <button onClick={() => startEditing(item)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold text-xs flex items-center gap-2">
-                                                        <Edit3 className="w-3 h-3" /> Edit
-                                                    </button>
-                                                    <button onClick={() => handleReject(item.id)} className="px-4 py-2 bg-red-900/50 hover:bg-red-900 text-red-200 rounded-lg font-bold text-xs">
-                                                        Reject
-                                                    </button>
-                                                </>
+                                            <RefreshCw className={`w-3 h-3 ${generatingIds.has(item.questionId) ? 'animate-spin' : ''}`} />
+                                            {generatingIds.has(item.questionId) ? 'Generating...' : 'Generate'}
+                                        </button>
+                                    ) : (
+                                    <>
+                                        {!item.isVerified && (
+                                            <button onClick={() => handleApprove(item.id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center gap-2">
+                                                <CheckCircle className="w-3 h-3" /> Approve
+                                            </button>
+                                        )}
+                                        <button onClick={() => startEditing(item)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold text-xs flex items-center gap-2">
+                                            <Edit3 className="w-3 h-3" /> Edit
+                                        </button>
+                                        <button onClick={() => handleReject(item.id)} className="px-4 py-2 bg-red-900/50 hover:bg-red-900 text-red-200 rounded-lg font-bold text-xs">
+                                            Reject
+                                        </button>
+                                    </>
                                             )}
-                                        </>
+                                </>
                                     )}
-                                </div>
                             </div>
+                        </div>
 
                         </motion.div>
-                    ))
+            ))
                 )}
-            </div>
         </div>
+        </div >
     );
 }
 

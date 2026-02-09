@@ -100,7 +100,22 @@ export class ExplanationService {
             if (error.status === 429 || (error.message && error.message.includes('429'))) {
                 console.warn('⚠️ AI Rate Limit Exceeded. Using fallback explanation.');
             }
-            return this.getFallbackExplanation(question);
+            const fallbackExplanation = this.getFallbackExplanation(question);
+
+            // Save fallback so it persists (otherwise UI reverts to "Generate")
+            const newExplanation = this.explanationRepository.create({
+                questionId,
+                contextExamId: contextExamId || null,
+                aiExplanation: fallbackExplanation,
+                isVerified: false,
+                viewCount: 1
+            });
+            await this.explanationRepository.save(newExplanation);
+
+            question.explanation = fallbackExplanation;
+            await this.questionRepository.save(question);
+
+            return fallbackExplanation;
         }
     }
 
