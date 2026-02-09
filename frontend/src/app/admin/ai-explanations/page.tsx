@@ -69,11 +69,13 @@ export default function AIExplanationsPage() {
     // Filter State
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'generated' | 'verified'>('all');
+    const [examId, setExamId] = useState('');  // [FIX] Added examId filter
     const [subjectId, setSubjectId] = useState('');
     const [chapterId, setChapterId] = useState('');
     const [modelId, setModelId] = useState('');
 
     // Metadata for filters
+    const [exams, setExams] = useState<FilterOption[]>([]);  // [FIX] Added exams metadata
     const [subjects, setSubjects] = useState<FilterOption[]>([]);
     const [chapters, setChapters] = useState<FilterOption[]>([]);
     const [models, setModels] = useState<FilterOption[]>([]);
@@ -82,14 +84,17 @@ export default function AIExplanationsPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editText, setEditText] = useState('');
 
-    // Fetch Metadata (Subjects, Models) on mount
+    // Fetch Metadata (Exams, Subjects, Models) on mount
     useEffect(() => {
         const fetchMetadata = async () => {
             try {
-                const [subjectsRes, modelsRes] = await Promise.all([
+                const [examsRes, subjectsRes, modelsRes] = await Promise.all([
+                    api.get('/exams'),  // [FIX] Fetch exams for Question Bank filter
                     api.get('/subjects'),
                     api.get('/models')
                 ]);
+                const examsData = examsRes.data?.data || examsRes.data;
+                setExams(Array.isArray(examsData) ? examsData : []);
                 setSubjects(subjectsRes.data || []);
                 setModels(modelsRes.data || []);
             } catch (error) {
@@ -129,6 +134,7 @@ export default function AIExplanationsPage() {
                     params: {
                         search,
                         status: statusFilter,
+                        examId: examId || undefined,  // [FIX] Pass examId to API
                         subjectId: subjectId || undefined,
                         chapterId: chapterId || undefined,
                         modelId: modelId || undefined,
@@ -147,7 +153,7 @@ export default function AIExplanationsPage() {
         } finally {
             setLoading(false);
         }
-    }, [search, statusFilter, subjectId, chapterId, modelId]); // Dependencies for refetch
+    }, [search, statusFilter, examId, subjectId, chapterId, modelId]); // [FIX] Added examId dependency
 
 
 
@@ -321,7 +327,23 @@ export default function AIExplanationsPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {/* Question Bank (Exam) Filter */}
+                    <select
+                        value={examId}
+                        onChange={(e) => {
+                            setExamId(e.target.value);
+                            // Reset dependent filters when exam changes
+                            setSubjectId('');
+                            setChapterId('');
+                            setModelId('');
+                        }}
+                        className="px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer"
+                    >
+                        <option value="">All Question Banks</option>
+                        {exams.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+                    </select>
+
                     {/* Status Filter */}
                     <select
                         value={statusFilter}

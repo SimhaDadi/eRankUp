@@ -163,6 +163,7 @@ export class ExplanationService {
         subjectId?: string;
         chapterId?: string;
         modelId?: string;
+        examId?: string;  // [FIX] Added examId filter support
         status?: 'all' | 'pending' | 'generated' | 'verified';
         limit?: number;
         offset?: number;
@@ -172,7 +173,11 @@ export class ExplanationService {
                 .leftJoinAndSelect('question.subject', 'subject')
                 .leftJoinAndSelect('question.chapter', 'chapter')
                 // Join only global explanations (contextExamId is null)
-                .leftJoinAndSelect('question.explanations', 'explanation', 'explanation.contextExamId IS NULL');
+                .leftJoinAndSelect('question.explanations', 'explanation', 'explanation.contextExamId IS NULL')
+                // [FIX] Join exams relationship for examId filtering
+                .leftJoin('question.exams', 'exams')
+                .leftJoin('question.models', 'models')
+                .leftJoin('models.exams', 'modelExams');
 
             if (filters.search) {
                 qb.andWhere(new Brackets(sqb => {
@@ -191,7 +196,15 @@ export class ExplanationService {
             }
 
             if (filters.modelId) {
-                qb.innerJoin('question.models', 'model', 'model.id = :modelId', { modelId: filters.modelId });
+                qb.andWhere('models.id = :modelId', { modelId: filters.modelId });
+            }
+
+            // [FIX] Filter by examId - finds questions directly linked OR linked via models
+            if (filters.examId) {
+                qb.andWhere(new Brackets(sqb => {
+                    sqb.where('exams.id = :examId', { examId: filters.examId })
+                        .orWhere('modelExams.id = :examId', { examId: filters.examId });
+                }));
             }
 
             if (filters.status && filters.status !== 'all') {

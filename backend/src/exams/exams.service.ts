@@ -337,6 +337,8 @@ export class ExamsService implements OnApplicationBootstrap {
             .leftJoinAndSelect('question.subject', 'subject')
             .leftJoinAndSelect('question.chapter', 'chapter')
             .leftJoinAndSelect('question.models', 'models')
+            // Join Model -> Exam relationship to find questions linked via models
+            .leftJoin('models.exams', 'modelExams')
             .orderBy('question.difficultyWeight', 'ASC')
             .take(limit)
             .skip((page - 1) * limit);
@@ -344,7 +346,14 @@ export class ExamsService implements OnApplicationBootstrap {
         if (filters?.subjectId) query.andWhere('subject.id = :subjectId', { subjectId: filters.subjectId });
         if (filters?.chapterId) query.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
         if (filters?.modelId) query.andWhere('models.id = :modelId', { modelId: filters.modelId });
-        if (filters?.examId) query.andWhere('exams.id = :examId', { examId: filters.examId });
+
+        // [FIX] Enhanced examId filter: Find questions directly linked to exam OR linked via models
+        if (filters?.examId) {
+            query.andWhere(new Brackets(qb => {
+                qb.where('exams.id = :examId', { examId: filters.examId })
+                    .orWhere('modelExams.id = :examId', { examId: filters.examId });
+            }));
+        }
 
         if (filters?.difficulty) {
             const weight = filters.difficulty === 'easy' ? 0.3 : filters.difficulty === 'hard' ? 0.7 : 0.5;

@@ -199,6 +199,7 @@ export class ExplanationController {
         @Query('subjectId') subjectId?: string,
         @Query('chapterId') chapterId?: string,
         @Query('modelId') modelId?: string,
+        @Query('examId') examId?: string,  // [FIX] Added examId filter
         @Query('status') status?: 'all' | 'pending' | 'generated' | 'verified',
         @Query('limit') limit?: string,
         @Query('offset') offset?: string
@@ -209,6 +210,7 @@ export class ExplanationController {
                 subjectId,
                 chapterId,
                 modelId,
+                examId,  // [FIX] Pass examId to service
                 status: status || 'all',
                 limit: limit ? parseInt(limit) : 50,
                 offset: offset ? parseInt(offset) : 0
