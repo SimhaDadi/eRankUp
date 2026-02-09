@@ -1160,26 +1160,28 @@ export class ExamsService implements OnApplicationBootstrap {
 
         log(`[ExamsService] Bulk Upload: Found ${existingQuestions.length} existing, Creating ${newQuestionsData.length} new.`);
 
-        if (newQuestionsData.length === 0) {
-            // Check if any existing questions need Image Repair (re-upload fixing missing images)
-            let updatedCount = 0;
-            for (const data of questionsData) {
-                if (data.imageUrl) {
-                    const existing = existingQuestions.find(q => q.content.trim() === (data.content || '').trim());
-                    if (existing && !existing.imageUrl) {
-                        existing.imageUrl = data.imageUrl;
-                        await this.questionRepository.save(existing);
-                        updatedCount++;
-                        console.log(`[ExamsService] Repaired question ${existing.id} with new image.`);
-                    }
+        // [FIX] Image Repair: ALWAYS update existing questions with new images
+        // This runs regardless of whether there are new questions or not
+        let imageRepairCount = 0;
+        for (const data of questionsData) {
+            if (data.imageUrl) {
+                const existing = existingQuestions.find(q => q.content.trim() === (data.content || data.questionText || '').trim());
+                if (existing && !existing.imageUrl) {
+                    existing.imageUrl = data.imageUrl;
+                    await this.questionRepository.save(existing);
+                    imageRepairCount++;
+                    log(`[ExamsService] Repaired image for question ${existing.id}`);
                 }
             }
+        }
 
-            if (updatedCount > 0) {
-                return existingQuestions; // Return updated entities
-            }
+        if (imageRepairCount > 0) {
+            log(`[ExamsService] Image Repair: Updated ${imageRepairCount} existing questions with images.`);
+        }
 
-            // All exist and no updates needed
+        if (newQuestionsData.length === 0) {
+            // All questions already exist, return them (possibly with repaired images)
+            log('[ExamsService] All questions already exist. Returning existing questions.');
             return existingQuestions;
         }
 
