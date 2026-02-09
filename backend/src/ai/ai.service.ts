@@ -873,6 +873,80 @@ Return JSON ONLY:
             let text = '';
 
             if (provider === 'groq') {
+                // [Feature] Groq PDF Support via Image Conversion
+                if (file.mimetype === 'application/pdf') {
+                    console.log('[AIService] Groq: Converting PDF to images for processing...');
+                    try {
+                        const sharp = require('sharp');
+                        const meta = await sharp(file.buffer).metadata();
+                        const pageCount = meta.pages || 1;
+                        console.log(`[AIService] Groq: PDF has ${pageCount} pages.`);
+
+                        const allQuestions: any[] = [];
+                        const groq = new Groq({ apiKey });
+                        const modelName = this.getGroqModel('REASONING', true);
+
+                        for (let i = 0; i < pageCount; i++) {
+                            console.log(`[AIService] Groq: Processing PDF page ${i + 1}/${pageCount}...`);
+
+                            // Convert PDF page to high-quality PNG
+                            // density: 300 is standard for good OCR/Vision text checks
+                            const pageBuffer = await sharp(file.buffer, { page: i, density: 300 })
+                                .png({ quality: 100 })
+                                .toBuffer();
+
+                            const pageText = await this.queueService.add(async () => {
+                                const completion = await groq.chat.completions.create({
+                                    messages: [
+                                        {
+                                            role: 'user',
+                                            content: [
+                                                { type: 'text', text: prompt },
+                                                {
+                                                    type: 'image_url',
+                                                    image_url: {
+                                                        url: `data:image/png;base64,${pageBuffer.toString("base64")}`
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    model: modelName,
+                                    temperature: 0.1,
+                                    max_tokens: 8192,
+                                    response_format: { type: 'json_object' }
+                                });
+                                this.systemHealthService.trackAPICall('groq');
+                                return completion.choices[0]?.message?.content || '';
+                            }, AIPriority.LOW);
+
+                            // Parse this page's response using the existing safeJsonParse logic
+                            // We construct a dummy JSON object if it's just questions array
+                            const cleanText = pageText.replace(/```json\n?|\n?```/g, '').trim();
+                            const parsed = this.safeJsonParse(cleanText, {});
+
+                            const pageQs = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+
+                            if (pageQs.length > 0) {
+                                console.log(`[AIService] Groq: Page ${i + 1} yielded ${pageQs.length} questions.`);
+                                allQuestions.push(...pageQs);
+                            } else {
+                                console.warn(`[AIService] Groq: No questions found on Page ${i + 1}. Raw Text: ${pageText.substring(0, 100)}...`);
+                            }
+                        }
+
+                        return allQuestions;
+
+                    } catch (pdfError) {
+                        console.error('[AIService] Groq PDF Conversion Error:', pdfError);
+                        // Fallback message if sharp isn't working for PDFs
+                        if (pdfError.message.includes('Input buffer contains unsupported image format')) {
+                            throw new Error(`Groq PDF Support Error: The server is missing PDF processing libraries (libvips/poppler). Please upload images (JPG/PNG) instead.`);
+                        }
+                        throw new Error(`Groq PDF Processing Failed: ${pdfError.message}`);
+                    }
+                }
+
                 console.log('[AIService] Using Groq (Llama 4 Scout) for Document Parsing...');
                 const groq = new Groq({ apiKey });
                 const modelName = this.getGroqModel('REASONING', true);
