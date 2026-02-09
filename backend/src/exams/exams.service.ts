@@ -347,10 +347,14 @@ export class ExamsService implements OnApplicationBootstrap {
         if (filters?.chapterId) query.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
         if (filters?.modelId) query.andWhere('models.id = :modelId', { modelId: filters.modelId });
 
-        // [FIX] Enhanced examId filter: Find questions directly linked to exam OR linked via models
+        // [FIX] Enhanced examId filter: Find questions linked to exam via:
+        // 1. Direct examId column (ManyToOne)
+        // 2. exams ManyToMany junction table
+        // 3. models -> exams junction (via Model entity)
         if (filters?.examId) {
             query.andWhere(new Brackets(qb => {
-                qb.where('exams.id = :examId', { examId: filters.examId })
+                qb.where('question.examId = :examId', { examId: filters.examId })
+                    .orWhere('exams.id = :examId', { examId: filters.examId })
                     .orWhere('modelExams.id = :examId', { examId: filters.examId });
             }));
         }

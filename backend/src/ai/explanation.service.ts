@@ -199,10 +199,14 @@ export class ExplanationService {
                 qb.andWhere('models.id = :modelId', { modelId: filters.modelId });
             }
 
-            // [FIX] Filter by examId - finds questions directly linked OR linked via models
+            // [FIX] Filter by examId - finds questions linked via:
+            // 1. Direct examId column (ManyToOne)
+            // 2. exams ManyToMany junction table
+            // 3. models -> exams junction (via Model entity)
             if (filters.examId) {
                 qb.andWhere(new Brackets(sqb => {
-                    sqb.where('exams.id = :examId', { examId: filters.examId })
+                    sqb.where('question.examId = :examId', { examId: filters.examId })
+                        .orWhere('exams.id = :examId', { examId: filters.examId })
                         .orWhere('modelExams.id = :examId', { examId: filters.examId });
                 }));
             }
