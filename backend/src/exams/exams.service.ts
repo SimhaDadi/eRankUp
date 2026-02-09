@@ -343,6 +343,13 @@ export class ExamsService implements OnApplicationBootstrap {
 
         if (filters?.subjectId) query.andWhere('subject.id = :subjectId', { subjectId: filters.subjectId });
         if (filters?.chapterId) query.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
+        if (filters?.modelId) query.andWhere('models.id = :modelId', { modelId: filters.modelId });
+        if (filters?.examId) query.andWhere('exams.id = :examId', { examId: filters.examId });
+
+        if (filters?.difficulty) {
+            const weight = filters.difficulty === 'easy' ? 0.3 : filters.difficulty === 'hard' ? 0.7 : 0.5;
+            query.andWhere('question.difficultyWeight = :weight', { weight });
+        }
 
         if (filters?.search) {
             query.andWhere(new Brackets(qb => {

@@ -63,6 +63,7 @@ export default function QuestionListTab() {
         try {
             const params: any = {};
             if (searchQuery) params.search = searchQuery;
+            if (filters.examId) params.examId = filters.examId;
             if (filters.subjectId) params.subjectId = filters.subjectId;
             if (filters.chapterId) params.chapterId = filters.chapterId;
             if (filters.modelId) params.modelId = filters.modelId;
