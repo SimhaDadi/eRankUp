@@ -895,7 +895,7 @@ Return JSON ONLY:
                         ],
                         model: modelName,
                         temperature: 0.1,
-                        max_tokens: 4096,
+                        max_tokens: 8192, // [FIX] Increased to handle images with more questions
                         response_format: { type: 'json_object' }
                     });
                     this.systemHealthService.trackAPICall('groq');
