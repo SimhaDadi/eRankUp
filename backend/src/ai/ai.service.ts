@@ -371,21 +371,29 @@ ${explanation}
 Rules for verification:
 1. The explanation MUST state or imply that ${question.correctOptionId} is the correct answer.
 2. The logic provided must not contradict the question content.
-3. If the explanation is accurate, return "VALID".
+3. If the explanation is accurate, return ONLY the word "VALID".
 4. If it is inaccurate, contradictory, or mentions the wrong option as correct, return "INVALID: [Detailed Reason]".
 
 Verification Result:`;
 
         try {
             const result = await this.generateText(prompt);
-            const isValid = result.trim().toUpperCase().startsWith('VALID');
+
+            // Robust parsing: Check for "VALID" at start, ignoring markdown (**VALID**) or case
+            const cleanResult = result.trim();
+            const isValid = /^\s*(\*\*|__)?VALID(\*\*|__)?/i.test(cleanResult);
+
+            console.log(`[AIService] Verification: ${isValid ? 'PASS' : 'FAIL'} | Question: ${question.id} | Result: "${cleanResult.substring(0, 100)}..."`);
+
             return {
                 isValid,
-                feedback: isValid ? 'Explanation verified.' : result.replace('INVALID:', '').trim()
+                feedback: isValid ? 'Explanation verified.' : cleanResult.replace(/^(\*\*|__)?INVALID:?\s*/i, '').trim()
             };
         } catch (error) {
             console.error('[AIService] Verification failed:', error);
-            return { isValid: true, feedback: 'Verification skipped due to error.' }; // Permissive fallback
+            // Default to consistent behavior - if verification fails technically, we might want to flag it or allow it
+            // Current simple logic: Allow it but log warning (Fail Open)
+            return { isValid: true, feedback: 'Verification skipped due to error.' };
         }
     }
 

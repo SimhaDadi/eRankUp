@@ -147,7 +147,23 @@ export class ExplanationService {
             step2Desc = 'Provide a root word, mnemonic, or "elimination trick" to remember this.';
         }
         // CASE 2: General Awareness / GS (History, Geo, Polity, etc)
-        else if (subjectLower.includes('general') || subjectLower.includes('history') || subjectLower.includes('geography') || subjectLower.includes('polity') || subjectLower.includes('science') || subjectLower.includes('biology') || subjectLower.includes('current')) {
+        // EXCLUDE 'Aptitude', 'Intelligence', 'Math', 'Quant', 'Reasoning' to ensure they fall through to the Math/Reasoning bucket
+        else if (
+            (subjectLower.includes('general') &&
+                !subjectLower.includes('aptitude') &&
+                !subjectLower.includes('intelligence') &&
+                !subjectLower.includes('math') &&
+                !subjectLower.includes('quant') &&
+                !subjectLower.includes('numerical') &&
+                !subjectLower.includes('reasoning')
+            ) ||
+            subjectLower.includes('history') ||
+            subjectLower.includes('geography') ||
+            subjectLower.includes('polity') ||
+            subjectLower.includes('science') ||
+            subjectLower.includes('biology') ||
+            subjectLower.includes('current')
+        ) {
             personaInstructions = `You are an expert SSC CGL General Studies Mentor. Your goal is to provide the core fact and a "memory hook" to never forget it.`;
             step1Title = '1. The Core Fact';
             step2Title = '2. Memory Mnemonic';
@@ -159,7 +175,7 @@ export class ExplanationService {
             personaInstructions = `You are an expert SSC CGL Quant mentor known for "Extreme Shortcut Mode". Your goal is to explain this solution with 100% clarity and a maximum of 3 logical steps.
   
   ### CONSTRAINTS (MANDATORY):
-  1. **STRICTLY NO LaTeX**: Do NOT use $$, \frac, \sqrt, or any other math symbols. Use ONLY standard keyboard characters (/, *, -, +, =).
+  1. **STRICTLY NO LaTeX**: Do NOT use $$, \\frac, \\sqrt, or any other math symbols. Use ONLY standard keyboard characters (/, *, -, +, =).
   2. **MAX 3 STEPS**: The "Strategic Solution" section must be extremely concise—maximum 3 steps/bullet points.
   3. **SSC CGL Style**: Prioritize mental math, shortcuts, and "Ranker's Hacks".`;
         }
