@@ -86,7 +86,7 @@ export default function ChatSupport() {
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50" ref={chatWidgetRef}>
+        <div className="fixed bottom-6 md:bottom-6 max-md:bottom-28 right-6 z-50" ref={chatWidgetRef}>
             {isOpen ? (
                 <div className="bg-slate-900 border border-slate-800 w-80 h-[450px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
                     {/* Header */}
