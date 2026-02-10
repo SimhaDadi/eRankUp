@@ -40,12 +40,14 @@ export class AdminSeeder implements OnApplicationBootstrap {
             await this.userRepository.save(adminUser);
             console.log(`Admin User Seeded successfully: ${adminEmail}`);
         } else {
-            // Ensure role is admin if it exists
-            if (adminExists.role !== UserRole.ADMIN) {
-                adminExists.role = UserRole.ADMIN;
-                await this.userRepository.save(adminExists);
-                console.log('Updated existing admin user role.');
-            }
+            // Update existing admin password and role
+            console.log(`Updating existing Admin User: ${adminEmail}...`);
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
+            adminExists.password = hashedPassword;
+            adminExists.role = UserRole.ADMIN;
+            adminExists.isActive = true;
+            await this.userRepository.save(adminExists);
+            console.log(`Admin User updated successfully: ${adminEmail}`);
         }
     }
 }

@@ -210,7 +210,7 @@ export default function QuestionListTab() {
                                                 />
                                             </div>
                                         )}
-                                        <div className="flex flex-wrap gap-2">
+                                        <div className="flex flex-wrap gap-2 mb-3">
                                             {q.exams?.map(ex => (
                                                 <span key={ex.id} className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md text-[10px] uppercase font-bold">
                                                     {ex.title}
@@ -220,6 +220,28 @@ export default function QuestionListTab() {
                                                 {q.chapter?.title || q.topic}
                                             </span>
                                         </div>
+
+                                        {/* Options Preview */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                                            {q.options?.map((opt: any) => (
+                                                <div key={opt.id} className={`p-3 rounded-xl border ${q.correctOptionId === opt.id ? 'bg-green-500/5 border-green-500/30' : 'bg-slate-900/50 border-slate-800'}`}>
+                                                    <div className="flex gap-3">
+                                                        <span className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md text-[10px] font-bold ${q.correctOptionId === opt.id ? 'bg-green-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                                                            {opt.id}
+                                                        </span>
+                                                        <MathRenderer content={opt.text} className="text-xs text-slate-300" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Explanation Preview */}
+                                        {q.explanation && (
+                                            <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl">
+                                                <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Explanation</h4>
+                                                <MathRenderer content={q.explanation} className="text-xs text-slate-400 italic" />
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex gap-2">
                                         <button

@@ -217,26 +217,35 @@ export default function EditQuestionModal({ isOpen, onClose, onSuccess, question
                             {/* Options */}
                             <div className="space-y-3">
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Options</label>
-                                {questionData.options.map((opt, idx) => (
-                                    <div key={idx} className="flex gap-2">
-                                        <div
-                                            className={`w-10 flex items-center justify-center rounded-lg border cursor-pointer transition-colors ${questionData.correctOptionIndex === idx ? 'bg-green-500/20 border-green-500 text-green-500 font-bold' : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'}`}
-                                            onClick={() => setQuestionData({ ...questionData, correctOptionIndex: idx })}
-                                        >
-                                            {String.fromCharCode(65 + idx)}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {questionData.options.map((opt, idx) => (
+                                        <div key={idx} className="space-y-2">
+                                            <div className="flex gap-2">
+                                                <div
+                                                    className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-lg border cursor-pointer transition-colors ${questionData.correctOptionIndex === idx ? 'bg-green-500/20 border-green-500 text-green-500 font-bold' : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'}`}
+                                                    onClick={() => setQuestionData({ ...questionData, correctOptionIndex: idx })}
+                                                >
+                                                    {String.fromCharCode(65 + idx)}
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                                                    value={opt}
+                                                    onChange={e => {
+                                                        const newOpts = [...questionData.options];
+                                                        newOpts[idx] = e.target.value;
+                                                        setQuestionData({ ...questionData, options: newOpts });
+                                                    }}
+                                                />
+                                            </div>
+                                            {opt && (
+                                                <div className="p-2 bg-slate-900/30 rounded-lg border border-slate-800/50">
+                                                    <MathRenderer content={opt} className="text-[10px]" />
+                                                </div>
+                                            )}
                                         </div>
-                                        <input
-                                            type="text"
-                                            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
-                                            value={opt}
-                                            onChange={e => {
-                                                const newOpts = [...questionData.options];
-                                                newOpts[idx] = e.target.value;
-                                                setQuestionData({ ...questionData, options: newOpts });
-                                            }}
-                                        />
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Explanation */}
@@ -247,6 +256,11 @@ export default function EditQuestionModal({ isOpen, onClose, onSuccess, question
                                     value={questionData.explanation}
                                     onChange={e => setQuestionData({ ...questionData, explanation: e.target.value })}
                                 />
+                                {questionData.explanation && (
+                                    <div className="mt-2 p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                                        <MathRenderer content={questionData.explanation} className="text-xs text-slate-400" />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Metadata */}

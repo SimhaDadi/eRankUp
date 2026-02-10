@@ -797,7 +797,6 @@ Return JSON ONLY:
             ? this.configService.get<string>('GROQ_API_KEY')
             : this.configService.get<string>('GEMINI_API_KEY');
 
-
         if (this.configService.get<string>('MOCK_AI') === 'true') {
             console.log('[AIService] MOCK_AI enabled. Returning dummy data.');
             return [
@@ -851,7 +850,7 @@ Return JSON ONLY:
                 ### 2. EXTREME SHORTCUT EXPLANATIONS
                 - Use the "SSC CGL Quant mentor" persona.
                 - **MAX 3 STEPS**: Provide a maximum of 3 logical shortcut steps for the explanation.
-                - **USE LaTeX**: Format all math in the explanation using LaTeX as described above.
+                - **USE LaTeX**: Format all math in the explanation using LaTeX as described above. **STRICTLY WRAP ALL MATH IN $ ... $**.
                 
                 ### 3. LOOK FOR DIAGRAMS (VISUAL DETECTION)
                 - Detect geometric figures (circles, triangles, etc.) and set "hasDiagram": true.
@@ -862,13 +861,13 @@ Return JSON ONLY:
                 {
                     "questions": [
                         {
-                            "content": "The question text (Plain text only, NO LaTeX)",
-                            "options": ["Opt1", "Opt2", "Opt3", "Opt4"],
+                            "content": "The question text (USE $ ... $ for ALL math)",
+                            "options": ["Opt1 (Keep $...$)", "Opt2", "Opt3", "Opt4"],
                             "correctOptionIndex": number, // 0 for A, 1 for B, etc.
                             "difficultyWeight": 0.1 to 1.0,
                             "positiveMarks": number (default 1),
                             "negativeMarks": number (default 0.25),
-                            "explanation": "concise 3-step shortcut solution (NO LaTeX)",
+                            "explanation": "concise 3-step shortcut solution (USE $ ... $ for ALL math)",
                             "hasDiagram": boolean,
                             "diagram_coordinates": [ymin, xmin, ymax, xmax] 
                         }
