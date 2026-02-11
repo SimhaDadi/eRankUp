@@ -308,7 +308,7 @@ export class AIService {
         const prompt = `You are an expert SSC CGL Quant mentor known for "Extreme Shortcut Mode".
         
         GOAL: Provide a "Cheat Sheet" style solution in maximum 3 steps.
-        CONSTRAINT: STRICTLY NO LaTeX ($$, \frac, etc.). Use only standard keyboard characters (/, *, -, +, =).
+        CONSTRAINT: Use LaTeX for all mathematical expressions. Wrap inline math in $...$ (e.g., $x^2$) and block math in $$...$$.
         
         [GOOD RESPONSE FORMAT]
         💡 CORE: Identify the main concept in one line.
@@ -371,21 +371,29 @@ ${explanation}
 Rules for verification:
 1. The explanation MUST state or imply that ${question.correctOptionId} is the correct answer.
 2. The logic provided must not contradict the question content.
-3. If the explanation is accurate, return "VALID".
+3. If the explanation is accurate, return ONLY the word "VALID".
 4. If it is inaccurate, contradictory, or mentions the wrong option as correct, return "INVALID: [Detailed Reason]".
 
 Verification Result:`;
 
         try {
             const result = await this.generateText(prompt);
-            const isValid = result.trim().toUpperCase().startsWith('VALID');
+
+            // Robust parsing: Check for "VALID" at start, ignoring markdown (**VALID**) or case
+            const cleanResult = result.trim();
+            const isValid = /^\s*(\*\*|__)?VALID(\*\*|__)?/i.test(cleanResult);
+
+            console.log(`[AIService] Verification: ${isValid ? 'PASS' : 'FAIL'} | Question: ${question.id} | Result: "${cleanResult.substring(0, 100)}..."`);
+
             return {
                 isValid,
-                feedback: isValid ? 'Explanation verified.' : result.replace('INVALID:', '').trim()
+                feedback: isValid ? 'Explanation verified.' : cleanResult.replace(/^(\*\*|__)?INVALID:?\s*/i, '').trim()
             };
         } catch (error) {
             console.error('[AIService] Verification failed:', error);
-            return { isValid: true, feedback: 'Verification skipped due to error.' }; // Permissive fallback
+            // Default to consistent behavior - if verification fails technically, we might want to flag it or allow it
+            // Current simple logic: Allow it but log warning (Fail Open)
+            return { isValid: true, feedback: 'Verification skipped due to error.' };
         }
     }
 
@@ -789,7 +797,6 @@ Return JSON ONLY:
             ? this.configService.get<string>('GROQ_API_KEY')
             : this.configService.get<string>('GEMINI_API_KEY');
 
-
         if (this.configService.get<string>('MOCK_AI') === 'true') {
             console.log('[AIService] MOCK_AI enabled. Returning dummy data.');
             return [
@@ -829,21 +836,21 @@ Return JSON ONLY:
                 You are an expert AI specialized in Mathematics and Competitive Exam Question Extraction (e.g., SSC CGL, Railway).
                 I have uploaded an image containing several Multiple Choice Questions (MCQs).
                 
-                YOUR GOAL: Extract every question with 100% literal accuracy, avoiding any complex formatting or math symbols.
+                YOUR GOAL: Extract every question with 100% literal accuracy, ensuring math is correctly formatted in LaTeX.
                 
-                ### 1. STRICT PLAIN TEXT EXTRACTION (CRITICAL)
-                - **STRICTLY NO LaTeX**: Do NOT use $$, \frac, \sqrt, or any other math symbols. Use ONLY standard keyboard characters (/, *, -, +, =).
+                ### 1. EXTRACTION & FORMATTING
+                - **USE LaTeX FOR MATH**: Type all mathematical expressions using LaTeX.
+                    - Wrap inline math in single dollar signs, e.g., $a^2 + b^2 = c^2$.
+                    - Wrap block/complex math in double dollar signs, e.g., $$\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$.
+                    - Ensure common symbols like $\\theta$, $\\pi$, $\\times$, etc., are in LaTeX.
+                    - **JJSON ESCAPING**: Escape all backslashes in the JSON string (e.g. "\\frac" not "\frac").
                 - **NO SOLVING**: Do NOT attempt to solve the problems during extraction.
-                - **EXACT TRANSCRIPTION**: Transcribe the text using simple characters. 
-                    - Use "/" for fractions (e.g., 22/7).
-                    - Use "^" for powers (e.g., x^2).
-                    - Use standard words or simple characters for symbols (e.g., "pi" or "sqrt").
                 - **DIAGRAM HANDLING**: If a question refers to a figure, ensure "hasDiagram" is true and provide tight coordinates.
                 
                 ### 2. EXTREME SHORTCUT EXPLANATIONS
                 - Use the "SSC CGL Quant mentor" persona.
                 - **MAX 3 STEPS**: Provide a maximum of 3 logical shortcut steps for the explanation.
-                - **PLAIN TEXT ONLY**: No complex formatting in the explanation.
+                - **USE LaTeX**: Format all math in the explanation using LaTeX as described above. **STRICTLY WRAP ALL MATH IN $ ... $**.
                 
                 ### 3. LOOK FOR DIAGRAMS (VISUAL DETECTION)
                 - Detect geometric figures (circles, triangles, etc.) and set "hasDiagram": true.
@@ -854,13 +861,13 @@ Return JSON ONLY:
                 {
                     "questions": [
                         {
-                            "content": "The question text (Plain text only, NO LaTeX)",
-                            "options": ["Opt1", "Opt2", "Opt3", "Opt4"],
+                            "content": "The question text (USE $ ... $ for ALL math)",
+                            "options": ["Opt1 (Keep $...$)", "Opt2", "Opt3", "Opt4"],
                             "correctOptionIndex": number, // 0 for A, 1 for B, etc.
                             "difficultyWeight": 0.1 to 1.0,
                             "positiveMarks": number (default 1),
                             "negativeMarks": number (default 0.25),
-                            "explanation": "concise 3-step shortcut solution (NO LaTeX)",
+                            "explanation": "concise 3-step shortcut solution (USE $ ... $ for ALL math)",
                             "hasDiagram": boolean,
                             "diagram_coordinates": [ymin, xmin, ymax, xmax] 
                         }
@@ -873,6 +880,80 @@ Return JSON ONLY:
             let text = '';
 
             if (provider === 'groq') {
+                // [Feature] Groq PDF Support via Image Conversion
+                if (file.mimetype === 'application/pdf') {
+                    console.log('[AIService] Groq: Converting PDF to images for processing...');
+                    try {
+                        const sharp = require('sharp');
+                        const meta = await sharp(file.buffer).metadata();
+                        const pageCount = meta.pages || 1;
+                        console.log(`[AIService] Groq: PDF has ${pageCount} pages.`);
+
+                        const allQuestions: any[] = [];
+                        const groq = new Groq({ apiKey });
+                        const modelName = this.getGroqModel('REASONING', true);
+
+                        for (let i = 0; i < pageCount; i++) {
+                            console.log(`[AIService] Groq: Processing PDF page ${i + 1}/${pageCount}...`);
+
+                            // Convert PDF page to high-quality PNG
+                            // density: 300 is standard for good OCR/Vision text checks
+                            const pageBuffer = await sharp(file.buffer, { page: i, density: 300 })
+                                .png({ quality: 100 })
+                                .toBuffer();
+
+                            const pageText = await this.queueService.add(async () => {
+                                const completion = await groq.chat.completions.create({
+                                    messages: [
+                                        {
+                                            role: 'user',
+                                            content: [
+                                                { type: 'text', text: prompt },
+                                                {
+                                                    type: 'image_url',
+                                                    image_url: {
+                                                        url: `data:image/png;base64,${pageBuffer.toString("base64")}`
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    model: modelName,
+                                    temperature: 0.1,
+                                    max_tokens: 8192,
+                                    response_format: { type: 'json_object' }
+                                });
+                                this.systemHealthService.trackAPICall('groq');
+                                return completion.choices[0]?.message?.content || '';
+                            }, AIPriority.LOW);
+
+                            // Parse this page's response using the existing safeJsonParse logic
+                            // We construct a dummy JSON object if it's just questions array
+                            const cleanText = pageText.replace(/```json\n?|\n?```/g, '').trim();
+                            const parsed = this.safeJsonParse(cleanText, {});
+
+                            const pageQs = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+
+                            if (pageQs.length > 0) {
+                                console.log(`[AIService] Groq: Page ${i + 1} yielded ${pageQs.length} questions.`);
+                                allQuestions.push(...pageQs);
+                            } else {
+                                console.warn(`[AIService] Groq: No questions found on Page ${i + 1}. Raw Text: ${pageText.substring(0, 100)}...`);
+                            }
+                        }
+
+                        return allQuestions;
+
+                    } catch (pdfError) {
+                        console.error('[AIService] Groq PDF Conversion Error:', pdfError);
+                        // Fallback message if sharp isn't working for PDFs
+                        if (pdfError.message.includes('Input buffer contains unsupported image format')) {
+                            throw new Error(`Groq PDF Support Error: The server is missing PDF processing libraries (libvips/poppler). Please upload images (JPG/PNG) instead.`);
+                        }
+                        throw new Error(`Groq PDF Processing Failed: ${pdfError.message}`);
+                    }
+                }
+
                 console.log('[AIService] Using Groq (Llama 4 Scout) for Document Parsing...');
                 const groq = new Groq({ apiKey });
                 const modelName = this.getGroqModel('REASONING', true);
@@ -895,7 +976,7 @@ Return JSON ONLY:
                         ],
                         model: modelName,
                         temperature: 0.1,
-                        max_tokens: 4096,
+                        max_tokens: 8192, // [FIX] Increased to handle images with more questions
                         response_format: { type: 'json_object' }
                     });
                     this.systemHealthService.trackAPICall('groq');
@@ -996,8 +1077,8 @@ Extract all questions and format them as a JSON array with this structure:
             - Determine the correct answer if marked in the text(use index 0 - 3)
                 - Infer topic from question content
             - Estimate difficulty based on complexity (easy / medium / hard)
-            - **STRICTLY NO LaTeX**: Do NOT use $$, \frac, \sqrt, or any other math symbols. Use ONLY standard keyboard characters (/, *, -, +, =).
-            - **MATH FORMATTING**: Use UNICODE (θ, π, √, ², ½). Enforce parentheses for roots: sqrt(x + y) not sqrt x + y.
+            - **MATH FORMATTING**: Use LaTeX for all math expressions. Wrap inline math in $...$ and block math in $$...$$.
+            - **JSON ESCAPING**: Escape all backslashes in the JSON string (e.g. "\\frac" not"\frac").
             - **SHORTCUT EXPLANATIONS**: If available, provide explanations in a maximum of 3 quick steps.
             - Return ONLY valid JSON array, no markdown or conversational text.
                 - ** IMAGE CLEANUP **: Ignore 'ticks' or handwritten marks.Focus on printed text.
@@ -1061,7 +1142,8 @@ Extract all questions and format them as a JSON array with this structure:
 
                 INSTRUCTIONS:
         - ** NO HEADERS **: Do NOT use "Core Concept", "Strategic Solution", or "Step 1".
-        - ** STRICTLY NO LaTeX **: Avoid $$, \frac, \sqrt, and all other math symbols. Use standard keyboard characters (/, *, -, +, =).
+        - ** USE LaTeX **: Use LaTeX for all math symbols (e.g., $x^2$, $\\sqrt{x}$, $\\frac{a}{b}$). Wrap in $...$.
+        - ** JSON ESCAPING **: Escape all backslashes in the JSON string (e.g. "\\frac" not "\frac").
         - ** USE UNICODE **: Use symbols like ∑, √, ∛, x², xᵢ, π, ≈, ≠ only if keyboard alternatives like "sqrt" or "^2" are unavailable.
         - ** SHORTCUTS ONLY **: Max 3 lines of calculation.
         - ** FORMAT **:
@@ -1140,7 +1222,8 @@ Extract all questions and format them as a JSON array with this structure:
 
                 INSTRUCTIONS:
         - ** NO HEADERS **: Do NOT use "Core Concept", "Strategic Solution", or "Step 1".
-        - ** STRICTLY NO LaTeX **: Avoid $$, \frac, \sqrt, and all other math symbols. Use standard keyboard characters (/, *, -, +, =).
+        - ** USE LaTeX **: Use LaTeX for all math symbols (e.g., $x^2$, $\\sqrt{x}$, $\\frac{a}{b}$). Wrap in $...$.
+        - ** JSON ESCAPING **: Escape all backslashes in the JSON string (e.g. "\\frac" not "\frac").
         - ** USE UNICODE **: Use symbols like ∑, √, ∛, x², xᵢ, π, ≈, ≠ only if keyboard alternatives like "sqrt" or "^2" are unavailable.
         - ** SHORTCUTS ONLY **: Max 3 lines of calculation.
         - ** FORMAT **:
@@ -1227,33 +1310,11 @@ Extract all questions and format them as a JSON array with this structure:
             .replace(/【[^】]*】/g, '') // Remove source citations like [1]
             .replace(/\\n/g, '\n') // Fix escaped newlines
 
-            // 2. Remove LaTeX Delimiters completely
-            .replace(/\$\$/g, '')
-            .replace(/\$/g, '')
-            .replace(/\\\[|\\\]/g, '')
-            .replace(/\\\(|\\\)/g, '')
+            // 2. Remove ONLY escaped delimiters if they are problematic, but usually we want to keep them
+            // .replace(/\$\$/g, '') <-- REMOVED
+            // .replace(/\$/g, '') <-- REMOVED
 
-            // 3. Brutal LaTeX Command Stripping & Conversion
-            .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)') // \sqrt{x} -> sqrt(x)
-            .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2') // \frac{a}{b} -> a/b
-            .replace(/\\times/g, 'x')
-            .replace(/\\cdot/g, '*')
-            .replace(/\\approx/g, '~')
-            .replace(/\\ne/g, '!=')
-            .replace(/\\le/g, '<=')
-            .replace(/\\ge/g, '>=')
-            .replace(/\\pm/g, '+/-')
-            .replace(/\\degree/g, '°')
-            .replace(/\\angle/g, 'angle ')
-            .replace(/\\triangle/g, 'triangle ')
-            .replace(/\\perp/g, ' perpendicular to ')
-            .replace(/\\parallel/g, ' || ')
-            .replace(/\\mathbf\{([^}]+)\}/g, '$1')
-            .replace(/\\text\{([^}]+)\}/g, '$1')
-            .replace(/\\[a-zA-Z]+/g, '') // Remove ANY remaining \command
-            .replace(/\{|\}/g, '') // Remove stray curly braces
-
-            // 4. Cleanup Whitespace
+            // 3. Cleanup Whitespace
             .replace(/\n{3,}/g, '\n\n')
             .trim();
 

@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, Index, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, Index, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 import { Model } from './model.entity';
 import { Subject } from './subject.entity';
@@ -86,4 +86,10 @@ export class Question {
     @Column({ type: 'text', nullable: true }) // Migrated to vector(768) in DB
     @Exclude({ toPlainOnly: true })
     embedding: any;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
+
+    @CreateDateColumn()
+    createdAt: Date;
 }

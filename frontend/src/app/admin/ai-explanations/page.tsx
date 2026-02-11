@@ -16,7 +16,9 @@ import {
     AlertCircle,
     BookOpen,
     Layers,
-    Box
+
+    Box,
+    Bot
 } from 'lucide-react';
 import api from '@/lib/api';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
@@ -69,11 +71,13 @@ export default function AIExplanationsPage() {
     // Filter State
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'generated' | 'verified'>('all');
+    const [examId, setExamId] = useState('');  // [FIX] Added examId filter
     const [subjectId, setSubjectId] = useState('');
     const [chapterId, setChapterId] = useState('');
     const [modelId, setModelId] = useState('');
 
     // Metadata for filters
+    const [exams, setExams] = useState<FilterOption[]>([]);  // [FIX] Added exams metadata
     const [subjects, setSubjects] = useState<FilterOption[]>([]);
     const [chapters, setChapters] = useState<FilterOption[]>([]);
     const [models, setModels] = useState<FilterOption[]>([]);
@@ -81,15 +85,20 @@ export default function AIExplanationsPage() {
     // Edit State
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editText, setEditText] = useState('');
+    const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+    const [verifyingIds, setVerifyingIds] = useState<Set<string>>(new Set());
 
-    // Fetch Metadata (Subjects, Models) on mount
+    // Fetch Metadata (Exams, Subjects, Models) on mount
     useEffect(() => {
         const fetchMetadata = async () => {
             try {
-                const [subjectsRes, modelsRes] = await Promise.all([
+                const [examsRes, subjectsRes, modelsRes] = await Promise.all([
+                    api.get('/exams'),  // [FIX] Fetch exams for Question Bank filter
                     api.get('/subjects'),
                     api.get('/models')
                 ]);
+                const examsData = examsRes.data?.data || examsRes.data;
+                setExams(Array.isArray(examsData) ? examsData : []);
                 setSubjects(subjectsRes.data || []);
                 setModels(modelsRes.data || []);
             } catch (error) {
@@ -129,6 +138,7 @@ export default function AIExplanationsPage() {
                     params: {
                         search,
                         status: statusFilter,
+                        examId: examId || undefined,  // [FIX] Pass examId to API
                         subjectId: subjectId || undefined,
                         chapterId: chapterId || undefined,
                         modelId: modelId || undefined,
@@ -147,7 +157,7 @@ export default function AIExplanationsPage() {
         } finally {
             setLoading(false);
         }
-    }, [search, statusFilter, subjectId, chapterId, modelId]); // Dependencies for refetch
+    }, [search, statusFilter, examId, subjectId, chapterId, modelId]); // [FIX] Added examId dependency
 
 
 
@@ -177,13 +187,41 @@ export default function AIExplanationsPage() {
     // Special handler for generating explanation for a pending question
     const handleGenerate = async (questionId: string) => {
         try {
-            setLoading(true);
+            setGeneratingIds(prev => new Set(prev).add(questionId));
             await api.post(`/explanations/generate/${questionId}`);
             fetchData();
         } catch (error) {
             console.error('Failed to generate:', error);
             alert('Failed to generate explanation');
-            setLoading(false);
+        } finally {
+            setGeneratingIds(prev => {
+                const next = new Set(prev);
+                next.delete(questionId);
+                return next;
+            });
+        }
+    };
+
+    const handleVerifyAI = async (id: string, questionId: string) => {
+        try {
+            setVerifyingIds(prev => new Set(prev).add(id));
+            const res = await api.post(`/explanations/${id}/verify-ai`);
+
+            if (res.data.isValid) {
+                // Success!
+                fetchData();
+            } else {
+                alert(`AI Audit Failed:\n${res.data.feedback}`);
+            }
+        } catch (error) {
+            console.error('Failed to verify:', error);
+            alert('AI Verification failed');
+        } finally {
+            setVerifyingIds(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
         }
     };
 
@@ -321,7 +359,23 @@ export default function AIExplanationsPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {/* Question Bank (Exam) Filter */}
+                    <select
+                        value={examId}
+                        onChange={(e) => {
+                            setExamId(e.target.value);
+                            // Reset dependent filters when exam changes
+                            setSubjectId('');
+                            setChapterId('');
+                            setModelId('');
+                        }}
+                        className="px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer"
+                    >
+                        <option value="">All Question Banks</option>
+                        {exams.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+                    </select>
+
                     {/* Status Filter */}
                     <select
                         value={statusFilter}
@@ -473,16 +527,28 @@ export default function AIExplanationsPage() {
                                             {item.status === 'pending' ? (
                                                 <button
                                                     onClick={() => handleGenerate(item.questionId)}
-                                                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-bold text-xs flex items-center gap-2"
+                                                    disabled={generatingIds.has(item.questionId)}
+                                                    className={`px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-bold text-xs flex items-center gap-2 ${generatingIds.has(item.questionId) ? 'opacity-75 cursor-not-allowed' : ''}`}
                                                 >
-                                                    <RefreshCw className="w-3 h-3" /> Generate
+                                                    <RefreshCw className={`w-3 h-3 ${generatingIds.has(item.questionId) ? 'animate-spin' : ''}`} />
+                                                    {generatingIds.has(item.questionId) ? 'Generating...' : 'Generate'}
                                                 </button>
                                             ) : (
                                                 <>
                                                     {!item.isVerified && (
-                                                        <button onClick={() => handleApprove(item.id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center gap-2">
-                                                            <CheckCircle className="w-3 h-3" /> Approve
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            <button onClick={() => handleApprove(item.id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center gap-2">
+                                                                <CheckCircle className="w-3 h-3" /> Approve
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleVerifyAI(item.id, item.questionId)}
+                                                                disabled={verifyingIds.has(item.id)}
+                                                                className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs flex items-center gap-2 ${verifyingIds.has(item.id) ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                                            >
+                                                                <Bot className={`w-3 h-3 ${verifyingIds.has(item.id) ? 'animate-pulse' : ''}`} />
+                                                                {verifyingIds.has(item.id) ? 'Auditing...' : 'Audit'}
+                                                            </button>
+                                                        </div>
                                                     )}
                                                     <button onClick={() => startEditing(item)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold text-xs flex items-center gap-2">
                                                         <Edit3 className="w-3 h-3" /> Edit
@@ -501,7 +567,7 @@ export default function AIExplanationsPage() {
                     ))
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 

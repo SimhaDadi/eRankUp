@@ -39,6 +39,33 @@ export class AuthService {
         return result;
     }
 
+    async seedAdmin() {
+        const adminEmail = this.configService.get<string>('ADMIN_EMAIL');
+        const adminPassword = this.configService.get<string>('ADMIN_PASSWORD');
+
+        if (!adminEmail || !adminPassword) {
+            console.log('SKIP: Admin seeding - ADMIN_EMAIL or ADMIN_PASSWORD not set');
+            return null;
+        }
+
+        const existingUser = await this.usersService.findOneByEmail(adminEmail);
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+        if (existingUser) {
+            // Update existing admin
+            existingUser.password = hashedPassword;
+            existingUser.role = 'admin' as any;
+            return this.usersService.create({ ...existingUser, password: hashedPassword, role: 'admin' as any });
+        }
+
+        // Create new
+        return this.usersService.create({
+            email: adminEmail,
+            password: hashedPassword,
+            fullName: 'System Admin',
+            role: 'admin' as any
+        });
+    }
 
     private readonly logger = new Logger(AuthService.name);
 

@@ -50,6 +50,14 @@ export class AdminSeeder implements OnApplicationBootstrap {
             adminExists.role = UserRole.ADMIN;
             await this.userRepository.save(adminExists);
             console.log('Admin credentials synced successfully.');
+            // Update existing admin password and role
+            console.log(`Updating existing Admin User: ${adminEmail}...`);
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
+            adminExists.password = hashedPassword;
+            adminExists.role = UserRole.ADMIN;
+            adminExists.isActive = true;
+            await this.userRepository.save(adminExists);
+            console.log(`Admin User updated successfully: ${adminEmail}`);
         }
     }
 }

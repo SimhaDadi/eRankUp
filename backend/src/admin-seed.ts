@@ -8,6 +8,21 @@ import { join } from 'path';
 dotenv.config({ path: join(__dirname, '../.env') });
 
 async function seedAdmin() {
+    // Check if seeding is enabled
+    const shouldSeed = process.env.SEED_ADMIN === 'true';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!shouldSeed) {
+        console.log('SKIP: Admin seeding disabled (SEED_ADMIN is not true)');
+        return;
+    }
+
+    if (!adminEmail || !adminPassword) {
+        console.log('ERROR: ADMIN_EMAIL or ADMIN_PASSWORD environment variable is not set');
+        return;
+    }
+
     const connection = await createConnection({
         type: 'postgres',
         host: process.env.DB_HOST || 'localhost',
@@ -26,6 +41,7 @@ async function seedAdmin() {
     if (!adminEmail || !adminPassword) {
         throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD are required in .env for seeding.');
     }
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
     let admin = await userRepo.findOne({ where: { email: adminEmail } });
 
@@ -40,7 +56,11 @@ async function seedAdmin() {
         await userRepo.save(admin);
         console.log('Admin user created successfully.');
     } else {
-        console.log('Admin user already exists.');
+        // Update existing admin password
+        admin.password = hashedPassword;
+        admin.role = UserRole.ADMIN;
+        await userRepo.save(admin);
+        console.log('Admin user password updated successfully.');
     }
 
     await connection.close();

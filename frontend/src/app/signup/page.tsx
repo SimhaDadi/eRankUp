@@ -178,7 +178,7 @@ export default function Signup() {
 
                 <div className="mt-4">
                     <button
-                        onClick={() => window.location.href = 'http://localhost:3001/auth/google'}
+                        onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || ''}/api/auth/google`}
                         className="w-full py-3 border border-slate-200 rounded-lg flex items-center justify-center gap-3 hover:bg-slate-50 transition-all font-bold"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">

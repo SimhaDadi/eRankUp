@@ -128,8 +128,7 @@ async function seed() {
         }
     }
 
-
-    // 2. Create Admin User
+    // User seeding setup
     const userRepo = dataSource.getRepository(User);
     const adminEmail = process.env.ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD;
@@ -190,6 +189,63 @@ async function seed() {
         });
         await userRepo.save(studentUser);
         console.log(`SUCCESS: Student user created: ${studentEmail} / [HIDDEN]`);
+    const bcrypt = require('bcrypt');
+
+    // 2. Create Admin User (only if SEED_ADMIN is true and env vars are set)
+    const shouldSeedAdmin = process.env.SEED_ADMIN === 'true';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (shouldSeedAdmin) {
+        if (!adminEmail || !adminPassword) {
+            console.log('ERROR: SEED_ADMIN is true but ADMIN_EMAIL or ADMIN_PASSWORD is not set');
+        } else {
+            let adminUser = await userRepo.findOne({ where: { email: adminEmail } });
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+            if (!adminUser) {
+                // Create new
+                adminUser = userRepo.create({
+                    email: adminEmail,
+                    password: hashedPassword,
+                    fullName: 'System Admin',
+                    role: UserRole.ADMIN,
+                    isActive: true
+                });
+                await userRepo.save(adminUser);
+                console.log(`SUCCESS: Admin user created: ${adminEmail} / [HIDDEN]`);
+            } else {
+                // Update existing to ensure password is correct
+                adminUser.password = hashedPassword;
+                adminUser.role = UserRole.ADMIN;
+                adminUser.isActive = true;
+                await userRepo.save(adminUser);
+                console.log(`SUCCESS: Admin user updated: ${adminEmail} / [HIDDEN]`);
+            }
+
+            // 3. Create Student User (for E2E testing) - only if STUDENT_EMAIL and STUDENT_PASSWORD are set
+            const studentEmail = process.env.STUDENT_EMAIL;
+            const studentPassword = process.env.STUDENT_PASSWORD;
+
+            if (studentEmail && studentPassword) {
+                let studentUser = await userRepo.findOne({ where: { email: studentEmail } });
+                const hashedStudentPassword = await bcrypt.hash(studentPassword, 10);
+
+                if (!studentUser) {
+                    studentUser = userRepo.create({
+                        email: studentEmail,
+                        password: hashedStudentPassword,
+                        fullName: 'Test Student',
+                        role: UserRole.STUDENT,
+                        isActive: true
+                    });
+                    await userRepo.save(studentUser);
+                    console.log(`SUCCESS: Student user created: ${studentEmail} / [HIDDEN]`);
+                }
+            }
+        }
+    } else {
+        console.log('SKIP: Admin/Student seeding disabled (SEED_ADMIN is not true)');
     }
 
     console.log('------------------------------------------');

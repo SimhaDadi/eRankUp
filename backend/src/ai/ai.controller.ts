@@ -10,12 +10,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Question } from '../exams/entities/question.entity';
 
+import { AIQueueService } from './ai-queue.service';
+
 @Controller('ai')
 @UseGuards(AuthGuard('jwt'))
 export class AIController {
     constructor(
         private aiService: AIService,
         private explanationService: ExplanationService,
+        private aiQueueService: AIQueueService,
         @InjectRepository(Question)
         private questionRepository: Repository<Question>,
     ) { }
@@ -129,5 +132,15 @@ export class AIController {
         } catch (error) {
             throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @Get('status')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
+    getQueueStatus() {
+        return {
+            success: true,
+            status: this.aiQueueService.getStats()
+        };
     }
 }

@@ -91,43 +91,82 @@ export class QuestionsUploadService {
     }
 
     private async parseDocumentWithAI(buffer: Buffer, mimetype: string): Promise<ParsedQuestion[]> {
+        const startTime = Date.now();
+        const parseLog: string[] = [];
+        const log = (msg: string) => {
+            const timestampedMsg = `[${new Date().toISOString()}] ${msg}`;
+            console.log(timestampedMsg);
+            parseLog.push(msg);
+        };
+
         try {
+            log(`[ImageUpload] Starting AI document parsing. MimeType: ${mimetype}, Size: ${buffer.length} bytes`);
+
             const aiResults = await this.aiService.parseDocument({ buffer, mimetype });
 
+            const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+            log(`[ImageUpload] AI parsing completed in ${duration}s. Raw results: ${aiResults?.length || 0} questions detected.`);
+
             if (!aiResults || aiResults.length === 0) {
-                throw new BadRequestException('AI Parser returned 0 questions. Please ensure the document is clear and contains questions.');
+                throw new BadRequestException('AI Parser returned 0 questions. Please ensure the document is clear and contains questions. Tips: Use high-resolution images, crop to show only the questions area.');
             }
 
             const parsedQuestions: ParsedQuestion[] = [];
+            let skippedCount = 0;
+            let diagramSuccessCount = 0;
+            let diagramFailCount = 0;
 
             let imageMetadata: sharp.Metadata | null = null;
             if (mimetype.startsWith('image/')) {
                 try {
                     imageMetadata = await sharp(buffer).metadata();
+                    log(`[ImageUpload] Image dimensions: ${imageMetadata.width}x${imageMetadata.height}`);
                 } catch (e) {
-                    console.error('[QuestionsUploadService] Failed to get image metadata:', e);
+                    log(`[ImageUpload] WARNING: Failed to get image metadata: ${e.message}`);
                 }
             }
 
             for (const [index, item] of aiResults.entries()) {
-                const question: ParsedQuestion = {
-                    content: item.content,
-                    options: item.options.map((opt: string, optIndex: number) => ({
+                // Validate required fields
+                if (!item.content || !item.options || item.options.length < 2) {
+                    log(`[ImageUpload] Skipping question ${index + 1}: Missing content or options`);
+                    skippedCount++;
+                    continue;
+                }
+
+                // Ensure options are strings (AI sometimes returns objects)
+                const normalizedOptions = item.options.map((opt: any, optIndex: number) => {
+                    const text = typeof opt === 'string' ? opt : (opt.text || opt.content || String(opt));
+                    return {
                         id: String.fromCharCode(65 + optIndex),
-                        text: opt
-                    })),
-                    correctOptionId: typeof item.correctOptionIndex === 'number'
-                        ? String.fromCharCode(65 + item.correctOptionIndex)
-                        : 'A',
-                    explanation: item.explanation,
-                    topic: 'General',
-                    difficultyWeight: item.difficultyWeight || 0.5,
-                    positiveMarks: item.positiveMarks || 1.0,
-                    negativeMarks: item.negativeMarks || 0.25,
+                        text: text.trim()
+                    };
+                });
+
+                // Validate correct answer
+                let correctOptionId = 'A';
+                if (typeof item.correctOptionIndex === 'number' && item.correctOptionIndex >= 0 && item.correctOptionIndex < normalizedOptions.length) {
+                    correctOptionId = String.fromCharCode(65 + item.correctOptionIndex);
+                } else if (typeof item.correctOptionId === 'string') {
+                    correctOptionId = item.correctOptionId.toUpperCase();
+                } else {
+                    log(`[ImageUpload] Question ${index + 1}: Invalid correct answer, defaulting to A`);
+                }
+
+                const question: ParsedQuestion = {
+                    content: item.content.trim(),
+                    options: normalizedOptions,
+                    correctOptionId,
+                    explanation: item.explanation || '',
+                    topic: item.topic || 'General',
+                    difficultyWeight: parseFloat(item.difficultyWeight) || 0.5,
+                    positiveMarks: parseFloat(item.positiveMarks) || 1.0,
+                    negativeMarks: parseFloat(item.negativeMarks) || 0.25,
                     hasDiagram: item.hasDiagram,
                     diagram_coordinates: item.diagram_coordinates
                 };
 
+                // Handle diagram cropping
                 if (question.hasDiagram && question.diagram_coordinates && imageMetadata) {
                     try {
                         const diagramUrl = await this.cropAndSaveDiagram(
@@ -136,17 +175,38 @@ export class QuestionsUploadService {
                             imageMetadata,
                             `q_${Date.now()}_${index}.png`
                         );
-                        question.imageUrl = diagramUrl;
+                        if (diagramUrl) {
+                            question.imageUrl = diagramUrl;
+                            diagramSuccessCount++;
+                        } else {
+                            log(`[ImageUpload] Question ${index + 1}: Diagram crop returned null`);
+                            diagramFailCount++;
+                        }
                     } catch (cropError) {
-                        console.error('[QuestionsUploadService] Diagram crop failed:', cropError);
+                        log(`[ImageUpload] Question ${index + 1}: Diagram crop failed - ${cropError.message}`);
+                        diagramFailCount++;
                     }
                 }
+
                 parsedQuestions.push(question);
+            }
+
+            // Final summary
+            log(`[ImageUpload] SUMMARY: Detected: ${aiResults.length}, Parsed: ${parsedQuestions.length}, Skipped: ${skippedCount}, Diagrams: ${diagramSuccessCount} success / ${diagramFailCount} failed`);
+
+            // Write debug log to file for troubleshooting
+            try {
+                const logPath = 'd:\\eRankUp\\image_upload_debug.log';
+                const logContent = parseLog.join('\n') + '\n---\n';
+                fs.appendFileSync(logPath, logContent);
+            } catch (e) {
+                // Ignore log file errors
             }
 
             return parsedQuestions;
 
         } catch (error) {
+            log(`[ImageUpload] ERROR: ${error.message}`);
             console.error('AI Parse Error:', error);
             throw new BadRequestException(error.message || 'Failed to parse file via AI Service.');
         }

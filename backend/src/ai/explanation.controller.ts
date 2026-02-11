@@ -10,13 +10,17 @@ import {
     UseGuards,
     HttpException,
     HttpStatus,
-    Request
+    Request,
+    UseInterceptors,
+    UploadedFile
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 import { ExplanationService } from './explanation.service';
+import { AIPriority } from './ai-queue.service';
 
 @Controller('explanations')
 // @UseGuards(AuthGuard('jwt'))
@@ -37,14 +41,13 @@ export class ExplanationController {
         @Body('examId') examId?: string
     ) {
         try {
-
-
             const explanation = await this.explanationService.generateExplanation(
                 req.user.userId,
                 req.user.role,
                 questionId,
                 userAnswer,
-                examId
+                examId,
+                AIPriority.HIGH // Force High Priority for manual requests
             );
 
             return {
@@ -77,8 +80,6 @@ export class ExplanationController {
         @Body('limit') limit?: number
     ) {
         try {
-
-
             const count = await this.explanationService.generateMissingExplanations(
                 req.user.userId,
                 req.user.role,
@@ -116,8 +117,6 @@ export class ExplanationController {
         }
     ) {
         try {
-
-
             const questionIds = body.questionIds || [];
 
             // If no specific IDs provided, find questions without explanations
@@ -199,6 +198,7 @@ export class ExplanationController {
         @Query('subjectId') subjectId?: string,
         @Query('chapterId') chapterId?: string,
         @Query('modelId') modelId?: string,
+        @Query('examId') examId?: string,  // [FIX] Added examId filter
         @Query('status') status?: 'all' | 'pending' | 'generated' | 'verified',
         @Query('limit') limit?: string,
         @Query('offset') offset?: string
@@ -209,6 +209,7 @@ export class ExplanationController {
                 subjectId,
                 chapterId,
                 modelId,
+                examId,  // [FIX] Pass examId to service
                 status: status || 'all',
                 limit: limit ? parseInt(limit) : 50,
                 offset: offset ? parseInt(offset) : 0
@@ -235,6 +236,24 @@ export class ExplanationController {
         } catch (error) {
             throw new HttpException(
                 error.message || 'Failed to fetch unverified explanations',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
+     * Trigger AI verification for an existing explanation
+     * Admin only
+     */
+    @Post(':id/verify-ai')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async verifyExplanationAI(@Param('id') id: string) {
+        try {
+            return await this.explanationService.verifyStoredExplanation(id);
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to verify explanation',
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }

@@ -61,9 +61,9 @@ export class AuthController {
         const result = await this.authService.validateGoogleUser(req.user);
 
         // Securely pass token to frontend via redirect
-        const domain = this.configService.get<string>('FRONTEND_URL') || 'http://192.168.1.5:3000/auth/callback';
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://erankup.in';
         const data = encodeURIComponent(JSON.stringify(result));
 
-        res.redirect(`${domain}?data=${data}`);
+        res.redirect(`${frontendUrl}/auth/callback?data=${data}`);
     }
 }
