@@ -10,14 +10,20 @@ import { Attempt } from './exams/entities/attempt.entity';
 import { Response } from './exams/entities/response.entity';
 import { Purchase } from './exams/entities/purchase.entity';
 
+import * as dotenv from 'dotenv';
+import { join } from 'path';
+
+// Load environment variables
+dotenv.config({ path: join(__dirname, '../.env') });
+
 async function seed() {
     const dataSource = new DataSource({
         type: 'postgres',
-        host: 'localhost',
-        port: 5432,
-        username: 'admin',
-        password: 'password',
-        database: 'erankup_db',
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        username: process.env.DB_USER || 'admin',
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME || 'erankup_db',
         entities: [Category, Exam, Subject, Chapter, Model, Question, User, Attempt, Response, Purchase],
         synchronize: true,
     });

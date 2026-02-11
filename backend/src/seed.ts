@@ -20,7 +20,7 @@ async function seed() {
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432'),
         username: process.env.DB_USER || 'admin',
-        password: process.env.DB_PASSWORD || 'password',
+        password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME || 'erankup_db',
         entities: [Exam, Chapter, Subject, Model, Question, Attempt, Response, Purchase, User],
         synchronize: true,
@@ -130,6 +130,65 @@ async function seed() {
 
     // User seeding setup
     const userRepo = dataSource.getRepository(User);
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+        throw new Error('SEED ERROR: ADMIN_EMAIL and ADMIN_PASSWORD environment variables are required for seeding.');
+    }
+
+    let adminUser = await userRepo.findOne({ where: { email: adminEmail } });
+
+    // dynamic import bcrypt to avoid issues if it's not top-level
+    const bcrypt = require('bcrypt');
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+    if (!adminUser) {
+        // Create new
+        adminUser = userRepo.create({
+            email: adminEmail,
+            password: hashedPassword,
+            fullName: 'System Admin',
+            role: UserRole.ADMIN,
+            isActive: true
+        });
+        await userRepo.save(adminUser);
+        console.log(`SUCCESS: Admin user created: ${adminEmail} / [HIDDEN]`);
+    } else {
+        // Update existing to ensure password is correct
+        adminUser.password = hashedPassword;
+        adminUser.role = UserRole.ADMIN;
+        adminUser.isActive = true;
+        await userRepo.save(adminUser);
+        console.log(`SUCCESS: Admin user updated: ${adminEmail} / [HIDDEN]`);
+    }
+
+    // 3. Create Student User (for E2E testing)
+    const studentEmail = process.env.STUDENT_EMAIL;
+    const studentPassword = process.env.STUDENT_PASSWORD;
+
+    if (!studentEmail || !studentPassword) {
+        console.warn('SKIPPING STUDENT SEEDING: STUDENT_EMAIL or STUDENT_PASSWORD not set.');
+        console.log('------------------------------------------');
+        console.log('SUCCESS: 100 Questions seeded across 4 chapters!');
+        console.log('------------------------------------------');
+        await dataSource.destroy();
+        return;
+    }
+
+    let studentUser = await userRepo.findOne({ where: { email: studentEmail } });
+    const hashedStudentPassword = await bcrypt.hash(studentPassword, 10);
+
+    if (!studentUser) {
+        studentUser = userRepo.create({
+            email: studentEmail,
+            password: hashedStudentPassword,
+            fullName: 'Test Student',
+            role: UserRole.STUDENT,
+            isActive: true
+        });
+        await userRepo.save(studentUser);
+        console.log(`SUCCESS: Student user created: ${studentEmail} / [HIDDEN]`);
     const bcrypt = require('bcrypt');
 
     // 2. Create Admin User (only if SEED_ADMIN is true and env vars are set)
