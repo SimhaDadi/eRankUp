@@ -26,15 +26,16 @@ export class AdminSeeder implements OnApplicationBootstrap {
         const adminPassword = this.configService.get<string>('ADMIN_PASSWORD');
 
         if (!adminEmail || !adminPassword) {
-            console.error('CRITICAL: SEED_ADMIN is true but ADMIN_EMAIL or ADMIN_PASSWORD is not set.');
+            console.warn('⚠️ Admin seeding enabled but ADMIN_EMAIL or ADMIN_PASSWORD is not set. Skipping.');
             return;
         }
 
-        const hashedPassword = await bcrypt.hash(adminPassword, 10);
         const adminExists = await this.userRepository.findOne({ where: { email: adminEmail } });
+        const forceUpdate = this.configService.get<string | boolean>('SEED_ADMIN_FORCE_UPDATE') === 'true' || this.configService.get('SEED_ADMIN_FORCE_UPDATE') === true;
 
         if (!adminExists) {
             console.log(`Seeding Admin User: ${adminEmail}...`);
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
             const adminUser = this.userRepository.create({
                 email: adminEmail,
                 password: hashedPassword,
@@ -44,20 +45,17 @@ export class AdminSeeder implements OnApplicationBootstrap {
             });
             await this.userRepository.save(adminUser);
             console.log(`Admin User Seeded successfully: ${adminEmail}`);
-        } else {
-            console.log(`Syncing credentials for existing Admin User: ${adminEmail}`);
-            adminExists.password = hashedPassword;
-            adminExists.role = UserRole.ADMIN;
-            await this.userRepository.save(adminExists);
-            console.log('Admin credentials synced successfully.');
-            // Update existing admin password and role
-            console.log(`Updating existing Admin User: ${adminEmail}...`);
+        } else if (forceUpdate) {
+            // Update existing admin password and role ONLY if force update is enabled
+            console.log(`[FORCE UPDATE] Updating existing Admin User: ${adminEmail}...`);
             const hashedPassword = await bcrypt.hash(adminPassword, 10);
             adminExists.password = hashedPassword;
             adminExists.role = UserRole.ADMIN;
             adminExists.isActive = true;
             await this.userRepository.save(adminExists);
             console.log(`Admin User updated successfully: ${adminEmail}`);
+        } else {
+            console.log(`Admin user exists. Skipping update to preserve manual password changes.`);
         }
     }
 }

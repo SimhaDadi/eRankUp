@@ -323,7 +323,7 @@ export class ExplanationService {
                         notHelpfulCount: explanation?.notHelpfulCount || 0,
                         averageRating: explanation?.averageRating || 0,
                         viewCount: explanation?.viewCount || 0,
-                        createdAt: explanation?.createdAt || q.createdAt
+                        createdAt: explanation?.createdAt || q.createdAt || new Date().toISOString()
                     };
                 }),
                 total,
