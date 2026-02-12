@@ -28,6 +28,7 @@ import { NewsModule } from './news/news.module';
 import { CommunityModule } from './community/community.module';
 import { AIStudyModule } from './ai-study/ai-study.module';
 import { ContentModule } from './content/content.module';
+import { DebugModule } from './debug/debug.module';
 import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
 
@@ -98,6 +99,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
         CommunityModule,
         AIStudyModule,
         ContentModule,
+        DebugModule,
     ],
     controllers: [AppController],
     providers: [

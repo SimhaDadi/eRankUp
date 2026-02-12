@@ -1,55 +1,62 @@
-const { Client } = require('pg');
-const dotenv = require('dotenv');
-const { join } = require('path');
-const Groq = require('groq-sdk');
-const fs = require('fs');
+import 'reflect-metadata';
+import { DataSource } from 'typeorm';
+import { Question } from '../exams/entities/question.entity';
+import { Subject } from '../exams/entities/subject.entity';
+import { Chapter } from '../exams/entities/chapter.entity';
+import * as dotenv from 'dotenv';
+import { join } from 'path';
+import Groq from 'groq-sdk';
+import * as fs from 'fs';
 
 dotenv.config({ path: join(__dirname, '../../.env') });
 
-const BATCH_SIZE = 5;
-const LIMIT = 10; // Let's start with 10 for the user to verify
+const BATCH_SIZE = 2; // Reduced to avoid hitting rate limits while testing
+const LIMIT = 5; // Small limit for verification
 
-async function runBulkAuditRaw() {
-    console.log('--- [AI Bulk Audit RAW] Initializing ---');
+async function runBulkAudit() {
+    console.log('--- [AI Bulk Audit] Initializing ---');
 
-    const client = new Client({
+    console.log(`[Audit] DB Config: host=${process.env.DB_HOST}, user=${process.env.DB_USER}, db=${process.env.DB_NAME}`);
+
+    const dataSource = new DataSource({
+        type: 'postgres',
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432'),
-        user: process.env.DB_USER || 'admin',
+        username: process.env.DB_USER || 'admin',
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME || 'erankup_db',
+        entities: [Question, Subject, Chapter],
+        synchronize: false,
     });
 
     try {
-        await client.connect();
-        console.log('[Audit] Connected to DB.');
+        await dataSource.initialize();
     } catch (dbError) {
-        console.error('[Audit] FATAL: Database connection failed.');
+        console.error('[Audit] FATAL: Database initialization failed.');
         console.error(dbError);
         process.exit(1);
     }
-
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const modelName = 'llama-3.3-70b-versatile';
 
-    console.log(`[Audit] Fetching questions... (Limit: ${LIMIT})`);
+    console.log(`[Audit] Fetching questions... (Limit: ${LIMIT || 'Unlimited'})`);
+    const questionRepo = dataSource.getRepository(Question);
 
-    const query = `
-        SELECT q.id, q.content, q.options, q."correctOptionId", c.title as chapter_title
-        FROM question q
-        LEFT JOIN chapter c ON q."chapterId" = c.id
-        ORDER BY q."createdAt" DESC
-        LIMIT ${LIMIT}
-    `;
+    const queryBuilder = questionRepo.createQueryBuilder('q')
+        .leftJoinAndSelect('q.chapter', 'chapter')
+        .orderBy('q.createdAt', 'DESC');
 
-    const res = await client.query(query);
-    const questions = res.rows;
+    if (LIMIT > 0) {
+        queryBuilder.limit(LIMIT);
+    }
+
+    const questions = await queryBuilder.getMany();
     console.log(`[Audit] Found ${questions.length} questions to audit.`);
 
     const report = {
         scanTime: new Date().toISOString(),
         totalAudited: questions.length,
-        discrepancies: [],
+        discrepancies: [] as any[],
         stats: {
             matches: 0,
             mismatches: 0,
@@ -63,16 +70,13 @@ async function runBulkAuditRaw() {
 
         await Promise.all(batch.map(async (q) => {
             try {
-                // Parse options if they are stringified JSON (TypeORM handles this, pg doesn't always)
-                const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
-
                 const prompt = `Solve the following Multiple Choice Question (MCQ) mathematically from scratch. 
                 
                 QUESTION:
                 ${q.content}
                 
                 OPTIONS:
-                ${options.map((opt, idx) => `${String.fromCharCode(65 + idx)}. ${opt.text}`).join('\n')}
+                ${q.options.map((opt, idx) => `${String.fromCharCode(65 + idx)}. ${opt.text}`).join('\n')}
                 
                 TASK:
                 1. Solve the problem step-by-step.
@@ -106,7 +110,8 @@ async function runBulkAuditRaw() {
                         dbAnswer,
                         aiAnswer,
                         reasoning: aiResponse.reasoning,
-                        chapter: q.chapter_title
+                        chapter: q.chapter?.title,
+                        topic: q.topic
                     });
                 }
             } catch (err) {
@@ -126,7 +131,7 @@ async function runBulkAuditRaw() {
     console.log(`Errors: ${report.stats.errors}`);
     console.log(`Report saved to: ${reportPath}`);
 
-    await client.end();
+    await dataSource.destroy();
 }
 
-runBulkAuditRaw().catch(console.error);
+runBulkAudit().catch(console.error);

@@ -1,0 +1,100 @@
+
+    /**
+     * Validate explanation prompt options
+     * @private
+     */
+    private validateExplanationPromptOptions(options: ExplanationPromptOptions): void {
+        if (!options) {
+            throw new MissingPromptParameterException('options');
+        }
+
+        if (!options.question) {
+            throw new MissingPromptParameterException('question');
+        }
+
+        const { question } = options;
+
+        if (!question.content || typeof question.content !== 'string' || question.content.trim().length === 0) {
+            throw new InvalidPromptInputException('question.content', 'must be a non-empty string');
+        }
+
+        if (!question.options || !Array.isArray(question.options) || question.options.length === 0) {
+            throw new InvalidPromptInputException('question.options', 'must be a non-empty array');
+        }
+
+        if (!question.correctOptionId || typeof question.correctOptionId !== 'string') {
+            throw new InvalidPromptInputException('question.correctOptionId', 'must be a valid string');
+        }
+
+        // Validate that correctOptionId exists in options
+        const correctOption = question.options.find(opt => opt.id === question.correctOptionId);
+        if (!correctOption) {
+            throw new InvalidPromptInputException(
+                'question.correctOptionId',
+                `'${question.correctOptionId}' does not match any option ID`
+            );
+        }
+
+        // Validate userAnswer if provided
+        if (options.userAnswer) {
+            const userOption = question.options.find(opt => opt.id === options.userAnswer);
+            if (!userOption) {
+                throw new InvalidPromptInputException(
+                    'userAnswer',
+                    `'${options.userAnswer}' does not match any option ID`
+                );
+            }
+        }
+    }
+
+    /**
+     * Validate chat prompt options
+     * @private
+     */
+    private validateChatPromptOptions(options: ChatPromptOptions): void {
+        if (!options) {
+            throw new MissingPromptParameterException('options');
+        }
+
+        if (!options.message || typeof options.message !== 'string' || options.message.trim().length === 0) {
+            throw new InvalidPromptInputException('message', 'must be a non-empty string');
+        }
+
+        if (options.message.length > 5000) {
+            throw new InvalidPromptInputException('message', 'exceeds maximum length of 5000 characters');
+        }
+
+        if (!options.context) {
+            throw new MissingPromptParameterException('context');
+        }
+
+        if (!Array.isArray(options.context.weakAreas)) {
+            throw new InvalidPromptInputException('context.weakAreas', 'must be an array');
+        }
+
+        if (!Array.isArray(options.history)) {
+            throw new InvalidPromptInputException('history', 'must be an array');
+        }
+    }
+
+    /**
+     * Validate quick explanation prompt input
+     * @private
+     */
+    private validateQuickExplanationInput(question: Question): void {
+        if (!question) {
+            throw new MissingPromptParameterException('question');
+        }
+
+        if (!question.content || typeof question.content !== 'string' || question.content.trim().length === 0) {
+            throw new InvalidPromptInputException('question.content', 'must be a non-empty string');
+        }
+
+        if (!question.options || !Array.isArray(question.options) || question.options.length === 0) {
+            throw new InvalidPromptInputException('question.options', 'must be a non-empty array');
+        }
+
+        if (!question.correctOptionId || typeof question.correctOptionId !== 'string') {
+            throw new InvalidPromptInputException('question.correctOptionId', 'must be a valid string');
+        }
+    }
