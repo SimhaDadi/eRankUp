@@ -103,7 +103,7 @@ export default function TestPage() {
                             if (session.startTime) {
                                 const now = Date.now();
                                 const elapsedSeconds = Math.floor((now - session.startTime) / 1000);
-                                const durationSeconds = 60 * 60; // 60 mins default for adaptive
+                                const durationSeconds = session.durationSeconds || (60 * 60); // Use session duration or default
                                 const remaining = Math.max(0, durationSeconds - elapsedSeconds);
                                 setTimeLeft(remaining);
                             }
@@ -147,7 +147,7 @@ export default function TestPage() {
                                 if (session.startTime) {
                                     const now = Date.now();
                                     const elapsedSeconds = Math.floor((now - session.startTime) / 1000);
-                                    const durationSeconds = 2 * 60 * 60; // 2 hours
+                                    const durationSeconds = session.durationSeconds || (loadedQuestions.length * 2 * 60);
                                     const remaining = Math.max(0, durationSeconds - elapsedSeconds);
                                     setTimeLeft(remaining);
                                 }
@@ -247,7 +247,8 @@ export default function TestPage() {
                                     elapsedSeconds += Math.floor((now - session.startTime) / 1000);
                                 }
 
-                                const remaining = Math.max(0, durationSeconds - elapsedSeconds);
+                                const totalDuration = session.durationSeconds || durationSeconds;
+                                const remaining = Math.max(0, totalDuration - elapsedSeconds);
                                 setTimeLeft(remaining);
                             }
                         }

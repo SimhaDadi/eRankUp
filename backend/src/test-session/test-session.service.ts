@@ -19,6 +19,7 @@ export interface TestSession {
     timings: Record<string, number>; // questionId -> seconds spent
     flags: string[]; // array of questionId
     status: 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED';
+    durationSeconds?: number; // Total allowed time in seconds
     questions?: any[]; // Local questions for adaptive sessions
 }
 
@@ -59,6 +60,7 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         const sessionId = `adaptive-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
         const key = this.getSessionKey(userId, sessionId);
 
+        const durationSeconds = 30 * 60; // 30 minutes for adaptive
         const newSession: TestSession = {
             userId,
             testId: sessionId,
@@ -68,9 +70,11 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             flags: [],
             status: 'IN_PROGRESS',
             questions,
+            durationSeconds
         };
 
-        await this.redis.set(key, JSON.stringify(newSession), 'EX', 60 * 60 * 2);
+        const redisExpiry = durationSeconds + (60 * 60);
+        await this.redis.set(key, JSON.stringify(newSession), 'EX', redisExpiry);
         return newSession;
     }
 
@@ -119,6 +123,25 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
 
             let model: any = await this.examsService.findModel(cleanId);
 
+            // [FIX] Fallback for Chapter Practice: Calculate duration based on Chapter's questions
+            if (!model && testId.startsWith('chapter-')) {
+                console.log(`[TestSessionService] Performing dedicated Chapter lookup for duration: ${cleanId}`);
+                try {
+                    const chapterQuestions = await this.examsService.getPracticeQuestions(userId, cleanId, 20); // Default limit matching startPractice
+                    if (chapterQuestions && chapterQuestions.length > 0) {
+                        model = {
+                            title: 'Chapter Practice',
+                            questions: chapterQuestions,
+                            duration: chapterQuestions.length * 2,
+                            totalQuestions: chapterQuestions.length
+                        };
+                        console.log(`[TestSessionService] Created dynamic Model for Chapter Practice. Questions: ${chapterQuestions.length}`);
+                    }
+                } catch (chapterErr) {
+                    console.error(`[TestSessionService] Failed to fetch practice questions for chapter:`, chapterErr);
+                }
+            }
+
             // [FIX] Fallback: If not found as Model, try finding as Exam (Full Mock)
             if (!model) {
                 console.log(`[TestSessionService] Model not found for ${cleanId}, trying as Exam...`);
@@ -160,11 +183,21 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
                         throw new Error(`This live event starts at ${startTime.toLocaleString()}. Please wait.`);
                     }
                 }
-                durationSeconds = (model.duration * 60) + (60 * 60);
+                durationSeconds = (model.duration * 60); // Use model duration directly
+
+                // Add a buffer for Redis expiry but not for the test timer
+                const redisExpiry = durationSeconds + (60 * 60);
 
                 // Assuming model.questions are loaded by findModel (which they are, per ExamsService)
                 if (model.questions) {
                     questions = model.questions;
+                }
+
+                // [NEW] Logic for Chapter Practice dynamic duration
+                if (testId.startsWith('chapter-')) {
+                    const calculatedDuration = questions.length * 2 * 60; // 2 mins per question
+                    durationSeconds = calculatedDuration;
+                    console.log(`[TestSessionService] Calculated Chapter Practice duration: ${durationSeconds}s for ${questions.length} questions`);
                 }
             } else {
                 console.warn(`[TestSessionService] No Model or Exam found for ID: ${testId}`);
@@ -182,9 +215,11 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             timings: {},
             flags: [],
             status: 'IN_PROGRESS',
+            durationSeconds: durationSeconds
         };
 
-        await this.redis.set(key, JSON.stringify(newSession), 'EX', durationSeconds);
+        const redisExpiry = durationSeconds + (60 * 60);
+        await this.redis.set(key, JSON.stringify(newSession), 'EX', redisExpiry);
 
         // return session WITH questions (but don't store questions in Redis for standard tests)
         return {
