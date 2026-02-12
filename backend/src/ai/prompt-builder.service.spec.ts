@@ -3,6 +3,7 @@ import { PromptBuilderService } from './prompt-builder.service';
 import { AIUtilsService } from './ai-utils.service';
 import { Question } from '../exams/entities/question.entity';
 import { AIChatMessage } from '../ai-chat/entities/chat-message.entity';
+import { PROMPTS_CONFIG } from './config/prompts.config';
 
 describe('PromptBuilderService', () => {
     let service: PromptBuilderService;
@@ -54,8 +55,8 @@ describe('PromptBuilderService', () => {
 
             const prompt = service.buildExplanationPrompt({ question });
 
-            expect(prompt).toContain('Grammar / Logic Rule');
-            expect(prompt).toContain('Vocab / Root Word Hack');
+            expect(prompt).toContain(PROMPTS_CONFIG.subjects.english.steps.step1.title);
+            expect(prompt).toContain(PROMPTS_CONFIG.subjects.english.steps.step2.title);
             expect(prompt).toContain('SSC CGL English Mentor');
         });
 
@@ -66,8 +67,8 @@ describe('PromptBuilderService', () => {
 
             const prompt = service.buildExplanationPrompt({ question });
 
-            expect(prompt).toContain('The Core Fact');
-            expect(prompt).toContain('Memory Mnemonic');
+            expect(prompt).toContain(PROMPTS_CONFIG.subjects.generalStudies.steps.step1.title);
+            expect(prompt).toContain(PROMPTS_CONFIG.subjects.generalStudies.steps.step2.title);
             expect(prompt).toContain('General Studies Mentor');
         });
 
@@ -78,8 +79,8 @@ describe('PromptBuilderService', () => {
 
             const prompt = service.buildExplanationPrompt({ question });
 
-            expect(prompt).toContain('The Core Fact');
-            expect(prompt).toContain('Memory Mnemonic');
+            expect(prompt).toContain(PROMPTS_CONFIG.subjects.generalStudies.steps.step1.title);
+            expect(prompt).toContain(PROMPTS_CONFIG.subjects.generalStudies.steps.step2.title);
         });
 
         it('should generate Quant-specific prompt for Quantitative Aptitude', () => {
@@ -158,7 +159,7 @@ describe('PromptBuilderService', () => {
             const prompt = service.buildExplanationPrompt({ question });
 
             expect(prompt).toContain('SYLLABUS GUARDRAILS');
-            expect(prompt).toContain('SSC CGL, RRB NTPC, Banking, IBPS');
+            expect(prompt).toContain(PROMPTS_CONFIG.syllabusGuardrails.scope);
         });
 
         it('should include security instructions', () => {
@@ -305,7 +306,7 @@ describe('PromptBuilderService', () => {
             });
 
             expect(prompt).toContain('VISUAL MATH (LaTeX)');
-            expect(prompt).toContain('MANDATE LaTeX');
+            expect(prompt).toContain('$ ...$');
         });
     });
 
@@ -315,7 +316,7 @@ describe('PromptBuilderService', () => {
 
             const prompt = service.buildQuickExplanationPrompt(question);
 
-            expect(prompt).toContain('Extreme Shortcut Mode');
+            expect(prompt).toContain(PROMPTS_CONFIG.subjects.quantReasoning.persona);
             expect(prompt).toContain('Cheat Sheet');
             expect(prompt).toContain('maximum 3 steps');
         });
@@ -327,8 +328,8 @@ describe('PromptBuilderService', () => {
 
             expect(prompt).toContain('[GOOD RESPONSE FORMAT]');
             expect(prompt).toContain('💡 CORE');
-            expect(prompt).toContain('🚀 SHORTCUT');
-            expect(prompt).toContain('🔥 HACK');
+            expect(prompt).toContain(`🚀 ${PROMPTS_CONFIG.subjects.quantReasoning.steps.step1.title.split('. ')[1].toUpperCase()}`);
+            expect(prompt).toContain(`🔥 ${PROMPTS_CONFIG.subjects.quantReasoning.steps.step2.title.split('. ')[1].toUpperCase()}`);
         });
 
         it('should include question content and options', () => {
