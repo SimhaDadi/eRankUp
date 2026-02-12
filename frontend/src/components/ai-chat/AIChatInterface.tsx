@@ -8,6 +8,9 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -414,7 +417,8 @@ export default function AIChatInterface() {
                                         {msg.role === 'assistant' ? (
                                             <div className="text-sm leading-relaxed whitespace-pre-wrap prose prose-slate max-w-none prose-p:leading-snug prose-li:leading-snug prose-h3:mt-3 prose-h3:mb-1">
                                                 <ReactMarkdown
-                                                    remarkPlugins={[remarkGfm]}
+                                                    remarkPlugins={[remarkGfm, remarkMath]}
+                                                    rehypePlugins={[rehypeKatex]}
                                                     components={{
                                                         h3: ({ node, ...props }) => <h3 className="text-xs font-black mt-3 mb-1 text-[#00bfa5] uppercase tracking-wider" {...props} />,
                                                         p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,

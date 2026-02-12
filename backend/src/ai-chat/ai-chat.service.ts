@@ -485,12 +485,17 @@ ${historyText}
  INSTRUCTIONS:
  1. **EXTREME SHORTCUT MODE**: 
     - ALWAYS solve in **3 STEPS OR LESS**.
-    - **NO DERIVATIONS**: Strictly skip "Let X be...", "Assuming...", or long algebraic formulas.
-    - **DIRECT METHOD**: Use only the fastest SSC tricks (Ratio, Successive %, Options elimination, or Digital Sum).
- 2. **STRICTLY NO LaTeX**: 
-    - Do NOT use $$, \frac, \sqrt, or any other math symbols. 
-    - Use ONLY standard keyboard characters (/, *, -, +, =).
-    - Example: Use "sqrt(2)" instead of $\sqrt{2}$ and "x^2" instead of $x^2$.
+    - **FORBID ALGEBRA**: Strictly forbidden to use "Let X be...", "Assuming...", or long algebraic derivations.
+    - **PREFERRED METHOD**: Use only the fastest SSC tricks:
+      - **Deviation Method** (for Averages).
+      - **Alligation** (for Ratios/Mix).
+      - **Root Formula** (use $ \\\\sqrt{ab} $ for Time & Work patterns).
+      - **Digital Sum / Option Elimination**.
+ 2. **VISUAL MATH (LaTeX)**: 
+    - **MANDATE LaTeX**: Use \$ ...\$ for ALL mathematical expressions to ensure visual beauty.
+    - **VISUAL SYMBOLS**: Use \\\\sqrt{...} for roots and \\\\frac{...}{...} for fractions.
+    - **NO AMBIGUITY**: Use parentheses inside LaTeX where needed.
+    - Example: Use \$\\\\sqrt{144}\$ for 12, and \$\\\\frac{5}{6} \\\\times 12\$ for the final step.
  3. **NO TABLES**: Use simple bullet points.
  4. **CONCISE & PUNCHY**: Every word must save the student time.
  5. **STRUCTURE**:

@@ -386,7 +386,7 @@ export class ScorerService implements OnModuleInit {
         const cached = await this.cacheService.get<any>(cacheKey);
         if (cached) return cached;
 
-        let stats = await this.userStatsRepository.findOne({ where: { userId } });
+        const stats = await this.userStatsRepository.findOne({ where: { userId } });
 
         if (!stats) {
             return {

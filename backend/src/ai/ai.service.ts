@@ -1305,7 +1305,7 @@ Extract all questions and format them as a JSON array with this structure:
     public cleanAIResponse(text: string): string {
         if (!text) return text;
 
-        let cleaned = text
+        const cleaned = text
             // 1. Remove unwanted Markdown Artifacts but PRESERVE requested structure
             .replace(/【[^】]*】/g, '') // Remove source citations like [1]
             .replace(/\\n/g, '\n') // Fix escaped newlines
@@ -1373,7 +1373,7 @@ Extract all questions and format them as a JSON array with this structure:
         for (const candidate of prioritizedCandidates) {
             try {
                 // Attempt 0: Pre-clean stray words (lines that are just "and", "or", etc.)
-                let cleanedCandidate = candidate
+                const cleanedCandidate = candidate
                     .split('\n')
                     .filter(line => !line.trim().match(/^(and|or|but|however|note|also)\s*$/i))
                     .join('\n');
@@ -1411,7 +1411,7 @@ Extract all questions and format them as a JSON array with this structure:
 
     private aggressiveJsonCleanup(jsonStr: string): string {
         // First, remove conversational lines
-        let clean = jsonStr
+        const clean = jsonStr
             .split('\n')
             .filter(line => !line.trim().match(/^(and|or|but|however|note|also)\s*$/i))
             .join('\n');
