@@ -19,6 +19,7 @@ import { CreateSubjectDto, CreateChapterDto, CreateModelDto } from '@erankup/sha
 import { ExplanationService } from '../ai/explanation.service';
 import { AIService } from '../ai/ai.service';
 import { UserRole } from '../users/user.entity';
+import { isUUID } from '../common/utils';
 
 @Injectable()
 export class ExamsService implements OnApplicationBootstrap {
@@ -111,7 +112,7 @@ export class ExamsService implements OnApplicationBootstrap {
         // }
 
         console.log('Cache MISS for', id);
-        const exam = await this.examsRepository.findOne({
+        const exam = isUUID(id) ? await this.examsRepository.findOne({
             where: includeUnpublished ? { id } : { id, isPublished: true },
             relations: [
                 'models',
@@ -120,7 +121,7 @@ export class ExamsService implements OnApplicationBootstrap {
                 'models.questions', // [FIX] Fetch nested questions
                 'questions' // Fetch direct questions
             ]
-        });
+        }) : null;
 
         if (exam) {
             console.log('Exam found:', exam.id, 'Models:', exam.models?.length);
@@ -199,19 +200,25 @@ export class ExamsService implements OnApplicationBootstrap {
         console.log(`ID: ${id}`);
         console.log(`User: ${userId}`);
 
-        // 1. Try finding as a specific Model first
-        let model = await this.modelRepository.findOne({
-            where: { id },
-            relations: ['chapter', 'chapter.subject', 'questions', 'exams']
-        });
+        // 1. Try finding as a specific Model first (only if valid UUID)
+        let model = null;
+        if (isUUID(id)) {
+            model = await this.modelRepository.findOne({
+                where: { id },
+                relations: ['chapter', 'chapter.subject', 'questions', 'exams']
+            });
+        }
 
         if (!model) {
-            console.log(`[DEBUG] findModel: Model NOT found for ${id}. Trying Exam fallback...`);
-            // 2. Fallback: Check if it's an Exam ID
-            const exam = await this.examsRepository.findOne({
-                where: { id },
-                relations: ['questions', 'models', 'models.questions']
-            });
+            console.log(`[DEBUG] findModel: Model NOT found for ${id}. Checking Exam fallback...`);
+            // 2. Fallback: Check if it's an Exam ID (only if valid UUID)
+            let exam = null;
+            if (isUUID(id)) {
+                exam = await this.examsRepository.findOne({
+                    where: { id },
+                    relations: ['questions', 'models', 'models.questions']
+                });
+            }
 
             if (exam) {
                 console.log(`[DEBUG] findModel: Found Exam fallback: ${exam.title}`);

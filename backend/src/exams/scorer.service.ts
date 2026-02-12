@@ -12,6 +12,7 @@ import { DifficultyService } from './difficulty.service';
 import { CacheService } from '../common/cache.service';
 import { GamificationService } from '../gamification/gamification.service';
 import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
+import { isUUID } from '../common/utils';
 
 @Injectable()
 export class ScorerService implements OnModuleInit {
@@ -56,6 +57,10 @@ export class ScorerService implements OnModuleInit {
         let model: Model | null = null;
         let exam: Exam | null = null;
 
+        // 0. Handle prefixes for Model/Exam retrieval
+        const cleanId = modelId.startsWith('chapter-') ? modelId.replace('chapter-', '') : modelId;
+        this.logger.log(`[ScorerService] Using Clean ID: ${cleanId} (original: ${modelId})`);
+
         if (modelId.startsWith('adaptive')) {
             // Fetch questions individually for adaptive sessions
             // Use all assigned questions if available, otherwise fallback to attempted ones (which might skew score if skipped)
@@ -71,10 +76,10 @@ export class ScorerService implements OnModuleInit {
             });
         } else {
             // Try fetching as Model first
-            model = await this.modelRepository.findOne({
-                where: { id: modelId },
+            model = isUUID(cleanId) ? await this.modelRepository.findOne({
+                where: { id: cleanId },
                 relations: ['questions', 'exams']
-            });
+            }) : null;
 
             if (model) {
                 if (!model.questions || model.questions.length === 0) {
@@ -87,10 +92,10 @@ export class ScorerService implements OnModuleInit {
                 examNeg = targetExam?.defaultNegativeMarks || 0.25;
             } else {
                 // Try fetching as Exam
-                exam = await this.examRepository.findOne({
-                    where: { id: modelId },
+                exam = isUUID(cleanId) ? await this.examRepository.findOne({
+                    where: { id: cleanId },
                     relations: ['questions']
-                });
+                }) : null;
 
                 if (exam) {
                     if (!exam.questions || exam.questions.length === 0) {

@@ -113,19 +113,21 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
 
         try {
             // Find model with questions
-            let model: any = await this.examsService.findModel(testId);
+            // [FIX] Strip prefix if it exists before calling findModel/findOne
+            const cleanId = testId.startsWith('chapter-') ? testId.replace('chapter-', '') : testId;
+            console.log(`[TestSessionService] Lookup ID: ${cleanId} (original: ${testId})`);
+
+            let model: any = await this.examsService.findModel(cleanId);
 
             // [FIX] Fallback: If not found as Model, try finding as Exam (Full Mock)
             if (!model) {
-                console.log(`[TestSessionService] Model not found for ${testId}, trying as Exam...`);
-                // Use the update findOne which now aggregates questions
-                const exam = await this.examsService.findOne(testId);
+                console.log(`[TestSessionService] Model not found for ${cleanId}, trying as Exam...`);
+                const exam = await this.examsService.findOne(cleanId);
                 if (exam) {
-                    console.log(`[TestSessionService] Found Exam: ${exam.title} with ${exam.questions?.length} questions`);
+                    console.log(`[TestSessionService] Found Exam: ${exam.title}`);
                     model = {
                         ...exam,
-                        // Map Exam properties to Model-like structure for consistency
-                        duration: exam.duration || 60, // Default or from exam
+                        duration: exam.duration || 60,
                         totalQuestions: exam.questions?.length || 0
                     };
                 }
@@ -322,8 +324,9 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             console.log(`[TestSession] Checking model for ${testId}`);
 
             if (!testId.startsWith('adaptive')) {
+                const cleanId = testId.startsWith('chapter-') ? testId.replace('chapter-', '') : testId;
                 const model = await this.modelRepository.findOne({
-                    where: { id: testId }
+                    where: { id: cleanId }
                 });
                 if (model) {
                     modelTitle = model.title;
