@@ -853,6 +853,7 @@ Return JSON ONLY:
                 - **LEAD WITH FORMULA / TRICK**: 
                     - **Time & Work**: Lead with $x = \sqrt{ab}$ patterns.
                     - **Profit & Loss**: Lead with **Successive %** ($a+b+ab/100$) or **Ratio Method**.
+                    - **Ratio & Proportion**: Lead with **Option Checking** or **LCM Method**.
                     - **Time & Distance**: Lead with **Ratio Method** ($S \propto 1/T$) or **Relative Speed**.
                     - **Mensuration**: Lead with **Divisibility Rule of 11** or **Scaling Factor**.
                     - **Number Theory**: Lead with **Divisibility** (3/9/11), **Unit Digit**, or **Remainder Theorem**.

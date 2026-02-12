@@ -180,6 +180,7 @@ export class ExplanationService {
      - **Time & Work**: Lead with $x = \sqrt{ab}$ patterns.
      - **Percentages**: Lead with **Alligation Method** or **Fraction Table** (e.g., $16.66\% = 1/6$).
      - **Profit & Loss**: Lead with **Successive Formula** ($a+b+\frac{ab}{100}$), **Ratio Method** ($CP:SP$), or **Dishonest Dealer** trick.
+     - **Ratio & Proportion**: Lead with **Direct Option Checking** (check if options satisfy ratio) or **LCM Method** (for merging).
      - **Time & Distance**: Lead with **Ratio Method** ($S \propto 1/T$) or **Relative Speed** logic.
      - **Mensuration**: Lead with **Divisibility Rule of 11** (for $\pi$) or **Scaling Factor** ($A \propto r^2$).
      - **Number Theory**: Lead with **Divisibility Rules** (Sum of digits for 3/9), **Unit Digit** logic, or **Remainder Theorem**.
