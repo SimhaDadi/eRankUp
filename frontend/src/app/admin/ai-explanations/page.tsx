@@ -87,6 +87,16 @@ export default function AIExplanationsPage() {
     const [editText, setEditText] = useState('');
     const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
     const [verifyingIds, setVerifyingIds] = useState<Set<string>>(new Set());
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+    const toggleExpand = (id: string) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
 
     // Fetch Metadata (Exams, Subjects, Models) on mount
     useEffect(() => {
@@ -477,15 +487,36 @@ export default function AIExplanationsPage() {
 
                             {/* Content */}
                             <div className="mb-6">
-                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Question</h3>
-                                <MarkdownRenderer content={item.questionContent} className="text-white font-medium line-clamp-3" />
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Question</h3>
+                                    <button
+                                        onClick={() => toggleExpand(`q-${item.id}`)}
+                                        className="text-xs text-indigo-400 hover:text-indigo-300 font-bold"
+                                    >
+                                        {expandedIds.has(`q-${item.id}`) ? 'Collapse' : 'Expand'}
+                                    </button>
+                                </div>
+                                <MarkdownRenderer
+                                    content={item.questionContent}
+                                    className={`text-white font-medium ${expandedIds.has(`q-${item.id}`) ? '' : 'line-clamp-3'}`}
+                                />
                             </div>
 
                             {item.status !== 'pending' && (
                                 <div className="mb-6 bg-slate-950/30 rounded-xl p-4 border border-slate-800/50">
-                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                        {editingId === item.id ? 'Edit Explanation' : 'Explanation Preview'}
-                                    </h3>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            {editingId === item.id ? 'Edit Explanation' : 'Explanation Preview'}
+                                        </h3>
+                                        {editingId !== item.id && (
+                                            <button
+                                                onClick={() => toggleExpand(`e-${item.id}`)}
+                                                className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold"
+                                            >
+                                                {expandedIds.has(`e-${item.id}`) ? 'Collapse' : 'Expand'}
+                                            </button>
+                                        )}
+                                    </div>
                                     {editingId === item.id ? (
                                         <textarea
                                             value={editText}
@@ -496,7 +527,7 @@ export default function AIExplanationsPage() {
                                     ) : (
                                         <MarkdownRenderer
                                             content={item.adminApprovedExplanation || item.aiExplanation || ''}
-                                            className="text-slate-300 text-sm line-clamp-3"
+                                            className={`text-slate-300 text-sm ${expandedIds.has(`e-${item.id}`) ? '' : 'line-clamp-3'}`}
                                         />
                                     )}
                                 </div>

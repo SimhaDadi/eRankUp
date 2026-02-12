@@ -841,9 +841,9 @@ Return JSON ONLY:
                 ### 1. EXTRACTION & FORMATTING
                 - **USE LaTeX FOR MATH**: Type all mathematical expressions using LaTeX.
                     - Wrap inline math in single dollar signs, e.g., $a^2 + b^2 = c^2$.
-                    - Wrap block/complex math in double dollar signs, e.g., $$\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$.
-                    - Ensure common symbols like $\\theta$, $\\pi$, $\\times$, etc., are in LaTeX.
-                    - **JJSON ESCAPING**: Escape all backslashes in the JSON string (e.g. "\\frac" not "\frac").
+                    - Wrap block/complex math in double dollar signs, e.g., $$\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$.
+                    - Ensure common symbols like $\theta$, $\pi$, $\times$, etc., are in LaTeX.
+                    - **JSON ESCAPING**: Use standard JSON string escaping (e.g. "\frac").
                 - **NO SOLVING**: Do NOT attempt to solve the problems during extraction.
                 - **DIAGRAM HANDLING**: If a question refers to a figure, ensure "hasDiagram" is true and provide tight coordinates.
                 
@@ -1078,7 +1078,7 @@ Extract all questions and format them as a JSON array with this structure:
                 - Infer topic from question content
             - Estimate difficulty based on complexity (easy / medium / hard)
             - **MATH FORMATTING**: Use LaTeX for all math expressions. Wrap inline math in $...$ and block math in $$...$$.
-            - **JSON ESCAPING**: Escape all backslashes in the JSON string (e.g. "\\frac" not"\frac").
+            - **JSON ESCAPING**: Use standard JSON string escaping (e.g. "\frac").
             - **SHORTCUT EXPLANATIONS**: If available, provide explanations in a maximum of 3 quick steps.
             - Return ONLY valid JSON array, no markdown or conversational text.
                 - ** IMAGE CLEANUP **: Ignore 'ticks' or handwritten marks.Focus on printed text.
@@ -1305,14 +1305,15 @@ Extract all questions and format them as a JSON array with this structure:
     public cleanAIResponse(text: string): string {
         if (!text) return text;
 
-        const cleaned = text
+        let cleaned = text
             // 1. Remove unwanted Markdown Artifacts but PRESERVE requested structure
             .replace(/【[^】]*】/g, '') // Remove source citations like [1]
             .replace(/\\n/g, '\n') // Fix escaped newlines
 
-            // 2. Remove ONLY escaped delimiters if they are problematic, but usually we want to keep them
-            // .replace(/\$\$/g, '') <-- REMOVED
-            // .replace(/\$/g, '') <-- REMOVED
+            // 2. Fix over-escaped LaTeX (\\frac -> \frac)
+            // This is common when AI tries to escape backslashes for JSON but they end up doubled in the final text
+            .replace(/\\\\([a-zA-Z]+)/g, '\\$1')
+            .replace(/\\\\(\^|_|{|}|\\)/g, '\\$1')
 
             // 3. Cleanup Whitespace
             .replace(/\n{3,}/g, '\n\n')
