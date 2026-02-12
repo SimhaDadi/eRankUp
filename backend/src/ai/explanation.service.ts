@@ -182,6 +182,7 @@ export class ExplanationService {
      - **Profit & Loss**: Lead with **Successive Formula** ($a+b+\frac{ab}{100}$), **Ratio Method** ($CP:SP$), or **Dishonest Dealer** trick.
      - **Time & Distance**: Lead with **Ratio Method** ($S \propto 1/T$) or **Relative Speed** logic.
      - **Mensuration**: Lead with **Divisibility Rule of 11** (for $\pi$) or **Scaling Factor** ($A \propto r^2$).
+     - **Number Theory**: Lead with **Divisibility Rules** (Sum of digits for 3/9), **Unit Digit** logic, or **Remainder Theorem**.
      - **SI & CI**: Lead with **Effective % Method** ($x+y+\frac{xy}{100}$ for 2 years) or **Tree Method**.
      - **Algebra**: Lead with **Value Substitution** (e.g., Put $x=1, y=0$), **Symmetry**, or **Degree Check** immediately.
      - **Geometry**: Lead with **Pythagorean Triplets** (3-4-5, 5-12-13), **Direct Theorem** (e.g., Angle at Center = $2\theta$), or **Triplet Check**.
