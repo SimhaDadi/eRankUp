@@ -6,6 +6,7 @@ import { LearningPath } from './entities/learning-path.entity';
 import { Question } from '../exams/entities/question.entity';
 import { Response } from '../exams/entities/response.entity';
 import { Repository } from 'typeorm';
+import { AIService } from '../ai/ai.service';
 
 describe('AdaptiveLearningService', () => {
     let service: AdaptiveLearningService;
@@ -32,6 +33,10 @@ describe('AdaptiveLearningService', () => {
         find: jest.fn(),
     };
 
+    const mockAIService = {
+        sanitizeInput: jest.fn((input) => input),
+    };
+
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
@@ -51,6 +56,10 @@ describe('AdaptiveLearningService', () => {
                 {
                     provide: getRepositoryToken(Response),
                     useValue: mockResponseRepo,
+                },
+                {
+                    provide: AIService,
+                    useValue: mockAIService,
                 },
             ],
         }).compile();

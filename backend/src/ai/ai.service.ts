@@ -9,6 +9,8 @@ import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
 import { AIQueueService, AIPriority } from './ai-queue.service';
 import Groq from 'groq-sdk';
+import { PromptBuilderService } from './prompt-builder.service';
+import { AIUtilsService } from './ai-utils.service';
 
 interface QuestionScore {
     question: Question;
@@ -52,6 +54,8 @@ export class AIService {
         private configService: ConfigService,
         private systemHealthService: SystemHealthService,
         private queueService: AIQueueService,
+        private promptBuilder: PromptBuilderService,
+        private aiUtils: AIUtilsService,
     ) { }
 
     /**
@@ -299,50 +303,12 @@ export class AIService {
      * Generate detailed explanation for a question using AI
      */
     async generateQuestionExplanation(question: Question): Promise<string> {
-        const optionsText = question.options
-            .map((opt: any) => `${opt.id}. ${this.sanitizeInput(opt.text)}`)
-            .join('\n');
-
-        const correctOption = question.options.find((opt: any) => opt.id === question.correctOptionId);
-
-        const prompt = `You are an expert SSC CGL Quant mentor known for "Extreme Shortcut Mode".
-        
-        GOAL: Provide a "Cheat Sheet" style solution in maximum 3 steps.
-        CONSTRAINT: Use LaTeX for all mathematical expressions. Wrap inline math in $...$ (e.g., $x^2$) and block math in $$...$$.
-        
-        [GOOD RESPONSE FORMAT]
-        💡 CORE: Identify the main concept in one line.
-        🚀 SHORTCUT:
-        1. Step one (mental math/logic)
-        2. Step two
-        3. Step three (Result)
-        🔥 HACK: 15-second "Ranker's" tip.
-
-        Question Content:
-        ${this.sanitizeInput(question.content)}
- 
-        Options:
-        ${optionsText}
- 
-        Correct Answer: ${question.correctOptionId} - ${this.sanitizeInput(correctOption?.text || 'N/A')}
- 
-        GENERATE EXPLANATION FOLLOWING THE [GOOD RESPONSE FORMAT] STRICTLY:`;
+        const prompt = this.promptBuilder.buildQuickExplanationPrompt(question);
 
         try {
             const images = [];
-            if (question.imageUrl && question.imageUrl.startsWith('/uploads')) {
-                const fs = require('fs');
-                const path = require('path');
-                // Resolve absolute path from project root
-                const absolutePath = path.join(process.cwd(), question.imageUrl);
-                if (fs.existsSync(absolutePath)) {
-                    const buffer = fs.readFileSync(absolutePath);
-                    images.push({
-                        data: buffer.toString('base64'),
-                        mimeType: 'image/jpeg' // Assuming jpeg from upload service, or detect
-                    });
-                }
-            }
+            const image = await this.promptBuilder.loadQuestionImage(question.imageUrl);
+            if (image) images.push(image);
 
             const explanation = await this.generateText(prompt, images);
             return this.cleanAIResponse(explanation);
@@ -1316,7 +1282,7 @@ Extract all questions and format them as a JSON array with this structure:
     }
 
     public cleanAIResponse(text: string): string {
-        if (!text) return text;
+        return this.aiUtils.cleanAIResponse(text);
 
         let cleaned = text
             // 1. Remove unwanted Markdown Artifacts but PRESERVE requested structure
@@ -1456,23 +1422,6 @@ Extract all questions and format them as a JSON array with this structure:
     }
 
     public sanitizeInput(input: string): string {
-        if (!input) return '';
-        const maliciousPhrases = [
-            /ignore previous instructions/gi,
-            /forget your previous/gi,
-            /system prompt/gi,
-            /developer mode/gi,
-            /your instructions/gi,
-            /acting as/gi,
-            /you are a/gi
-        ];
-        let sanitized = input;
-        maliciousPhrases.forEach(phrase => {
-            sanitized = sanitized.replace(phrase, '[REMOVED]');
-        });
-        if (sanitized.length > 3000) {
-            sanitized = sanitized.substring(0, 3000) + '... [TRUNCATED]';
-        }
-        return sanitized;
+        return this.aiUtils.sanitizeInput(input);
     }
 }

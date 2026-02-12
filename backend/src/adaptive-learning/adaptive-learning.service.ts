@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserTopicMastery } from './entities/user-topic-mastery.entity';
@@ -9,6 +9,8 @@ import { AIService } from '../ai/ai.service';
 
 @Injectable()
 export class AdaptiveLearningService {
+    private readonly logger = new Logger(AdaptiveLearningService.name);
+
     constructor(
         @InjectRepository(UserTopicMastery)
         private masteryRepo: Repository<UserTopicMastery>,
@@ -64,7 +66,7 @@ export class AdaptiveLearningService {
         for (const response of responses) {
             // Safety check: ensure question relation is loaded
             if (!response.question) {
-                console.warn(`[AdaptiveLearning] Response ${response.id} missing question relation`);
+                this.logger.warn(`Response ${response.id} missing question relation`);
                 continue;
             }
 
@@ -109,7 +111,7 @@ export class AdaptiveLearningService {
                     mastery.lastErrorPattern = analysis.pattern;
                     mastery.cognitiveAdvice = analysis.advice;
                 } catch (error) {
-                    console.error('[AdaptiveLearning] AI analysis failed:', error);
+                    this.logger.error('AI analysis failed', error.stack);
                 }
             }
 
@@ -293,7 +295,7 @@ export class AdaptiveLearningService {
         // FALLBACK: If no questions found (e.g. topic mismatch or empty DB for topic), 
         // try fetching simple random questions to avoid "No Questions Found" error provided user is beginner.
         if (questions.length === 0) {
-            console.warn(`[Adaptive] No questions found for topic '${topic}'. Falling back to random selection.`);
+            this.logger.warn(`No questions found for topic '${topic}'. Falling back to random selection.`);
             questions = await this.questionRepo.createQueryBuilder('q')
                 .leftJoinAndSelect('q.subject', 's')
                 .orderBy('RANDOM()') // Postgres/SQLite specific usually, but works in many. If not, we take(50) and shuffle.
@@ -307,18 +309,18 @@ export class AdaptiveLearningService {
 
     async getQuestionsByIds(questionIds: string[]): Promise<Question[]> {
         if (!questionIds || questionIds.length === 0) {
-            console.log('[AdaptiveService] getQuestionsByIds: No IDs provided');
+            this.logger.log('getQuestionsByIds: No IDs provided');
             return [];
         }
 
-        console.log(`[AdaptiveService] Fetching ${questionIds.length} questions: ${questionIds.join(', ')}`);
+        this.logger.log(`Fetching ${questionIds.length} questions: ${questionIds.join(', ')}`);
 
         const questions = await this.questionRepo.createQueryBuilder('q')
             .leftJoinAndSelect('q.subject', 's')
             .where('q.id IN (:...ids)', { ids: questionIds })
             .getMany();
 
-        console.log(`[AdaptiveService] Found ${questions.length} questions.`);
+        this.logger.log(`Found ${questions.length} questions.`);
         return questions;
     }
 }

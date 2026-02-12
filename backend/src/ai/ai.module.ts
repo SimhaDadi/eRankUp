@@ -18,6 +18,8 @@ import { AIUsage } from './entities/ai-usage.entity';
 import { AIUsageService } from './ai-usage.service';
 import { Exam } from '../exams/entities/exam.entity';
 import { AdminModule } from '../admin/admin.module';
+import { PromptBuilderService } from './prompt-builder.service';
+import { AIUtilsService } from './ai-utils.service';
 
 @Module({
     imports: [
@@ -26,7 +28,7 @@ import { AdminModule } from '../admin/admin.module';
         ConfigModule
     ],
     controllers: [AIController, ExplanationController],
-    providers: [AIService, MigrationService, ExplanationService, AIQueueService, AIUsageService],
-    exports: [AIService, MigrationService, ExplanationService, AIQueueService, AIUsageService]
+    providers: [AIService, MigrationService, ExplanationService, AIQueueService, AIUsageService, PromptBuilderService, AIUtilsService],
+    exports: [AIService, MigrationService, ExplanationService, AIQueueService, AIUsageService, PromptBuilderService, AIUtilsService]
 })
 export class AIModule { }

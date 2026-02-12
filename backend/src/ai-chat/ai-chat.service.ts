@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChatConversation } from './entities/chat-conversation.entity';
@@ -13,6 +13,7 @@ import { AIUsageService } from '../ai/ai-usage.service';
 import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
 import { UserRole } from '../users/user.entity';
 import { AIQueueService, AIPriority } from '../ai/ai-queue.service';
+import { PromptBuilderService } from '../ai/prompt-builder.service';
 
 export interface SendMessageResponse {
     response: string;
@@ -21,6 +22,8 @@ export interface SendMessageResponse {
 
 @Injectable()
 export class AIChatService {
+    private readonly logger = new Logger(AIChatService.name);
+
     constructor(
         @InjectRepository(ChatConversation)
         private conversationRepo: Repository<ChatConversation>,
@@ -40,6 +43,7 @@ export class AIChatService {
         private aiUsageService: AIUsageService,
         private adaptiveLearningService: AdaptiveLearningService,
         private queueService: AIQueueService,
+        private promptBuilder: PromptBuilderService,
     ) { }
 
     async sendMessageStream(
@@ -124,21 +128,9 @@ export class AIChatService {
         const promptImages = [];
         if (image) promptImages.push(image); // User uploaded image
 
-        if (questionContext && questionContext.imageUrl && questionContext.imageUrl.startsWith('/uploads')) {
-            try {
-                const fs = require('fs');
-                const path = require('path');
-                const absolutePath = path.join(process.cwd(), questionContext.imageUrl);
-                if (fs.existsSync(absolutePath)) {
-                    const buffer = fs.readFileSync(absolutePath);
-                    promptImages.push({
-                        data: buffer.toString('base64'),
-                        mimeType: 'image/jpeg'
-                    });
-                }
-            } catch (e) {
-                console.error('[AIChat] Failed to load question diagram:', e);
-            }
+        if (questionContext && questionContext.imageUrl) {
+            const questionImage = await this.promptBuilder.loadQuestionImage(questionContext.imageUrl);
+            if (questionImage) promptImages.push(questionImage);
         }
 
         const topicMatch = questionContext?.topic?.toLowerCase() || '';
@@ -174,19 +166,28 @@ export class AIChatService {
         });
 
         const hour = new Date().getHours();
-        const prompt = this.buildContextualPrompt(this.aiService.sanitizeInput(message), {
-            ...context,
-            temperament: {
-                isLateNight: hour >= 23 || hour <= 4,
-                isEarlyMorning: hour >= 5 && hour <= 7,
-                currentTime: new Date().toLocaleTimeString(),
-            }
-        }, history);
+        try {
+            const prompt = this.promptBuilder.buildChatPrompt({
+                message: this.aiService.sanitizeInput(message),
+                context: {
+                    ...context,
+                    temperament: {
+                        isLateNight: hour >= 23 || hour <= 4,
+                        isEarlyMorning: hour >= 5 && hour <= 7,
+                        currentTime: new Date().toLocaleTimeString(),
+                    }
+                },
+                history
+            });
 
-        // Execute via AIService (which handles internal queuing)
-        const stream = await this.aiService.generateStream(prompt, promptImages, 'FAST');
+            // Execute via AIService (which handles internal queuing)
+            const stream = await this.aiService.generateStream(prompt, promptImages, 'FAST');
 
-        return { stream, conversationId: conversation.id };
+            return { stream, conversationId: conversation.id };
+        } catch (error) {
+            this.logger.error(`Failed to generate chat prompt/response for conversation ${conversation.id}: ${error.message}`, error.stack);
+            throw new BadRequestException('Failed to process your message. Please try again.');
+        }
     }
 
     async saveAssistantMessage(conversationId: string, content: string, userId: string, userMsg: string) {
@@ -298,21 +299,9 @@ export class AIChatService {
         const promptImages = [];
         if (image) promptImages.push(image);
 
-        if (questionContext && questionContext.imageUrl && questionContext.imageUrl.startsWith('/uploads')) {
-            try {
-                const fs = require('fs');
-                const path = require('path');
-                const absolutePath = path.join(process.cwd(), questionContext.imageUrl);
-                if (fs.existsSync(absolutePath)) {
-                    const buffer = fs.readFileSync(absolutePath);
-                    promptImages.push({
-                        data: buffer.toString('base64'),
-                        mimeType: 'image/jpeg'
-                    });
-                }
-            } catch (e) {
-                console.error('[AIChat] Failed to load question diagram:', e);
-            }
+        if (questionContext && questionContext.imageUrl) {
+            const questionImage = await this.promptBuilder.loadQuestionImage(questionContext.imageUrl);
+            if (questionImage) promptImages.push(questionImage);
         }
 
         const topicMatch = questionContext?.topic?.toLowerCase() || '';
@@ -353,7 +342,11 @@ export class AIChatService {
             currentTime: new Date().toLocaleTimeString(),
         };
 
-        const prompt = this.buildContextualPrompt(this.aiService.sanitizeInput(message), { ...context, temperament: temperamentContext }, history);
+        const prompt = this.promptBuilder.buildChatPrompt({
+            message: this.aiService.sanitizeInput(message),
+            context: { ...context, temperament: temperamentContext },
+            history
+        });
 
         let aiResponse: string;
         try {
@@ -443,7 +436,8 @@ export class AIChatService {
         }
     }
 
-    private buildContextualPrompt(message: string, context: any, history: AIChatMessage[]): string {
+    // OLD IMPLEMENTATION - REMOVED (Now using PromptBuilderService)
+    private buildContextualPromptOld(message: string, context: any, history: AIChatMessage[]): string {
         const weakAreasText = context.weakAreas.length > 0
             ? context.weakAreas.map((w: any) => `${w.topic} (${Math.round(w.mastery * 100)}%)`).join(', ')
             : 'None';

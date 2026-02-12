@@ -4,10 +4,12 @@ import { ScorerService } from './scorer.service';
 import { Attempt } from './entities/attempt.entity';
 import { Question } from './entities/question.entity';
 import { Model } from './entities/model.entity';
+import { Exam } from './entities/exam.entity';
 import { Response } from './entities/response.entity';
 import { DifficultyService } from './difficulty.service';
 import { CacheService } from '../common/cache.service';
 import { User } from '../users/user.entity';
+import { UserStats } from '../users/entities/user-stats.entity';
 import { GamificationService } from '../gamification/gamification.service';
 import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
 
@@ -25,6 +27,10 @@ describe('ScorerService', () => {
     };
 
     const mockModelRepository = {
+        findOne: jest.fn(),
+    };
+
+    const mockExamRepository = {
         findOne: jest.fn(),
     };
 
@@ -47,26 +53,32 @@ describe('ScorerService', () => {
                 { provide: getRepositoryToken(Attempt), useValue: mockAttemptRepository },
                 { provide: getRepositoryToken(Question), useValue: mockQuestionRepository },
                 { provide: getRepositoryToken(Model), useValue: mockModelRepository },
+                { provide: getRepositoryToken(Exam), useValue: mockExamRepository },
                 { provide: getRepositoryToken(Response), useValue: mockResponseRepository },
+                { provide: getRepositoryToken(User), useValue: { findOne: jest.fn(), save: jest.fn() } },
+                { provide: getRepositoryToken(UserStats), useValue: { findOne: jest.fn(), create: jest.fn(), save: jest.fn() } },
                 {
                     provide: DifficultyService,
                     useValue: {
-                        bulkUpdateStats: jest.fn(),
+                        bulkUpdateStats: jest.fn().mockResolvedValue(null),
                     }
                 },
                 { provide: CacheService, useValue: mockCacheService },
                 {
                     provide: GamificationService,
                     useValue: {
-                        awardXP: jest.fn(),
-                        updateStreak: jest.fn(),
+                        awardXP: jest.fn().mockResolvedValue({}),
+                        updateStreak: jest.fn().mockResolvedValue({}),
                         getOrCreateProfile: jest.fn().mockResolvedValue({ testsCompleted: 0, correctAnswers: 0 }),
+                        gamificationRepo: {
+                            save: jest.fn().mockResolvedValue({}),
+                        },
                     }
                 },
                 {
                     provide: AdaptiveLearningService,
                     useValue: {
-                        updateTopicMastery: jest.fn(),
+                        updateTopicMastery: jest.fn().mockResolvedValue({}),
                     }
                 }
             ],

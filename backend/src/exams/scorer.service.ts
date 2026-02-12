@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, IsNull } from 'typeorm';
 import { Attempt } from './entities/attempt.entity';
@@ -15,6 +15,8 @@ import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.
 
 @Injectable()
 export class ScorerService implements OnModuleInit {
+    private readonly logger = new Logger(ScorerService.name);
+
     constructor(
         @InjectRepository(Attempt)
         private attemptRepository: Repository<Attempt>,
@@ -45,7 +47,7 @@ export class ScorerService implements OnModuleInit {
         flags: string[] = [],
         allQuestionIds: string[] = [],
     ): Promise<Attempt> {
-        console.log(`[Scorer] Grading attempt for User: ${user.id}, ID: ${modelId}`);
+        this.logger.log(`Grading attempt for User: ${user.id}, ID: ${modelId}`);
 
         // 1. Fetch questions/model/exam
         let questions: Question[] = [];
@@ -76,7 +78,7 @@ export class ScorerService implements OnModuleInit {
 
             if (model) {
                 if (!model.questions || model.questions.length === 0) {
-                    console.error(`[Scorer] No questions found for model ${modelId}`);
+                    this.logger.error(`No questions found for model ${modelId}`);
                     throw new Error('No questions found for this model');
                 }
                 questions = model.questions;
@@ -92,14 +94,14 @@ export class ScorerService implements OnModuleInit {
 
                 if (exam) {
                     if (!exam.questions || exam.questions.length === 0) {
-                        console.error(`[Scorer] No questions found for exam ${modelId}`);
+                        this.logger.error(`No questions found for exam ${modelId}`);
                         throw new Error('No questions found for this exam');
                     }
                     questions = exam.questions;
                     examPos = exam.defaultPositiveMarks || 1.0;
                     examNeg = exam.defaultNegativeMarks || 0.25;
                 } else {
-                    console.error(`[Scorer] No Model or Exam found with ID ${modelId}`);
+                    this.logger.error(`No Model or Exam found with ID ${modelId}`);
                     throw new Error('Test not found');
                 }
             }
@@ -137,7 +139,7 @@ export class ScorerService implements OnModuleInit {
             timeSpent: questionTimings[res.questionId] || 0
         }));
         this.difficultyService.bulkUpdateStats(statsPayload)
-            .catch(err => console.error('[Scorer] Failed to update question stats (Async)', err));
+            .catch(err => this.logger.error('Failed to update question stats (Async)', err.stack));
 
         const score = totalPossiblePoints > 0 ? Math.max(0, (earnedPoints / totalPossiblePoints) * 100) : 0;
         const timeTaken = Math.floor((Date.now() - startTime) / 1000);
@@ -198,15 +200,15 @@ export class ScorerService implements OnModuleInit {
 
         try {
             const savedAttempt = await this.attemptRepository.save(attempt);
-            console.log(`[Scorer] Attempt saved successfully. ID: ${savedAttempt.id}`);
+            this.logger.log(`Attempt saved successfully. ID: ${savedAttempt.id}`);
 
             // Invalidate leaderboard cache
             this.cacheService.del('leaderboard:global').catch(err =>
-                console.error('[Scorer] Failed to invalidate leaderboard cache', err)
+                this.logger.error('Failed to invalidate leaderboard cache', err.stack)
             );
             // Invalidate user stats cache
             this.cacheService.del(`stats:user:${user.id}`).catch(err =>
-                console.error('[Scorer] Failed to invalidate user stats cache', err)
+                this.logger.error('Failed to invalidate user stats cache', err.stack)
             );
 
             // Invalidate advanced analytics caches
@@ -215,7 +217,7 @@ export class ScorerService implements OnModuleInit {
                 this.cacheService.del(`analytics:peer:${user.id}`),
                 this.cacheService.del(`analytics:mastery:${user.id}`)
                 // 'analytics:patterns' might also need invalidation if implemented via cache
-            ]).catch(err => console.error('[Scorer] Failed to invalidate analytics cache', err));
+            ]).catch(err => this.logger.error('Failed to invalidate analytics cache', err.stack));
 
             // === GAMIFICATION INTEGRATION ===
             try {
@@ -243,16 +245,16 @@ export class ScorerService implements OnModuleInit {
                 // Add level-up info to attempt for frontend
                 (savedAttempt as any).levelUp = levelUpResult;
 
-                console.log(`[Scorer] Awarded ${totalXP} XP to user ${user.id}`);
+                this.logger.log(`Awarded ${totalXP} XP to user ${user.id}`);
             } catch (gamificationErr) {
-                console.error('[Scorer] Failed to award gamification rewards', gamificationErr);
+                this.logger.error('Failed to award gamification rewards', gamificationErr.stack);
                 // Don't fail the attempt if gamification fails
             }
 
             // === ADAPTIVE LEARNING INTEGRATION (Async) ===
             this.adaptiveLearningService.updateTopicMastery(user.id, responseEntities)
-                .then(() => console.log(`[Scorer] Updated topic mastery (Async) for user ${user.id}`))
-                .catch(err => console.error('[Scorer] Failed to update topic mastery', err));
+                .then(() => this.logger.log(`Updated topic mastery (Async) for user ${user.id}`))
+                .catch(err => this.logger.error('Failed to update topic mastery', err.stack));
 
             // === USER STATS INCREMENTAL UPDATE ===
             try {
@@ -305,14 +307,14 @@ export class ScorerService implements OnModuleInit {
                 stats.topicPerformance = currentTopics;
 
                 await this.userStatsRepository.save(stats);
-                console.log(`[Scorer] Updated stats for user ${user.id}`);
+                this.logger.log(`Updated stats for user ${user.id}`);
             } catch (statsErr) {
-                console.error('[Scorer] Failed to update user stats', statsErr);
+                this.logger.error('Failed to update user stats', statsErr.stack);
             }
 
             return savedAttempt;
         } catch (dbErr) {
-            console.error(`[Scorer] DB Error saving attempt:`, dbErr);
+            this.logger.error(`DB Error saving attempt: ${dbErr.message}`, dbErr.stack);
             throw dbErr;
         }
     }
@@ -484,7 +486,7 @@ export class ScorerService implements OnModuleInit {
             order: { createdAt: 'DESC' }
         });
 
-        console.log(`[Stats] Found ${attempts.length} attempts for user ${userId}`);
+        this.logger.log(`Found ${attempts.length} attempts for user ${userId}`);
 
         const stats: Record<string, { count: number; latestScore: number; bestScore: number; attemptedModelIds: string[]; latestAttemptId?: string }> = {};
 
@@ -514,12 +516,12 @@ export class ScorerService implements OnModuleInit {
             }
         }
 
-        console.log(`[Stats] Generated stats for exams:`, Object.keys(stats));
+        this.logger.log(`Generated stats for exams: ${Object.keys(stats).join(', ')}`);
         return stats;
     }
 
     async repairAttemptConnections() {
-        console.log('[Repair] Starting attempt connection repair...');
+        this.logger.log('Starting attempt connection repair...');
         const attempts = await this.attemptRepository.find({
             relations: ['model', 'model.exams', 'exam'],
             where: {
@@ -534,26 +536,26 @@ export class ScorerService implements OnModuleInit {
                 attempt.exam = attempt.model.exams[0];
                 await this.attemptRepository.save(attempt);
                 fixed++;
-                console.log(`[Repair] Linked Attempt ${attempt.id} to Exam ${attempt.exam.id} via Model ${attempt.model.id}`);
+                this.logger.log(`Linked Attempt ${attempt.id} to Exam ${attempt.exam.id} via Model ${attempt.model.id}`);
             }
         }
-        console.log(`[Repair] Finished. Fixed ${fixed} attempts.`);
+        this.logger.log(`Finished. Fixed ${fixed} attempts.`);
         return { fixed, totalScanned: attempts.length };
     }
 
     async onModuleInit() {
-        console.log('[Scorer] Module Init - Running diagnostics...');
+        this.logger.log('Module Init - Running diagnostics...');
 
         // Wait 5 seconds to ensure Redis and DB are warm/initialized
         setTimeout(async () => {
             try {
                 // Clear exams cache to ensure fresh data after code updates
                 await this.cacheService.del('exams:all');
-                console.log('[Scorer] Cleared exams:all cache');
+                this.logger.log('Cleared exams:all cache');
 
                 await this.repairAttemptConnections();
             } catch (e) {
-                console.error('[Scorer] Initialization/Repair failed', e);
+                this.logger.error('Initialization/Repair failed', e.stack);
             }
         }, 5000);
     }
