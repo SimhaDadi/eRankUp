@@ -108,6 +108,12 @@ export class PromptBuilderService {
   - **Options**:
   ${question.options.map(opt => `${opt.id}) ${this.sanitizeInput(opt.text)}`).join('\n')}
   - **Correct Answer**: ${question.correctOptionId}) ${correctOption?.text}
+  
+  ### Relevant Shortcut Hint
+  ${this.getShortcutHint(subjectTitle, question.topic || '')}
+  
+  ### Math Verification Rule
+  ${PROMPTS_CONFIG.syllabusGuardrails.mathVerification}
   `;
 
         if (userAnswer && userAnswer !== question.correctOptionId) {
@@ -116,7 +122,8 @@ export class PromptBuilderService {
 
         prompt += `
   ### Instructions for the Explanation
-  Write a concise, high-impact "Cheat Sheet" style explanation using the following Markdown structure strictly:
+  Write a concise, high-impact "Cheat Sheet" style explanation.
+  **STRICT RULE**: START IMMEDIATELY with the steps below. NO introductory text, NO concept overview, NO algebra.
   
   **${step1Title}** 🚀
   - ${step1Desc}
@@ -181,6 +188,7 @@ ${historyText}
 ${PROMPTS_CONFIG.chat.instructions.map((ins, idx) => ` ${idx + 1}. ${ins}`).join('\n')}
 
 GOAL: Provide a 30-second shortcut that allows a student to solve and move to the next question immediately.
+  **STRICT START**: Answer the student's message IMMEDIATELY. NO pre-response commentary or welcoming.
 
 Student: ${message}
 Tutor:`;
@@ -450,5 +458,24 @@ Tutor:`;
         if (!question.correctOptionId || typeof question.correctOptionId !== 'string') {
             throw new InvalidPromptInputException('question.correctOptionId', 'must be a valid string');
         }
+    }
+
+    /**
+     * Get relevant shortcut hint based on subject and topic
+     * @private
+     */
+    private getShortcutHint(subject: string, topic: string): string {
+        const subLower = subject.toLowerCase();
+        const topLower = topic.toLowerCase();
+        const shortcuts = PROMPTS_CONFIG.subjects.quantReasoning.shortcuts;
+
+        if (subLower.includes('quant') || subLower.includes('math') || subLower.includes('reasoning') || subLower.includes('aptitude')) {
+            for (const [key, value] of Object.entries(shortcuts)) {
+                if (topLower.includes(key)) {
+                    return `HINT: Use the following pattern if applicable: ${value}`;
+                }
+            }
+        }
+        return 'HINT: Focus on pattern recognition and extreme shortcuts. NO algebraic steps.';
     }
 }

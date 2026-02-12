@@ -105,6 +105,29 @@ describe('PromptBuilderService', () => {
             expect(prompt).toContain('Extreme Shortcut Mode');
         });
 
+        it('should inject relevant shortcut hint for Time & Work', () => {
+            const question = createMockQuestion({
+                subject: { id: 'quant-1', title: 'Quantitative Aptitude' } as any,
+                topic: 'Time & Work',
+            });
+
+            const prompt = service.buildExplanationPrompt({ question });
+
+            expect(prompt).toContain('HINT: Use the following pattern if applicable: If A takes (x+a) days more');
+            expect(prompt).toContain(PROMPTS_CONFIG.syllabusGuardrails.mathVerification);
+        });
+
+        it('should inject generic hint when topic does not match any shortcut', () => {
+            const question = createMockQuestion({
+                subject: { id: 'quant-1', title: 'Quantitative Aptitude' } as any,
+                topic: 'Some Random Topic',
+            });
+
+            const prompt = service.buildExplanationPrompt({ question });
+
+            expect(prompt).toContain('HINT: Focus on pattern recognition and extreme shortcuts');
+        });
+
         it('should include user wrong answer when provided', () => {
             const question = createMockQuestion();
 
