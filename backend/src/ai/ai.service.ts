@@ -63,6 +63,7 @@ export class AIService {
      */
     async generateText(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority = AIPriority.HIGH, complexity: 'FAST' | 'REASONING' = 'REASONING'): Promise<string> {
         const provider = this.configService.get('AI_PROVIDER', 'gemini');
+        console.log(`🤖 AI Request: Using Provider [${provider}]`);
 
         if (provider === 'groq') {
             return this.generateTextWithGroq(prompt, images, priority, complexity);
@@ -76,6 +77,7 @@ export class AIService {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
+                console.log(`🤖 AI Request: Using Model [${modelName}]`);
                 const model = genAI.getGenerativeModel({ model: modelName });
 
                 const parts: any[] = [prompt];

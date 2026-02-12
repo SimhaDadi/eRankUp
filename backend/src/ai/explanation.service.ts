@@ -69,13 +69,21 @@ export class ExplanationService {
                 contextExamTitle = exam?.title || '';
             }
 
+            // 5. Generate Explanation using AI
+            this.logger.log('📝 Building explanation prompt...');
             const prompt = this.buildPrompt(question, userAnswer, contextExamTitle);
+            this.logger.log(`✅ Prompt built successfully. Length: ${prompt.length}`);
+
             let explanation = '';
             let isValid = false;
             let attempts = 0;
 
             while (!isValid && attempts < 2) {
+                // 6. Call AI Service
+                this.logger.log('🚀 Calling AI Service to generate explanation...');
                 explanation = await this.aiService.generateText(prompt, [], priority);
+                this.logger.log(`✅ AI Service returned explanation. Length: ${explanation.length}`);
+
                 await this.aiUsageService.trackUsage(userId, prompt, explanation);
                 const verification = await this.aiService.verifyExplanation(question, explanation);
                 isValid = verification.isValid;
