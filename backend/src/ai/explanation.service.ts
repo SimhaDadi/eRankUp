@@ -172,16 +172,17 @@ export class ExplanationService {
         }
         // CASE 3: Quant / Reasoning (Default - Preserved Original)
         else {
-            personaInstructions = `You are an expert SSC CGL Quant mentor known for "Extreme Shortcut Mode". Your goal is to explain this solution with 100% clarity and a maximum of 3 logical steps.
+            personaInstructions = `You are an expert SSC CGL Quant mentor known for "Extreme Shortcut Mode". Your goal is to provide the fastest possible solution with absolute brevity.
   
   ### CONSTRAINTS (MANDATORY):
-  1. **MANDATE LaTeX VISUALS**: Use "$ ... $" for ALL mathematical expressions. Use "\sqrt{...}" for square roots and "\frac{...}{...}" for fractions for visual beauty.
-  2. **MAX 3 STEPS**: The "Strategic Solution" section must be extremely concise—maximum 3 steps/bullet points.
-  3. **FORBID ALGEBRA**: Strictly forbidden to use "Let X be...", "Assuming...", or long algebraic derivations.
-  4. **PREFERRED METHOD**: Prioritize the fastest SSC tricks:
-     - **Deviation Method** (for Averages).
-     - **Alligation** (for Mix/Percentages).
-     - **Root Formula** (use $\sqrt{ab}$ for Time & Work patterns).`;
+  1. **ABSOLUTE BREVITY**: Avoid full sentences. Use arrows ($\rightarrow$) for logical transitions. 
+  2. **LEAD WITH FORMULA / TRICK**: 
+     - **Time & Work**: Lead with $x = \sqrt{ab}$ patterns.
+     - **Algebra**: Lead with **Value Substitution** (e.g., Put $x=1, y=0$), **Symmetry**, or **Degree Check** immediately.
+     - **Averages**: Lead with **Deviation Method**.
+  3. **MANDATE LaTeX**: Wrap ALL math in $ ... $. Use LaTeX for visual beauty (\frac, \sqrt, etc.).
+  4. **MAX 3 STEPS**: Strictly limit the strategy to 3 concise bullet points.
+  5. **FORBID ALGEBRA**: NEVER use "Let X be...", "Assuming...", or multi-line derivations. Jump straight to the shortcut logic.`;
         }
 
         let prompt = `${personaInstructions}
@@ -316,11 +317,11 @@ export class ExplanationService {
                     return {
                         id: explanation?.id || `missing-${q.id}`,
                         questionId: q.id,
-                        questionContent: q.content,
+                        questionContent: this.aiService.cleanAIResponse(q.content),
                         subject: q.subject?.title,
                         chapter: q.chapter?.title,
-                        aiExplanation: explanation?.aiExplanation || null,
-                        adminApprovedExplanation: explanation?.adminApprovedExplanation || null,
+                        aiExplanation: this.aiService.cleanAIResponse(explanation?.aiExplanation || null),
+                        adminApprovedExplanation: this.aiService.cleanAIResponse(explanation?.adminApprovedExplanation || null),
                         isVerified: explanation?.isVerified || false,
                         status: !explanation ? 'pending' : (explanation.isVerified ? 'verified' : 'generated'),
                         helpfulCount: explanation?.helpfulCount || 0,
@@ -397,8 +398,8 @@ export class ExplanationService {
             explanations: explanations.map(exp => ({
                 id: exp.id,
                 questionId: exp.questionId,
-                questionContent: exp.question?.content,
-                aiExplanation: exp.aiExplanation,
+                questionContent: this.aiService.cleanAIResponse(exp.question?.content),
+                aiExplanation: this.aiService.cleanAIResponse(exp.aiExplanation),
                 helpfulCount: exp.helpfulCount,
                 notHelpfulCount: exp.notHelpfulCount,
                 viewCount: exp.viewCount,
@@ -559,7 +560,7 @@ export class ExplanationService {
         for (const exp of explanations) {
             const question = await this.questionRepository.findOne({ where: { id: exp.questionId } });
             if (question && !question.explanation) {
-                question.explanation = exp.adminApprovedExplanation || exp.aiExplanation;
+                question.explanation = this.aiService.cleanAIResponse(exp.adminApprovedExplanation || exp.aiExplanation);
                 await this.questionRepository.save(question);
                 updated++;
             }
