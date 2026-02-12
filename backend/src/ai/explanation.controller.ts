@@ -380,4 +380,27 @@ export class ExplanationController {
             );
         }
     }
+
+    /**
+     * Clear all explanations from the database
+     * Admin only - use to regenerate all explanations with improved prompts
+     */
+    @Delete('admin/clear-all')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async clearAllExplanations() {
+        try {
+            const result = await this.explanationService.clearAllExplanations();
+            return {
+                success: true,
+                message: 'All explanations have been cleared',
+                ...result
+            };
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to clear explanations',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
 }

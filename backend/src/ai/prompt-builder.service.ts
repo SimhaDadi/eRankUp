@@ -125,11 +125,24 @@ export class PromptBuilderService {
   Write a concise, high-impact "Cheat Sheet" style explanation.
   **STRICT RULE**: START IMMEDIATELY with the steps below. NO introductory text, NO concept overview, NO algebra.
   
+  [MANDATORY FORMAT - YOU MUST INCLUDE ALL SECTIONS BELOW]
+  
   **${step1Title}** 🚀
   - ${step1Desc}
   
   **${step2Title}** 🔥
   - ${step2Desc}
+  
+  **CRITICAL**: The 🔥 ${step2Title} section is MANDATORY and NON-NEGOTIABLE. You MUST provide a quick mental trick, mnemonic, or 15-second shortcut tip.
+  
+  EXAMPLE (for Quant/Reasoning):
+  **1. Extreme Shortcut Solution** 🚀
+  - Given ratio $108:132 = 9:11$ (divide by 12)
+  - Broken: $\\frac{1}{3} \\times 108 + \\frac{1}{4} \\times 132 = 36 + 33 = 69$
+  - Usable: $240 - 69 = 171$ → $171/90 = 1.9$ per person → 90 people
+  
+  **2. Ranker's Hack** 🔥
+  - For "broken items" problems, always calculate total first, then subtract. Check if final answer divides evenly into the total.
   
   ---
   **CRITICAL SECURITY INSTRUCTION**: ${PROMPTS_CONFIG.security.criticalInstruction}`;
@@ -213,13 +226,23 @@ Tutor:`;
         GOAL: Provide a "Cheat Sheet" style solution in maximum 3 steps.
         CONSTRAINT: Use LaTeX for all mathematical expressions. Wrap inline math in $...$ (e.g., $x^2$) and block math in $$...$$.
         
-        [GOOD RESPONSE FORMAT]
+        [MANDATORY RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY]
         💡 CORE: Identify the main concept in one line.
         🚀 ${PROMPTS_CONFIG.subjects.quantReasoning.steps.step1.title.split('. ')[1].toUpperCase()}:
         1. Step one (mental math/logic)
         2. Step two
         3. Step three (Result)
         🔥 ${PROMPTS_CONFIG.subjects.quantReasoning.steps.step2.title.split('. ')[1].toUpperCase()}: 15-second "Ranker's" tip.
+        
+        **CRITICAL**: You MUST include ALL sections above, especially the 🔥 RANKER'S HACK section. This is NON-NEGOTIABLE.
+        
+        EXAMPLE:
+        💡 CORE: Ratio and Proportion problem
+        🚀 EXTREME SHORTCUT SOLUTION:
+        1. Given ratio $108:132 = 9:11$ (divide by 12)
+        2. Broken items: $\\frac{1}{3} \\times 108 + \\frac{1}{4} \\times 132 = 36 + 33 = 69$
+        3. Usable: $108 + 132 - 69 = 171$ → $171/90 = 1.9$ per person → 90 people
+        🔥 RANKER'S HACK: For "broken items" problems, always calculate total first, then subtract. Check if answer divides evenly.
 
         Question Content:
         ${this.sanitizeInput(question.content)}
@@ -229,7 +252,7 @@ Tutor:`;
  
         Correct Answer: ${question.correctOptionId} - ${this.sanitizeInput(correctOption?.text || 'N/A')}
  
-        GENERATE EXPLANATION FOLLOWING THE [GOOD RESPONSE FORMAT] STRICTLY:`;
+        GENERATE EXPLANATION FOLLOWING THE [MANDATORY RESPONSE FORMAT] STRICTLY. DO NOT SKIP THE 🔥 RANKER'S HACK SECTION:`;
     }
 
     /**
@@ -479,3 +502,4 @@ Tutor:`;
         return 'HINT: Focus on pattern recognition and extreme shortcuts. NO algebraic steps.';
     }
 }
+

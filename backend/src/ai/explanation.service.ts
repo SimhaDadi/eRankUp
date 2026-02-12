@@ -100,10 +100,29 @@ export class ExplanationService {
 
             return explanation;
         } catch (error) {
-            this.logger.error('AI generation failed', error.stack);
+            // Enhanced error logging to identify the root cause
+            this.logger.error('❌ AI EXPLANATION GENERATION FAILED', {
+                questionId,
+                errorType: error.constructor.name,
+                errorMessage: error.message,
+                errorStatus: error.status,
+                errorResponse: error.response?.data,
+                stackTrace: error.stack
+            });
+
+            // Log specific error types
             if (error.status === 429 || (error.message && error.message.includes('429'))) {
-                this.logger.warn('AI Rate Limit Exceeded. Using fallback explanation.');
+                this.logger.warn('⚠️  AI RATE LIMIT EXCEEDED - Using fallback explanation');
+            } else if (error.message && error.message.includes('API key')) {
+                this.logger.error('🔑 API KEY ERROR - Check your AI service configuration');
+            } else if (error.message && error.message.includes('timeout')) {
+                this.logger.error('⏱️  TIMEOUT ERROR - AI service took too long to respond');
+            } else if (error.message && error.message.includes('network')) {
+                this.logger.error('🌐 NETWORK ERROR - Cannot reach AI service');
+            } else {
+                this.logger.error('🔥 UNKNOWN ERROR - Check logs above for details');
             }
+
             const fallbackExplanation = this.getFallbackExplanation(question);
 
             // Save fallback so it persists (otherwise UI reverts to "Generate")
@@ -476,5 +495,33 @@ export class ExplanationService {
         }
         this.logger.log(`Synced ${updated} explanations to Question table.`);
         return { updated };
+    }
+
+    /**
+     * Clear all explanations from the database
+     * Admin only - use to regenerate all explanations with improved prompts
+     */
+    async clearAllExplanations(): Promise<{ deletedExplanations: number; clearedQuestions: number }> {
+        this.logger.warn('⚠️  CLEARING ALL EXPLANATIONS FROM DATABASE');
+
+        // Delete all from question_explanation table
+        const deleteResult = await this.explanationRepository.delete({});
+        const deletedExplanations = deleteResult.affected || 0;
+
+        // Clear explanation field from all questions
+        const updateResult = await this.questionRepository
+            .createQueryBuilder()
+            .update()
+            .set({ explanation: null })
+            .where('explanation IS NOT NULL OR explanation = :empty', { empty: '' })
+            .execute();
+        const clearedQuestions = updateResult.affected || 0;
+
+        this.logger.log(`✅ Cleared ${deletedExplanations} explanation records and ${clearedQuestions} question explanations`);
+
+        return {
+            deletedExplanations,
+            clearedQuestions
+        };
     }
 }
