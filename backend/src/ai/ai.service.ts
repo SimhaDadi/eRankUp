@@ -853,6 +853,7 @@ Return JSON ONLY:
                 - **LEAD WITH FORMULA / TRICK**: 
                     - **Time & Work**: Lead with $x = \sqrt{ab}$ patterns.
                     - **Profit & Loss**: Lead with **Successive %** ($a+b+ab/100$) or **Ratio Method**.
+                    - **Time & Distance**: Lead with **Ratio Method** ($S \propto 1/T$) or **Relative Speed**.
                     - **SI & CI**: Lead with **Effective %** or **Tree Method**.
                     - **Algebra**: Lead with **Value Substitution** (Put $x=1, y=0$), **Symmetry**, or **Degree Check**.
                     - **Geometry**: Lead with **Pythagorean Triplets**, **Direct Theorem**, or **Property Check**.

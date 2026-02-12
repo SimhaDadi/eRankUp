@@ -180,6 +180,7 @@ export class ExplanationService {
      - **Time & Work**: Lead with $x = \sqrt{ab}$ patterns.
      - **Percentages**: Lead with **Alligation Method** or **Fraction Table** (e.g., $16.66\% = 1/6$).
      - **Profit & Loss**: Lead with **Successive Formula** ($a+b+\frac{ab}{100}$), **Ratio Method** ($CP:SP$), or **Dishonest Dealer** trick.
+     - **Time & Distance**: Lead with **Ratio Method** ($S \propto 1/T$) or **Relative Speed** logic.
      - **SI & CI**: Lead with **Effective % Method** ($x+y+\frac{xy}{100}$ for 2 years) or **Tree Method**.
      - **Algebra**: Lead with **Value Substitution** (e.g., Put $x=1, y=0$), **Symmetry**, or **Degree Check** immediately.
      - **Geometry**: Lead with **Pythagorean Triplets** (3-4-5, 5-12-13), **Direct Theorem** (e.g., Angle at Center = $2\theta$), or **Triplet Check**.
