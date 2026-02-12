@@ -180,6 +180,7 @@ export class ExplanationService {
      - **Time & Work**: Lead with $x = \sqrt{ab}$ patterns.
      - **Algebra**: Lead with **Value Substitution** (e.g., Put $x=1, y=0$), **Symmetry**, or **Degree Check** immediately.
      - **Geometry**: Lead with **Pythagorean Triplets** (3-4-5, 5-12-13), **Direct Theorem** (e.g., Angle at Center = $2\theta$), or **Triplet Check**.
+     - **Trigonometry**: Lead with **Value Logic** (Put $\theta=0^\circ, 30^\circ, 45^\circ$) or **Triplet Application**.
      - **Averages**: Lead with **Deviation Method**.
   3. **MANDATE LaTeX**: Wrap ALL math in $ ... $. Use LaTeX for visual beauty (\frac, \sqrt, etc.).
   4. **MAX 3 STEPS**: Strictly limit the strategy to 3 concise bullet points.
