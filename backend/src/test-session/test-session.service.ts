@@ -215,7 +215,8 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             timings: {},
             flags: [],
             status: 'IN_PROGRESS',
-            durationSeconds: durationSeconds
+            durationSeconds: durationSeconds,
+            questions: testId.startsWith('chapter-') ? questions : undefined
         };
 
         const redisExpiry = durationSeconds + (60 * 60);

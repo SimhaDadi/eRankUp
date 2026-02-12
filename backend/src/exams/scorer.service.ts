@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, IsNull } from 'typeorm';
+import { Repository, MoreThanOrEqual, IsNull, In } from 'typeorm';
 import { Attempt } from './entities/attempt.entity';
 import { Question } from './entities/question.entity';
 import { Model } from './entities/model.entity';
@@ -105,6 +105,15 @@ export class ScorerService implements OnModuleInit {
                     questions = exam.questions;
                     examPos = exam.defaultPositiveMarks || 1.0;
                     examNeg = exam.defaultNegativeMarks || 0.25;
+                } else if (allQuestionIds && allQuestionIds.length > 0) {
+                    // [FIX] Fallback for Chapter Practice or other dynamic sessions
+                    this.logger.log(`[ScorerService] No Model/Exam found, but ${allQuestionIds.length} questions provided. Proceeding with default marks.`);
+                    questions = await this.questionRepository.find({
+                        where: { id: In(allQuestionIds) },
+                        relations: ['subject', 'chapter']
+                    });
+                    examPos = 1.0;
+                    examNeg = 0.25;
                 } else {
                     this.logger.error(`No Model or Exam found with ID ${modelId}`);
                     throw new Error('Test not found');
