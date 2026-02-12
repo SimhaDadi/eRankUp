@@ -9,7 +9,7 @@ import * as fs from 'fs';
 export interface ParsedQuestion {
     content: string;
     options: { id: string; text: string }[];
-    correctOptionId: string;
+    correctOptionId: string | null;
     explanation?: string;
     topic: string;
     difficultyWeight?: number;
@@ -144,13 +144,13 @@ export class QuestionsUploadService {
                 });
 
                 // Validate correct answer
-                let correctOptionId = 'A';
+                let correctOptionId: string | null = null;
                 if (typeof item.correctOptionIndex === 'number' && item.correctOptionIndex >= 0 && item.correctOptionIndex < normalizedOptions.length) {
                     correctOptionId = String.fromCharCode(65 + item.correctOptionIndex);
-                } else if (typeof item.correctOptionId === 'string') {
+                } else if (typeof item.correctOptionId === 'string' && item.correctOptionId.length > 0) {
                     correctOptionId = item.correctOptionId.toUpperCase();
                 } else {
-                    log(`[ImageUpload] Question ${index + 1}: Invalid correct answer, defaulting to A`);
+                    log(`[ImageUpload] Question ${index + 1}: No correct answer found/marked. Setting to null.`);
                 }
 
                 const question: ParsedQuestion = {

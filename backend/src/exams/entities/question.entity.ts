@@ -21,7 +21,7 @@ export class Question {
     options: { id: string; text: string }[];
 
     @Expose({ groups: ['admin', 'review'] })
-    @Column()
+    @Column({ nullable: true })
     correctOptionId: string;
 
     @Expose({ groups: ['admin', 'review'] })

@@ -863,7 +863,7 @@ Return JSON ONLY:
                         {
                             "content": "The question text (USE $ ... $ for ALL math)",
                             "options": ["Opt1 (Keep $...$)", "Opt2", "Opt3", "Opt4"],
-                            "correctOptionIndex": number, // 0 for A, 1 for B, etc.
+                            "correctOptionIndex": number | null, // 0 for A, 1 for B, etc. Set to null if the correct answer is not explicitly marked with checkmarks, circles, or highlights in the image. Do NOT guess.
                             "difficultyWeight": 0.1 to 1.0,
                             "positiveMarks": number (default 1),
                             "negativeMarks": number (default 0.25),
@@ -1064,7 +1064,7 @@ Extract all questions and format them as a JSON array with this structure:
                 {
                     "questionText": "the question text",
                     "options": ["option1", "option2", "option3", "option4"],
-                    "correctAnswer": 0,
+                    "correctAnswer": number | null, // 0 - 3, or null if not explicitly marked. Do NOT guess.
                     "topic": "detected topic",
                     "difficulty": "easy",
                     "explanation": "brief explanation if available"
