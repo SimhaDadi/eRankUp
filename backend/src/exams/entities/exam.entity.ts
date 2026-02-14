@@ -7,7 +7,8 @@ export enum ExamType {
     REAL_EXAM = 'real_exam',
     QUESTION_BANK = 'question_bank',
     PREVIOUS_YEAR_PAPER = 'previous_year_paper',
-    LIVE_EXAM = 'live_exam'
+    LIVE_EXAM = 'live_exam',
+    CHAPTER_WISE_TEST = 'chapter_wise_test'
 }
 
 @Entity()
