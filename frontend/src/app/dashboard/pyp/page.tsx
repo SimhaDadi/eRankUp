@@ -35,6 +35,10 @@ interface Exam {
         count: number;
         latestAttemptId: string;
     };
+    metadata?: {
+        authority?: string;
+        year?: number;
+    };
 }
 
 export default function PreviousYearPapersPage() {
@@ -186,6 +190,16 @@ export default function PreviousYearPapersPage() {
                                                 <span className="px-2.5 py-1 rounded-md bg-white border border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                                     {exam.category || 'Official'}
                                                 </span>
+                                                {exam.metadata?.authority && (
+                                                    <span className="px-2.5 py-1 rounded-md bg-amber-50 border border-amber-100 text-[10px] font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1">
+                                                        <FileText className="w-3 h-3" /> {exam.metadata.authority}
+                                                    </span>
+                                                )}
+                                                {exam.metadata?.year && (
+                                                    <span className="px-2.5 py-1 rounded-md bg-blue-50 border border-blue-100 text-[10px] font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" /> {exam.metadata.year}
+                                                    </span>
+                                                )}
                                                 <span className="px-2.5 py-1 rounded-md bg-white border border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                                                     <HelpCircle className="w-3 h-3" /> {exam.questionCount || 0} Qs
                                                 </span>

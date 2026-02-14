@@ -660,6 +660,12 @@ export class ExamsService implements OnApplicationBootstrap {
             throw new BadRequestException('Exam title is required');
         }
 
+        // Check for duplicate title
+        const existing = await this.examsRepository.findOne({ where: { title: examData.title } });
+        if (existing) {
+            throw new BadRequestException('Exam with this title already exists. Please choose a unique title.');
+        }
+
         // ===== TYPE-SPECIFIC VALIDATION =====
         switch (examData.type) {
             case 'live_exam':
