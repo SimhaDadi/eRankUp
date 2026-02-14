@@ -14,7 +14,8 @@ import {
     Zap,
     BookOpen,
     ChevronDown,
-    Activity
+    Activity,
+    Eye
 } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
@@ -28,6 +29,12 @@ interface Chapter {
     name?: string;
     description?: string;
     modelCount?: number;
+    attempts?: {
+        count: number;
+        latestAttemptId: string;
+        bestScore: number;
+        latestScore: number;
+    };
 }
 
 interface Subject {
@@ -77,7 +84,8 @@ export default function PracticePage() {
                         title: chapterName,
                         name: chapterName,
                         description: exam.description,
-                        modelCount: 1 // Each exam is one test
+                        modelCount: 1, // Each exam is one test
+                        attempts: exam.attempts // Pass attempt data
                     });
                 });
 
@@ -122,7 +130,9 @@ export default function PracticePage() {
         router.push(`/dashboard/exam-start/${examId}`);
     };
 
-    // Removed direct return here to use AnimatePresence below
+    const viewResult = (attemptId: string) => {
+        router.push(`/dashboard/results/${attemptId}`);
+    };
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -279,18 +289,38 @@ export default function PracticePage() {
                                                                             <span className="font-bold text-slate-700 tracking-tight group-hover/chapter:text-sky-600 transition-colors">
                                                                                 {chapter.title || chapter.name}
                                                                             </span>
-                                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Practice Module</span>
+                                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                                                Practice Module
+                                                                                {chapter.attempts && (
+                                                                                    <span className="text-sky-600">
+                                                                                        • Best: {Math.round(chapter.attempts.bestScore)}%
+                                                                                    </span>
+                                                                                )}
+                                                                            </span>
                                                                         </div>
                                                                     </div>
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            startChapterPractice(chapter.id);
-                                                                        }}
-                                                                        className="px-6 py-2.5 bg-white border border-sky-100 text-sky-600 hover:bg-sky-600 hover:text-white hover:border-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm"
-                                                                    >
-                                                                        Launch
-                                                                    </button>
+                                                                    <div className="flex gap-2">
+                                                                        {chapter.attempts && chapter.attempts.latestAttemptId ? (
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    viewResult(chapter.attempts!.latestAttemptId);
+                                                                                }}
+                                                                                className="px-6 py-2.5 bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm flex items-center gap-2"
+                                                                            >
+                                                                                <Eye className="w-3 h-3" /> View Result
+                                                                            </button>
+                                                                        ) : null}
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                startChapterPractice(chapter.id);
+                                                                            }}
+                                                                            className="px-6 py-2.5 bg-white border border-sky-100 text-sky-600 hover:bg-sky-600 hover:text-white hover:border-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                                                                        >
+                                                                            {chapter.attempts ? "Retake" : "Launch"}
+                                                                        </button>
+                                                                    </div>
                                                                 </motion.div>
                                                             ))}
                                                             {(!subject.chapters || subject.chapters.length === 0) && (
