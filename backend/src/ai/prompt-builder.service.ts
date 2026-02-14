@@ -235,8 +235,11 @@ ${performanceHint}
             });
         }
 
-        // DYNAMIC OVERRIDE: Direction problems - Use Cancellation Method
-        if (topicLower.includes('direction')) {
+        // DYNAMIC OVERRIDE: Check Topic Metadata AND Content for Direction keywords
+        const directionKeywords = ['north', 'south', 'east', 'west', 'walks', 'turns left', 'turns right'];
+        const isDirectionProblem = topicLower.includes('direction') || directionKeywords.some(k => messageLower.includes(k) || (context.questionContext?.content || '').toLowerCase().includes(k));
+
+        if (isDirectionProblem) {
             instructions = instructions.map(ins => {
                 if (ins.includes('EXTREME SHORTCUT MODE')) return '**CANCELLATION SHORTCUT**: Sum North vs South, East vs West. Cancel them out. Final distance calculated in 1 line.';
                 if (ins.includes('NEGATIVE CONSTRAINT')) return '**AVOID DIAGRAMS**: Use the N-E-S-W writing method to solve mentally.';
@@ -290,11 +293,28 @@ Tutor:`;
             subjectConfig = PROMPTS_CONFIG.subjects.generalStudies as any;
         }
 
+        // DYNAMIC OVERRIDE: Check Content for Direction keywords
+        const contentLower = question.content.toLowerCase();
+        const directionKeywords = ['north', 'south', 'east', 'west', 'walks', 'turns left', 'turns right'];
+        const isDirectionProblem = subjectText.includes('direction') || directionKeywords.some(k => contentLower.includes(k));
+
+        let specificShortcutInstruction = '';
+        if (isDirectionProblem) {
+            specificShortcutInstruction = `
+        [MANDATORY METHOD]: Use the **N-E-S-W Cancellation Trick**.
+        1. Write N, E, S, W in a row.
+        2. Sum distances under each specific direction.
+        3. Subtract Opposites (Net North-South, Net East-West).
+        4. Result = $\\sqrt{(Net NS)^2 + (Net EW)^2}$.
+        ❌ DO NOT DRAW A DIAGRAM. USE THIS ALGEBRAIC SHORTCUT ONLY.`;
+        }
+
         return `${subjectConfig.persona}
         
         GOAL: Provide a "Cheat Sheet" style solution in maximum 3 steps.
         CONSTRAINT: Use LaTeX for all mathematical expressions. Wrap inline math in $...$ (e.g., $x^2$) and block math in $$...$$.
-        
+        ${specificShortcutInstruction}
+
         [HIDDEN THINKING INSTRUCTION]
         You MUST first plan your logic inside a '[HIDDEN]' ... '[/HIDDEN]' block. 
         - Analyze the question step-by-step here to ensure accuracy.
@@ -312,10 +332,10 @@ Tutor:`;
         **CRITICAL**: You MUST include ALL sections above, especially the 🔥 RANKER'S HACK section. This is NON-NEGOTIABLE.
         
         EXAMPLE:
-        💡 CORE: Concept/Rule Name
+        💡 CORE: Approach Name
         🚀 SHORTCUT/DIRECT ANSWER:
-        1. Key observation...
-        2. Application of rule...
+        1. Observation...
+        2. Calculation...
         3. Final Answer
         🔥 MEMORY HACK/TRICK: Mnemonic or quick check.
 
