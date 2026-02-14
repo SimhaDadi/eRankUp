@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsNumber, IsDateString, Min, Max } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsNumber, IsDateString, Min, Max, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ExamType } from '../entities/exam.entity';
 
@@ -64,6 +64,7 @@ export class CreateExamDto {
     @IsOptional()
     isPublished?: boolean;
 
+    @IsObject()
     @IsOptional()
     metadata?: Record<string, any>;
 }

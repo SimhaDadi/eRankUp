@@ -111,11 +111,12 @@ export default function AdminExamsPage() {
     const [filterType, setFilterType] = useState<'all' | 'real_exam' | 'question_bank' | 'live_exam' | 'previous_year_paper'>('all');
 
     const filteredExams = exams.filter(exam => {
+        // Exclude Question Banks - they are managed via Content Hierarchy page
+        if (exam.type === 'question_bank') return false;
+
         const matchesType = filterType === 'all' || exam.type === filterType;
         const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase());
-        // SHOW ONLY DRAFTS (Unpublished)
-        const isDraft = exam.isPublished === false;
-        return matchesType && matchesSearch && isDraft;
+        return matchesType && matchesSearch;
     });
 
     return (
@@ -123,8 +124,8 @@ export default function AdminExamsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Drafts & Staging</h1>
-                    <p className="text-slate-400">Create and edit content before publishing to the platform.</p>
+                    <h1 className="text-3xl font-bold">Exam Management</h1>
+                    <p className="text-slate-400">Create and manage student-facing exams. Use Content Hierarchy for Question Banks.</p>
                 </div>
                 <div className="flex gap-3">
                     <button
@@ -150,12 +151,7 @@ export default function AdminExamsPage() {
                 >
                     Real Exams
                 </button>
-                <button
-                    onClick={() => setFilterType('question_bank')}
-                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${filterType === 'question_bank' ? 'bg-slate-800 text-purple-400 border-b-2 border-purple-500' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
-                >
-                    Question Banks
-                </button>
+
                 <button
                     onClick={() => setFilterType('live_exam')}
                     className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${filterType === 'live_exam' ? 'bg-slate-800 text-rose-400 border-b-2 border-rose-500' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
