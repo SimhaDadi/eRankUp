@@ -296,7 +296,7 @@ Tutor:`;
         CONSTRAINT: Use LaTeX for all mathematical expressions. Wrap inline math in $...$ (e.g., $x^2$) and block math in $$...$$.
         
         [HIDDEN THINKING INSTRUCTION]
-        You MUST first plan your logic inside a `[HIDDEN]` ... `[/HIDDEN]` block. 
+        You MUST first plan your logic inside a '[HIDDEN]' ... '[/HIDDEN]' block. 
         - Analyze the question step-by-step here to ensure accuracy.
         - Verify your facts or logic before committing to the final answer.
         - This block will NOT be seen by the student.
