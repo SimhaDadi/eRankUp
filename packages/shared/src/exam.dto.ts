@@ -1,11 +1,12 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsNumber, IsDateString, Min, ValidateNested, IsArray, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsNumber, IsDateString, Min, ValidateNested, IsArray, IsUUID, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum ExamType {
     REAL_EXAM = 'real_exam',
     QUESTION_BANK = 'question_bank',
     PREVIOUS_YEAR_PAPER = 'previous_year_paper',
-    LIVE_EXAM = 'live_exam'
+    LIVE_EXAM = 'live_exam',
+    CHAPTER_WISE_TEST = 'chapter_wise_test'
 }
 
 export const EXAM_CATEGORIES = [
@@ -70,6 +71,10 @@ export class CreateExamDto {
     @IsOptional()
     @Type(() => Number)
     defaultNegativeMarks?: number;
+
+    @IsObject()
+    @IsOptional()
+    metadata?: Record<string, any>;
 }
 
 export class UpdateExamDto {
@@ -84,6 +89,10 @@ export class UpdateExamDto {
     @IsBoolean()
     @IsOptional()
     isPublished?: boolean;
+
+    @IsObject()
+    @IsOptional()
+    metadata?: Record<string, any>;
 }
 
 // Content Hierarchy
