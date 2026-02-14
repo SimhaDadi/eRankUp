@@ -21,8 +21,10 @@ export class AIQueueService {
     private isProcessing = false;
     private lastProviderUsed: 'gemini' | 'groq' = 'gemini';
     private readonly GEMINI_DELAY = parseInt(this.configService.get('AI_DELAY_GEMINI')) || 6000; // Default 6s
-    private readonly GROQ_DELAY = parseInt(this.configService.get('AI_DELAY_GROQ')) || 500;     // Default 0.5s
-    private readonly MAX_QUEUE_SIZE = 300; // Security Cap to prevent OOM
+    private readonly GROQ_DELAY = parseInt(this.configService.get('AI_DELAY_GROQ')) || 3000;     // Default 3s (20 RPM)
+    private readonly MAX_QUEUE_SIZE = 300; // Security Cap
+    private activeRequests = 0;
+    private readonly MAX_CONCURRENT_REQUESTS = 5;
 
     constructor(private configService: ConfigService) { }
 
@@ -68,9 +70,15 @@ export class AIQueueService {
         });
     }
 
-    private async processQueue() {
+    private processQueue() {
         if (this.queue.length === 0) {
             this.isProcessing = false;
+            return;
+        }
+
+        // Throttle if too many active requests (Concurrency Limit)
+        if (this.activeRequests >= this.MAX_CONCURRENT_REQUESTS) {
+            setTimeout(() => this.processQueue(), 1000);
             return;
         }
 
@@ -80,21 +88,33 @@ export class AIQueueService {
         if (rankedTask) {
             const { task, resolve, reject, priority, provider } = rankedTask;
             this.lastProviderUsed = provider;
-            try {
-                const result = await task();
-                resolve(result);
-            } catch (error) {
-                console.error(`[AIQueueService] Task failed (Priority: ${priority}, Provider: ${provider}):`, error);
-                reject(error);
-            }
+
+            this.activeRequests++;
+            // Execute WITHOUT awaiting (Pipeline)
+            task()
+                .then(resolve)
+                .catch(error => {
+                    console.error(`[AIQueueService] Task failed (Priority: ${priority}, Provider: ${provider}):`, error);
+                    reject(error);
+                })
+                .finally(() => {
+                    this.activeRequests--;
+                });
         }
 
-        // Dynamic Rate Limit based on the PROVIDER THAT JUST FINISHED
+        // Dynamic Rate Limit - Schedule NEXT start
+        // This ensures starts are spaced out by 'delay' ms
         const delay = this.lastProviderUsed === 'groq' ? this.GROQ_DELAY : this.GEMINI_DELAY;
 
+        // Ensure loop continues if there are items
         if (this.queue.length > 0) {
             setTimeout(() => this.processQueue(), delay);
         } else {
+            // We set isProcessing to false, but if a task is still running, that's fine.
+            // When a NEW task comes in, add() will see isProcessing=false and restart calls.
+            // BUT there's a race: if we set false now, add() might start immediately.
+            // That's actually okay, because processQueue checks activeRequests.
+            // However, we should only set false if we are not scheduling a timeout.
             this.isProcessing = false;
         }
     }
