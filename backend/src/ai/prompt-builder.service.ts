@@ -245,6 +245,13 @@ ${performanceHint}
                 if (ins.includes('NEGATIVE CONSTRAINT')) return '**AVOID DIAGRAMS**: Use the N-E-S-W writing method to solve mentally.';
                 return ins;
             });
+            // Force the explicit method block
+            instructions.push(`[MANDATORY METHOD]: Use the **N-E-S-W Cancellation Trick**.
+            1. Write N, E, S, W in a row.
+            2. Sum distances under each specific direction.
+            3. Subtract Opposites (Net North-South, Net East-West).
+            4. Result = $\\sqrt{(Net NS)^2 + (Net EW)^2}$.
+            ❌ DO NOT DRAW A DIAGRAM. USE THIS ALGEBRAIC SHORTCUT ONLY.`);
         }
 
         return `${subjectConfig.persona}
