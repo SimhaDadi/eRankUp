@@ -203,18 +203,48 @@ ${performanceHint}
         }
 
 
+
+        // Determine Subject Config for Persona & Instructions
+        let subjectConfig = PROMPTS_CONFIG.subjects.quantReasoning; // Default
+        const topicLower = context.questionContext?.topic?.toLowerCase() || '';
+        const messageLower = message.toLowerCase();
+
+        // Simple keyword matching to guess subject if not explicitly provided
+        if (PROMPTS_CONFIG.subjects.english.keywords.some(k => topicLower.includes(k) || messageLower.includes(k))) {
+            subjectConfig = PROMPTS_CONFIG.subjects.english as any;
+        } else if (PROMPTS_CONFIG.subjects.generalStudies.keywords.some(k => topicLower.includes(k) || messageLower.includes(k))) {
+            subjectConfig = PROMPTS_CONFIG.subjects.generalStudies as any;
+        }
+
         let instructions = [...PROMPTS_CONFIG.chat.instructions];
 
-        // DYNAMIC OVERRIDE: Direction problems - Use Cancellation Method
-        if (context.questionContext?.topic?.toLowerCase().includes('direction')) {
+        // Customize instructions based on subject
+        if (subjectConfig === PROMPTS_CONFIG.subjects.english as any) {
             instructions = instructions.map(ins => {
-                if (ins.includes('3 STEPS')) return '**CANCELLATION SHORTCUT**: Sum North vs South, East vs West. Cancel them out. Final distance calculated in 1 line.';
+                if (ins.includes('EXTREME SHORTCUT MODE')) return `**GRAMMAR/VOCAB SHORTCUT**: Explain the rule in 1 line. No lengthy definitions.`;
+                if (ins.includes('PREFERRED METHOD')) return `**PREFERRED METHOD**: Use Root Words, Mnemonic hooks, or direct Grammar Rule citations.`;
+                if (ins.includes('FORBID ALGEBRA')) return `**NO JARGON**: Avoid complex linguistic terms unless necessary for the rule.`;
+                return ins;
+            });
+        } else if (subjectConfig === PROMPTS_CONFIG.subjects.generalStudies as any) {
+            instructions = instructions.map(ins => {
+                if (ins.includes('EXTREME SHORTCUT MODE')) return `**MEMORY HACK MODE**: Provide the direct answer + a mnemonic/story to remember it.`;
+                if (ins.includes('PREFERRED METHOD')) return `**PREFERRED METHOD**: Use Acronyms, Funny associations, or standard Fact-Links.`;
+                if (ins.includes('FORBID ALGEBRA')) return `**NO FLUFF**: Do not give background history unless it helps memory.`;
+                return ins;
+            });
+        }
+
+        // DYNAMIC OVERRIDE: Direction problems - Use Cancellation Method
+        if (topicLower.includes('direction')) {
+            instructions = instructions.map(ins => {
+                if (ins.includes('EXTREME SHORTCUT MODE')) return '**CANCELLATION SHORTCUT**: Sum North vs South, East vs West. Cancel them out. Final distance calculated in 1 line.';
                 if (ins.includes('NEGATIVE CONSTRAINT')) return '**AVOID DIAGRAMS**: Use the N-E-S-W writing method to solve mentally.';
                 return ins;
             });
         }
 
-        return `${PROMPTS_CONFIG.chat.tutorIdentity}
+        return `${subjectConfig.persona}
 
 CONTEXT:
 Weak Topics: ${weakAreasText}
@@ -250,28 +280,44 @@ Tutor:`;
 
         const correctOption = question.options.find((opt: any) => opt.id === question.correctOptionId);
 
-        return `${PROMPTS_CONFIG.subjects.quantReasoning.persona}
+        // Determine Subject Config
+        const subjectText = (question.subject?.title || question.topic || 'General').toLowerCase();
+        let subjectConfig = PROMPTS_CONFIG.subjects.quantReasoning; // Default
+
+        if (PROMPTS_CONFIG.subjects.english.keywords.some(k => subjectText.includes(k))) {
+            subjectConfig = PROMPTS_CONFIG.subjects.english as any;
+        } else if (PROMPTS_CONFIG.subjects.generalStudies.keywords.some(k => subjectText.includes(k))) {
+            subjectConfig = PROMPTS_CONFIG.subjects.generalStudies as any;
+        }
+
+        return `${subjectConfig.persona}
         
         GOAL: Provide a "Cheat Sheet" style solution in maximum 3 steps.
         CONSTRAINT: Use LaTeX for all mathematical expressions. Wrap inline math in $...$ (e.g., $x^2$) and block math in $$...$$.
         
+        [HIDDEN THINKING INSTRUCTION]
+        You MUST first plan your logic inside a `[HIDDEN]` ... `[/HIDDEN]` block. 
+        - Analyze the question step-by-step here to ensure accuracy.
+        - Verify your facts or logic before committing to the final answer.
+        - This block will NOT be seen by the student.
+
         [MANDATORY RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY]
-        💡 CORE: Identify the main concept in one line.
-        🚀 ${PROMPTS_CONFIG.subjects.quantReasoning.steps.step1.title.split('. ')[1].toUpperCase()}:
-        1. Step one (mental math/logic)
+        💡 CORE: Identify the main concept/rule in one line.
+        🚀 ${subjectConfig.steps.step1.title.split('. ')[1].toUpperCase()}:
+        1. Step one
         2. Step two
         3. Step three (Result)
-        🔥 ${PROMPTS_CONFIG.subjects.quantReasoning.steps.step2.title.split('. ')[1].toUpperCase()}: 15-second "Ranker's" tip.
+        🔥 ${subjectConfig.steps.step2.title.split('. ')[1].toUpperCase()}: 15-second "Ranker's" tip.
         
         **CRITICAL**: You MUST include ALL sections above, especially the 🔥 RANKER'S HACK section. This is NON-NEGOTIABLE.
         
         EXAMPLE:
-        💡 CORE: Ratio and Proportion problem
-        🚀 EXTREME SHORTCUT SOLUTION:
-        1. Given ratio $108:132 = 9:11$ (divide by 12)
-        2. Broken items: $\\frac{1}{3} \\times 108 + \\frac{1}{4} \\times 132 = 36 + 33 = 69$
-        3. Usable: $108 + 132 - 69 = 171$ → $171/90 = 1.9$ per person → 90 people
-        🔥 RANKER'S HACK: For "broken items" problems, always calculate total first, then subtract. Check if answer divides evenly.
+        💡 CORE: Concept/Rule Name
+        🚀 SHORTCUT/DIRECT ANSWER:
+        1. Key observation...
+        2. Application of rule...
+        3. Final Answer
+        🔥 MEMORY HACK/TRICK: Mnemonic or quick check.
 
         Question Content:
         ${this.sanitizeInput(question.content)}

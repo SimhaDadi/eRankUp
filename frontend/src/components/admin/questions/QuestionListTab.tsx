@@ -223,16 +223,27 @@ export default function QuestionListTab() {
 
                                         {/* Options Preview */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                                            {q.options?.map((opt: any) => (
-                                                <div key={opt.id} className={`p-3 rounded-xl border ${q.correctOptionId === opt.id ? 'bg-green-500/5 border-green-500/30' : 'bg-slate-900/50 border-slate-800'}`}>
-                                                    <div className="flex gap-3">
-                                                        <span className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md text-[10px] font-bold ${q.correctOptionId === opt.id ? 'bg-green-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                                                            {opt.id}
-                                                        </span>
-                                                        <MathRenderer content={opt.text} className="text-xs text-slate-300" />
+                                            {q.options?.map((opt: any) => {
+                                                const isCorrect = String(q.correctOptionId) === String(opt.id);
+                                                return (
+                                                    <div key={opt.id} className={`relative p-3 rounded-xl border transition-all ${isCorrect
+                                                        ? 'bg-green-500/10 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]'
+                                                        : 'bg-slate-900/50 border-slate-800'
+                                                        }`}>
+                                                        {isCorrect && (
+                                                            <div className="absolute -top-2.5 -right-2.5 bg-green-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1">
+                                                                <span>✓</span> CORRECT
+                                                            </div>
+                                                        )}
+                                                        <div className="flex gap-3">
+                                                            <span className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md text-[10px] font-bold ${isCorrect ? 'bg-green-500 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
+                                                                {opt.id}
+                                                            </span>
+                                                            <MathRenderer content={opt.text} className={`text-xs ${isCorrect ? 'text-white font-medium' : 'text-slate-300'}`} />
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
 
                                         {/* Explanation Preview */}

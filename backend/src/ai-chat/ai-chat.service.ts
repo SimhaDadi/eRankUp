@@ -14,6 +14,7 @@ import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.
 import { UserRole } from '../users/user.entity';
 import { AIQueueService, AIPriority } from '../ai/ai-queue.service';
 import { PromptBuilderService } from '../ai/prompt-builder.service';
+import { AIUtilsService } from '../ai/ai-utils.service';
 
 export interface SendMessageResponse {
     response: string;
@@ -44,6 +45,7 @@ export class AIChatService {
         private adaptiveLearningService: AdaptiveLearningService,
         private queueService: AIQueueService,
         private promptBuilder: PromptBuilderService,
+        private aiUtils: AIUtilsService,
     ) { }
 
     async sendMessageStream(
@@ -181,9 +183,10 @@ export class AIChatService {
             });
 
             // Execute via AIService (which handles internal queuing)
-            const stream = await this.aiService.generateStream(prompt, promptImages, 'FAST');
+            const rawStream = await this.aiService.generateStream(prompt, promptImages, 'FAST');
+            const cleanStream = this.aiUtils.cleanStreamChunk(rawStream);
 
-            return { stream, conversationId: conversation.id };
+            return { stream: cleanStream, conversationId: conversation.id };
         } catch (error) {
             this.logger.error(`Failed to generate chat prompt/response for conversation ${conversation.id}: ${error.message}`, error.stack);
             throw new BadRequestException('Failed to process your message. Please try again.');
