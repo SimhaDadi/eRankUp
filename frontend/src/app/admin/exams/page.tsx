@@ -236,15 +236,21 @@ export default function AdminExamsPage() {
                                     >
                                         <FileText className="w-4 h-4" />
                                     </button>
-                                    <button
-                                        onClick={() => handleTogglePublish(exam.id, exam.isPublished)}
-                                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${exam.isPublished
-                                            ? 'bg-green-600 text-white hover:bg-green-700 shadow-green-500/20'
-                                            : 'bg-yellow-500 text-slate-900 hover:bg-yellow-400 shadow-yellow-500/20'
-                                            }`}
-                                    >
-                                        {exam.isPublished ? 'Published' : 'Draft'}
-                                    </button>
+                                    {exam.type === 'question_bank' ? (
+                                        <span className="px-3 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700">
+                                            Internal Only
+                                        </span>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleTogglePublish(exam.id, exam.isPublished)}
+                                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${exam.isPublished
+                                                ? 'bg-green-600 text-white hover:bg-green-700 shadow-green-500/20'
+                                                : 'bg-yellow-500 text-slate-900 hover:bg-yellow-400 shadow-yellow-500/20'
+                                                }`}
+                                        >
+                                            {exam.isPublished ? 'Published' : 'Draft'}
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => {
                                             setSelectedExam(exam);

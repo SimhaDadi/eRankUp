@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsNumber, IsDateString, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsNumber, IsDateString, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ExamType } from '../entities/exam.entity';
 
@@ -42,11 +42,20 @@ export class CreateExamDto {
     price?: number;
 
     @IsNumber()
+    @Min(5)
+    @Max(300)
+    @IsOptional()
+    @Type(() => Number)
+    duration?: number;
+
+    @IsNumber()
+    @Min(0.1)
     @IsOptional()
     @Type(() => Number)
     defaultPositiveMarks?: number;
 
     @IsNumber()
+    @Min(0)
     @IsOptional()
     @Type(() => Number)
     defaultNegativeMarks?: number;

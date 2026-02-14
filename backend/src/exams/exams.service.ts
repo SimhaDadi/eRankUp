@@ -324,6 +324,24 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     async updateExam(id: string, updateExamDto: UpdateExamDto) {
+        const exam = await this.examsRepository.findOne({ where: { id } });
+
+        if (!exam) {
+            throw new NotFoundException('Exam not found');
+        }
+
+        // ===== VALIDATION FOR UPDATES =====
+
+        // Prevent publishing question banks
+        if (exam.type === 'question_bank' && updateExamDto.isPublished) {
+            throw new BadRequestException('Question banks cannot be published. They are used as a source for other exams.');
+        }
+
+        // Prevent changing type of published exams (data integrity)
+        if (exam.isPublished && (updateExamDto as any).type && (updateExamDto as any).type !== exam.type) {
+            throw new BadRequestException('Cannot change type of published exam. Unpublish first, then change type.');
+        }
+
         await this.examsRepository.update(id, updateExamDto);
         await this.invalidateCache(id);
         return this.findOne(id);
@@ -637,8 +655,79 @@ export class ExamsService implements OnApplicationBootstrap {
             examData.title = (createExamDto as any).name;
         }
 
+        // ===== BASIC VALIDATION =====
         if (!examData.title) {
             throw new BadRequestException('Exam title is required');
+        }
+
+        // ===== TYPE-SPECIFIC VALIDATION =====
+        switch (examData.type) {
+            case 'live_exam':
+                // Live exams require start and end times
+                if (!examData.startTime) {
+                    throw new BadRequestException('Live exams require a start time');
+                }
+                if (!examData.endTime) {
+                    throw new BadRequestException('Live exams require an end time');
+                }
+
+                const start = new Date(examData.startTime);
+                const end = new Date(examData.endTime);
+                const now = new Date();
+
+                if (start >= end) {
+                    throw new BadRequestException('End time must be after start time');
+                }
+                if (start < now) {
+                    throw new BadRequestException('Start time cannot be in the past');
+                }
+                break;
+
+            case 'chapter_wise_test':
+                // Chapter-wise tests require a category (subject)
+                if (!examData.category) {
+                    throw new BadRequestException('Chapter-wise tests require a category (subject)');
+                }
+                break;
+
+            case 'question_bank':
+                // Question banks should never be published to students
+                if (examData.isPublished) {
+                    throw new BadRequestException('Question banks cannot be published. They are used as a source for other exams.');
+                }
+                // Force isPublished to false for safety
+                examData.isPublished = false;
+                break;
+
+            case 'real_exam':
+                // Enforce free quizzes (category contains "quiz")
+                if (examData.category && examData.category.toLowerCase().includes('quiz')) {
+                    if (examData.isPremium) {
+                        throw new BadRequestException('Quizzes must be free (isPremium must be false)');
+                    }
+                    // Force isPremium to false for safety
+                    examData.isPremium = false;
+                }
+                break;
+        }
+
+        // ===== GENERAL VALIDATION =====
+        if (examData.duration !== undefined) {
+            if (examData.duration < 5 || examData.duration > 300) {
+                throw new BadRequestException('Duration must be between 5 and 300 minutes');
+            }
+        }
+
+        if (examData.defaultPositiveMarks !== undefined) {
+            if (examData.defaultPositiveMarks <= 0) {
+                throw new BadRequestException('Positive marks must be greater than 0');
+            }
+        }
+
+        if (examData.defaultNegativeMarks !== undefined) {
+            if (examData.defaultNegativeMarks < 0) {
+                throw new BadRequestException('Negative marks cannot be negative');
+            }
         }
 
         const exam = this.examsRepository.create(examData);
