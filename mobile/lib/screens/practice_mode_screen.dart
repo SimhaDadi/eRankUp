@@ -33,19 +33,40 @@ class _PracticeModeScreenState extends State<PracticeModeScreen> {
     final apiService = Provider.of<ApiService>(context, listen: false);
 
     try {
-      final response = await apiService.get('/exams/hierarchy?type=question_bank');
+      // Fetch chapter-wise test exams instead of raw hierarchy
+      final response = await apiService.get('/exams?type=chapter_wise_test');
       if (response.statusCode == 200) {
         if (mounted) {
-          setState(() {
-            // Flatten subjects from all returned exams to match Web behavior
-            final List<dynamic> exams = jsonDecode(response.body);
-            final List<dynamic> allSubjects = [];
-            for (var exam in exams) {
-              if (exam['subjects'] != null) {
-                allSubjects.addAll(exam['subjects']);
-              }
+          final data = jsonDecode(response.body);
+          final List<dynamic> exams = data is List ? data : (data['data'] ?? []);
+          
+          // Group exams by subject (category) and chapter
+          final Map<String, dynamic> subjectsMap = {};
+          
+          for (var exam in exams) {
+            final String subjectName = exam['category'] ?? 'General';
+            final String chapterName = exam['metadata']?['chapterName'] ?? exam['title'];
+            
+            if (!subjectsMap.containsKey(subjectName)) {
+              subjectsMap[subjectName] = {
+                'id': subjectName,
+                'name': subjectName,
+                'title': subjectName,
+                'chapters': []
+              };
             }
-            _hierarchy = allSubjects;
+            
+            // Add exam as a chapter
+            subjectsMap[subjectName]['chapters'].add({
+              'id': exam['id'],
+              'name': chapterName,
+              'title': chapterName,
+              'description': exam['description'],
+            });
+          }
+          
+          setState(() {
+            _hierarchy = subjectsMap.values.toList();
             _isLoading = false;
           });
         }
@@ -65,7 +86,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen> {
     }
   }
 
-  Future<void> _startChapterPractice(String chapterId, String title) async {
+  Future<void> _startChapterPractice(String examId, String title) async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     
     // Show loading dialog
@@ -76,8 +97,9 @@ class _PracticeModeScreenState extends State<PracticeModeScreen> {
     );
 
     try {
-      final response = await apiService.post('/test-session/start/chapter', {
-        'chapterId': chapterId
+      // Use regular exam start flow (examId is now the actual exam ID)
+      final response = await apiService.post('/test-session/start', {
+        'examId': examId
       });
 
       // Close loading dialog
@@ -87,29 +109,13 @@ class _PracticeModeScreenState extends State<PracticeModeScreen> {
         final data = jsonDecode(response.body);
         
         if (mounted) {
-           // The response from startChapterSession should act like a test session.
-           // However based on controller, it calls sessionService.startChapterSession.
-           // We expect it to return a session object or similar structure to what TestEngineScreen expects.
-           // TestEngineScreen expects a TestModel.
-           // Let's create a TestModel from the response.
-           
-           // Backend Implementation check:
-           // test-session.service.ts -> startChapterSession usually creates a TestSession and returns it.
-           // TestModel.fromJson parses the exam/model structure.
-           // Ideally we should pass a TestModel.
-           // If the response is a Session, it might need mapping.
-           
-           // For now, let's assume the response structure is compatible or we map meaningful fields.
-           // If the response contains 'questions', we can construct a virtual TestModel.
-           
            List<dynamic> questions = data['questions'] ?? [];
            
            final virtualModel = TestModel(
-              id: data['id'] ?? data['sessionId'] ?? 'practice-$chapterId',
+              id: data['id'] ?? data['sessionId'] ?? examId,
               title: title,
               totalQuestions: questions.length,
-              duration: 0, // Practice usually unlimited or specific
-              // We might need to handle practice mode specifically in TestEngineScreen if it differs from Exam
+              duration: data['duration'] ?? 0,
             );
 
             Navigator.push(
@@ -122,7 +128,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to start practice: ${response.body}')),
+            const SnackBar(content: Text('Failed to start test')),
           );
         }
       }

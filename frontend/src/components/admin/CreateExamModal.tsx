@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Plus, Library, Zap } from 'lucide-react';
+import { X, Loader2, Plus, Library, Zap, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 
@@ -280,7 +280,7 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Exam Type <span className="text-red-500">*</span>
                         </label>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-5 gap-2">
                             <button
                                 type="button"
                                 onClick={() => handleChange('type', 'real_exam')}
@@ -325,6 +325,17 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
                                 <Library className="w-4 h-4" />
                                 Bank
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => handleChange('type', 'chapter_wise_test')}
+                                className={`px-2 py-3 rounded-xl border-2 font-bold transition-all text-[10px] flex flex-col items-center gap-1 ${formData.type === 'chapter_wise_test'
+                                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                                    : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
+                                    }`}
+                            >
+                                <BookOpen className="w-4 h-4" />
+                                Chapter
+                            </button>
                         </div>
                         <p className="text-[10px] text-gray-400 mt-2 italic px-1">
                             {formData.type === 'real_exam'
@@ -333,7 +344,9 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
                                     ? 'Scheduled event. Only accessible during specified window.'
                                     : formData.type === 'previous_year_paper'
                                         ? 'Official past papers. Used for practice and reference.'
-                                        : 'A repository of questions used as a source for other exams.'}
+                                        : formData.type === 'question_bank'
+                                            ? 'A repository of questions used as a source for other exams.'
+                                            : 'Chapter-wise practice tests. Appears in Chapter Wise Tests tab.'}
                         </p>
                     </div>
 

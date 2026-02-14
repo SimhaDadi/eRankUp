@@ -49,13 +49,41 @@ export default function PracticePage() {
     useEffect(() => {
         const fetchHierarchy = async () => {
             try {
-                const response = await api.get('/exams/hierarchy?type=question_bank');
-                // Flatten subjects from all returned exams
-                const exams = Array.isArray(response.data) ? response.data : [];
-                const allSubjects = exams.flatMap((exam: any) => exam.subjects || []);
-                setHierarchy(allSubjects);
+                // Fetch chapter-wise test exams instead of raw hierarchy
+                const response = await api.get('/exams?type=chapter_wise_test');
+                const exams = Array.isArray(response.data) ? response.data : response.data?.data || [];
+
+                // Group exams by subject (category) and chapter
+                const subjectsMap = new Map<string, Subject>();
+
+                exams.forEach((exam: any) => {
+                    const subjectName = exam.category || 'General';
+                    const chapterName = exam.metadata?.chapterName || exam.title;
+
+                    if (!subjectsMap.has(subjectName)) {
+                        subjectsMap.set(subjectName, {
+                            id: subjectName,
+                            title: subjectName,
+                            name: subjectName,
+                            chapters: []
+                        });
+                    }
+
+                    const subject = subjectsMap.get(subjectName)!;
+
+                    // Add exam as a chapter
+                    subject.chapters.push({
+                        id: exam.id,
+                        title: chapterName,
+                        name: chapterName,
+                        description: exam.description,
+                        modelCount: 1 // Each exam is one test
+                    });
+                });
+
+                setHierarchy(Array.from(subjectsMap.values()));
             } catch (error) {
-                console.error("Failed to fetch practice hierarchy", error);
+                console.error("Failed to fetch chapter-wise tests", error);
             } finally {
                 setIsLoading(false);
             }
@@ -89,9 +117,9 @@ export default function PracticePage() {
         }
     }, [searchQuery, hierarchy]);
 
-    const startChapterPractice = async (chapterId: string) => {
-        // Redirect to instructions first
-        router.push(`/dashboard/exam-start/chapter-${chapterId}`);
+    const startChapterPractice = async (examId: string) => {
+        // Redirect to exam start page (examId is now the actual exam ID, not chapter ID)
+        router.push(`/dashboard/exam-start/${examId}`);
     };
 
     // Removed direct return here to use AnimatePresence below
