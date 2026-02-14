@@ -12,6 +12,8 @@ import { User } from '../users/user.entity';
 import { UserStats } from '../users/entities/user-stats.entity';
 import { GamificationService } from '../gamification/gamification.service';
 import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
+import { AIService } from '../ai/ai.service';
+
 
 describe('ScorerService', () => {
     let service: ScorerService;
@@ -80,7 +82,14 @@ describe('ScorerService', () => {
                     useValue: {
                         updateTopicMastery: jest.fn().mockResolvedValue({}),
                     }
+                },
+                {
+                    provide: AIService,
+                    useValue: {
+                        generateExplanation: jest.fn().mockResolvedValue('explanation'),
+                    }
                 }
+
             ],
         }).compile();
 
@@ -104,7 +113,8 @@ describe('ScorerService', () => {
             mockQuestionRepository.find.mockResolvedValue(questions);
 
             const userAnswers = { 'q1': '1', 'q2': '2' };
-            const result = await service.gradeAndSave(user, modelId, userAnswers, Date.now() - 1000);
+            const result = await service.gradeAndSave(user, modelId, userAnswers, Date.now() - 1000, {}, []);
+
 
             expect(result.score).toBe(100);
             expect(result.correctAnswers).toBe(2);
@@ -122,7 +132,8 @@ describe('ScorerService', () => {
             mockQuestionRepository.find.mockResolvedValue(questions);
 
             const userAnswers = { 'q1': '1', 'q2': 'wrong' };
-            const result = await service.gradeAndSave(user, 'm1', userAnswers, Date.now() - 1000);
+            const result = await service.gradeAndSave(user, 'm1', userAnswers, Date.now() - 1000, {}, []);
+
 
             // 2 (correct) - 0.5 (wrong) = 1.5
             // Total possible: 4

@@ -1,24 +1,21 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, IsNull, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Attempt } from './entities/attempt.entity';
 import { Question } from './entities/question.entity';
 import { Model } from './entities/model.entity';
 import { Exam } from './entities/exam.entity';
 import { Response } from './entities/response.entity';
 import { User } from '../users/user.entity';
-import { UserStats } from '../users/entities/user-stats.entity';
 import { DifficultyService } from './difficulty.service';
 import { CacheService } from '../common/cache.service';
 import { GamificationService } from '../gamification/gamification.service';
 import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
-import { isUUID } from '../common/utils';
 import { AIService } from '../ai/ai.service';
+
 
 @Injectable()
 export class ScorerService implements OnModuleInit {
-    private readonly logger = new Logger(ScorerService.name);
-
     constructor(
         @InjectRepository(Attempt)
         private attemptRepository: Repository<Attempt>,
@@ -30,51 +27,226 @@ export class ScorerService implements OnModuleInit {
         private examRepository: Repository<Exam>,
         @InjectRepository(Response)
         private responseRepository: Repository<Response>,
-        @InjectRepository(User)
-        private userRepository: Repository<User>,
-        @InjectRepository(UserStats)
-        private userStatsRepository: Repository<UserStats>,
         private difficultyService: DifficultyService,
         private cacheService: CacheService,
         private gamificationService: GamificationService,
         private adaptiveLearningService: AdaptiveLearningService,
-        private aiService: AIService, // Injected
+        private aiService: AIService,
     ) { }
 
-    // ... (existing code)
+    async gradeAndSave(
+        user: User,
+        modelId: string, // Can be Model ID or Exam ID
+        userAnswers: Record<string, string>,
+        startTime: number,
+        questionTimings: Record<string, number> = {},
+        flags: string[] = [],
+        forcedQuestionIds: string[] = [],
+    ): Promise<Attempt> {
 
-    async getAttempt(id: string, userId: string) {
-        const attempt = await this.attemptRepository.findOne({
-            where: { id, user: { id: userId } },
-            relations: ['model', 'model.chapter', 'model.exams', 'exam', 'responses', 'responses.question'],
-        });
+        console.log(`[Scorer] Grading attempt for User: ${user.id}, ID: ${modelId}`);
 
-        if (attempt?.responses) {
-            // Lazy Load Explanations: Check if any question lacks an explanation
-            const questionsWithoutExplanation = attempt.responses
-                .map(r => r.question)
-                .filter(q => q && (!q.explanation || q.explanation.trim() === ''));
+        // 1. Fetch questions/model/exam
+        let questions: Question[] = [];
+        let examPos = 1.0;
+        let examNeg = 0.25;
+        let model: Model | null = null;
+        let exam: Exam | null = null;
 
-            if (questionsWithoutExplanation.length > 0) {
-                this.logger.log(`[ScorerService] Found ${questionsWithoutExplanation.length} questions without explanation. Generating on-demand...`);
+        if (forcedQuestionIds && forcedQuestionIds.length > 0) {
+            console.log(`[Scorer] Using ${forcedQuestionIds.length} forced question IDs`);
+            questions = await this.questionRepository.find({
+                where: forcedQuestionIds.map(id => ({ id })),
+                relations: ['subject', 'chapter']
+            });
+        }
 
-                // Process in parallel (but limited by QueueService underneath)
-                await Promise.all(questionsWithoutExplanation.map(async (q) => {
-                    try {
-                        const explanation = await this.aiService.generateQuestionExplanation(q);
-                        if (explanation) {
-                            q.explanation = explanation;
-                            await this.questionRepository.save(q);
-                            this.logger.log(`[ScorerService] Generated and saved explanation for Question ${q.id}`);
-                        }
-                    } catch (err) {
-                        this.logger.error(`[ScorerService] Failed to generate on-demand explanation for Q ${q.id}`, err.stack);
+        if (questions.length === 0 && modelId.startsWith('adaptive')) {
+            // Fetch questions individually for adaptive sessions
+            const questionIds = Object.keys(userAnswers);
+            if (questionIds.length === 0) throw new Error('No questions attempted');
+
+            questions = await this.questionRepository.find({
+                where: questionIds.map(id => ({ id })),
+                relations: ['subject', 'chapter']
+            });
+        } else if (questions.length === 0) {
+            // Try fetching as Model first
+            model = await this.modelRepository.findOne({
+                where: { id: modelId },
+                relations: ['questions', 'exams']
+            });
+
+            if (model) {
+                if (!model.questions || model.questions.length === 0) {
+                    console.error(`[Scorer] No questions found for model ${modelId}`);
+                    throw new Error('No questions found for this model');
+                }
+                questions = model.questions;
+                const targetExam = model.exams?.[0];
+                examPos = targetExam?.defaultPositiveMarks || 1.0;
+                examNeg = targetExam?.defaultNegativeMarks || 0.25;
+            } else {
+                // Try fetching as Exam
+                exam = await this.examRepository.findOne({
+                    where: { id: modelId },
+                    relations: ['questions']
+                });
+
+                if (exam) {
+                    if (!exam.questions || exam.questions.length === 0) {
+                        console.error(`[Scorer] No questions found for exam ${modelId}`);
+                        throw new Error('No questions found for this exam');
                     }
-                }));
+                    questions = exam.questions;
+                    examPos = exam.defaultPositiveMarks || 1.0;
+                    examNeg = exam.defaultNegativeMarks || 0.25;
+                } else {
+                    console.error(`[Scorer] No Model or Exam found with ID ${modelId}`);
+                    throw new Error('Test not found');
+                }
             }
         }
 
-        return attempt;
+        const totalQuestions = questions.length;
+        let correctAnswers = 0;
+        let totalPossiblePoints = 0;
+        let earnedPoints = 0;
+
+        const questionResults: { questionId: string; isCorrect: boolean }[] = [];
+
+        questions.forEach((q) => {
+            const isCorrect = userAnswers[q.id] === q.correctOptionId;
+            const hasAnswered = !!userAnswers[q.id];
+
+            // Use Question specific marks if set, otherwise fallback to Exam defaults
+            const posMark = q.positiveMarks != null ? q.positiveMarks : examPos;
+            const negMark = q.negativeMarks != null ? q.negativeMarks : examNeg;
+
+            totalPossiblePoints += posMark;
+
+            if (isCorrect) {
+                correctAnswers++;
+                earnedPoints += posMark;
+            } else if (hasAnswered) {
+                earnedPoints -= negMark;
+            }
+            questionResults.push({ questionId: q.id, isCorrect });
+        });
+
+        // 2. Update question stats (AWAITED to avoid race conditions/mangling)
+        try {
+            await this.difficultyService.bulkUpdateStats(questionResults);
+        } catch (err) {
+            console.error('[Scorer] Failed to update question stats', err);
+        }
+
+        const score = totalPossiblePoints > 0 ? Math.max(0, (earnedPoints / totalPossiblePoints) * 100) : 0;
+        const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+        const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+
+        // 3. Save Attempt
+        // We use IDs instead of objects where possible to prevent TypeORM from trying to "update" related entities
+        // Ensure user ID is valid UUID
+        const attempt = this.attemptRepository.create({
+            user: { id: user.id } as User,
+            model: model ? ({ id: model.id } as Model) : undefined,
+            exam: exam ? ({ id: exam.id } as Exam) : undefined,
+            score: Math.round(score * 100) / 100,
+            totalQuestions,
+            correctAnswers,
+            accuracy: Math.round(accuracy * 100) / 100,
+            timeTaken,
+            userAnswers: userAnswers,
+            questionTimings: questionTimings,
+            responses: []
+        });
+
+        // 4. Create Response Entities (Granular)
+        const responseEntities: Response[] = questions.map(q => {
+            const selectedOptionId = userAnswers[q.id];
+            const isCorrect = selectedOptionId === q.correctOptionId;
+            const timeSpent = questionTimings[q.id] || 0;
+            const wasReviewed = flags.includes(q.id);
+            const wasSkipped = !selectedOptionId;
+
+            return this.responseRepository.create({
+                // attempt: attempt, // Let cascade-save handle the relationship
+                question: { id: q.id } as Question,
+                selectedOptionId: selectedOptionId || '',
+                isCorrect: !!selectedOptionId && isCorrect,
+                timeSpent: timeSpent,
+                wasSkipped: wasSkipped,
+                wasReviewed: wasReviewed,
+                answeredAt: new Date()
+            });
+        });
+
+        attempt.responses = responseEntities;
+
+        try {
+            const savedAttempt = await this.attemptRepository.save(attempt);
+            console.log(`[Scorer] Attempt saved successfully. ID: ${savedAttempt.id}`);
+
+            // Invalidate leaderboard cache
+            this.cacheService.del('leaderboard:global').catch(err =>
+                console.error('[Scorer] Failed to invalidate leaderboard cache', err)
+            );
+
+            // === GAMIFICATION INTEGRATION ===
+            try {
+                // Award XP for completing test
+                const baseXP = 50; // Base XP for completing a test
+                const correctXP = correctAnswers * 10; // 10 XP per correct answer
+                const perfectBonus = (correctAnswers === totalQuestions) ? 100 : 0; // Bonus for perfect score
+                const totalXP = baseXP + correctXP + perfectBonus;
+
+                const levelUpResult = await this.gamificationService.awardXP(
+                    user.id,
+                    totalXP,
+                    `Completed test: ${correctAnswers}/${totalQuestions} correct`
+                );
+
+                // Update streak
+                await this.gamificationService.updateStreak(user.id);
+
+                // Update badge criteria tracking
+                const profile = await this.gamificationService.getOrCreateProfile(user.id);
+                profile.testsCompleted += 1;
+                profile.correctAnswers += correctAnswers;
+                await this.gamificationService['gamificationRepo'].save(profile);
+
+                // Add level-up info to attempt for frontend
+                (savedAttempt as any).levelUp = levelUpResult;
+
+                console.log(`[Scorer] Awarded ${totalXP} XP to user ${user.id}`);
+            } catch (gamificationErr) {
+                console.error('[Scorer] Failed to award gamification rewards', gamificationErr);
+                // Don't fail the attempt if gamification fails
+            }
+
+            // === ADAPTIVE LEARNING INTEGRATION ===
+            try {
+                // Update topic mastery based on responses
+                await this.adaptiveLearningService.updateTopicMastery(user.id, responseEntities);
+                console.log(`[Scorer] Updated topic mastery for user ${user.id}`);
+            } catch (adaptiveErr) {
+                console.error('[Scorer] Failed to update topic mastery', adaptiveErr);
+                // Don't fail the attempt if adaptive learning fails
+            }
+
+            return savedAttempt;
+        } catch (dbErr) {
+            console.error(`[Scorer] DB Error saving attempt:`, dbErr);
+            throw dbErr;
+        }
+    }
+
+    async getAttempt(id: string, userId: string) {
+        return this.attemptRepository.findOne({
+            where: { id, user: { id: userId } },
+            relations: ['model', 'model.chapter', 'model.exams', 'exam', 'responses', 'responses.question'],
+        });
     }
 
     async getLatestAttempts(userId: string, limit: number = 10) {
@@ -85,6 +257,7 @@ export class ScorerService implements OnModuleInit {
             relations: ['model', 'exam', 'model.chapter'],
         });
     }
+
 
     async getAttemptsForExam(examId: string, userId: string) {
         return this.attemptRepository.find({
@@ -106,16 +279,15 @@ export class ScorerService implements OnModuleInit {
         }
 
         const leaderboard = await this.attemptRepository.createQueryBuilder('attempt')
-            .innerJoin('attempt.user', 'user')
+            .leftJoinAndSelect('attempt.user', 'user')
             .select([
-                'user.id AS userId',
-                'user.fullName AS fullName',
-                'MAX(attempt.score) AS maxScore',
-                'AVG(attempt.accuracy) AS avgAccuracy'
+                'user.id',
+                'user.name',
+                'MAX(attempt.score) as max_score',
+                'AVG(attempt.accuracy) as avg_accuracy'
             ])
             .groupBy('user.id')
-            .addGroupBy('user.fullName')
-            .orderBy('maxScore', 'DESC')
+            .orderBy('max_score', 'DESC')
             .limit(10)
             .getRawMany();
 
@@ -128,108 +300,74 @@ export class ScorerService implements OnModuleInit {
     async getPerformanceTrend(userId: string, limit: number = 20) {
         return this.attemptRepository.find({
             where: { user: { id: userId } },
-            order: { createdAt: 'ASC' },
+            order: { createdAt: 'DESC' },
             take: limit,
-            relations: ['model', 'exam']
+            select: ['id', 'score', 'createdAt'],
         });
     }
 
+
     async getUserStats(userId: string) {
-        const cacheKey = `stats:user:${userId}`;
-        const cached = await this.cacheService.get<any>(cacheKey);
-        if (cached) return cached;
+        const attempts = await this.attemptRepository.find({
+            where: { user: { id: userId } },
+            order: { createdAt: 'DESC' }
+        });
 
-        const stats = await this.userStatsRepository.findOne({ where: { userId } });
-
-        if (!stats) {
+        if (attempts.length === 0) {
             return {
                 totalAttempts: 0,
                 averageScore: 0,
-                bestScore: 0,
                 totalTimeTaken: 0,
                 accuracy: 0,
                 streak: 0,
-                dailyQuestions: 0,
-                topicPerformance: [],
-                topTopicRecommendation: 'Start your first test!'
             };
         }
 
-        const accuracy = stats.totalQuestionsAttempted > 0
-            ? Math.round((stats.totalCorrect / stats.totalQuestionsAttempted) * 100)
-            : 0;
+        const totalAttempts = attempts.length;
+        const totalScore = attempts.reduce((acc, curr) => acc + curr.score, 0);
+        const totalTimeTaken = attempts.reduce((acc, curr) => acc + curr.timeTaken, 0);
+        const totalCorrect = attempts.reduce((acc, curr) => acc + curr.correctAnswers, 0);
+        const totalQuestions = attempts.reduce((acc, curr) => acc + curr.totalQuestions, 0);
 
-        const averageScore = stats.totalAttempts > 0
-            ? Math.round(stats.totalScore / stats.totalAttempts)
-            : 0;
+        // Calculate Streak
+        // 1. Get unique dates of attempts (YYYY-MM-DD)
+        const uniqueDates = Array.from(new Set(attempts.map(a => new Date(a.createdAt).toISOString().split('T')[0]))).sort((a, b) => b.localeCompare(a)); // Descending order
 
-        // Transform topic perf
-        const topicPerformance = Object.keys(stats.topicPerformance || {}).map(topic => ({
-            subject: topic,
-            A: Math.round((stats.topicPerformance[topic].correct / stats.topicPerformance[topic].total) * 100),
-            fullMark: 100
-        }));
+        let streak = 0;
+        const today = new Date().toISOString().split('T')[0];
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterday = yesterdayDate.toISOString().split('T')[0];
 
-        // Fill defaults
-        if (topicPerformance.length < 3) {
-            const defaults = ['Algebra', 'Geometry', 'Arithmetic', 'Reasoning', 'Verbal'];
-            defaults.forEach(d => {
-                if (!topicPerformance.find(t => t.subject === d)) {
-                    topicPerformance.push({ subject: d, A: 0, fullMark: 100 });
+        // Check if the most recent attempt is today or yesterday to start the streak
+        if (uniqueDates.length > 0 && (uniqueDates[0] === today || uniqueDates[0] === yesterday)) {
+            streak = 1;
+            let currentDate = new Date(uniqueDates[0]);
+
+            // Iterate backwards
+            for (let i = 1; i < uniqueDates.length; i++) {
+                const prevDate = new Date(currentDate);
+                prevDate.setDate(prevDate.getDate() - 1);
+                const expectedPrevStr = prevDate.toISOString().split('T')[0];
+
+                if (uniqueDates[i] === expectedPrevStr) {
+                    streak++;
+                    currentDate = prevDate;
+                } else {
+                    break;
                 }
-            });
+
+            }
         }
 
-        // TODO: "Best Score" is not stored in stats. We might want to add it.
-        // For now, perform quick query for MAX score (indexed) - fast enough.
-        const maxResult = await this.attemptRepository.createQueryBuilder('attempt')
-            .select('MAX(attempt.score)', 'max')
-            .where('attempt.userId = :userId', { userId })
-            .getRawOne();
-        const bestScore = maxResult ? parseFloat(maxResult.max) || 0 : 0;
-
-        // Daily questions needs "today's" count. 
-        // We can't easily get this from summary table without a "daily_stats" table.
-        // We will skip daily questions count or use a quick count query for today only.
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const dailyCount = await this.attemptRepository.count({
-            where: {
-                user: { id: userId },
-                createdAt: MoreThanOrEqual(today)
-            }
-        });
-        // Count represents exams, not questions... 
-        // Use SUM(totalQuestions)
-        const dailyQs = await this.attemptRepository.createQueryBuilder('attempt')
-            .select('SUM(attempt.totalQuestions)', 'total')
-            .where('attempt.userId = :userId', { userId })
-            .andWhere('attempt.createdAt >= :today', { today })
-            .getRawOne();
-        const dailyQuestions = dailyQs ? parseInt(dailyQs.total) || 0 : 0;
-
-        // AI Rec
-        const weakAreas = await this.adaptiveLearningService.getWeakAreas(userId, 1);
-        const topTopicRecommendation = weakAreas.length > 0
-            ? `${weakAreas[0].topic}: Focus on this to boost your score`
-            : 'Take a diagnostic test now';
-
-        const result = {
-            totalAttempts: stats.totalAttempts,
-            averageScore,
-            bestScore,
-            totalTimeTaken: stats.totalTimeTaken,
-            accuracy,
-            streak: stats.currentStreak,
-            dailyQuestions,
-            topicPerformance,
-            topTopicRecommendation
+        return {
+            totalAttempts,
+            averageScore: Math.round(totalScore / totalAttempts),
+            totalTimeTaken,
+            accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0,
+            streak,
         };
-
-        await this.cacheService.set(cacheKey, result, 300);
-        return result;
     }
-
     async getUserExamStats(userId: string) {
         const attempts = await this.attemptRepository.find({
             where: { user: { id: userId } },
@@ -237,9 +375,10 @@ export class ScorerService implements OnModuleInit {
             order: { createdAt: 'DESC' }
         });
 
-        this.logger.log(`Found ${attempts.length} attempts for user ${userId}`);
+        console.log(`[Stats] Found ${attempts.length} attempts for user ${userId}`);
 
         const stats: Record<string, { count: number; latestScore: number; bestScore: number; attemptedModelIds: string[]; latestAttemptId?: string }> = {};
+
 
         for (const attempt of attempts) {
             const examId = attempt.exam?.id || attempt.model?.exams?.[0]?.id;
@@ -247,37 +386,35 @@ export class ScorerService implements OnModuleInit {
             if (!examId) continue;
 
             if (!stats[examId]) {
-                stats[examId] = {
-                    count: 0,
-                    latestScore: attempt.score,
-                    bestScore: attempt.score,
-                    attemptedModelIds: [],
-                    latestAttemptId: attempt.id
-                };
+                stats[examId] = { count: 0, latestScore: attempt.score, latestAttemptId: attempt.id, bestScore: 0, attemptedModelIds: [] };
             }
+
             stats[examId].count++;
             stats[examId].bestScore = Math.max(stats[examId].bestScore, attempt.score);
 
-            // Since attempts are DESC, the latestAttemptId is already the first one found
-            // No need to update it for subsequent older attempts in the loop
-
-            const refId = attempt.model?.id || attempt.exam?.id;
-            if (refId && !stats[examId].attemptedModelIds.includes(refId)) {
-                stats[examId].attemptedModelIds.push(refId);
+            if (attempt.model?.id) {
+                if (!stats[examId].attemptedModelIds.includes(attempt.model.id)) {
+                    stats[examId].attemptedModelIds.push(attempt.model.id);
+                }
+            } else if (attempt.exam?.id) {
+                // Direct exam attempt. Treat the exam itself as a "model" for progress tracking
+                if (!stats[examId].attemptedModelIds.includes(attempt.exam.id)) {
+                    stats[examId].attemptedModelIds.push(attempt.exam.id);
+                }
             }
         }
 
-        this.logger.log(`Generated stats for exams: ${Object.keys(stats).join(', ')}`);
+        console.log(`[Stats] Generated stats for exams:`, Object.keys(stats));
         return stats;
     }
 
     async repairAttemptConnections() {
-        this.logger.log('Starting attempt connection repair...');
+        console.log('[Repair] Starting attempt connection repair...');
         const attempts = await this.attemptRepository.find({
             relations: ['model', 'model.exams', 'exam'],
-            where: {
-                exam: IsNull(),
-            },
+            where: [
+                { exam: { id: null } as any }, // Attempts with no exam
+            ]
         });
 
         let fixed = 0;
@@ -287,26 +424,26 @@ export class ScorerService implements OnModuleInit {
                 attempt.exam = attempt.model.exams[0];
                 await this.attemptRepository.save(attempt);
                 fixed++;
-                this.logger.log(`Linked Attempt ${attempt.id} to Exam ${attempt.exam.id} via Model ${attempt.model.id}`);
+                console.log(`[Repair] Linked Attempt ${attempt.id} to Exam ${attempt.exam.id} via Model ${attempt.model.id}`);
             }
         }
-        this.logger.log(`Finished. Fixed ${fixed} attempts.`);
+        console.log(`[Repair] Finished. Fixed ${fixed} attempts.`);
         return { fixed, totalScanned: attempts.length };
     }
 
     async onModuleInit() {
-        this.logger.log('Module Init - Running diagnostics...');
+        console.log('[Scorer] Module Init - Running diagnostics...');
 
         // Wait 5 seconds to ensure Redis and DB are warm/initialized
         setTimeout(async () => {
             try {
                 // Clear exams cache to ensure fresh data after code updates
                 await this.cacheService.del('exams:all');
-                this.logger.log('Cleared exams:all cache');
+                console.log('[Scorer] Cleared exams:all cache');
 
                 await this.repairAttemptConnections();
             } catch (e) {
-                this.logger.error('Initialization/Repair failed', e.stack);
+                console.error('[Scorer] Initialization/Repair failed', e);
             }
         }, 5000);
     }

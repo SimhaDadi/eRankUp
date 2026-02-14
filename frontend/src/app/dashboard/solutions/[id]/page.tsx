@@ -50,6 +50,7 @@ interface QuestionResponse {
         explanation: string;
         topic: string;
         avgTopperTime?: number;
+        chapter?: { title: string };
     };
 }
 
@@ -228,7 +229,7 @@ export default function SolutionPage() {
                                     ) : (
                                         <span className="px-3 py-1 bg-red-50 text-red-900 border border-red-200 text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-red-900/5">Incorrect</span>
                                     )}
-                                    <span className="text-slate-600 text-[10px] font-bold uppercase tracking-widest px-2 border-l border-slate-300">TOPIC: {question.topic || 'General'}</span>
+                                    <span className="text-slate-600 text-[10px] font-bold uppercase tracking-widest px-2 border-l border-slate-300">TOPIC: {question.topic !== 'General' ? question.topic : (question.chapter?.title || 'General')}</span>
                                 </div>
                             </div>
 
