@@ -56,7 +56,7 @@ export const PROMPTS_CONFIG = {
                 'mensuration': 'Check divisibility by 11 for any formula involving $\\pi$.',
                 'algebra': 'Use Value Substitution (x=1, y=0) or Symmetry properties.',
                 'geometry': 'Lead with Pythagorean Triplets (3,4,5; 5,12,13) or standard theorems.',
-                'direction': 'Use **N-E-S-W Cancellation Trick**. Write values under N, E, S, W. Subtract opposites (N-S, E-W). Result is hypotenuse.',
+                'direction': 'MANDATORY: Use **N-E-S-W Cancellation Trick**. Write values under N, E, S, W. Subtract opposites (N-S, E-W). Result is hypotenuse. NO DIAGRAMS.',
             }
         }
     },
