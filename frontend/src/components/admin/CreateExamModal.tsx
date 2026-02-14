@@ -75,6 +75,19 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
             }
         }
 
+        // Metadata Validation
+        if (formData.type === 'chapter_wise_test') {
+            if (!(formData as any).metadata?.chapterName?.trim()) {
+                newErrors.metadata = 'Chapter Name is required for Chapter Tests';
+            }
+        }
+
+        if (formData.type === 'previous_year_paper') {
+            if (!(formData as any).metadata?.year) {
+                newErrors.metadata = 'Year is required for Previous Year Papers';
+            }
+        }
+
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
@@ -392,10 +405,79 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
                         </div>
                     </div>
 
+                    {/* Metadata Fields - Conditional based on type */}
+                    <AnimatePresence>
+                        {formData.type === 'previous_year_paper' && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="grid grid-cols-2 gap-4 overflow-hidden"
+                            >
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Year <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="2000"
+                                        max={new Date().getFullYear()}
+                                        placeholder="e.g. 2023"
+                                        value={(formData as any).metadata?.year || ''}
+                                        onChange={(e) => handleChange('metadata', { ...((formData as any).metadata || {}), year: parseInt(e.target.value) })}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 bg-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Authority
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. SSC, UPSC"
+                                        value={(formData as any).metadata?.authority || ''}
+                                        onChange={(e) => handleChange('metadata', { ...((formData as any).metadata || {}), authority: e.target.value })}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 bg-white"
+                                    />
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {formData.type === 'chapter_wise_test' && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Chapter Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Time and Work"
+                                        value={(formData as any).metadata?.chapterName || ''}
+                                        onChange={(e) => handleChange('metadata', { ...((formData as any).metadata || {}), chapterName: e.target.value })}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-900 bg-white"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Use 'Category' field above for Subject name.</p>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     {/* Submit Error */}
                     {errors.submit && (
                         <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
                             <p className="text-red-700 text-sm font-medium">{errors.submit}</p>
+                        </div>
+                    )}
+
+                    {/* Validation Errors for Metadata */}
+                    {errors.metadata && (
+                        <div className="p-4 bg-red-50 border border-red-200 rounded-xl mt-2">
+                            <p className="text-red-700 text-sm font-medium">{errors.metadata}</p>
                         </div>
                     )}
 

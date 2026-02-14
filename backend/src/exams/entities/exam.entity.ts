@@ -63,6 +63,9 @@ export class Exam {
     @Column({ default: false })
     isLive: boolean;
 
+    @Column({ type: 'jsonb', nullable: true })
+    metadata: Record<string, any>;
+
     @Column({ type: 'timestamp', nullable: true })
     startTime: Date;
 

@@ -63,6 +63,9 @@ export class CreateExamDto {
     @IsBoolean()
     @IsOptional()
     isPublished?: boolean;
+
+    @IsOptional()
+    metadata?: Record<string, any>;
 }
 
 export class UpdateExamDto {
@@ -73,4 +76,7 @@ export class UpdateExamDto {
     @IsBoolean()
     @IsOptional()
     isPublished?: boolean;
+
+    @IsOptional()
+    metadata?: Record<string, any>;
 }
