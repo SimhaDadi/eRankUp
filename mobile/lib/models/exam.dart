@@ -13,6 +13,7 @@ class Exam {
   final bool isPublished;
   final Map<String, dynamic>? attempts;
   final Map<String, dynamic>? activeSession;
+  final Map<String, dynamic>? metadata;
 
   Exam({
     required this.id,
@@ -29,6 +30,7 @@ class Exam {
     this.category,
     this.isPublished = false,
     this.attempts,
+    this.metadata,
   });
 
   factory Exam.fromJson(Map<String, dynamic> json) {
@@ -55,6 +57,7 @@ class Exam {
       category: categoryName,
       isPublished: json['isPublished'] ?? true,
       attempts: json['attempts'],
+      metadata: json['metadata'],
     );
   }
 }

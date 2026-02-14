@@ -219,7 +219,10 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => ExamStartScreen(model: model),
+                                        builder: (_) => ExamStartScreen(
+                                          model: model,
+                                          parentMetadata: _currentExam.metadata,
+                                        ),
                                       ),
                                     );
                                   } : null,

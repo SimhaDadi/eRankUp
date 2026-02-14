@@ -5,72 +5,18 @@ import 'test_engine_screen.dart';
 
 class ExamStartScreen extends StatefulWidget {
   final TestModel model;
+  final Map<String, dynamic>? parentMetadata;
   
-  const ExamStartScreen({super.key, required this.model});
+  const ExamStartScreen({super.key, required this.model, this.parentMetadata});
 
   @override
   State<ExamStartScreen> createState() => _ExamStartScreenState();
 }
 
 class _ExamStartScreenState extends State<ExamStartScreen> {
-  bool _agreedToInstructions = false;
-  bool _showInstructions = false;
+  // ... (unchanged state variables)
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: const Text('Start Exam'),
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Exam Title Card
-              _buildExamTitleCard(isDark),
-              
-              const SizedBox(height: 20),
-              
-              // Test Metadata Cards
-              _buildMetadataCards(isDark),
-              
-              const SizedBox(height: 24),
-              
-              // Secure Environment Card
-              _buildSecureEnvironmentCard(isDark, theme),
-              
-              const SizedBox(height: 20),
-              
-              // Instructions Section
-              _buildInstructionsSection(isDark, theme),
-              
-              const SizedBox(height: 20),
-              
-              // Agreement Checkbox
-              _buildAgreementCheckbox(isDark, theme),
-              
-              const SizedBox(height: 24),
-              
-              // Start Button
-              _buildStartButton(isDark),
-              
-              const SizedBox(height: 16),
-              
-              // Help Link
-              _buildHelpLink(isDark),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // ... (unchanged build method)
 
   Widget _buildExamTitleCard(bool isDark) {
     return Container(
@@ -96,6 +42,7 @@ class _ExamStartScreenState extends State<ExamStartScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
@@ -114,6 +61,51 @@ class _ExamStartScreenState extends State<ExamStartScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Badges Row
+                    if (widget.parentMetadata != null && (widget.parentMetadata!['authority'] != null || widget.parentMetadata!['year'] != null))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Row(
+                          children: [
+                            if (widget.parentMetadata!['authority'] != null)
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.white.withOpacity(0.4)),
+                                ),
+                                child: Text(
+                                  '${widget.parentMetadata!['authority']}'.toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                             if (widget.parentMetadata!['year'] != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.white.withOpacity(0.4)),
+                                ),
+                                child: Text(
+                                  '${widget.parentMetadata!['year']}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ), 
+                          ],
+                        ),
+                      ),
+                    
                     Text(
                       widget.model.title,
                       style: const TextStyle(

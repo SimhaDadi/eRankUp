@@ -36,6 +36,7 @@ class TestModel {
   final bool showResultsImmediately;
   final String? customInstructions;
   final int warningTimeMinutes;
+  final Map<String, dynamic>? metadata;
 
   TestModel({
     required this.id,
@@ -53,6 +54,7 @@ class TestModel {
     this.showResultsImmediately = false,
     this.customInstructions,
     this.warningTimeMinutes = 5,
+    this.metadata,
   });
 
   factory TestModel.fromJson(Map<String, dynamic> json) {
@@ -78,6 +80,7 @@ class TestModel {
       showResultsImmediately: json['showResultsImmediately'] ?? false,
       customInstructions: json['customInstructions'],
       warningTimeMinutes: json['warningTimeMinutes'] ?? 5,
+      metadata: json['metadata'],
     );
   }
 

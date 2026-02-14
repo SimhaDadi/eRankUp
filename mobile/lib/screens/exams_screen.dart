@@ -512,7 +512,66 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
                         ),
                     ],
                   ),
-                const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Metadata Badges (Authority / Year)
+                  if (exam.metadata != null && (exam.metadata!['authority'] != null || exam.metadata!['year'] != null))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        children: [
+                          if (exam.metadata!['authority'] != null)
+                            Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.white.withOpacity(0.3), width: 0.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.verified, size: 10, color: Colors.amberAccent),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${exam.metadata!['authority']}'.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (exam.metadata!['year'] != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.white.withOpacity(0.3), width: 0.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today, size: 10, color: Colors.lightBlueAccent),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${exam.metadata!['year']}',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                 
                 // Title
                 Text(
