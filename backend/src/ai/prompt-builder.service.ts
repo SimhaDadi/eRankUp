@@ -80,7 +80,8 @@ export class PromptBuilderService {
         }
         // CASE 3: Quant / Reasoning (Default)
         else {
-            personaInstructions = this.getQuantPersonaInstructions();
+            // Pass the topic to get specific constraints
+            personaInstructions = this.getQuantPersonaInstructions(question.topic);
         }
 
         let prompt = `${personaInstructions}
@@ -186,11 +187,39 @@ ${performanceHint}
 
         const historyText = history.slice(-6).map(m => `${m.role === 'user' ? 'Student' : 'Faculty'}: ${m.content}`).join('\n');
 
+        // Inject topic-specific hint if available
+        let shortcutHint = '';
+        if (context.questionContext && context.questionContext.topic) {
+            // Look for relevant shortcut in PROMPTS_CONFIG
+            // We can reuse getShortcutHint logic or duplicate it slightly for simplicity
+            const topicLower = context.questionContext.topic.toLowerCase();
+            const sc = PROMPTS_CONFIG.subjects.quantReasoning.shortcuts;
+            for (const [key, val] of Object.entries(sc)) {
+                if (topicLower.includes(key)) {
+                    shortcutHint = `\nRELEVANT PATTERN FOR ${context.questionContext.topic.toUpperCase()}: ${val}\n`;
+                    break;
+                }
+            }
+        }
+
+
+        let instructions = [...PROMPTS_CONFIG.chat.instructions];
+
+        // DYNAMIC OVERRIDE: Direction problems - Use Cancellation Method
+        if (context.questionContext?.topic?.toLowerCase().includes('direction')) {
+            instructions = instructions.map(ins => {
+                if (ins.includes('3 STEPS')) return '**CANCELLATION SHORTCUT**: Sum North vs South, East vs West. Cancel them out. Final distance calculated in 1 line.';
+                if (ins.includes('NEGATIVE CONSTRAINT')) return '**AVOID DIAGRAMS**: Use the N-E-S-W writing method to solve mentally.';
+                return ins;
+            });
+        }
+
         return `${PROMPTS_CONFIG.chat.tutorIdentity}
 
 CONTEXT:
 Weak Topics: ${weakAreasText}
 Language: ${context.preferredLanguage}
+${shortcutHint}
 
 ${questionPrompt}
 
@@ -198,7 +227,7 @@ HISTORY:
 ${historyText}
 
  INSTRUCTIONS:
-${PROMPTS_CONFIG.chat.instructions.map((ins, idx) => ` ${idx + 1}. ${ins}`).join('\n')}
+${instructions.map((ins, idx) => ` ${idx + 1}. ${ins}`).join('\n')}
 
 GOAL: Provide a 30-second shortcut that allows a student to solve and move to the next question immediately.
   **STRICT START**: Answer the student's message IMMEDIATELY. NO pre-response commentary or welcoming.
@@ -318,24 +347,36 @@ Tutor:`;
      * Get comprehensive Quant/Reasoning persona instructions
      * Private helper method
      */
-    private getQuantPersonaInstructions(): string {
+    private getQuantPersonaInstructions(topic?: string): string {
+        let shortcutsSection = '';
+
+        // Filter shortcuts based on topic if provided
+        if (topic) {
+            const topicLower = topic.toLowerCase();
+            const shortcuts = PROMPTS_CONFIG.subjects.quantReasoning.shortcuts;
+            const relevantEntries = Object.entries(shortcuts).filter(([key]) => topicLower.includes(key));
+
+            if (relevantEntries.length > 0) {
+                shortcutsSection = relevantEntries.map(([key, val]) =>
+                    `     - **${topic}**: Lead with **${val}**`
+                ).join('\n');
+            }
+        }
+
+        // If no topic matched or provided, fallback to generic guidance but AVOID listing specific formulas to prevent hallucination
+        if (!shortcutsSection) {
+            shortcutsSection = `     - **General**: Identify the pattern first (e.g., Symmetry, Unit Digit, Digital Sum).
+     - **Arithmetic**: Look for Ratios or Percentage fractions.
+     - **Geometry**: Check for Triplets or Standard Theorems.
+     - **AVOID**: Long algebraic derivations.`;
+        }
+
         return `${PROMPTS_CONFIG.subjects.quantReasoning.persona}
   
   ### CONSTRAINTS (MANDATORY):
   1. **ABSOLUTE BREVITY**: Avoid full sentences. Use arrows ($\\rightarrow$) for logical transitions. 
   2. **LEAD WITH FORMULA / TRICK**: 
-     - **Time & Work**: Lead with $x = \\sqrt{ab}$ patterns.
-     - **Percentages**: Lead with **Alligation Method** or **Fraction Table** (e.g., $16.66\\% = 1/6$).
-     - **Profit & Loss**: Lead with **Successive Formula** ($a+b+\\frac{ab}{100}$), **Ratio Method** ($CP:SP$), or **Dishonest Dealer** trick.
-     - **Ratio & Proportion**: Lead with **Direct Option Checking** (check if options satisfy ratio) or **LCM Method** (for merging).
-     - **Time & Distance**: Lead with **Ratio Method** ($S \\propto 1/T$) or **Relative Speed** logic.
-     - **Mensuration**: Lead with **Divisibility Rule of 11** (for $\\pi$) or **Scaling Factor** ($A \\propto r^2$).
-     - **Number Theory**: Lead with **Divisibility Rules** (Sum of digits for 3/9), **Unit Digit** logic, or **Remainder Theorem**.
-     - **SI & CI**: Lead with **Effective % Method** ($x+y+\\frac{xy}{100}$ for 2 years) or **Tree Method**.
-     - **Algebra**: Lead with **Value Substitution** (e.g., Put $x=1, y=0$), **Symmetry**, or **Degree Check** immediately.
-     - **Geometry**: Lead with **Pythagorean Triplets** (3-4-5, 5-12-13), **Direct Theorem** (e.g., Angle at Center = $2\\theta$), or **Triplet Check**.
-     - **Trigonometry**: Lead with **Value Logic** (Put $\\theta=0^\\circ, 30^\\circ, 45^\\circ$) or **Triplet Application**.
-     - **Averages**: Lead with **Deviation Method**.
+${shortcutsSection}
   3. **MANDATE LaTeX**: Wrap ALL math in $ ... $. Use LaTeX for visual beauty (\\frac, \\sqrt, etc.).
   4. **MAX 3 STEPS**: Strictly limit the strategy to 3 concise bullet points.
    5. **STRICTLY FORBIDDEN - NO ALGEBRA**:
