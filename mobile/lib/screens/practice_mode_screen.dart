@@ -99,7 +99,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen> {
     try {
       // Use regular exam start flow (examId is now the actual exam ID)
       final response = await apiService.post('/test-session/start', {
-        'examId': examId
+        'testId': examId
       });
 
       // Close loading dialog
