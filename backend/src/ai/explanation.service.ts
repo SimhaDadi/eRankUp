@@ -299,15 +299,15 @@ export class ExplanationService {
             let explanations: QuestionExplanation[] = [];
 
             try {
-                this.logger.debug(`[listExplanations] Bulk loading explanations for ${questionIds.length} IDs. Example ID: ${questionIds[0]}`);
-
                 // Use QueryBuilder to force-load columns if needed and filter correctly
+                // [FIX] Explicitly join question to be sure we have the reference if qe.questionId is flaky
                 explanations = await this.explanationRepository.createQueryBuilder('qe')
+                    .leftJoinAndSelect('qe.question', 'question')
                     .where('qe.questionId IN (:...ids)', { ids: questionIds })
                     .andWhere('qe.contextExamId IS NULL')
                     .getMany();
 
-                this.logger.log(`[listExplanations] Found ${explanations.length} matching explanations in DB`);
+                this.logger.log(`[listExplanations] Found ${explanations.length} matching explanations. Example qId from first: ${explanations[0]?.questionId || explanations[0]?.question?.id}`);
             } catch (explError) {
                 this.logger.error(`[listExplanations] Failed to load explanations: ${explError.message}`, explError.stack);
                 explanations = [];
@@ -317,11 +317,12 @@ export class ExplanationService {
             const items = questions.map((q: any) => {
                 if (!q) return null;
                 try {
-                    // [HARDEN] Robust ID matching with string conversion and case normalization
+                    // [HARDEN] Multi-layer matching: Try raw questionId first, then relation id
                     const qId = String(q.id).toLowerCase();
-                    const explanation = explanations.find(e =>
-                        e.questionId && String(e.questionId).toLowerCase() === qId
-                    );
+                    const explanation = explanations.find(e => {
+                        const targetId = e.questionId || e.question?.id;
+                        return targetId && String(targetId).toLowerCase() === qId;
+                    });
 
                     // Defensive date handling
                     const getSafeISO = (d: any) => {
