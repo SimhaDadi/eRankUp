@@ -48,4 +48,7 @@ async function bootstrap() {
     console.log(`Allowed Origins: ${allowedOrigins.join(', ')}`);
 }
 // Trigger restart
-bootstrap();
+bootstrap().catch(err => {
+    console.error('Fatal Bootstrap Error:', err);
+    process.exit(1);
+});

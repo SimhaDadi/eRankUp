@@ -42,6 +42,7 @@ const adminNavSections = [
         items: [
             { icon: BookOpen, label: 'Drafts & Staging', href: '/admin/exams' },
             { icon: BookOpen, label: 'Mock Tests', href: '/admin/mock-tests' },
+            { icon: BookOpen, label: 'Chapter Wise Tests', href: '/admin/chapter-tests' },
             { icon: Zap, label: 'Daily Quiz', href: '/admin/daily-quizzes' },
             { icon: Calendar, label: 'Live Exams', href: '/admin/live-exams' },
             { icon: Plus, label: 'Question Management', href: '/admin/questions' },

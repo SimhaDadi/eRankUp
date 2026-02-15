@@ -31,7 +31,7 @@ interface Exam {
     isPublished: boolean;
     createdAt: string;
     chapters: any[];
-    type: 'real_exam' | 'question_bank' | 'live_exam' | 'previous_year_paper';
+    type: 'real_exam' | 'question_bank' | 'live_exam' | 'previous_year_paper' | 'chapter_wise_test';
     category?: string;
     questionCount?: number;
 }
@@ -108,7 +108,7 @@ export default function AdminExamsPage() {
         }
     };
 
-    const [filterType, setFilterType] = useState<'all' | 'real_exam' | 'question_bank' | 'live_exam' | 'previous_year_paper'>('all');
+    const [filterType, setFilterType] = useState<'all' | 'real_exam' | 'question_bank' | 'live_exam' | 'previous_year_paper' | 'chapter_wise_test'>('all');
 
     const filteredExams = exams.filter(exam => {
         // Exclude Question Banks - they are managed via Content Hierarchy page
@@ -163,6 +163,12 @@ export default function AdminExamsPage() {
                     className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${filterType === 'previous_year_paper' ? 'bg-slate-800 text-amber-400 border-b-2 border-amber-500' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
                 >
                     Previous Papers
+                </button>
+                <button
+                    onClick={() => setFilterType('chapter_wise_test')}
+                    className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${filterType === 'chapter_wise_test' ? 'bg-slate-800 text-emerald-400 border-b-2 border-emerald-500' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                >
+                    Chapter Tests
                 </button>
             </div>
 
@@ -283,6 +289,10 @@ export default function AdminExamsPage() {
                                 ) : exam.category === 'Free Quiz' ? (
                                     <span className="px-2 py-0.5 rounded text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
                                         QUIZ
+                                    </span>
+                                ) : exam.type === 'chapter_wise_test' ? (
+                                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                        CHAPTER
                                     </span>
                                 ) : null}
                             </h3>
