@@ -267,52 +267,75 @@ export class ExplanationService {
             qb.take(filters.limit || 50);
             qb.skip(filters.offset || 0);
 
-            this.logger.log(`[listExplanations] Executing DECOUPLED query (paging scale: ${filters.limit})`);
+            this.logger.log(`[listExplanations] Fetching ${filters.limit} questions (Paging Only)`);
             const [questions, total] = await qb.getManyAndCount();
 
-            if (questions.length === 0) {
-                return { items: [], total, limit: filters.limit || 50, offset: filters.offset || 0 };
+            this.logger.log(`[listExplanations] Found ${questions?.length || 0} questions. Total count: ${total}`);
+
+            if (!questions || questions.length === 0) {
+                return { items: [], total: total || 0, limit: filters.limit || 50, offset: filters.offset || 0 };
             }
 
             // 2. Fetch specific global explanations for these paged questions only
-            const questionIds = questions.map(q => q.id);
-            const explanations = await this.explanationRepository.find({
-                where: {
-                    questionId: In(questionIds),
-                    contextExamId: IsNull()
-                }
-            });
+            const questionIds = questions.map(q => q.id).filter(Boolean);
+            let explanations: QuestionExplanation[] = [];
+
+            try {
+                this.logger.debug(`[listExplanations] Bulk loading explanations for ${questionIds.length} IDs`);
+                explanations = await this.explanationRepository.find({
+                    where: {
+                        questionId: In(questionIds),
+                        contextExamId: IsNull()
+                    }
+                });
+                this.logger.debug(`[listExplanations] Found ${explanations.length} matching explanations`);
+            } catch (explError) {
+                this.logger.error(`[listExplanations] Failed to load explanations: ${explError.message}`, explError.stack);
+                // Continue with empty explanations rather than crashing
+                explanations = [];
+            }
 
             // 3. Merge and Map
             const items = questions.map((q: any) => {
+                if (!q) return null;
                 try {
-                    const explanation = explanations.find(e => e.questionId === q.id);
+                    const explanation = explanations.find(e => String(e.questionId) === String(q.id));
+
+                    // Defensive date handling
+                    const getSafeISO = (d: any) => {
+                        try {
+                            const dateObj = d ? new Date(d) : new Date();
+                            return isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString();
+                        } catch {
+                            return new Date().toISOString();
+                        }
+                    };
 
                     return {
                         id: explanation?.id || `missing-${q.id}`,
                         questionId: q.id,
-                        questionContent: this.aiService.cleanAIResponse(q.content || ''),
+                        questionContent: this.aiService ? this.aiService.cleanAIResponse(q.content || '') : (q.content || ''),
                         subject: q.subject?.title || 'Unknown',
                         chapter: q.chapter?.title || 'Unknown',
-                        aiExplanation: this.aiService.cleanAIResponse(explanation?.aiExplanation || null),
-                        adminApprovedExplanation: this.aiService.cleanAIResponse(explanation?.adminApprovedExplanation || null),
-                        isVerified: explanation?.isVerified || false,
+                        aiExplanation: (explanation?.aiExplanation && this.aiService) ? this.aiService.cleanAIResponse(explanation.aiExplanation) : (explanation?.aiExplanation || null),
+                        adminApprovedExplanation: (explanation?.adminApprovedExplanation && this.aiService) ? this.aiService.cleanAIResponse(explanation.adminApprovedExplanation) : (explanation?.adminApprovedExplanation || null),
+                        isVerified: !!explanation?.isVerified,
                         status: !explanation ? 'pending' : (explanation.isVerified ? 'verified' : 'generated'),
                         helpfulCount: explanation?.helpfulCount || 0,
                         notHelpfulCount: explanation?.notHelpfulCount || 0,
                         averageRating: explanation?.averageRating || 0,
                         viewCount: explanation?.viewCount || 0,
-                        createdAt: new Date(explanation?.createdAt || q.createdAt || new Date()).toISOString()
+                        createdAt: getSafeISO(explanation?.createdAt || q.createdAt)
                     };
                 } catch (mapError) {
-                    this.logger.error(`Failed to map question ${q.id}:`, mapError);
+                    this.logger.error(`[listExplanations] Mapping error for question ${q?.id}: ${mapError.message}`, mapError.stack);
                     return null;
                 }
             }).filter(Boolean);
 
             return {
                 items,
-                total,
+                total: total || 0,
                 limit: filters.limit || 50,
                 offset: filters.offset || 0
             };

@@ -10,6 +10,7 @@ import {
     UseGuards,
     HttpException,
     HttpStatus,
+    Logger,
     Request,
     UseInterceptors,
     UploadedFile
@@ -25,7 +26,8 @@ import { AIPriority } from './ai-queue.service';
 @Controller('explanations')
 @UseGuards(AuthGuard('jwt'))
 export class ExplanationController {
-    constructor(private explanationService: ExplanationService) { }
+    private readonly logger = new Logger(ExplanationController.name);
+    constructor(private readonly explanationService: ExplanationService) { }
 
     /**
      * Generate explanation for a single question
@@ -217,6 +219,9 @@ export class ExplanationController {
             };
             return await this.explanationService.listExplanations(filters);
         } catch (error) {
+            this.logger.error(`listExplanations failed for filters: ${JSON.stringify({
+                search, subjectId, chapterId, modelId, examId, status, limit, offset
+            })}`, error.stack);
             throw new HttpException(
                 error.message || 'Failed to list explanations',
                 HttpStatus.INTERNAL_SERVER_ERROR
