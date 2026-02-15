@@ -82,6 +82,13 @@ export default function AIExplanationsPage() {
     const [chapters, setChapters] = useState<FilterOption[]>([]);
     const [models, setModels] = useState<FilterOption[]>([]);
 
+    // Edit State
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editText, setEditText] = useState('');
+    const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+    const [verifyingIds, setVerifyingIds] = useState<Set<string>>(new Set());
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
     const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
     const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
@@ -322,8 +329,8 @@ export default function AIExplanationsPage() {
             {/* Notification Toast */}
             {notification && (
                 <div className={`fixed top-8 right-8 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-200' :
-                        notification.type === 'error' ? 'bg-red-900/90 border-red-500/50 text-red-200' :
-                            'bg-indigo-900/90 border-indigo-500/50 text-indigo-200'
+                    notification.type === 'error' ? 'bg-red-900/90 border-red-500/50 text-red-200' :
+                        'bg-indigo-900/90 border-indigo-500/50 text-indigo-200'
                     }`}>
                     {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> :
                         notification.type === 'error' ? <XCircle className="w-5 h-5" /> :
