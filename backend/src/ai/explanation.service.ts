@@ -319,10 +319,18 @@ export class ExplanationService {
                 try {
                     // [HARDEN] Multi-layer matching: Try raw questionId first, then relation id
                     const qId = String(q.id).toLowerCase();
-                    const explanation = explanations.find(e => {
+                    const explanationMatch = explanations.find(e => {
                         const targetId = e.questionId || e.question?.id;
                         return targetId && String(targetId).toLowerCase() === qId;
                     });
+
+                    // [FIX] Use the cached question.explanation as a fallback to ensure visibility
+                    const rawAiExpl = explanationMatch?.aiExplanation || q.explanation || null;
+
+                    // Log if we are falling back
+                    if (!explanationMatch && q.explanation) {
+                        this.logger.debug(`[listExplanations] Item ${q.id} missing QE record but has cached explanation. Using cached.`);
+                    }
 
                     // Defensive date handling
                     const getSafeISO = (d: any) => {
@@ -335,20 +343,20 @@ export class ExplanationService {
                     };
 
                     return {
-                        id: explanation?.id || `missing-${q.id}`,
+                        id: explanationMatch?.id || `missing-${q.id}`,
                         questionId: q.id,
                         questionContent: this.aiService ? this.aiService.cleanAIResponse(q.content || '') : (q.content || ''),
                         subject: q.subject?.title || 'Unknown',
                         chapter: q.chapter?.title || 'Unknown',
-                        aiExplanation: (explanation?.aiExplanation && this.aiService) ? this.aiService.cleanAIResponse(explanation.aiExplanation) : (explanation?.aiExplanation || null),
-                        adminApprovedExplanation: (explanation?.adminApprovedExplanation && this.aiService) ? this.aiService.cleanAIResponse(explanation.adminApprovedExplanation) : (explanation?.adminApprovedExplanation || null),
-                        isVerified: !!explanation?.isVerified,
-                        status: !explanation ? 'pending' : (explanation.isVerified ? 'verified' : 'generated'),
-                        helpfulCount: explanation?.helpfulCount || 0,
-                        notHelpfulCount: explanation?.notHelpfulCount || 0,
-                        averageRating: explanation?.averageRating || 0,
-                        viewCount: explanation?.viewCount || 0,
-                        createdAt: getSafeISO(explanation?.createdAt || q.createdAt)
+                        aiExplanation: (rawAiExpl && this.aiService) ? this.aiService.cleanAIResponse(rawAiExpl) : (rawAiExpl || null),
+                        adminApprovedExplanation: (explanationMatch?.adminApprovedExplanation && this.aiService) ? this.aiService.cleanAIResponse(explanationMatch.adminApprovedExplanation) : (explanationMatch?.adminApprovedExplanation || null),
+                        isVerified: !!explanationMatch?.isVerified,
+                        status: (!explanationMatch && !q.explanation) ? 'pending' : (explanationMatch?.isVerified ? 'verified' : 'generated'),
+                        helpfulCount: explanationMatch?.helpfulCount || 0,
+                        notHelpfulCount: explanationMatch?.notHelpfulCount || 0,
+                        averageRating: explanationMatch?.averageRating || 0,
+                        viewCount: explanationMatch?.viewCount || 0,
+                        createdAt: getSafeISO(explanationMatch?.createdAt || q.createdAt)
                     };
                 } catch (mapError) {
                     this.logger.error(`[listExplanations] Mapping error for question ${q?.id}: ${mapError.message}`, mapError.stack);
