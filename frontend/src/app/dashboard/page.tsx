@@ -94,43 +94,48 @@ export default function DashboardPage() {
     const getModeConfig = (target: number) => {
         if (target >= 500) return {
             label: 'Beast Mode',
-            icon: <Zap className="w-3 h-3 fill-white" />,
-            gradient: "from-[#f59e0b] via-[#ea580c] to-[#991b1b]",
+            icon: <Zap className="w-3 h-3 fill-amber-600 text-amber-600" />,
+            gradient: "from-amber-50 via-orange-50 to-amber-100 border-amber-200",
             primary: "#f59e0b",
             message: "KEEP GOING! UNLEASH THE BEAST. 🦁",
-            share: "I just smashed my daily goal in BEAST MODE on eRankUp! 🦁🔥"
+            share: "I just smashed my daily goal in BEAST MODE on eRankUp! 🦁🔥",
+            textClass: "text-amber-900"
         };
         if (target >= 200) return {
             label: 'Warrior Mode',
-            icon: <Shield className="w-3 h-3 fill-white" />,
-            gradient: "from-[#e11d48] via-[#be123c] to-[#881337]",
+            icon: <Shield className="w-3 h-3 fill-rose-600 text-rose-600" />,
+            gradient: "from-rose-50 via-red-50 to-rose-100 border-rose-200",
             primary: "#e11d48",
             message: "CHARGE AHEAD! NEARLY THERE. 🛡️",
-            share: "I'm fighting my way to the top in Warrior Mode on eRankUp! ⚔️"
+            share: "I'm fighting my way to the top in Warrior Mode on eRankUp! ⚔️",
+            textClass: "text-rose-900"
         };
         if (target >= 100) return {
             label: 'Pro Mode',
-            icon: <Star className="w-3 h-3 fill-white" />,
-            gradient: "from-[#2563eb] via-[#1d4ed8] to-[#1e3a8a]",
+            icon: <Star className="w-3 h-3 fill-blue-600 text-blue-600" />,
+            gradient: "from-blue-50 via-indigo-50 to-blue-100 border-blue-200",
             primary: "#2563eb",
             message: "FOCUS ON THE TARGET. 🎯",
-            share: "Pro Mode activated! 🎯 My prep is on point with eRankUp."
+            share: "Pro Mode activated! 🎯 My prep is on point with eRankUp.",
+            textClass: "text-blue-900"
         };
         if (target >= 50) return {
             label: 'Steady Mode',
-            icon: <TrendingIcon className="w-3 h-3" />,
-            gradient: "from-[#059669] via-[#047857] to-[#064e3b]",
+            icon: <TrendingIcon className="w-3 h-3 text-emerald-600" />,
+            gradient: "from-emerald-50 via-green-50 to-emerald-100 border-emerald-200",
             primary: "#059669",
             message: "SLOW AND STEADY WINS THE RACE. 🍀",
-            share: "Maintaining consistency with Steady Mode on eRankUp! 🐢"
+            share: "Maintaining consistency with Steady Mode on eRankUp! 🐢",
+            textClass: "text-emerald-900"
         };
         return {
             label: 'Institutional Starter',
-            icon: <Briefcase className="w-3 h-3 fill-white" />,
-            gradient: "from-[#475569] via-[#1e293b] to-[#0f172a]",
+            icon: <Briefcase className="w-3 h-3 fill-slate-600 text-slate-600" />,
+            gradient: "from-slate-50 via-gray-50 to-slate-100 border-slate-200",
             primary: "#475569",
             message: "BUILDING STEADY MOMENTUM. 📈",
-            share: "Started my institutional prep journey on eRankUp! 🐣"
+            share: "Started my institutional prep journey on eRankUp! 🐣",
+            textClass: "text-slate-900"
         };
     };
 
@@ -304,7 +309,7 @@ export default function DashboardPage() {
                                     <div className="relative w-full md:w-[320px] flex-shrink-0 group/goal">
                                         <div
                                             ref={cardRef}
-                                            className={`rounded-[2rem] p-6 text-white relative overflow-hidden shadow-2xl border border-white/10 transition-all duration-500 bg-slate-900 bg-gradient-to-br ${modeConfig.gradient}`}
+                                            className={`rounded-[1.5rem] p-5 text-slate-800 relative overflow-hidden shadow-lg border transition-all duration-500 bg-white bg-gradient-to-br ${modeConfig.gradient}`}
                                         >
                                             {/* Holographic Pattern Background */}
                                             {/* Holographic Pattern Background */}
@@ -324,71 +329,70 @@ export default function DashboardPage() {
                                             ></motion.div>
 
                                             <div className="relative z-10">
-                                                <div className="flex items-center justify-between mb-6">
-                                                    <div className="flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="flex items-center gap-2 px-2.5 py-1 bg-white/40 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm border border-white/20">
                                                         {modeConfig.icon}
                                                         {modeConfig.label}
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 opacity-60">
-                                                        <Shield className="w-3 h-3" />
-                                                        <span className="text-[8px] font-black tracking-tighter uppercase">Verified Achievement</span>
+                                                    <div className="flex items-center gap-1.5 opacity-50">
+                                                        <Shield className="w-2.5 h-2.5" />
+                                                        <span className="text-[7px] font-black tracking-tighter uppercase">Verified Achievement</span>
                                                     </div>
                                                 </div>
 
-                                                <div className="mb-6">
-                                                    <h3 className="text-3xl font-black mb-1 leading-tight tracking-tighter">
+                                                <div className="mb-4">
+                                                    <h3 className={`text-2xl font-black mb-0.5 leading-tight tracking-tighter ${modeConfig.textClass}`}>
                                                         {Math.round(Math.min(((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1)) * 100, 100))}%
-                                                        <span className="text-sm ml-1 opacity-70">COMPLETED</span>
+                                                        <span className="text-[10px] ml-1 opacity-70">COMPLETED</span>
                                                     </h3>
-                                                    <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider">
+                                                    <p className={`text-[9px] font-bold uppercase tracking-wider ${modeConfig.textClass} opacity-80`}>
                                                         {Math.min(((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1)) * 100, 100) >= 100
                                                             ? "APEX ACHIEVED! 🔥"
                                                             : modeConfig.message}
                                                     </p>
                                                 </div>
 
-                                                {/* Thick Progress Bar */}
-                                                {/* Thick Progress Bar with Glow */}
-                                                <div className="relative h-4 bg-black/30 rounded-full overflow-hidden mb-6 border border-white/10 shadow-inner">
+                                                {/* Sleek Progress Bar */}
+                                                <div className="relative h-2.5 bg-black/10 rounded-full overflow-hidden mb-4 border border-white/20 shadow-inner">
                                                     <motion.div
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${Math.min(((stats?.dailyQuestions || 0) / Math.max(stats?.dailyQuestionTarget || 100, 1)) * 100, 100)}%` }}
                                                         transition={{ duration: 1.5, ease: "easeOut" }}
-                                                        className="absolute inset-0 bg-white shadow-[0_0_15px_rgba(255,255,255,0.6)] rounded-full opacity-90"
+                                                        className="absolute inset-0 bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] rounded-full"
                                                     />
                                                 </div>
 
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="flex items-center gap-2">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-1.5">
                                                         <div
                                                             onClick={() => setShowIntensityMenu(!showIntensityMenu)}
-                                                            className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+                                                            className="w-7 h-7 rounded-lg bg-white/40 flex items-center justify-center border border-white/30 hover:bg-white/60 transition-colors cursor-pointer shadow-sm"
                                                             title="Adjust Intensity"
                                                         >
-                                                            <Settings2 className="w-4 h-4 text-white" />
+                                                            <Settings2 className="w-3.5 h-3.5 text-slate-700" />
                                                         </div>
                                                         <div
                                                             onClick={handleShareProgress}
-                                                            className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+                                                            className="w-7 h-7 rounded-lg bg-white/40 flex items-center justify-center border border-white/30 hover:bg-white/60 transition-colors cursor-pointer shadow-sm"
                                                             title="Share Progress"
                                                         >
-                                                            <Share2 className="w-4 h-4 text-white" />
+                                                            <Share2 className="w-3.5 h-3.5 text-slate-700" />
                                                         </div>
                                                     </div>
                                                     <button
                                                         onClick={() => setShowIntensityMenu(!showIntensityMenu)}
-                                                        className="text-[10px] font-black text-white/90 uppercase tracking-widest hover:text-white transition-colors"
+                                                        className={`text-[9px] font-black uppercase tracking-widest transition-colors ${modeConfig.textClass} hover:opacity-80`}
                                                     >
                                                         UPGRADE MODE {' > '}
                                                     </button>
                                                 </div>
 
                                                 {/* Verification Footer */}
-                                                <div className="pt-4 border-t border-white/10 flex items-center justify-between opacity-50">
-                                                    <div className="text-[7px] font-black tracking-[0.1em] uppercase">
+                                                <div className="pt-3 border-t border-black/5 flex items-center justify-between opacity-40">
+                                                    <div className="text-[6px] font-black tracking-[0.1em] uppercase">
                                                         {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                                                     </div>
-                                                    <div className="bg-white/10 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold tracking-widest">
+                                                    <div className="bg-black/5 px-1.5 py-0.5 rounded text-[7px] font-mono font-bold tracking-widest text-slate-900">
                                                         ERU-{(user?.id?.slice(-4).toUpperCase() || 'ACHV') + Math.floor(Math.random() * 10000)}
                                                     </div>
                                                 </div>
@@ -401,20 +405,20 @@ export default function DashboardPage() {
                                                         initial={{ opacity: 0, scale: 0.95 }}
                                                         animate={{ opacity: 1, scale: 1 }}
                                                         exit={{ opacity: 0, scale: 0.95 }}
-                                                        className="absolute inset-0 z-20 bg-slate-950/98 backdrop-blur-xl p-6 flex flex-col justify-center gap-2 border border-white/20 rounded-[2rem]"
+                                                        className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xl p-6 flex flex-col justify-center gap-2 border border-slate-200 shadow-2xl rounded-[2rem]"
                                                     >
                                                         <div className="mb-4 text-center">
-                                                            <h4 className="text-[11px] font-black text-amber-500 uppercase tracking-[0.2em]">Select Intensity</h4>
+                                                            <h4 className="text-[11px] font-black text-amber-600 uppercase tracking-[0.2em]">Select Intensity</h4>
                                                             <div className="h-0.5 w-8 bg-amber-500 mx-auto mt-1 rounded-full opacity-50"></div>
                                                         </div>
 
                                                         <div className="flex flex-col gap-2 overflow-y-auto max-h-[220px] pr-1 custom-scrollbar">
                                                             {[
-                                                                { v: 25, l: 'Starter' },
-                                                                { v: 50, l: 'Steady Mode' },
-                                                                { v: 100, l: 'Pro Mode' },
-                                                                { v: 200, l: 'Warrior' },
-                                                                { v: 500, l: 'Beast Mode' }
+                                                                { v: 25, l: 'Starter', c: 'slate' },
+                                                                { v: 50, l: 'Steady Mode', c: 'emerald' },
+                                                                { v: 100, l: 'Pro Mode', c: 'blue' },
+                                                                { v: 200, l: 'Warrior', c: 'rose' },
+                                                                { v: 500, l: 'Beast Mode', c: 'amber' }
                                                             ].map((t) => (
                                                                 <button
                                                                     key={t.v}
@@ -427,9 +431,9 @@ export default function DashboardPage() {
                                                                             console.error(e);
                                                                         }
                                                                     }}
-                                                                    className={`w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${(stats?.dailyQuestionTarget || 100) === t.v
-                                                                        ? 'bg-amber-500 text-white border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
-                                                                        : 'bg-white/10 text-white border-white/10 hover:bg-white/20'
+                                                                    className={`w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all duration-300 ${(stats?.dailyQuestionTarget || 100) === t.v
+                                                                        ? 'bg-amber-50 text-amber-900 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                                                                        : 'bg-white text-slate-900 border-slate-900/10 hover:border-slate-900/30 hover:bg-slate-50'
                                                                         }`}
                                                                 >
                                                                     {t.l}
@@ -440,7 +444,7 @@ export default function DashboardPage() {
 
                                                         <button
                                                             onClick={() => setShowIntensityMenu(false)}
-                                                            className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-colors"
+                                                            className="mt-4 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-slate-900 transition-colors"
                                                         >
                                                             Cancel
                                                         </button>
@@ -465,36 +469,44 @@ export default function DashboardPage() {
                         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             {[
                                 {
-                                    icon: <BookOpen className="w-5 h-5 text-white" />,
+                                    icon: <BookOpen className="w-5 h-5 text-indigo-600" />,
                                     label: "Tests Taken",
                                     value: stats?.totalAttempts || 0,
                                     trend: "Consistent",
-                                    gradient: "from-indigo-600 via-indigo-700 to-blue-800",
-                                    shadow: "shadow-indigo-500/20"
+                                    gradient: "from-indigo-50 via-blue-50 to-indigo-100",
+                                    shadow: "shadow-indigo-200/50",
+                                    textClass: "text-indigo-900",
+                                    border: "border-indigo-100"
                                 },
                                 {
-                                    icon: <TrendingIcon className="w-5 h-5 text-white" />,
+                                    icon: <TrendingIcon className="w-5 h-5 text-emerald-600" />,
                                     label: "Average Score",
                                     value: `${stats?.averageScore || 0}%`,
                                     trend: "Improving",
-                                    gradient: "from-emerald-600 via-emerald-700 to-teal-800",
-                                    shadow: "shadow-emerald-500/20"
+                                    gradient: "from-emerald-50 via-teal-50 to-emerald-100",
+                                    shadow: "shadow-emerald-200/50",
+                                    textClass: "text-emerald-900",
+                                    border: "border-emerald-100"
                                 },
                                 {
-                                    icon: <Trophy className="w-5 h-5 text-white" />,
+                                    icon: <Trophy className="w-5 h-5 text-amber-600" />,
                                     label: "Best Performance",
                                     value: `${stats?.bestScore || 0}%`,
                                     trend: "Elite",
-                                    gradient: "from-amber-500 via-orange-600 to-orange-700",
-                                    shadow: "shadow-amber-500/20"
+                                    gradient: "from-amber-50 via-orange-50 to-amber-100",
+                                    shadow: "shadow-amber-200/50",
+                                    textClass: "text-amber-900",
+                                    border: "border-amber-100"
                                 },
                                 {
-                                    icon: <Target className="w-5 h-5 text-white" />,
+                                    icon: <Target className="w-5 h-5 text-purple-600" />,
                                     label: "Global Rank",
                                     value: stats?.rank || '#-',
                                     trend: "Top 5%",
-                                    gradient: "from-violet-600 via-purple-700 to-fuchsia-800",
-                                    shadow: "shadow-violet-500/20"
+                                    gradient: "from-purple-50 via-violet-50 to-purple-100",
+                                    shadow: "shadow-purple-200/50",
+                                    textClass: "text-purple-900",
+                                    border: "border-purple-100"
                                 }
                             ].map((stat, i) => (
                                 <motion.div
@@ -503,26 +515,26 @@ export default function DashboardPage() {
                                     whileHover={{ y: -5, scale: 1.02 }}
                                     className="group relative h-full"
                                 >
-                                    <div className={`bg-gradient-to-br ${stat.gradient} p-6 rounded-2xl ${stat.shadow} relative overflow-hidden h-full flex flex-col justify-between border border-white/5`}>
+                                    <div className={`bg-gradient-to-br ${stat.gradient} p-5 rounded-xl ${stat.shadow} relative overflow-hidden h-full flex flex-col justify-between border ${stat.border || 'border-slate-100'}`}>
                                         {/* Dynamic Icon Overaly */}
                                         <div className="absolute top-0 right-0 p-8 transform translate-x-4 -translate-y-4 opacity-10 group-hover:scale-125 transition-transform duration-700">
                                             {stat.icon}
                                         </div>
 
-                                        <div className="flex items-center justify-between mb-8">
-                                            <div className="p-3 bg-white/10 rounded-xl backdrop-blur-md border border-white/10">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-2.5 bg-white rounded-lg shadow-sm border border-white/50">
                                                 {stat.icon}
                                             </div>
-                                            <span className="text-[9px] font-black px-2 py-1 rounded-full bg-white/20 text-white uppercase tracking-widest backdrop-blur-sm">
+                                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-full bg-white/60 ${stat.textClass} uppercase tracking-widest backdrop-blur-sm border border-white/20`}>
                                                 {stat.trend}
                                             </span>
                                         </div>
 
                                         <div className="relative z-10">
-                                            <div className="text-4xl font-black text-white tracking-tighter mb-1 leading-none">
+                                            <div className={`text-3xl font-black tracking-tighter mb-0.5 leading-none ${stat.textClass || 'text-slate-900'}`}>
                                                 {stat.value}
                                             </div>
-                                            <div className="text-[11px] font-black text-white/70 uppercase tracking-widest mt-2">
+                                            <div className={`text-[10px] font-black uppercase tracking-widest mt-1.5 ${stat.textClass || 'text-slate-900'} opacity-70`}>
                                                 {stat.label}
                                             </div>
                                         </div>
