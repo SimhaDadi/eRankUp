@@ -52,7 +52,10 @@ export class AIUtilsService {
      */
     stripHidden(text: string): string {
         if (!text) return text;
-        return text.replace(/\[HIDDEN\][\s\S]*?\[\/HIDDEN\]/gi, '').trim();
+        return text
+            .replace(/\[HIDDEN\][\s\S]*?\[\/HIDDEN\]/gi, '')
+            .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+            .trim();
     }
 
     /**
@@ -66,8 +69,17 @@ export class AIUtilsService {
             // Remove citation markers like 【0†source】
             .replace(/【[^】]*】/g, '')
             // Defensive: Remove common AI "self-correction" markers if they leak out
-            .replace(/^(Actually|Wait|Incorrect|Re-checking|Correction):?\s*/gi, '')
-            .replace(/->\s*(Actually|Wait|Incorrect|Re-checking|Correction):?\s*/gi, '→ ')
+            .replace(/^(Actually|Wait|Incorrect|Re-checking|Correction|Mistake|Oops):?\s*/gi, '')
+            .replace(/->\s*(Actually|Wait|Incorrect|Re-checking|Correction|Mistake|Oops):?\s*/gi, '→ ')
+            // Remove meta-phrases about the process
+            .replace(/re-?checking calculation[:\s]*/gi, '')
+            .replace(/re-?evaluating the given options[:\s]*/gi, '')
+            .replace(/not an option,? recheck calculation[:\s]*/gi, '')
+            .replace(/indicates? a mistake in interpret(ing|ation)[:\s]*/gi, '')
+            .replace(/mistake in interpretation[:\s]*/gi, '')
+            .replace(/yields the actual error in interpretation[:\s]*/gi, '')
+            .replace(/correct steps? is:[\s]*/gi, '')
+            .replace(/no pre-computation or "Steps 1-9" allowed.?/gi, '')
             // Normalize newlines
             .replace(/\\n/g, '\n')
             // Fix LaTeX escaping (\\sqrt -> \sqrt)
@@ -100,16 +112,14 @@ export class AIUtilsService {
             // Check if we are inside a hidden block
             if (!insideHidden) {
                 const trimmed = buffer.trimStart();
-                if (trimmed.toUpperCase().startsWith('[HIDDEN]')) {
+                if (trimmed.toUpperCase().startsWith('[HIDDEN]') || trimmed.toUpperCase().startsWith('<THINKING>')) {
                     insideHidden = true;
-                } else if (trimmed.length > 20) {
-                    // If we have > 20 chars and haven't matched [HIDDEN] (checked above),
-                    // then it is NOT a hidden block, even if it starts with '['.
+                } else if (trimmed.length > 25) {
+                    // If we have > 25 chars and haven't matched hidden tags
                     yield buffer;
                     buffer = '';
                     hiddenBlockEnded = true;
                 }
-                // If shorter than 20, we wait for more data to confirm if it becomes [HIDDEN]
             }
 
             if (insideHidden) {
@@ -119,9 +129,13 @@ export class AIUtilsService {
                 // Let's use a case-insensitive match by converting window to upper
                 const upperBuffer = buffer.toUpperCase();
                 const closeIndex = upperBuffer.indexOf('[/HIDDEN]');
+                const closeThinkingIndex = upperBuffer.indexOf('</THINKING>');
 
-                if (closeIndex !== -1) {
-                    const remaining = buffer.substring(closeIndex + 10); // length of [/HIDDEN]
+                const finalCloseIndex = closeIndex !== -1 ? closeIndex : closeThinkingIndex;
+                const closeTagLen = closeIndex !== -1 ? 10 : 11; // [/HIDDEN] is 10, </THINKING> is 11
+
+                if (finalCloseIndex !== -1) {
+                    const remaining = buffer.substring(finalCloseIndex + closeTagLen);
                     yield remaining;
                     buffer = '';
                     hiddenBlockEnded = true;

@@ -84,18 +84,14 @@ export class PromptBuilderService {
             personaInstructions = this.getQuantPersonaInstructions(question.topic);
         }
 
-        // --- Secondary Verification Context ---
+        // --- Secondary Verification Context (SILENT) ---
         let verificationContext = '';
         if (options.verifiedSolve) {
             const isMatch = options.verifiedSolve.solvedOptionId === question.correctOptionId;
             verificationContext = `
-  ### INDEPENDENT LOGIC VERIFICATION:
-  - **Status**: ${isMatch ? 'VERIFIED' : 'CONFLICT DETECTED'}
-  - **Internal Solve Result**: Option ${options.verifiedSolve.solvedOptionId}
-  - **Logic Hint**: ${options.verifiedSolve.logic}
-  - **Instruction**: ${isMatch
-                    ? "Ensure the final explanation strictly follows this verified logic."
-                    : `There is a conflict between the stored answer key (${question.correctOptionId}) and the logical solve (${options.verifiedSolve.solvedOptionId}). PRIORITIZE mathematical truth. If the stored option is logically impossible, explain the correct way clearly but lead with why ${question.correctOptionId} might be chosen (or flag the error).`}
+  ### VERIFIED LOGIC HINT:
+  - Logic: ${options.verifiedSolve.logic}
+  - Recommendation: Follow this mathematical logic strictly. ${isMatch ? '' : 'The stored answer key might have a conflict; prioritize mathematical truth silently.'}
   `;
         }
 
@@ -135,19 +131,21 @@ export class PromptBuilderService {
         }
 
         prompt += `
-  [HIDDEN THINKING INSTRUCTION]
-  You MUST first plan your logic inside a '[HIDDEN]' ... '[/HIDDEN]' block. 
-  - Analyze the question step-by-step here to ensure accuracy.
+  <thinking>
+  You MUST first plan your logic here. 
+  - Solve step-by-step and verify calculations.
   - ${PROMPTS_CONFIG.syllabusGuardrails.mathVerification}
-  - Verify your logic before committing to the final answer.
-  - This block will NOT be seen by the student.
+  - Ensure logic is airtight before writing the final student-facing sections.
+  </thinking>
 
-  ### NEGATIVE CONSTRAINTS (FOR VISIBLE OUTPUT):
-  - Do NOT include internal deliberation phrases like "Wait...", "Actually...", "Incorrect...", or "Re-checking...".
-  - If you find an error during hidden thinking, fix it BEFORE writing the final response.
-  - The final response must be confident and lead with the solution.
+  ### STYLISTIC CONSTRAINTS (STRICT):
+  - Lead IMMEDIATELY with the solution. 
+  - NO meta-commentary about the process.
+  - DO NOT include phrases like "Actually...", "Wait...", "Incorrect...", "Re-checking...", or "Not an option".
+  - If you find a conflict during thinking, fix it silently in the final solution.
+  - Do NOT mention the conflict to the student.
 
-  [MANDATORY FORMAT - YOU MUST INCLUDE ALL SECTIONS BELOW]
+  [FINAL FORMAT]
   
   **${step1Title}** 🚀
   - ${step1Desc}
@@ -155,7 +153,7 @@ export class PromptBuilderService {
   **${step2Title}** 🔥
   - ${step2Desc}
   
-  **CRITICAL**: The 🔥 ${step2Title} section is MANDATORY and NON-NEGOTIABLE. You MUST provide a quick mental trick, mnemonic, or 15-second shortcut tip.
+  **CRITICAL**: The 🔥 ${step2Title} section is MANDATORY. Provide a 15-second shortcut logic.
   
   EXAMPLE (for Quant/Reasoning):
   **1. Extreme Shortcut Solution** 🚀
