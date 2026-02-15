@@ -32,6 +32,12 @@ export class QuestionExplanation {
     @Column({ default: false })
     isVerified: boolean;
 
+    @Column({ default: false })
+    isLogicalMismatch: boolean;
+
+    @Column({ type: 'text', nullable: true })
+    logicalSolveOutcome: string;
+
     @Column({ default: 0 })
     helpfulCount: number;
 

@@ -69,9 +69,18 @@ export class ExplanationService {
                 contextExamTitle = exam?.title || '';
             }
 
-            // 5. Generate Explanation using AI
+            // 5. Blind Solve Pass
+            this.logger.log(`🔍 Performing Blind Solve for question ${question.id}...`);
+            const solveResult = await this.aiService.solveQuestion(question);
+            const isLogicalMismatch = solveResult.solvedOptionId !== question.correctOptionId && solveResult.solvedOptionId !== 'ERROR';
+
+            if (isLogicalMismatch) {
+                this.logger.warn(`⚠️ LOGICAL MISMATCH: Question ${question.id} (Stored: ${question.correctOptionId}, Solved: ${solveResult.solvedOptionId})`);
+            }
+
+            // 6. Generate Explanation using AI
             this.logger.log('📝 Building explanation prompt...');
-            const prompt = this.buildPrompt(question, userAnswer, contextExamTitle);
+            const prompt = this.buildPrompt(question, userAnswer, contextExamTitle, solveResult);
             this.logger.log(`✅ Prompt built successfully. Length: ${prompt.length}`);
 
             let explanation = '';
@@ -79,7 +88,7 @@ export class ExplanationService {
             let attempts = 0;
 
             while (!isValid && attempts < 2) {
-                // 6. Call AI Service
+                // 7. Call AI Service
                 this.logger.log('🚀 Calling AI Service to generate explanation...');
                 const rawExplanation = await this.aiService.generateText(prompt, [], priority);
                 explanation = this.aiService.cleanAIResponse(rawExplanation);
@@ -100,6 +109,8 @@ export class ExplanationService {
                 contextExamId: contextExamId || null,
                 aiExplanation: explanation,
                 isVerified: isValid,
+                isLogicalMismatch,
+                logicalSolveOutcome: `Solved: ${solveResult.solvedOptionId} | Logic: ${solveResult.logic}`,
                 viewCount: 1
             });
             await this.explanationRepository.save(newExplanation);
@@ -156,12 +167,13 @@ export class ExplanationService {
         return `The correct answer is ${question.correctOptionId}) ${correctOption?.text}. ${question.explanation || 'Please review this topic in your study materials.'}`;
     }
 
-    private buildPrompt(question: Question, userAnswer?: string, contextExamTitle?: string): string {
+    private buildPrompt(question: Question, userAnswer?: string, contextExamTitle?: string, solveResult?: any): string {
         return this.promptBuilder.buildExplanationPrompt({
             question,
             userAnswer,
             contextExamTitle,
-            subject: question.subject?.title
+            subject: question.subject?.title,
+            verifiedSolve: solveResult
         });
     }
 
@@ -345,7 +357,30 @@ export class ExplanationService {
         };
     }
 
-    async verifyStoredExplanation(id: string): Promise<{ isValid: boolean; feedback: string }> {
+    async listLogicalMismatches() {
+        const mismatches = await this.explanationRepository.find({
+            where: { isLogicalMismatch: true },
+            relations: ['question', 'question.subject', 'question.chapter'],
+            order: { createdAt: 'DESC' },
+            take: 100
+        });
+
+        return {
+            count: mismatches.length,
+            mismatches: mismatches.map(m => ({
+                id: m.id,
+                questionId: m.questionId,
+                questionContent: m.question?.content,
+                subject: m.question?.subject?.title,
+                chapter: m.question?.chapter?.title,
+                storedCorrectId: m.question?.correctOptionId,
+                solvedResult: m.logicalSolveOutcome,
+                createdAt: m.createdAt
+            }))
+        };
+    }
+
+    async verifyStoredExplanation(id: string): Promise<{ isValid: boolean; feedback: string; solveResult?: any }> {
         const explanation = await this.explanationRepository.findOne({
             where: { id },
             relations: ['question', 'question.options']
@@ -355,6 +390,14 @@ export class ExplanationService {
             throw new Error('Explanation not found');
         }
 
+        // 1. Blind Solve Pass
+        this.logger.log(`🔍 Verifying logic for explanation ${id}...`);
+        const solveResult = await this.aiService.solveQuestion(explanation.question);
+
+        explanation.logicalSolveOutcome = `Solved: ${solveResult.solvedOptionId} | Logic: ${solveResult.logic}`;
+        explanation.isLogicalMismatch = solveResult.solvedOptionId !== explanation.question.correctOptionId && solveResult.solvedOptionId !== 'ERROR';
+
+        // 2. Consistency Verification
         const verification = await this.aiService.verifyExplanation(
             explanation.question,
             explanation.adminApprovedExplanation || explanation.aiExplanation
@@ -368,9 +411,15 @@ export class ExplanationService {
             await this.questionRepository.update(explanation.questionId, {
                 explanation: explanation.adminApprovedExplanation || explanation.aiExplanation
             });
+        } else {
+            // Even if invalid, save the logical mismatch status
+            await this.explanationRepository.save(explanation);
         }
 
-        return verification;
+        return {
+            ...verification,
+            solveResult
+        };
     }
 
     async approveExplanation(id: string, editedText?: string) {

@@ -366,6 +366,51 @@ Verification Result:`;
     }
 
     /**
+     * Independently solve a question without knowing the correct answer.
+     * Used for "Blind Solve" verification to ensure answer key accuracy.
+     */
+    async solveQuestion(question: Question): Promise<{ solvedOptionId: string; logic: string }> {
+        const prompt = this.promptBuilder.buildBlindSolvePrompt(question);
+
+        try {
+            // Load images if question has them
+            const images: { data: string; mimeType: string }[] = [];
+            if (question.imageUrl) {
+                const imgData = await this.promptBuilder.loadQuestionImage(question.imageUrl);
+                if (imgData) {
+                    images.push({
+                        data: imgData.data,
+                        mimeType: imgData.mimeType
+                    });
+                }
+            }
+
+            const rawResponse = await this.generateText(prompt, images, AIPriority.HIGH, 'REASONING');
+            const cleanResponse = this.aiUtils.stripHidden(rawResponse);
+
+            // Extract FINAL_ANSWER: [ID] - Improved regex to handle (A), A., or just A
+            const answerMatch = cleanResponse.match(/FINAL_ANSWER:\s*\(?([A-E])\)?\.?/i);
+            const logicMatch = cleanResponse.match(/LOGIC:\s*(.*)/i);
+
+            const solvedOptionId = answerMatch ? answerMatch[1].toUpperCase() : 'UNKNOWN';
+            const logic = logicMatch ? logicMatch[1].trim() : 'No logic summary provided.';
+
+            console.log(`[AIService] Blind Solve: Question ${question.id} -> Solved as ${solvedOptionId}`);
+
+            return {
+                solvedOptionId,
+                logic
+            };
+        } catch (error) {
+            console.error('[AIService] solveQuestion failed:', error);
+            return {
+                solvedOptionId: 'ERROR',
+                logic: 'AI failed to solve the question independently.'
+            };
+        }
+    }
+
+    /**
      * Batch generate explanations for multiple questions
      */
     async batchGenerateExplanations(

@@ -84,7 +84,23 @@ export class PromptBuilderService {
             personaInstructions = this.getQuantPersonaInstructions(question.topic);
         }
 
+        // --- Secondary Verification Context ---
+        let verificationContext = '';
+        if (options.verifiedSolve) {
+            const isMatch = options.verifiedSolve.solvedOptionId === question.correctOptionId;
+            verificationContext = `
+  ### INDEPENDENT LOGIC VERIFICATION:
+  - **Status**: ${isMatch ? 'VERIFIED' : 'CONFLICT DETECTED'}
+  - **Internal Solve Result**: Option ${options.verifiedSolve.solvedOptionId}
+  - **Logic Hint**: ${options.verifiedSolve.logic}
+  - **Instruction**: ${isMatch
+                    ? "Ensure the final explanation strictly follows this verified logic."
+                    : `There is a conflict between the stored answer key (${question.correctOptionId}) and the logical solve (${options.verifiedSolve.solvedOptionId}). PRIORITIZE mathematical truth. If the stored option is logically impossible, explain the correct way clearly but lead with why ${question.correctOptionId} might be chosen (or flag the error).`}
+  `;
+        }
+
         let prompt = `${personaInstructions}
+  ${verificationContext}
   
   ### SYLLABUS GUARDRAILS (STRICT):
   Your scope is STRICTLY limited to the syllabus of ${PROMPTS_CONFIG.syllabusGuardrails.scope}.
@@ -362,6 +378,51 @@ Tutor:`;
         Correct Answer: ${question.correctOptionId} - ${this.sanitizeInput(correctOption?.text || 'N/A')}
  
         GENERATE EXPLANATION FOLLOWING THE [MANDATORY RESPONSE FORMAT] STRICTLY. DO NOT SKIP THE 🔥 RANKER'S HACK SECTION:`;
+    }
+
+    /**
+     * Build a prompt for the "Blind Solve" verification.
+     * The AI is NOT given the correct answer ID and must solve it independently.
+     */
+    buildBlindSolvePrompt(question: Question): string {
+        const subjectTitle = question.subject?.title || PROMPTS_CONFIG.defaultSubject;
+        const optionsText = question.options
+            .map((opt: any) => `${opt.id}. ${this.sanitizeInput(opt.text)}`)
+            .join('\n');
+
+        const imageInstruction = question.imageUrl
+            ? "- **VISUAL INPUT**: A diagram/image is provided. Use it to extract necessary data (geometry, graphs, etc.)."
+            : "";
+
+        return `You are an objective Mathematical Expert and Competitive Exam Tutor.
+        
+        ### TASK:
+        Solve the following question independently. You are NOT provided with the answer key.
+        Your goal is to find the mathematical/logical truth.
+        
+        ### CONTEXT:
+        - **Subject**: ${subjectTitle}
+        - **Topic**: ${question.topic || 'General'}
+        ${imageInstruction}
+        
+        ### QUESTION:
+        ${this.sanitizeInput(question.content)}
+        
+        ### OPTIONS:
+        ${optionsText}
+        
+        ### INSTRUCTIONS:
+        1. Solve the problem step-by-step inside a [HIDDEN] block.
+        2. Identify the matching Option ID from the provided list.
+        3. If the answer is not among the options, identify the closest logical error.
+        4. Return your final conclusion strictly in the format below.
+        
+        [HIDDEN]
+        [Detailed step-by-step mathematical reasoning here]
+        [/HIDDEN]
+        
+        FINAL_ANSWER: [Option ID Only, e.g., A]
+        LOGIC: [One-line summary of the core step]`;
     }
 
     /**

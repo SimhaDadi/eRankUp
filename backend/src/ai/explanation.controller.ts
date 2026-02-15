@@ -242,6 +242,20 @@ export class ExplanationController {
         }
     }
 
+    @Get('admin/logical-mismatches')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async getLogicalMismatches() {
+        try {
+            return await this.explanationService.listLogicalMismatches();
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to fetch logical mismatches',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     /**
      * Trigger AI verification for an existing explanation
      * Admin only

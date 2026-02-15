@@ -70,6 +70,10 @@ export interface ExplanationPromptOptions {
     userAnswer?: string;
     contextExamTitle?: string;
     subject?: string;
+    verifiedSolve?: {
+        solvedOptionId: string;
+        logic: string;
+    };
 }
 
 /**
