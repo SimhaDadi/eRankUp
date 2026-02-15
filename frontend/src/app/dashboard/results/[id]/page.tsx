@@ -204,7 +204,7 @@ export default function ResultsPage() {
     const accuracy = Math.round((attempt.correctAnswers / attempt.totalQuestions) * 100);
 
     return (
-        <div className="max-w-6xl mx-auto pb-12 px-4 md:px-8">
+        <div className="max-w-6xl mx-auto pb-12 px-2 md:px-8">
             {/* Header Area */}
             <div className="py-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
@@ -224,44 +224,44 @@ export default function ResultsPage() {
                 </div>
 
                 {/* Primary Actions - Moved to Top */}
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-2 md:gap-3">
                     {(attempt.exam as any)?.videoSolutionUrl || (attempt.model as any)?.videoSolutionUrl ? (
                         <button
                             onClick={() => window.open((attempt.exam as any)?.videoSolutionUrl || (attempt.model as any)?.videoSolutionUrl, '_blank')}
-                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-red-600/20 transition-all flex items-center gap-2 hover:scale-105 active:scale-95"
+                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl shadow-lg shadow-red-600/20 transition-all flex items-center gap-2 hover:scale-105 active:scale-95 text-xs md:text-base"
                         >
-                            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
-                                <div className="w-0 h-0 border-t-[3px] border-t-transparent border-l-[6px] border-l-red-600 border-b-[3px] border-b-transparent ml-0.5" />
+                            <div className="w-4 h-4 md:w-5 md:h-5 bg-white rounded-full flex items-center justify-center">
+                                <div className="w-0 h-0 border-t-[2px] md:border-t-[3px] border-t-transparent border-l-[4px] md:border-l-[6px] border-l-red-600 border-b-[2px] md:border-b-[3px] border-b-transparent ml-0.5" />
                             </div>
-                            Watch Video Analysis
+                            Watch Analysis
                         </button>
                     ) : null}
                     <button
                         onClick={() => router.push(`/dashboard/solutions/${params.id}`)}
-                        className="bg-[#00bfa5] hover:bg-[#00a690] text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-[#00bfa5]/20 transition-all flex items-center gap-2 hover:scale-105 active:scale-95"
+                        className="bg-[#00bfa5] hover:bg-[#00a690] text-white font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl shadow-lg shadow-[#00bfa5]/20 transition-all flex items-center gap-2 hover:scale-105 active:scale-95 text-xs md:text-base"
                     >
-                        <Eye className="w-5 h-5" /> View Solutions
+                        <Eye className="w-4 h-4 md:w-5 md:h-5" /> Solutions
                     </button>
                     <button
                         onClick={() => router.push(`/dashboard/exam-start/${attempt.model?.id || attempt.exam?.id || params.id}`)}
-                        className="bg-white hover:bg-gray-50 text-slate-900 border border-gray-200 font-bold py-3 px-6 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95"
+                        className="bg-white hover:bg-gray-50 text-slate-900 border border-gray-200 font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 text-xs md:text-base"
                     >
-                        Retake Test
+                        Retake
                     </button>
                 </div>
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex items-center gap-1 bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm w-fit mb-8">
+            <div className="flex items-center gap-1 bg-white p-1 rounded-xl md:rounded-2xl border border-gray-200 shadow-sm w-full md:w-fit mb-8 overflow-x-auto no-scrollbar">
                 {[
                     { id: 'summary', label: 'Summary' },
-                    { id: 'analytics', label: 'Deep Analytics' },
-                    { id: 'review', label: 'Question Review' }
+                    { id: 'analytics', label: 'Analytics' },
+                    { id: 'review', label: 'Review' }
                 ].map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all
+                        className={`grow md:grow-0 px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl font-bold text-[10px] md:text-sm transition-all whitespace-nowrap
                             ${activeTab === tab.id
                                 ? 'bg-slate-900 text-white shadow-md'
                                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`
@@ -276,7 +276,7 @@ export default function ResultsPage() {
             {activeTab === 'summary' && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
                     {/* Hero Score Card */}
-                    <div className="bg-white border border-gray-200 rounded-3xl p-8 relative overflow-hidden shadow-xl">
+                    <div className="bg-white border border-gray-200 rounded-2xl md:rounded-3xl p-4 md:p-8 relative overflow-hidden shadow-xl">
                         <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                             <Trophy className="w-48 h-48 text-yellow-500" />
                         </div>
@@ -291,12 +291,12 @@ export default function ResultsPage() {
                                 </div>
 
                                 {attempt.insights?.rank && (
-                                    <div className="pt-4 border-t border-gray-100 w-2/3">
+                                    <div className="pt-4 md:border-t border-gray-100 w-full md:w-2/3">
                                         <div className="flex items-center justify-center gap-2 text-amber-600 font-bold">
-                                            <Trophy className="w-5 h-5" />
-                                            <span className="text-2xl">Rank #{attempt.insights.rank}</span>
+                                            <Trophy className="w-4 h-4 md:w-5 md:h-5" />
+                                            <span className="text-xl md:text-2xl">Rank #{attempt.insights.rank}</span>
                                         </div>
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                        <div className="text-[8px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
                                             Out of {attempt.insights.totalParticipants} Participants
                                         </div>
                                     </div>
@@ -484,32 +484,32 @@ export default function ResultsPage() {
                                         className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                                     >
                                         <div className="p-6">
-                                            <div className="flex justify-between items-start mb-6">
+                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="bg-slate-100 text-slate-600 font-bold px-3 py-1 rounded-lg text-sm">
+                                                    <span className="bg-slate-100 text-slate-600 font-bold px-2.5 py-1 rounded-lg text-xs">
                                                         Q. {attempt.responses?.indexOf(resp)! + 1}
                                                     </span>
                                                     {resp.isCorrect ? (
-                                                        <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
+                                                        <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1 shrink-0">
                                                             <CheckCircle2 className="w-3 h-3" /> Correct
                                                         </span>
                                                     ) : resp.wasSkipped ? (
-                                                        <span className="bg-amber-50 text-amber-600 text-xs font-bold px-2.5 py-1 rounded-full border border-amber-100 flex items-center gap-1">
+                                                        <span className="bg-amber-50 text-amber-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1 shrink-0">
                                                             <AlertCircle className="w-3 h-3" /> Skipped
                                                         </span>
                                                     ) : (
-                                                        <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full border border-red-100 flex items-center gap-1">
+                                                        <span className="bg-red-50 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-100 flex items-center gap-1 shrink-0">
                                                             <XCircle className="w-3 h-3" /> Incorrect
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-6">
-                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                                        <Clock className="w-3 h-3" /> Your Time: {resp.timeSpent}s
+                                                <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                        <Clock className="w-3 h-3" /> TIME: {resp.timeSpent}s
                                                     </div>
                                                     {resp.question.avgTopperTime !== undefined && resp.question.avgTopperTime > 0 && (
-                                                        <div className="text-xs font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
-                                                            <Trophy className="w-3 h-3" /> Topper Avg: {Math.round(resp.question.avgTopperTime)}s
+                                                        <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
+                                                            <Trophy className="w-3 h-3" /> TOPPER: {Math.round(resp.question.avgTopperTime)}s
                                                         </div>
                                                     )}
                                                 </div>

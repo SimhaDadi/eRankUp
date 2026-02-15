@@ -267,75 +267,78 @@ export default function SolutionPage() {
             <div className="flex flex-1 overflow-hidden relative z-10 lg:p-4 lg:gap-6 lg:max-w-[1900px] mx-auto w-full">
 
                 {/* Main Content Area */}
-                <main className={`flex-1 overflow-y-auto bg-white lg:rounded-[2rem] shadow-xl shadow-slate-200/60 ring-1 ring-slate-900/5 p-6 lg:p-10 relative group/main transition-all duration-300 ${isDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
+                <main className={`flex-1 overflow-y-auto bg-white lg:rounded-[2rem] shadow-xl shadow-slate-200/60 ring-1 ring-slate-900/5 p-4 md:p-10 relative group/main transition-all duration-300 ${isDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
                     <div className="max-w-5xl mx-auto space-y-8 relative z-10">
                         {/* Question Header */}
-                        <div className="flex items-center justify-between gap-4 pb-6 border-b border-slate-200">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-900 font-black text-xl shadow-sm ring-1 ring-slate-900/5">
-                                    {currentIdx + 1}
-                                </div>
+                        <div className="flex flex-col gap-4 pb-6 border-b border-slate-200">
+                            <div className="flex items-center justify-between w-full">
                                 <div className="flex items-center gap-3">
-                                    {currentResp.isCorrect ? (
-                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-900 border border-emerald-200 text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-emerald-900/5">Correct</span>
-                                    ) : (
-                                        <span className="px-3 py-1 bg-red-50 text-red-900 border border-red-200 text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-red-900/5">Incorrect</span>
-                                    )}
-                                    <span className="text-slate-600 text-[10px] font-bold uppercase tracking-widest px-2 border-l border-slate-300">
-                                        TOPIC: {(question.topic && question.topic.toLowerCase() !== 'general')
-                                            ? question.topic
-                                            : (question.chapter?.title || 'General')}
-                                    </span>
+                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-200 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-900 font-black text-lg md:text-xl shadow-sm ring-1 ring-slate-900/5 shrink-0">
+                                        {currentIdx + 1}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {currentResp.isCorrect ? (
+                                            <span className="px-2 md:px-3 py-0.5 md:py-1 bg-emerald-50 text-emerald-900 border border-emerald-200 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-emerald-900/5">Correct</span>
+                                        ) : (
+                                            <span className="px-2 md:px-3 py-0.5 md:py-1 bg-red-50 text-red-900 border border-red-200 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-red-900/5">Incorrect</span>
+                                        )}
+                                        <span className="text-slate-600 text-[8px] md:text-[10px] font-bold uppercase tracking-widest px-2 border-l border-slate-300 truncate max-w-[120px] md:max-w-none">
+                                            {(question.topic && question.topic.toLowerCase() !== 'general')
+                                                ? question.topic
+                                                : (question.chapter?.title || 'General')}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 md:gap-3">
+                                    <button
+                                        onClick={handleToggleSave}
+                                        disabled={isSaving}
+                                        className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg md:rounded-xl transition-all border shadow-sm group
+                                            ${isSaved
+                                                ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+                                                : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600'}`}
+                                        title={isSaved ? "Saved" : "Save Question"}
+                                    >
+                                        <Bookmark
+                                            className="w-4 h-4 md:w-5 md:h-5 transition-all group-active:scale-90"
+                                            fill={isSaved ? "currentColor" : "none"}
+                                        />
+                                    </button>
+                                    <button
+                                        onClick={handleShare}
+                                        className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg md:rounded-xl transition-all border border-slate-200 text-slate-400 hover:text-indigo-600 shadow-sm group"
+                                        title="Share Question"
+                                    >
+                                        <Share2 className="w-4 h-4 md:w-5 md:h-5 group-active:translate-x-1 transition-transform" />
+                                    </button>
+                                    <button
+                                        onClick={() => setIsReportModalOpen(true)}
+                                        className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg md:rounded-xl transition-all border border-slate-200 text-slate-400 hover:text-rose-600 shadow-sm group"
+                                        title="Report Question"
+                                    >
+                                        <Flag className="w-4 h-4 md:w-5 md:h-5 group-active:scale-90 transition-all" />
+                                    </button>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={handleToggleSave}
-                                    disabled={isSaving}
-                                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all border shadow-sm group
-                                        ${isSaved
-                                            ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
-                                            : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600'}`}
-                                    title={isSaved ? "Saved" : "Save Question"}
-                                >
-                                    <Bookmark
-                                        className="w-5 h-5 transition-all group-active:scale-90"
-                                        fill={isSaved ? "currentColor" : "none"}
-                                    />
-                                </button>
-                                <button
-                                    onClick={handleShare}
-                                    className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-xl transition-all border border-slate-200 text-slate-400 hover:text-indigo-600 shadow-sm group"
-                                    title="Share Question"
-                                >
-                                    <Share2 className="w-5 h-5 group-active:translate-x-1 group-active:-translate-y-1 transition-transform" />
-                                </button>
-                                <button
-                                    onClick={() => setIsReportModalOpen(true)}
-                                    className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-xl transition-all border border-slate-200 text-slate-400 hover:text-rose-600 shadow-sm group"
-                                    title="Report Question"
-                                >
-                                    <Flag className="w-5 h-5 group-active:scale-90 transition-all" />
-                                </button>
-                                <div className="flex items-center gap-4">
-                                    <div className="text-right flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
-                                        <Clock className="w-4 h-4 text-slate-500" />
-                                        <div className="text-slate-900 font-black text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
-                                            <span className="text-[7px] text-slate-400">YOU</span>
-                                            {currentResp.timeSpent}s
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                <div className="flex-1 sm:flex-initial text-right flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
+                                    <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-500" />
+                                    <div className="text-slate-900 font-black text-[10px] md:text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
+                                        <span className="text-[6px] md:text-[7px] text-slate-400">YOU</span>
+                                        {currentResp.timeSpent}s
+                                    </div>
+                                </div>
+                                {question.avgTopperTime !== undefined && question.avgTopperTime > 0 && (
+                                    <div className="flex-1 sm:flex-initial text-right flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 ring-1 ring-slate-900/5">
+                                        <Trophy className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600" />
+                                        <div className="text-emerald-900 font-black text-[10px] md:text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
+                                            <span className="text-[6px] md:text-[7px] text-emerald-400">TOPPER AVG</span>
+                                            {Math.round(question.avgTopperTime)}s
                                         </div>
                                     </div>
-                                    {question.avgTopperTime !== undefined && question.avgTopperTime > 0 && (
-                                        <div className="text-right flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 ring-1 ring-slate-900/5">
-                                            <Trophy className="w-4 h-4 text-emerald-600" />
-                                            <div className="text-emerald-900 font-black text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
-                                                <span className="text-[7px] text-emerald-400">TOPPER AVG</span>
-                                                {Math.round(question.avgTopperTime)}s
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                                )}
                             </div>
                         </div>
 
@@ -440,21 +443,23 @@ export default function SolutionPage() {
                         </div>
 
                         {/* Pagination */}
-                        <div className="flex items-center justify-between pt-8 border-t border-slate-200 mt-8">
+                        <div className="flex items-center justify-between pt-8 border-t border-slate-200 mt-8 gap-2">
                             <button
                                 disabled={currentIdx === 0}
                                 onClick={() => navigateTo(currentIdx - 1)}
-                                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 text-sm font-bold text-slate-900 transition-all shadow-sm hover:shadow active:scale-95 ring-1 ring-slate-900/5"
+                                className="flex items-center gap-2 px-4 md:px-6 py-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 text-xs md:text-sm font-bold text-slate-900 transition-all shadow-sm hover:shadow active:scale-95 ring-1 ring-slate-900/5"
                             >
-                                <ChevronLeft className="w-4 h-4" /> Previous
+                                <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Previous</span>
                             </button>
-                            <span className="text-slate-600 text-xs font-black uppercase tracking-[0.2em] bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">{currentIdx + 1} / {attempt.responses.length}</span>
+                            <span className="text-slate-600 text-[10px] md:text-xs font-black uppercase tracking-[0.1em] md:tracking-[0.2em] bg-slate-50 px-3 md:px-4 py-2 rounded-lg border border-slate-200 ring-1 ring-slate-900/5 whitespace-nowrap">
+                                {currentIdx + 1} / {attempt.responses.length}
+                            </span>
                             <button
                                 disabled={currentIdx === attempt.responses.length - 1}
                                 onClick={() => navigateTo(currentIdx + 1)}
-                                className="flex items-center gap-2 px-6 py-3 bg-[#0f172a] text-white border border-[#0f172a] rounded-xl hover:bg-slate-800 disabled:opacity-50 text-sm font-bold transition-all shadow-lg hover:translate-y-[-1px] active:scale-95 ring-1 ring-slate-900/20"
+                                className="flex items-center gap-2 px-4 md:px-6 py-3 bg-[#0f172a] text-white border border-[#0f172a] rounded-xl hover:bg-slate-800 disabled:opacity-50 text-xs md:text-sm font-bold transition-all shadow-lg hover:translate-y-[-1px] active:scale-95 ring-1 ring-slate-900/20"
                             >
-                                Next <ChevronRight className="w-4 h-4" />
+                                <span className="hidden sm:inline">Next</span> <ChevronRight className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
