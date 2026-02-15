@@ -64,6 +64,12 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
     const sidebarRef = useRef<HTMLDivElement>(null);
     const [isMobile, setIsMobile] = useState(false);
 
+    const handleNavItemClick = () => {
+        if (isMobile && !isCollapsed) {
+            handleToggle();
+        }
+    };
+
     // Track screen size for mobile view
     useEffect(() => {
         const checkMobile = () => {
@@ -208,6 +214,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                 <div className={`px-3 py-4 flex items-center sticky top-0 bg-white/95 backdrop-blur-sm z-20 transition-all duration-300 w-full ${isCollapsed ? 'flex-col gap-4 justify-center' : 'flex-row justify-between'}`}>
                     <Link
                         href="/dashboard"
+                        onClick={handleNavItemClick}
                         className="flex items-center gap-3 cursor-pointer overflow-hidden group z-50 transition-opacity hover:opacity-90"
                     >
                         <div className="w-11 h-11 min-w-[44px] bg-slate-900 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-xl shadow-slate-900/20 ring-1 ring-slate-900/10 relative overflow-hidden transition-transform group-hover:scale-105">
@@ -272,6 +279,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                                         >
                                             <Link
                                                 href={item.href}
+                                                onClick={handleNavItemClick}
                                                 className={`relative flex items-center gap-4 px-3 py-2 transition-all duration-200 group active:scale-95 ${isActive
                                                     ? isCollapsed ? 'z-10' : 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 z-10 rounded-2xl'
                                                     : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-2xl'
@@ -335,6 +343,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                     {isCollapsed ? (
                         <Link
                             href="/dashboard/plans"
+                            onClick={handleNavItemClick}
                             className="w-14 h-14 mx-auto flex items-center justify-center bg-slate-900 text-white rounded-2xl shadow-lg relative overflow-hidden group/mini"
                             title="Upgrade to Pro"
                         >
@@ -342,7 +351,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover/mini:opacity-100 transition-opacity" />
                         </Link>
                     ) : (
-                        <Link href="/dashboard/plans" className="p-4 relative z-10 flex items-center justify-between gap-3 min-w-[200px]">
+                        <Link href="/dashboard/plans" onClick={handleNavItemClick} className="p-4 relative z-10 flex items-center justify-between gap-3 min-w-[200px]">
                             <div>
                                 <h4 className="font-black text-sm text-slate-900 leading-none mb-1">Pro Access</h4>
                                 <p className="text-[10px] text-slate-500 font-bold leading-tight uppercase tracking-tight">Unlock premium</p>
