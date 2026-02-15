@@ -197,9 +197,10 @@ export class ExplanationService {
             const qb = this.questionRepository.createQueryBuilder('question')
                 .leftJoinAndSelect('question.subject', 'subject')
                 .leftJoinAndSelect('question.chapter', 'chapter')
-                // Join only global explanations (contextExamId is null)
-                .leftJoinAndSelect('question.explanations', 'explanation', 'explanation.contextExamId IS NULL');
+                // Basic join for explanations - filtering logic moved to mapping for stability
+                .leftJoinAndSelect('question.explanations', 'explanation');
 
+            // 1. Core Filters (Single Table or Simple ManyToOne)
             if (filters.search) {
                 qb.andWhere(new Brackets(sqb => {
                     sqb.where('question.content ILIKE :search', { search: `%${filters.search}%` })
@@ -216,25 +217,51 @@ export class ExplanationService {
                 qb.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
             }
 
-            // ONLY join models/exams if specifically requested to avoid Cartesian product explosion
-            if (filters.modelId || filters.examId) {
-                qb.leftJoin('question.models', 'models');
+            // 2. Complex Many-to-Many Filters (Hardened via EXISTS Subqueries)
+            if (filters.modelId) {
+                qb.andWhere(`EXISTS (
+                    SELECT 1 FROM model_questions mq 
+                    WHERE mq."questionId" = question.id AND mq."modelId" = :modelId
+                )`, { modelId: filters.modelId });
+            }
 
-                if (filters.modelId) {
-                    qb.andWhere('models.id = :modelId', { modelId: filters.modelId });
-                }
+            if (filters.examId) {
+                qb.andWhere(new Brackets(sqb => {
+                    // Path 1: Via Subject -> Exam
+                    sqb.where('subject."examId" = :examId', { examId: filters.examId })
+                        // Path 2: Direct question.examId (legacy)
+                        .orWhere('question."examId" = :examId', { examId: filters.examId })
+                        // Path 3: Via Question -> Exams Junction
+                        .orWhere(`EXISTS (
+                        SELECT 1 FROM exam_questions_question eq 
+                        WHERE eq."questionId" = question.id AND eq."examId" = :examId
+                    )`)
+                        // Path 4: Via Question -> Models -> Exams Junction
+                        .orWhere(`EXISTS (
+                        SELECT 1 FROM model_questions mq 
+                        JOIN exam_models em ON em."modelId" = mq."modelId"
+                        WHERE mq."questionId" = question.id AND em."examId" = :examId
+                    )`);
+                }));
+            }
 
-                if (filters.examId) {
-                    qb.leftJoin('subject.exam', 'subjectExam')
-                        .leftJoin('question.exams', 'exams')
-                        .leftJoin('models.exams', 'modelExams');
-
-                    qb.andWhere(new Brackets(sqb => {
-                        sqb.where('subjectExam.id = :examId', { examId: filters.examId })
-                            .orWhere('question.examId = :examId', { examId: filters.examId })
-                            .orWhere('exams.id = :examId', { examId: filters.examId })
-                            .orWhere('modelExams.id = :examId', { examId: filters.examId });
-                    }));
+            if (filters.status && filters.status !== 'all') {
+                // Filter logic for global explanations (contextExamId is null)
+                if (filters.status === 'pending') {
+                    qb.andWhere(`NOT EXISTS (
+                        SELECT 1 FROM question_explanation qe 
+                        WHERE qe."questionId" = question.id AND qe."contextExamId" IS NULL
+                    )`);
+                } else if (filters.status === 'generated') {
+                    qb.andWhere(`EXISTS (
+                        SELECT 1 FROM question_explanation qe 
+                        WHERE qe."questionId" = question.id AND qe."contextExamId" IS NULL AND qe."isVerified" = false
+                    )`);
+                } else if (filters.status === 'verified') {
+                    qb.andWhere(`EXISTS (
+                        SELECT 1 FROM question_explanation qe 
+                        WHERE qe."questionId" = question.id AND qe."contextExamId" IS NULL AND qe."isVerified" = true
+                    )`);
                 }
             }
 
@@ -244,14 +271,16 @@ export class ExplanationService {
             qb.take(filters.limit || 50);
             qb.skip(filters.offset || 0);
 
-            this.logger.log(`[listExplanations] Executing optimized query with filters: ${JSON.stringify(filters)}`);
+            this.logger.log(`[listExplanations] Executing HARDENED query (EXISTS pattern) with filters: ${JSON.stringify(filters)}`);
             const [questions, total] = await qb.getManyAndCount();
 
             // Map to the unified structure expected by frontend
             return {
                 items: questions.map((q: any) => {
                     try {
-                        const explanation = q.explanations?.[0];
+                        // Find the global explanation (where contextExamId is null)
+                        const explanation = q.explanations?.find((e: any) => e.contextExamId === null);
+
                         return {
                             id: explanation?.id || `missing-${q.id}`,
                             questionId: q.id,
@@ -266,7 +295,7 @@ export class ExplanationService {
                             notHelpfulCount: explanation?.notHelpfulCount || 0,
                             averageRating: explanation?.averageRating || 0,
                             viewCount: explanation?.viewCount || 0,
-                            createdAt: explanation?.createdAt || q.createdAt || new Date()
+                            createdAt: (explanation?.createdAt || q.createdAt || new Date()).toISOString()
                         };
                     } catch (mapError) {
                         this.logger.error(`Failed to map question ${q.id}:`, mapError);
