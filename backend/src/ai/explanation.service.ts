@@ -40,7 +40,12 @@ export class ExplanationService {
         contextExamId?: string,
         priority: AIPriority = AIPriority.MEDIUM
     ): Promise<string> {
-        this.logger.log(`[generateExplanation] Start for question=${questionId}, user=${userId}`);
+        // --- Curated-Only Enforcement for Students ---
+        if (role === UserRole.STUDENT) {
+            return this.getCuratedExplanation(questionId, contextExamId);
+        }
+
+        this.logger.log(`[generateExplanation] ADMIN/FACULTY trigger for question=${questionId}, user=${userId}`);
 
         // 1. Check cache first
         try {
@@ -197,6 +202,34 @@ export class ExplanationService {
 
     private async verifyExplanation(explanation: string, question: Question): Promise<{ isValid: boolean; feedback: string }> {
         return this.aiService.verifyExplanation(question, explanation);
+    }
+
+    /**
+     * Strictly fetch curated content for students.
+     * Returns a "Pending" message if not verified or approved.
+     */
+    private async getCuratedExplanation(questionId: string, contextExamId?: string): Promise<string> {
+        try {
+            const cached = await this.explanationRepository.findOne({
+                where: { questionId, contextExamId: contextExamId || IsNull() }
+            });
+
+            // Rule: Only show to students if Admin Approved OR AI Verified
+            if (cached && (cached.adminApprovedExplanation || cached.isVerified)) {
+                cached.viewCount++;
+                await this.explanationRepository.save(cached);
+                return cached.adminApprovedExplanation || cached.aiExplanation;
+            }
+
+            // Otherwise, return the "Safety Shield" message
+            return `### Content Under Review ⏳
+This solution is currently being reviewed by our expert faculty for accuracy and formatting. 
+
+Please check back shortly! Our team is working to ensure you get the absolute best explanation for this problem.`;
+        } catch (error) {
+            this.logger.error(`[getCuratedExplanation] Fetch failed for ${questionId}: ${error.message}`);
+            return 'Explanation is temporarily unavailable. Please try again later.';
+        }
     }
 
 
