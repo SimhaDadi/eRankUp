@@ -806,6 +806,12 @@ Return JSON ONLY:
                 
                 YOUR GOAL: Extract every question with 100% literal accuracy, ensuring math is correctly formatted in LaTeX.
                 
+                [HIDDEN THINKING INSTRUCTION]
+                You MUST first plan your logic inside a '[HIDDEN]' ... '[/HIDDEN]' block. 
+                - Analyze the document content, identify question boundaries, and map options correctly.
+                - Reason about any potentially blurry text or ambiguous formatting.
+                - This block will NOT be included in the final JSON output.
+                
                 ### 1. EXTRACTION & FORMATTING
                 - **USE LaTeX FOR MATH**: Type all mathematical expressions using LaTeX.
                     - Wrap inline math in single dollar signs, e.g., $a^2 + b^2 = c^2$.
@@ -1039,6 +1045,13 @@ Source Text:
             [USER_DATA_START]
 ${this.sanitizeInput(text)}
             [USER_DATA_END]
+
+            [HIDDEN THINKING INSTRUCTION]
+            You MUST first plan your logic inside a '[HIDDEN]' ... '[/HIDDEN]' block. 
+            - Analyze the text and identify question boundaries.
+            - Map options correctly.
+            - Reasoning about the data should happen HERE.
+            - This block will NOT be included in the final JSON output.
 
 Extract all questions and format them as a JSON array with this structure:
             [
@@ -1309,8 +1322,8 @@ Extract all questions and format them as a JSON array with this structure:
     private safeJsonParse(jsonStr: string, onErrorFallback: any = {}): any {
         if (!jsonStr) return onErrorFallback;
 
-        // Debug Log
-        // console.log('[AIService] Raw AI Response for Analysis:', jsonStr.substring(0, 200) + '...');
+        // Strip [HIDDEN] blocks first to ensure bracket extraction finds the REAL JSON
+        jsonStr = this.aiUtils.stripHidden(jsonStr);
 
         // Strategy: Identify candidate JSON strings and try to parse them one by one.
         const candidates: string[] = [];

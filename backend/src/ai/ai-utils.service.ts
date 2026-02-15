@@ -48,15 +48,21 @@ export class AIUtilsService {
     }
 
     /**
+     * Remove HIDDEN thinking blocks from AI response
+     */
+    stripHidden(text: string): string {
+        if (!text) return text;
+        return text.replace(/\[HIDDEN\][\s\S]*?\[\/HIDDEN\]/gi, '').trim();
+    }
+
+    /**
      * Clean AI response by removing artifacts and normalizing formatting
      * Handles LaTeX escaping, newlines, and unwanted characters
      */
     cleanAIResponse(text: string): string {
         if (!text) return text;
 
-        let cleaned = text
-            // Remove HIDDEN thinking block
-            .replace(/\[HIDDEN\][\s\S]*?\[\/HIDDEN\]/gi, '')
+        let cleaned = this.stripHidden(text)
             // Remove citation markers like 【0†source】
             .replace(/【[^】]*】/g, '')
             // Normalize newlines

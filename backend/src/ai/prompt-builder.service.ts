@@ -122,10 +122,12 @@ export class PromptBuilderService {
         }
 
         prompt += `
-  ### Instructions for the Explanation
-  Write a concise, high-impact "Cheat Sheet" style explanation.
-  **STRICT RULE**: START IMMEDIATELY with the steps below. NO introductory text, NO concept overview, NO algebra.
-  
+  [HIDDEN THINKING INSTRUCTION]
+  You MUST first plan your logic inside a '[HIDDEN]' ... '[/HIDDEN]' block. 
+  - Analyze the question step-by-step here to ensure accuracy.
+  - Verify your facts or logic before committing to the final answer.
+  - This block will NOT be seen by the student.
+
   [MANDATORY FORMAT - YOU MUST INCLUDE ALL SECTIONS BELOW]
   
   **${step1Title}** 🚀

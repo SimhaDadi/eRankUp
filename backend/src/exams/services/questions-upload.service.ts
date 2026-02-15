@@ -196,7 +196,7 @@ export class QuestionsUploadService {
 
             // Write debug log to file for troubleshooting
             try {
-                const logPath = 'd:\\eRankUp\\image_upload_debug.log';
+                const logPath = path.join(process.cwd(), 'image_upload_debug.log');
                 const logContent = parseLog.join('\n') + '\n---\n';
                 fs.appendFileSync(logPath, logContent);
             } catch (e) {

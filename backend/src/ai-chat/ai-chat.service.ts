@@ -398,6 +398,12 @@ export class AIChatService {
     private async extractAndSaveInsight(userId: string, userMsg: string, aiResp: string) {
         const extractionPrompt = `You are an expert Educational Data Scientist. 
         Analyze this interaction and extract exactly ONE "Core Conceptual Struggle" if present.
+
+        [HIDDEN THINKING]
+        - First, reason about the student's mistake.
+        - Determine if it's a deep conceptual gap or just a typo.
+        - This thinking block will be ignored in the JSON output.
+
         Output JSON: {"topic": "Topic Name", "struggle": "Description", "severity": 0.1} or "NONE".
         Student: ${this.aiService.sanitizeInput(userMsg)}
         Tutor: ${aiResp}`;
@@ -427,6 +433,12 @@ export class AIChatService {
     private async verifyResponse(response: string, groundTruth: any): Promise<string> {
         const auditPrompt = `You are a high-precision Educational Auditor. 
         Compare TUTOR RESPONSE against GROUND TRUTH. 
+
+        [HIDDEN REASONING]
+        - Analyze the ground truth logic vs tutor logic.
+        - Identify any subtle math or term discrepancies.
+        - This thinking block will be ignored in the output.
+
         Correct factual/math errors. Return same text if correct.
         
         GROUND TRUTH: Q: ${groundTruth.content} | A: ${groundTruth.correctOption}

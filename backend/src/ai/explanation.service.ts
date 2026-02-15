@@ -81,7 +81,8 @@ export class ExplanationService {
             while (!isValid && attempts < 2) {
                 // 6. Call AI Service
                 this.logger.log('🚀 Calling AI Service to generate explanation...');
-                explanation = await this.aiService.generateText(prompt, [], priority);
+                const rawExplanation = await this.aiService.generateText(prompt, [], priority);
+                explanation = this.aiService.cleanAIResponse(rawExplanation);
                 this.logger.log(`✅ AI Service returned explanation. Length: ${explanation.length}`);
 
                 await this.aiUsageService.trackUsage(userId, prompt, explanation);
