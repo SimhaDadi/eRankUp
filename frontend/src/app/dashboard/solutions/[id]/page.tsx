@@ -61,9 +61,11 @@ interface Attempt {
     timeTaken: number;
     responses: QuestionResponse[];
     model?: {
+        id: string;
         title: string;
     };
     exam?: {
+        id: string;
         title: string;
     };
 }
@@ -80,6 +82,7 @@ export default function SolutionPage() {
     const [isSaved, setIsSaved] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         const fetchAttempt = async () => {
@@ -129,6 +132,34 @@ export default function SolutionPage() {
         alert('Solution link copied to clipboard!');
     };
 
+    const handleGenerateAIExplanation = async () => {
+        if (!attempt || !attempt.responses[currentIdx]) return;
+        setIsGenerating(true);
+        try {
+            const currentResp = attempt.responses[currentIdx];
+            const qId = currentResp.question.id;
+            const res = await api.get(`/explanations/${qId}`, {
+                params: {
+                    userAnswer: currentResp.selectedOptionId,
+                    examId: attempt.exam?.id || attempt.model?.id
+                }
+            });
+
+            if (res.data.explanation) {
+                // Update local state
+                const newAttempt = { ...attempt };
+                newAttempt.responses[currentIdx].question.explanation = res.data.explanation;
+                setAttempt(newAttempt);
+                setShowSolution(true);
+            }
+        } catch (error: any) {
+            console.error("Failed to generate AI explanation", error);
+            alert("Failed to generate AI explanation. Please try again.");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-screen bg-[#f8fafc]">
@@ -164,6 +195,24 @@ export default function SolutionPage() {
 
     const currentResp = attempt.responses[currentIdx];
     const { question } = currentResp;
+
+    const handleToggleSolution = () => {
+        const nextState = !showSolution;
+        setShowSolution(nextState);
+
+        // Auto-trigger AI generation if solution is opened and explanation is missing
+        if (nextState) {
+            const isMissing = !question.explanation?.trim() ||
+                question.explanation.trim() === 'No explanation provided.' ||
+                question.explanation.trim() === 'No explanation provided' ||
+                question.explanation.trim().includes("It seems like you didn't type anything") ||
+                question.explanation.trim().length < 5;
+
+            if (isMissing && !isGenerating) {
+                handleGenerateAIExplanation();
+            }
+        }
+    };
 
     const navigateTo = (idx: number) => {
         if (idx >= 0 && idx < attempt.responses.length) {
@@ -324,11 +373,11 @@ export default function SolutionPage() {
                         <div className="mt-8 pt-8 border-t border-slate-200 transition-all duration-500 ease-in-out">
                             {!showSolution ? (
                                 <button
-                                    onClick={() => setShowSolution(true)}
+                                    onClick={handleToggleSolution}
                                     className="w-full py-4 bg-white border border-indigo-100 text-indigo-700 font-black text-sm uppercase tracking-widest rounded-xl hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center justify-center gap-2 group shadow-sm hover:shadow-md ring-1 ring-indigo-900/5"
                                 >
                                     <Lightbulb className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                    View Solution
+                                    {showSolution ? 'Hide Solution' : 'View Solution'}
                                 </button>
                             ) : (
                                 <div className="bg-indigo-50/50 border border-indigo-200 rounded-2xl p-6 relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 ring-1 ring-indigo-900/5 shadow-sm">
@@ -340,14 +389,43 @@ export default function SolutionPage() {
                                             <span className="font-black text-indigo-950 text-sm uppercase tracking-wider">Explanation</span>
                                         </div>
                                         <button
-                                            onClick={() => setShowSolution(false)}
+                                            onClick={handleToggleSolution}
                                             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-indigo-100 text-indigo-400 hover:text-indigo-700 transition-all"
                                         >
                                             <ChevronUp className="w-4 h-4" />
                                         </button>
                                     </div>
                                     <div className="text-slate-900 text-sm leading-relaxed font-medium">
-                                        <MathRenderer content={prettifyMathText(question.explanation) || 'No explanation provided.'} />
+                                        {(!question.explanation?.trim() ||
+                                            question.explanation.trim() === 'No explanation provided.' ||
+                                            question.explanation.trim() === 'No explanation provided' ||
+                                            question.explanation.trim().includes("It seems like you didn't type anything") ||
+                                            question.explanation.trim().length < 5) ? (
+                                            <div className="flex flex-col items-center justify-center py-6 gap-4">
+                                                <div className="bg-indigo-100/50 p-4 rounded-full">
+                                                    {isGenerating ? (
+                                                        <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                                                    ) : (
+                                                        <Sparkles className="w-8 h-8 text-indigo-600 animate-pulse" />
+                                                    )}
+                                                </div>
+                                                <p className="text-slate-500 text-center text-sm font-semibold">
+                                                    {isGenerating ? "Analyzing question & generating step-by-step solution..." : "AI magic is happening..."}
+                                                </p>
+                                                {isGenerating && (
+                                                    <div className="w-48 h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                                                        <motion.div
+                                                            className="h-full bg-indigo-600"
+                                                            initial={{ width: "0%" }}
+                                                            animate={{ width: "100%" }}
+                                                            transition={{ duration: 15, ease: "linear" }}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <MathRenderer content={prettifyMathText(question.explanation)} />
+                                        )}
                                     </div>
                                 </div>
                             )}

@@ -22,6 +22,8 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
   bool _isLoading = true;
   String _filter = 'all'; // all, correct, incorrect, unattempted
   Set<String> _savedQuestionIds = {};
+  final Set<String> _generatingIds = {};
+  final Set<String> _failedIds = {};
 
   @override
   void initState() {
@@ -317,16 +319,71 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                if (explanation != null && explanation.toString().isNotEmpty)
-                  MathRichText(
-                    text: explanation,
+                (() {
+                  final String rawExplanation = explanation?.toString() ?? '';
+                  final isMissing = rawExplanation.trim().isEmpty || 
+                                   rawExplanation.trim() == 'No explanation provided.' ||
+                                   rawExplanation.trim() == 'No explanation provided' ||
+                                   rawExplanation.trim().contains("It seems like you didn't type anything") ||
+                                   rawExplanation.trim().length < 5;
+
+                  if (isMissing) {
+                    final isGenerating = _generatingIds.contains(question['id']);
+                    
+                    // Auto-trigger generation if not already doing so
+                    if (!isGenerating && !_failedIds.contains(question['id'])) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _generateAIExplanation(
+                          question['id'],
+                          userAnswer: selectedId?.toString(),
+                          examId: _data?['exam']?['id']?.toString() ?? _data?['model']?['id']?.toString(),
+                        );
+                      });
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Column(
+                        children: [
+                          if (isGenerating) ...[
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Generating AI solution...',
+                              style: AppTextStyles.bodySmall.copyWith(color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                            ),
+                          ] else if (_failedIds.contains(question['id'])) ...[
+                            const Icon(Icons.error_outline, color: Colors.orange, size: 20),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Failed to generate explanation.',
+                              style: AppTextStyles.bodySmall.copyWith(color: Colors.orange),
+                            ),
+                            TextButton(
+                              onPressed: () => setState(() => _failedIds.remove(question['id'])),
+                              child: const Text('Try Again', style: TextStyle(fontSize: 12)),
+                            ),
+                          ] else ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              'AI is preparing your solution...',
+                              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary, fontStyle: FontStyle.italic),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }
+
+                  return MathRichText(
+                    text: rawExplanation,
                     style: AppTextStyles.bodySmall.copyWith(color: isDark ? Colors.white70 : AppColors.textPrimary),
-                  )
-                else
-                  Text(
-                    'No explanation available yet. Click "Generate AI" to create one.',
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary, fontStyle: FontStyle.italic),
-                  ),
+                  );
+                })(),
               ],
             ),
           ),
@@ -335,35 +392,63 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
     );
   }
 
-  Future<void> _generateBetterExplanation(String questionId) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+  Future<void> _generateAIExplanation(String questionId, {String? userAnswer, String? examId, int? responseIndex}) async {
+    if (_generatingIds.contains(questionId) || _failedIds.contains(questionId)) return;
+
+    setState(() {
+      _generatingIds.add(questionId);
+    });
 
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
-      final response = await apiService.get('/explanations/$questionId');
-      Navigator.pop(context); // Close loading
+      final queryParams = {
+        if (userAnswer != null) 'userAnswer': userAnswer,
+        if (examId != null) 'examId': examId,
+      };
+      
+      final queryString = queryParams.entries
+          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+          .join('&');
+      
+      final endpoint = '/explanations/$questionId${queryString.isNotEmpty ? '?$queryString' : ''}';
+      final response = await apiService.get(endpoint);
 
       if (response.statusCode == 200) {
-        HapticService.success();
         final data = jsonDecode(response.body);
         final newExplanation = data['explanation'];
         
         if (mounted) {
-          _showExplanationDialog(newExplanation);
-          // Optionally refresh the list to show it inline
-          _fetchSolutionData();
+          setState(() {
+            _generatingIds.remove(questionId);
+            // Update the specific response in the list
+            if (responseIndex != null) {
+              _responses[responseIndex]['question']['explanation'] = newExplanation;
+            } else {
+              // Find and update if index wasn't provided
+              for (var resp in _responses) {
+                if (resp['question']['id'] == questionId) {
+                  resp['question']['explanation'] = newExplanation;
+                  break;
+                }
+              }
+            }
+            _applyFilter(); // Refresh filtered list
+          });
+          HapticService.light();
         }
+      } else {
+        setState(() {
+          _generatingIds.remove(questionId);
+          _failedIds.add(questionId);
+        });
       }
     } catch (e) {
-      Navigator.pop(context);
+      debugPrint('Error generating AI explanation: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        setState(() {
+          _generatingIds.remove(questionId);
+          _failedIds.add(questionId);
+        });
       }
     }
   }
