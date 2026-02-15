@@ -32,6 +32,8 @@ export default function TestPage() {
     const [pauseReason, setPauseReason] = useState<'manual' | 'security'>('manual');
     const [timeLeft, setTimeLeft] = useState(60 * 60); // 60 minutes default
     const [modelTitle, setModelTitle] = useState('Assessment in Progress');
+    const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+
 
 
 
@@ -529,23 +531,31 @@ export default function TestPage() {
         <div className="flex flex-col h-screen bg-gray-100 overflow-hidden font-sans select-none">
             {/* 1. Header */}
             <header className="h-16 bg-white border-b flex items-center justify-between px-4 shrink-0 shadow-sm z-20">
-                <div className="font-bold text-lg text-slate-800 truncate max-w-md">{modelTitle}</div>
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsPaletteOpen(true)}
+                        className="lg:hidden p-2 hover:bg-slate-100 rounded-xl transition-all"
+                    >
+                        <Menu className="w-6 h-6 text-slate-600" />
+                    </button>
+                    <div className="font-bold text-sm md:text-lg text-slate-800 truncate max-w-[120px] md:max-w-md">{modelTitle}</div>
+                </div>
+                <div className="flex items-center gap-2 md:gap-6">
                     <button
                         onClick={() => handlePause('manual')}
-                        className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs transition-all"
+                        className="flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-[10px] md:text-xs transition-all"
                     >
-                        <Pause className="w-3 h-3" /> PAUSE
+                        <Pause className="w-3 h-3" /> <span className="hidden sm:inline">PAUSE</span>
                     </button>
-                    <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
-                        <div className="text-xs font-bold text-slate-500 uppercase">Time Left</div>
-                        <div className="font-mono font-bold text-xl text-slate-800">{formatTime(timeLeft)}</div>
+                    <div className="flex items-center gap-2 bg-slate-100 px-2 md:px-3 py-1.5 rounded-full border border-slate-200">
+                        <div className="text-[9px] md:text-xs font-bold text-slate-500 uppercase hidden sm:block">Time Left</div>
+                        <div className="font-mono font-bold text-sm md:text-xl text-slate-800">{formatTime(timeLeft)}</div>
                     </div>
                 </div>
             </header>
 
             {/* 2. Section Tabs */}
-            <div className="h-12 bg-white border-b flex items-center px-2 shadow-sm shrink-0 overflow-x-auto no-scrollbar">
+            <div className="h-12 bg-white border-b flex items-center px-1 md:px-2 shadow-sm shrink-0 overflow-x-auto no-scrollbar scroll-smooth">
                 {sections.map(section => (
                     <button
                         key={section.name}
@@ -553,12 +563,12 @@ export default function TestPage() {
                             setActiveSection(section.name);
                             setCurrentQuestionIndex(section.firstIndex);
                         }}
-                        className={`px-6 h-full text-sm font-bold border-b-2 transition-colors whitespace-nowrap
+                        className={`px-4 md:px-6 h-full text-[11px] md:text-sm font-bold border-b-2 transition-colors whitespace-nowrap overflow-hidden
                             ${activeSection === section.name
                                 ? 'border-blue-600 text-blue-600 bg-blue-50/50'
                                 : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
                     >
-                        {section.name} ({section.indices.length})
+                        {section.name} <span className="text-[9px] md:text-xs opacity-60">({section.indices.length})</span>
                     </button>
                 ))}
             </div>
@@ -569,26 +579,26 @@ export default function TestPage() {
                 <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
 
                     {/* Top Info Bar */}
-                    <div className="h-12 border-b flex items-center justify-between px-6 bg-slate-50 text-sm">
+                    <div className="h-12 border-b flex items-center justify-between px-4 md:px-6 bg-slate-50 text-[10px] md:text-sm">
                         <div className="font-bold text-blue-700">Question No. {currentQuestionIndex + 1}</div>
-                        <div className="flex items-center gap-4 text-xs font-bold">
+                        <div className="flex items-center gap-4 font-bold">
                             <span className="text-slate-500">Marks:
-                                <span className="text-green-600">+{currentQuestion.positiveMarks || 1.0}</span> /
-                                <span className="text-red-500">-{currentQuestion.negativeMarks || 0.25}</span>
+                                <span className="text-green-600"> +{currentQuestion.positiveMarks || 1.0}</span> /
+                                <span className="text-red-500"> -{currentQuestion.negativeMarks || 0.25}</span>
                             </span>
                         </div>
                     </div>
 
                     {/* Question Content (Scrollable) */}
                     <div className="flex-1 overflow-y-auto w-full">
-                        <div className="max-w-[95%] mx-auto py-8">
+                        <div className="max-w-[95%] md:max-w-[90%] mx-auto py-4 md:py-8">
                             {/* Question Text */}
-                            <div className="mb-8 text-xl leading-8 font-medium text-slate-800 border-b pb-8 border-gray-100">
+                            <div className="mb-4 md:mb-8 text-base md:text-xl md:leading-8 font-medium text-slate-800 border-b pb-4 md:pb-8 border-gray-100">
                                 <MathRenderer content={currentQuestion.content} />
                             </div>
 
                             {/* Options */}
-                            <div className="space-y-4">
+                            <div className="space-y-3 md:space-y-4">
                                 {currentQuestion.options.map((option, idx) => {
                                     const isSelected = answers[currentQuestion.id] === option.id;
                                     const optionLabel = String.fromCharCode(65 + idx); // A, B, C, D...
@@ -596,20 +606,20 @@ export default function TestPage() {
                                     return (
                                         <label
                                             key={option.id}
-                                            className={`flex items-center gap-5 p-5 rounded-2xl border-2 cursor-pointer transition-all group relative overflow-hidden
+                                            className={`flex items-center gap-3 md:gap-5 p-3 md:p-5 rounded-xl md:rounded-2xl border-2 cursor-pointer transition-all group relative overflow-hidden
                                                 ${isSelected
                                                     ? 'border-[#00bfa5] bg-teal-50 shadow-md shadow-teal-500/10'
-                                                    : 'border-slate-200 hover:border-slate-400 hover:bg-white bg-slate-50/50'}`}
+                                                    : 'border-slate-200 md:hover:border-slate-400 md:hover:bg-white bg-slate-50/50'}`}
                                         >
                                             {/* Selection Indicator */}
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg border-2 shrink-0 transition-colors
+                                            <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-black text-sm md:text-lg border-2 shrink-0 transition-colors
                                                 ${isSelected
                                                     ? 'bg-[#00bfa5] border-[#00bfa5] text-white'
                                                     : 'bg-white border-slate-300 text-slate-400 group-hover:border-slate-500 group-hover:text-slate-600'}`}>
                                                 {optionLabel}
                                             </div>
 
-                                            <div className="text-lg text-slate-700 font-medium pt-0.5">
+                                            <div className="text-sm md:text-lg text-slate-700 font-medium pt-0.5">
                                                 <MathRenderer content={option.text} />
                                             </div>
 
@@ -633,35 +643,35 @@ export default function TestPage() {
                     </div>
 
                     {/* Bottom Action Footer */}
-                    <div className="h-16 border-t bg-white flex items-center justify-between px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 shrink-0">
-                        <div className="flex gap-3">
+                    <div className="h-auto md:h-16 border-t bg-white flex flex-col md:flex-row items-center justify-between px-4 py-3 md:px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 shrink-0 gap-3 md:gap-0">
+                        <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 w-full md:w-auto">
                             <button
                                 onClick={handlePrevious}
                                 disabled={currentQuestionIndex === 0}
-                                className={`px-4 py-2 rounded-lg border font-bold transition-colors text-sm flex items-center gap-2
+                                className={`px-3 md:px-4 py-2 rounded-lg border font-bold transition-colors text-[10px] md:text-sm flex items-center gap-1 md:gap-2
                                     ${currentQuestionIndex === 0
                                         ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
                                         : 'bg-white border-gray-300 text-slate-600 hover:bg-gray-100'}`}
                             >
-                                <ChevronLeft className="w-4 h-4" /> Previous
+                                <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Previous</span>
                             </button>
                             <button
                                 onClick={handleClearResponse}
-                                className="px-4 py-2 rounded-lg border border-gray-300 text-slate-600 font-bold hover:bg-gray-100 transition-colors text-sm"
+                                className="px-3 md:px-4 py-2 rounded-lg border border-gray-300 text-slate-600 font-bold hover:bg-gray-100 transition-colors text-[10px] md:text-sm"
                             >
-                                Clear Response
+                                Clear
                             </button>
                             <button
                                 onClick={handleMarkForReview}
-                                className="px-4 py-2 rounded-lg border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 font-bold transition-colors text-sm flex items-center gap-2"
+                                className="px-3 md:px-4 py-2 rounded-lg border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 font-bold transition-colors text-[10px] md:text-sm flex items-center gap-1 md:gap-2"
                             >
-                                <Flag className="w-4 h-4 fill-purple-700" /> Mark for Review & Next
+                                <Flag className="w-3 md:w-4 h-3 md:h-4 fill-purple-700" /> <span className="hidden sm:inline">Mark for Review</span><span className="sm:hidden">Mark</span>
                             </button>
                         </div>
 
                         <button
                             onClick={handleSaveAndNext}
-                            className="px-8 py-2.5 rounded-lg bg-[#2563eb] text-white font-bold hover:bg-blue-700 shadow-md shadow-blue-500/20 text-sm flex items-center gap-2"
+                            className="w-full md:w-auto px-6 md:px-8 py-2.5 rounded-lg bg-[#2563eb] text-white font-bold hover:bg-blue-700 shadow-md shadow-blue-500/20 text-sm flex items-center justify-center gap-2"
                         >
                             {currentQuestionIndex === questions.length - 1 ? 'Save & Submit' : 'Save & Next'}
                             <ChevronRight className="w-4 h-4" />
@@ -670,7 +680,14 @@ export default function TestPage() {
                 </div>
 
                 {/* 3b. Right Sidebar (Palette) */}
-                <div className="w-[340px] bg-slate-50 border-l border-slate-200 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] flex flex-col shrink-0 z-30">
+                <aside className={`fixed lg:static inset-y-0 right-0 w-[300px] md:w-[340px] bg-slate-50 border-l border-slate-200 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] flex flex-col shrink-0 z-[60] lg:z-30 transform transition-transform duration-300 ease-in-out ${isPaletteOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
+                    {/* Mobile Close Button */}
+                    <button
+                        onClick={() => setIsPaletteOpen(false)}
+                        className="lg:hidden absolute -left-10 top-4 w-10 h-10 bg-white border border-slate-200 border-r-0 rounded-l-xl flex items-center justify-center text-slate-400 shadow-lg shadow-slate-200/50"
+                    >
+                        <X className="w-5 h-5 text-slate-600" />
+                    </button>
                     {/* User & Info */}
                     <div className="p-4 bg-white border-b flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full border bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-500 overflow-hidden">
@@ -730,10 +747,23 @@ export default function TestPage() {
                             onClick={handleSubmit}
                             className="w-full py-3 bg-[#00bfa5] hover:bg-[#00a891] text-white font-bold rounded-lg shadow-lg shadow-teal-500/20 transition-all text-sm uppercase tracking-wide"
                         >
-                            Submit Test
+                            Submit Assessment
                         </button>
                     </div>
-                </div>
+                </aside>
+
+                {/* Mobile Backdrop for Palette */}
+                <AnimatePresence>
+                    {isPaletteOpen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsPaletteOpen(false)}
+                            className="lg:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50"
+                        />
+                    )}
+                </AnimatePresence>
             </div>
             {/* Submit Confirmation Modal */}
             <AnimatePresence>
@@ -749,8 +779,8 @@ export default function TestPage() {
                                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <CheckCircle className="w-6 h-6 text-blue-600" />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Submit your test</h3>
-                                <div className="mt-6 mb-8 overflow-hidden rounded-xl border border-gray-200">
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Submit your assessment</h3>
+                                <div className="mt-6 mb-8 overflow-x-auto rounded-xl border border-gray-200">
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-[#00bfa5] text-white text-[11px] uppercase tracking-wider">
                                             <tr>
