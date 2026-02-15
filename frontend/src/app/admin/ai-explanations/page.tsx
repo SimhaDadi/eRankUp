@@ -82,12 +82,12 @@ export default function AIExplanationsPage() {
     const [chapters, setChapters] = useState<FilterOption[]>([]);
     const [models, setModels] = useState<FilterOption[]>([]);
 
-    // Edit State
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [editText, setEditText] = useState('');
-    const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
-    const [verifyingIds, setVerifyingIds] = useState<Set<string>>(new Set());
-    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+    const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
+        setNotification({ type, message });
+        setTimeout(() => setNotification(null), 5000);
+    };
 
     const toggleExpand = (id: string) => {
         setExpandedIds(prev => {
@@ -197,12 +197,15 @@ export default function AIExplanationsPage() {
     // Special handler for generating explanation for a pending question
     const handleGenerate = async (questionId: string) => {
         try {
+            console.log(`[Dashboard] Starting generation for ${questionId}`);
             setGeneratingIds(prev => new Set(prev).add(questionId));
-            await api.post(`/explanations/generate/${questionId}`);
+            const res = await api.post(`/explanations/generate/${questionId}`);
+            console.log(`[Dashboard] Generation success for ${questionId}`, res.data);
+            showNotification('success', 'Explanation generated successfully!');
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to generate:', error);
-            alert('Failed to generate explanation');
+            showNotification('error', `Failed to generate: ${error.response?.data?.message || error.message}`);
         } finally {
             setGeneratingIds(prev => {
                 const next = new Set(prev);
@@ -315,6 +318,19 @@ export default function AIExplanationsPage() {
                     </button>
                 </div>
             </header>
+
+            {/* Notification Toast */}
+            {notification && (
+                <div className={`fixed top-8 right-8 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-200' :
+                        notification.type === 'error' ? 'bg-red-900/90 border-red-500/50 text-red-200' :
+                            'bg-indigo-900/90 border-indigo-500/50 text-indigo-200'
+                    }`}>
+                    {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> :
+                        notification.type === 'error' ? <XCircle className="w-5 h-5" /> :
+                            <Bot className="w-5 h-5" />}
+                    <span className="font-bold">{notification.message}</span>
+                </div>
+            )}
 
             {/* Error Banner */}
             {errorMsg && (
