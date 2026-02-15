@@ -207,7 +207,7 @@ export class ExplanationService {
         chapterId?: string;
         modelId?: string;
         examId?: string;  // [FIX] Added examId filter support
-        status?: 'all' | 'pending' | 'generated' | 'verified';
+        status?: 'all' | 'pending' | 'generated' | 'verified' | 'mismatch';
         limit?: number;
         offset?: number;
     }) {
@@ -277,6 +277,11 @@ export class ExplanationService {
                     qb.andWhere(`EXISTS (
                         SELECT 1 FROM question_explanation qe 
                         WHERE qe."questionId" = question.id AND qe."contextExamId" IS NULL AND qe."isVerified" = true
+                    )`);
+                } else if (filters.status === 'mismatch') {
+                    qb.andWhere(`EXISTS (
+                        SELECT 1 FROM question_explanation qe 
+                        WHERE qe."questionId" = question.id AND qe."contextExamId" IS NULL AND qe."isLogicalMismatch" = true
                     )`);
                 }
             }

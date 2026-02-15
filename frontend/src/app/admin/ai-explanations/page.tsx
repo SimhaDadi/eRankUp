@@ -16,7 +16,7 @@ import {
     AlertCircle,
     BookOpen,
     Layers,
-
+    AlertTriangle,
     Box,
     Bot
 } from 'lucide-react';
@@ -39,6 +39,8 @@ interface ExplanationItem {
     averageRating: number;
     viewCount: number;
     createdAt: string;
+    isLogicalMismatch?: boolean;
+    logicalSolveOutcome?: string;
 }
 
 interface Stats {
@@ -70,7 +72,7 @@ export default function AIExplanationsPage() {
 
     // Filter State
     const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'generated' | 'verified'>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'generated' | 'verified' | 'mismatch'>('all');
     const [examId, setExamId] = useState('');  // [FIX] Added examId filter
     const [subjectId, setSubjectId] = useState('');
     const [chapterId, setChapterId] = useState('');
@@ -419,6 +421,7 @@ export default function AIExplanationsPage() {
                         <option value="pending">Pending (No Explanation)</option>
                         <option value="generated">Generated (Unverified)</option>
                         <option value="verified">Verified</option>
+                        <option value="mismatch">Logic Mismatches ⚠️</option>
                     </select>
 
                     {/* Subject Filter */}
@@ -503,6 +506,11 @@ export default function AIExplanationsPage() {
                                     {item.status === 'pending' && (
                                         <span className="flex items-center gap-1 px-3 py-1 bg-slate-700 text-slate-400 rounded-full text-xs font-bold">
                                             <AlertCircle className="w-3 h-3" /> Pending
+                                        </span>
+                                    )}
+                                    {item.isLogicalMismatch && (
+                                        <span className="flex items-center gap-1 px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold border border-red-500/30">
+                                            <AlertTriangle className="w-3 h-3" /> Logic Mismatch ⚠️
                                         </span>
                                     )}
                                 </div>
