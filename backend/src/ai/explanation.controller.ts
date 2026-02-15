@@ -9,18 +9,25 @@ import {
     Query,
     UseGuards,
     HttpException,
-    HttpStatus
+    HttpStatus,
+    Logger,
+    Request,
+    UseInterceptors,
+    UploadedFile
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 import { ExplanationService } from './explanation.service';
+import { AIPriority } from './ai-queue.service';
 
 @Controller('explanations')
 @UseGuards(AuthGuard('jwt'))
 export class ExplanationController {
-    constructor(private explanationService: ExplanationService) { }
+    private readonly logger = new Logger(ExplanationController.name);
+    constructor(private readonly explanationService: ExplanationService) { }
 
     /**
      * Generate explanation for a single question
@@ -30,23 +37,19 @@ export class ExplanationController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     async generateExplanation(
+        @Request() req: any,
         @Param('questionId') questionId: string,
         @Body('userAnswer') userAnswer?: string,
         @Body('examId') examId?: string
     ) {
         try {
-            // Check if AI service is initialized
-            if (!this.explanationService['isInitialized']) {
-                throw new HttpException(
-                    'AI service not configured. Please set GEMINI_API_KEY environment variable. Get your free API key at: https://makersuite.google.com/app/apikey',
-                    HttpStatus.SERVICE_UNAVAILABLE
-                );
-            }
-
             const explanation = await this.explanationService.generateExplanation(
+                req.user.userId,
+                req.user.role,
                 questionId,
                 userAnswer,
-                examId
+                examId,
+                AIPriority.HIGH // Force High Priority for manual requests
             );
 
             return {
@@ -55,8 +58,45 @@ export class ExplanationController {
                 explanation
             };
         } catch (error) {
+            this.logger.error(`[generateExplanation] Failed for questionId=${questionId}: ${error.message}`, error.stack);
             throw new HttpException(
                 error.message || 'Failed to generate explanation',
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
+     * Generate missing explanations for questions
+     * Admin only - backfill utility
+     */
+    @Get('debug/test')
+    async debugTest() {
+        return this.explanationService.listExplanations({});
+    }
+
+    @Post('generate-missing')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async generateMissingExplanations(
+        @Request() req: any,
+        @Body('limit') limit?: number
+    ) {
+        try {
+            const count = await this.explanationService.generateMissingExplanations(
+                req.user.userId,
+                req.user.role,
+                limit
+            );
+
+            return {
+                success: true,
+                message: `Triggered generation for ${count} missing explanations`,
+                count
+            };
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to generate missing explanations',
                 error.status || HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
@@ -70,6 +110,7 @@ export class ExplanationController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     async bulkGenerateExplanations(
+        @Request() req: any,
         @Body() body: {
             questionIds?: string[];
             examId?: string;
@@ -79,24 +120,29 @@ export class ExplanationController {
         }
     ) {
         try {
-            // Check if AI service is initialized
-            if (!this.explanationService['isInitialized']) {
-                throw new HttpException(
-                    'AI service not configured. Please set GEMINI_API_KEY environment variable. Get your free API key at: https://makersuite.google.com/app/apikey',
-                    HttpStatus.SERVICE_UNAVAILABLE
-                );
-            }
-
-            let questionIds = body.questionIds || [];
+            const questionIds = body.questionIds || [];
 
             // If no specific IDs provided, find questions without explanations
             if (questionIds.length === 0) {
-                // This would need a method in ExplanationService to find questions
-                // For now, we'll return an error
-                throw new Error('Please provide questionIds or use the AI controller endpoint');
+                // Use the missing generator but keep the bulk-generate interface for specific IDs
+                const count = await this.explanationService.generateMissingExplanations(
+                    req.user.userId,
+                    req.user.role,
+                    body.limit
+                );
+                return {
+                    success: true,
+                    message: `Triggered generation for ${count} missing explanations available via bulk`,
+                    generated: count,
+                    questionIds: []
+                };
             }
 
-            const explanations = await this.explanationService.generateBulkExplanations(questionIds);
+            const explanations = await this.explanationService.generateBulkExplanations(
+                req.user.userId,
+                req.user.role,
+                questionIds
+            );
 
             return {
                 success: true,
@@ -111,17 +157,26 @@ export class ExplanationController {
         }
     }
 
+
     /**
      * Get explanation for a question
      * Public - returns cached explanation if available
      */
     @Get(':questionId')
     async getExplanation(
+        @Request() req: any,
         @Param('questionId') questionId: string,
-        @Query('examId') examId?: string
+        @Query('examId') examId?: string,
+        @Query('userAnswer') userAnswer?: string
     ) {
         try {
-            const explanation = await this.explanationService.generateExplanation(questionId, undefined, examId);
+            const explanation = await this.explanationService.generateExplanation(
+                req.user.userId,
+                req.user.role,
+                questionId,
+                userAnswer,
+                examId
+            );
 
             return {
                 questionId,
@@ -140,24 +195,34 @@ export class ExplanationController {
      * Admin only
      */
     @Get()
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.ADMIN)
+    // @UseGuards(RolesGuard)
+    // @Roles(UserRole.ADMIN)
     async listExplanations(
-        @Query('verified') verified?: string,
-        @Query('minRating') minRating?: string,
+        @Query('search') search?: string,
+        @Query('subjectId') subjectId?: string,
+        @Query('chapterId') chapterId?: string,
+        @Query('modelId') modelId?: string,
+        @Query('examId') examId?: string,  // [FIX] Added examId filter
+        @Query('status') status?: 'all' | 'pending' | 'generated' | 'verified',
         @Query('limit') limit?: string,
         @Query('offset') offset?: string
     ) {
         try {
             const filters = {
-                verified: verified === 'true' ? true : verified === 'false' ? false : undefined,
-                minRating: minRating ? parseFloat(minRating) : undefined,
+                search,
+                subjectId,
+                chapterId,
+                modelId,
+                examId,  // [FIX] Pass examId to service
+                status: status || 'all',
                 limit: limit ? parseInt(limit) : 50,
                 offset: offset ? parseInt(offset) : 0
             };
-
             return await this.explanationService.listExplanations(filters);
         } catch (error) {
+            this.logger.error(`listExplanations failed for filters: ${JSON.stringify({
+                search, subjectId, chapterId, modelId, examId, status, limit, offset
+            })}`, error.stack);
             throw new HttpException(
                 error.message || 'Failed to list explanations',
                 HttpStatus.INTERNAL_SERVER_ERROR
@@ -170,7 +235,7 @@ export class ExplanationController {
      * Admin only
      */
     @Get('admin/unverified')
-    @UseGuards(RolesGuard)
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     async getUnverifiedExplanations() {
         try {
@@ -183,12 +248,44 @@ export class ExplanationController {
         }
     }
 
+    @Get('admin/logical-mismatches')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async getLogicalMismatches() {
+        try {
+            return await this.explanationService.listLogicalMismatches();
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to fetch logical mismatches',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
+     * Trigger AI verification for an existing explanation
+     * Admin only
+     */
+    @Post(':id/verify-ai')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async verifyExplanationAI(@Param('id') id: string) {
+        try {
+            return await this.explanationService.verifyStoredExplanation(id);
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to verify explanation',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     /**
      * Approve an explanation (with optional edits)
      * Admin only
      */
     @Post(':id/approve')
-    @UseGuards(RolesGuard)
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     async approveExplanation(
         @Param('id') id: string,
@@ -209,7 +306,7 @@ export class ExplanationController {
      * Admin only
      */
     @Delete(':id/reject')
-    @UseGuards(RolesGuard)
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     async rejectExplanation(
         @Param('id') id: string,
@@ -230,7 +327,7 @@ export class ExplanationController {
      * Admin only
      */
     @Put(':id')
-    @UseGuards(RolesGuard)
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     async updateExplanation(
         @Param('id') id: string,
@@ -270,11 +367,29 @@ export class ExplanationController {
     }
 
     /**
+     * Trigger sync of explanations to Question table
+     * Admin only
+     */
+    @Post('admin/sync')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async syncExplanations() {
+        try {
+            return await this.explanationService.syncExplanations();
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to sync explanations',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
      * Get explanation statistics
      * Admin only
      */
     @Get('admin/stats')
-    @UseGuards(RolesGuard)
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     async getStats() {
         try {
@@ -282,6 +397,29 @@ export class ExplanationController {
         } catch (error) {
             throw new HttpException(
                 error.message || 'Failed to fetch stats',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
+     * Clear all explanations from the database
+     * Admin only - use to regenerate all explanations with improved prompts
+     */
+    @Delete('admin/clear-all')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async clearAllExplanations() {
+        try {
+            const result = await this.explanationService.clearAllExplanations();
+            return {
+                success: true,
+                message: 'All explanations have been cleared',
+                ...result
+            };
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to clear explanations',
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }

@@ -11,3 +11,16 @@ coverage/
 postgres_data/
 mongo_data/
 *.tsbuildinfo
+
+# Logs
+*.log
+debug.log
+server_debug.log
+
+# Test and debug scripts
+backend/scripts/simulate_*.ts
+backend/scripts/seed_test_*.ts
+backend/src/check-*.ts
+backend/src/fix-*.ts
+backend/src/seed-*.ts
+backend/check-*.js

@@ -36,8 +36,8 @@ export class User {
     @UpdateDateColumn()
     updatedAt: Date;
 
-    @Column({ nullable: true })
-    dob: Date;
+    @Column({ type: 'date', nullable: true })
+    dob: string;
 
     @Column({ nullable: true })
     education: string;
@@ -53,4 +53,13 @@ export class User {
 
     @Column({ nullable: true })
     profilePicture: string;
+
+    @Column({ nullable: true })
+    phone: string;
+
+    @Column({ nullable: true })
+    preferredPaymentMethod: string;
+
+    @Column({ nullable: true, select: false })
+    refreshTokenHash: string;
 }

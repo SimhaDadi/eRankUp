@@ -15,11 +15,19 @@ import {
     Hash,
     MoreVertical,
     X,
-    Loader2
+    Loader2,
+    Upload
 } from 'lucide-react';
 import api from '@/lib/api';
 import { QuestionBankBrowser } from '@/components/admin/QuestionBankBrowser';
+import UploadExamQuestionsModal from '@/components/admin/UploadExamQuestionsModal';
 import { EditExamModal } from '@/components/admin/EditExamModal';
+import { MathRichText } from '@/components/MathRichText';
+import { SafeHtml } from '@/components/SafeHtml';
+import { HierarchyView } from '@/components/admin/HierarchyView';
+import CreateSubjectModal from '@/components/admin/CreateSubjectModal';
+import CreateChapterModal from '@/components/admin/CreateChapterModal';
+import CreateModelModal from '@/components/admin/CreateModelModal';
 
 interface Question {
     id: string;
@@ -49,17 +57,40 @@ export default function ExamDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [showQuestionBrowser, setShowQuestionBrowser] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showUploadModal, setShowUploadModal] = useState(false);
     const [removingQuestionId, setRemovingQuestionId] = useState<string | null>(null);
+
+    // Hierarchy state for question banks
+    const [hierarchy, setHierarchy] = useState<any[]>([]);
+    const [showCreateSubject, setShowCreateSubject] = useState(false);
+    const [showCreateChapter, setShowCreateChapter] = useState(false);
+    const [showCreateModel, setShowCreateModel] = useState(false);
+    const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
+    const [selectedChapterId, setSelectedChapterId] = useState<string>('');
 
     const fetchExamDetails = async () => {
         try {
             const response = await api.get(`/exams/${params.id}`);
             setExam(response.data);
+
+            // If it's a question bank, fetch hierarchy
+            if (response.data.type === 'question_bank') {
+                fetchHierarchy();
+            }
         } catch (error) {
             console.error("Failed to fetch exam details", error);
             // Handle 404
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const fetchHierarchy = async () => {
+        try {
+            const response = await api.get(`/exams/${params.id}/hierarchy`);
+            setHierarchy(response.data.subjects || []);
+        } catch (error) {
+            console.error("Failed to fetch hierarchy", error);
         }
     };
 
@@ -127,8 +158,8 @@ export default function ExamDetailPage() {
                         <div className="flex items-center gap-4 mb-3">
                             <h1 className="text-3xl font-bold text-white">{exam.title}</h1>
                             <span className={`px-3 py-1 rounded-full text-xs font-bold border ${exam.type === 'question_bank'
-                                    ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                                 }`}>
                                 {exam.type === 'question_bank' ? 'QUESTION BANK' : 'REAL EXAM'}
                             </span>
@@ -178,95 +209,124 @@ export default function ExamDetailPage() {
                 </div>
             </div>
 
-            {/* Questions Section */}
-            <div>
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <Library className="w-6 h-6 text-blue-500" />
-                        Linked Questions
-                    </h2>
+            {/* Content Section - Conditional based on exam type */}
+            {exam.type === 'question_bank' ? (
+                /* Hierarchy View for Question Banks */
+                <HierarchyView
+                    subjects={hierarchy}
+                    onCreateSubject={() => setShowCreateSubject(true)}
+                    onCreateChapter={(subjectId) => {
+                        setSelectedSubjectId(subjectId);
+                        setShowCreateChapter(true);
+                    }}
+                    onCreateModel={(chapterId) => {
+                        setSelectedChapterId(chapterId);
+                        setShowCreateModel(true);
+                    }}
+                    onManageQuestions={(modelId) => {
+                        router.push(`/admin/models/${modelId}`);
+                    }}
+                />
+            ) : (
+                /* Questions Section for Regular Exams */
+                <div>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                            <Library className="w-6 h-6 text-blue-500" />
+                            Linked Questions
+                        </h2>
 
-                    <button
-                        onClick={() => setShowQuestionBrowser(true)}
-                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 flex items-center gap-2 transition-all"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Browse Question Bank
-                    </button>
-                </div>
-
-                {!exam.questions || exam.questions.length === 0 ? (
-                    <div className="bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl p-16 text-center">
-                        <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <BookOpen className="w-10 h-10 text-slate-600" />
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowQuestionBrowser(true)}
+                                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 flex items-center gap-2 transition-all"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Browse Question Bank
+                            </button>
+                            <button
+                                onClick={() => setShowUploadModal(true)}
+                                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all"
+                            >
+                                <Upload className="w-5 h-5" />
+                                Upload Questions
+                            </button>
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">No questions linked yet</h3>
-                        <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                            Browse the global question bank to find and link questions to this exam.
-                        </p>
-                        <button
-                            onClick={() => setShowQuestionBrowser(true)}
-                            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold transition-colors border border-slate-700"
-                        >
-                            Browse Questions
-                        </button>
                     </div>
-                ) : (
-                    <div className="space-y-4">
-                        <AnimatePresence>
-                            {exam.questions.map((question, index) => (
-                                <motion.div
-                                    key={question.id}
-                                    layout
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.98 }}
-                                    className="bg-slate-900 border border-slate-800 rounded-2xl p-6 group hover:border-slate-700 transition-colors"
-                                >
-                                    <div className="flex items-start gap-4">
-                                        <div className="flex-shrink-0 w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center text-sm font-bold text-slate-400">
-                                            Q{index + 1}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div
-                                                className="prose prose-invert max-w-none text-slate-300 mb-4"
-                                                dangerouslySetInnerHTML={{ __html: question.content }}
-                                            />
 
-                                            <div className="flex flex-wrap gap-2">
-                                                {question.topic && (
-                                                    <span className="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-slate-400 border border-slate-700">
-                                                        Topic: {question.topic}
-                                                    </span>
-                                                )}
-                                                {question.difficultyWeight && (
-                                                    <span className="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-slate-400 border border-slate-700">
-                                                        Difficulty: {question.difficultyWeight}
-                                                    </span>
-                                                )}
+                    {!exam.questions || exam.questions.length === 0 ? (
+                        <div className="bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl p-16 text-center">
+                            <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <BookOpen className="w-10 h-10 text-slate-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-2">No questions linked yet</h3>
+                            <p className="text-slate-400 mb-8 max-w-md mx-auto">
+                                Browse the global question bank to find and link questions to this exam.
+                            </p>
+                            <button
+                                onClick={() => setShowQuestionBrowser(true)}
+                                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold transition-colors border border-slate-700"
+                            >
+                                Browse Questions
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <AnimatePresence>
+                                {exam.questions.map((question, index) => (
+                                    <motion.div
+                                        key={question.id}
+                                        layout
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.98 }}
+                                        className="bg-slate-900 border border-slate-800 rounded-2xl p-6 group hover:border-slate-700 transition-colors"
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className="flex-shrink-0 w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center text-sm font-bold text-slate-400">
+                                                Q{index + 1}
+                                            </div>
+                                            <div className="flex-1">
+                                                <MathRichText
+                                                    className="prose prose-invert max-w-none text-slate-300 mb-4"
+                                                    content={question.content}
+                                                />
+
+                                                <div className="flex flex-wrap gap-2">
+                                                    {question.topic && (
+                                                        <span className="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-slate-400 border border-slate-700">
+                                                            Topic: {question.topic}
+                                                        </span>
+                                                    )}
+                                                    {question.difficultyWeight && (
+                                                        <span className="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-slate-400 border border-slate-700">
+                                                            Difficulty: {question.difficultyWeight}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="ml-4">
+                                                <button
+                                                    onClick={() => handleRemoveQuestion(question.id)}
+                                                    disabled={removingQuestionId === question.id}
+                                                    className="p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                                    title="Remove from exam"
+                                                >
+                                                    {removingQuestionId === question.id ? (
+                                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                                    ) : (
+                                                        <X className="w-5 h-5" />
+                                                    )}
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="ml-4">
-                                            <button
-                                                onClick={() => handleRemoveQuestion(question.id)}
-                                                disabled={removingQuestionId === question.id}
-                                                className="p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                                title="Remove from exam"
-                                            >
-                                                {removingQuestionId === question.id ? (
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                ) : (
-                                                    <X className="w-5 h-5" />
-                                                )}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    </div>
-                )}
-            </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Question Browser Modal */}
             {showQuestionBrowser && (
@@ -280,6 +340,18 @@ export default function ExamDetailPage() {
                 />
             )}
 
+            {/* Upload Questions Modal */}
+            <UploadExamQuestionsModal
+                isOpen={showUploadModal}
+                onClose={() => setShowUploadModal(false)}
+                onSuccess={() => {
+                    fetchExamDetails();
+                    setShowUploadModal(false);
+                }}
+                examId={exam.id}
+                examTitle={exam.title}
+            />
+
             {/* Edit Exam Modal */}
             <EditExamModal
                 isOpen={showEditModal}
@@ -289,6 +361,39 @@ export default function ExamDetailPage() {
                     fetchExamDetails();
                     setShowEditModal(false);
                 }}
+            />
+
+            {/* Create Subject Modal */}
+            <CreateSubjectModal
+                isOpen={showCreateSubject}
+                onClose={() => setShowCreateSubject(false)}
+                onSuccess={() => {
+                    fetchHierarchy();
+                    setShowCreateSubject(false);
+                }}
+                examId={exam.id}
+            />
+
+            {/* Create Chapter Modal */}
+            <CreateChapterModal
+                isOpen={showCreateChapter}
+                onClose={() => setShowCreateChapter(false)}
+                onSuccess={() => {
+                    fetchHierarchy();
+                    setShowCreateChapter(false);
+                }}
+                subjectId={selectedSubjectId}
+            />
+
+            {/* Create Model Modal */}
+            <CreateModelModal
+                isOpen={showCreateModel}
+                onClose={() => setShowCreateModel(false)}
+                onSuccess={() => {
+                    fetchHierarchy();
+                    setShowCreateModel(false);
+                }}
+                examId={exam.id}
             />
         </div>
     );

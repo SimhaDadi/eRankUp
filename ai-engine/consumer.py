@@ -4,23 +4,28 @@ from kafka import KafkaConsumer
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Database Config (Matches docker-compose)
+# Database Config
 DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "database": "erankup_db",
-    "user": "admin",
-    "password": "password"
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": int(os.getenv("DB_PORT", 5432)),
+    "database": os.getenv("DB_NAME", "erankup_db"),
+    "user": os.getenv("DB_USER", "admin"),
+    "password": os.getenv("DB_PASSWORD", "password")
 }
 
 # Kafka Config
-KAFKA_TOPIC = 'test_submission'
-KAFKA_BOOTSTRAP_SERVERS = ['localhost:9092']
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "test_submission")
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092").split(",")
+KAFKA_GROUP_ID = os.getenv("KAFKA_GROUP_ID", "ai-engine-group")
 
 def get_db_connection():
     try:
@@ -139,7 +144,7 @@ def main():
             bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
             auto_offset_reset='latest',
             enable_auto_commit=True,
-            group_id='ai-engine-group',
+            group_id=KAFKA_GROUP_ID,
             value_deserializer=lambda x: json.loads(x.decode('utf-8'))
         )
         

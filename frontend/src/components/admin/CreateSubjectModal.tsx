@@ -7,9 +7,10 @@ interface CreateSubjectModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    examId: string;
 }
 
-export default function CreateSubjectModal({ isOpen, onClose, onSuccess }: CreateSubjectModalProps) {
+export default function CreateSubjectModal({ isOpen, onClose, onSuccess, examId }: CreateSubjectModalProps) {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -22,7 +23,10 @@ export default function CreateSubjectModal({ isOpen, onClose, onSuccess }: Creat
 
         setIsSubmitting(true);
         try {
-            await api.post('/exams/subjects', formData);
+            await api.post('/exams/subjects', {
+                ...formData,
+                examId
+            });
             onSuccess();
             onClose();
             setFormData({ title: '', description: '', icon: 'book' });

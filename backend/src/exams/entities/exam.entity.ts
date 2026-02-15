@@ -1,11 +1,14 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany, JoinTable, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 import { Model } from './model.entity';
 import { Subject } from './subject.entity';
 import { Question } from './question.entity';
 
 export enum ExamType {
     REAL_EXAM = 'real_exam',
-    QUESTION_BANK = 'question_bank'
+    QUESTION_BANK = 'question_bank',
+    PREVIOUS_YEAR_PAPER = 'previous_year_paper',
+    LIVE_EXAM = 'live_exam',
+    CHAPTER_WISE_TEST = 'chapter_wise_test'
 }
 
 @Entity()
@@ -13,6 +16,7 @@ export class Exam {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
+    @Index()
     @Column({
         type: 'enum',
         enum: ExamType,
@@ -26,11 +30,23 @@ export class Exam {
     @Column({ nullable: true })
     description: string;
 
+    @Column({ nullable: true })
+    videoSolutionUrl: string;
+
+    @Column({ nullable: true })
+    category: string;
+
+    @Index()
     @Column({ default: true })
     isActive: boolean;
 
+    @Index()
     @Column({ default: false })
     isPremium: boolean;
+
+    @Index()
+    @Column({ default: false })
+    isPublished: boolean;
 
     @Column('float', { default: 0 })
     price: number;
@@ -41,13 +57,22 @@ export class Exam {
     @Column('float', { default: 0.25 })
     defaultNegativeMarks: number;
 
+    @Column({ default: 60 }) // Default duration in minutes for models in this exam
+    duration: number;
+
+    @Column({ default: false })
+    isLive: boolean;
+
+    @Column({ type: 'jsonb', nullable: true })
+    metadata: Record<string, any>;
+
     @Column({ type: 'timestamp', nullable: true })
     startTime: Date;
 
     @Column({ type: 'timestamp', nullable: true })
     endTime: Date;
 
-    @OneToMany(() => Subject, (subject) => subject.exam, { cascade: true })
+    @OneToMany(() => Subject, (subject) => subject.exam)
     subjects: Subject[];
 
     @ManyToMany(() => Question, (question) => question.exams)
@@ -63,4 +88,6 @@ export class Exam {
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    directQuestionCount?: number;
 }

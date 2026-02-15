@@ -1,58 +1,29 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-
-declare global {
-    interface Window {
-        MathJax: any;
-    }
-}
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import remarkGfm from 'remark-gfm';
+import 'katex/dist/katex.min.css';
 
 interface MathRendererProps {
     content: string;
     className?: string;
 }
 
-export default function MathRenderer({ content, className = '' }: MathRendererProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        // Load MathJax script if not already present
-        if (!window.MathJax) {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
-            script.async = true;
-            script.id = 'mathjax-script';
-            document.head.appendChild(script);
-
-            window.MathJax = {
-                tex: {
-                    inlineMath: [['$', '$'], ['\\(', '\\)']],
-                    displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                },
-                svg: {
-                    fontCache: 'global'
-                },
-                startup: {
-                    pageReady: () => {
-                        return window.MathJax.startup.defaultPageReady().then(() => {
-                            if (containerRef.current) {
-                                window.MathJax.typesetPromise([containerRef.current]);
-                            }
-                        });
-                    }
-                }
-            };
-        } else if (window.MathJax.typesetPromise && containerRef.current) {
-            window.MathJax.typesetPromise([containerRef.current]);
-        }
-    }, [content]);
-
+export default function MathRenderer({ content, className = "" }: MathRendererProps) {
     return (
-        <div
-            ref={containerRef}
-            className={className}
-            dangerouslySetInnerHTML={{ __html: content }}
-        />
+        <div className={`prose prose-slate dark:prose-invert max-w-none ${className}`}>
+            <ReactMarkdown
+                remarkPlugins={[remarkMath, remarkGfm]}
+                rehypePlugins={[rehypeKatex]}
+                components={{
+                    // Maintain some of the old styles if needed, or stick to prose defaults
+                    p: ({ node, ...props }) => <p className="mb-2 leading-relaxed" {...props} />,
+                }}
+            >
+                {content}
+            </ReactMarkdown>
+        </div>
     );
 }

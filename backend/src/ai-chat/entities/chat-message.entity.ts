@@ -1,8 +1,8 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { ChatConversation } from './chat-conversation.entity';
 
-@Entity()
-export class ChatMessage {
+@Entity('ai_chat_message')
+export class AIChatMessage {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
@@ -21,6 +21,9 @@ export class ChatMessage {
 
     @Column({ type: 'jsonb', nullable: true })
     context: any; // {weakAreas, currentTopic, masteryScores}
+
+    @Column({ type: 'jsonb', nullable: true })
+    image: { data: string; mimeType: string };
 
     @CreateDateColumn()
     createdAt: Date;

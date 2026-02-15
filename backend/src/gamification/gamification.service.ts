@@ -291,4 +291,14 @@ export class GamificationService {
 
         await this.progressRepo.save(progress);
     }
+    async updateDailyTarget(userId: string, target: number): Promise<UserGamification> {
+        // Validation: Target must be at least 10 questions
+        if (target < 10) {
+            throw new Error('Daily target must be at least 10 questions');
+        }
+
+        const profile = await this.getOrCreateProfile(userId);
+        profile.dailyQuestionTarget = target;
+        return await this.gamificationRepo.save(profile);
+    }
 }

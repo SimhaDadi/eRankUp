@@ -3,21 +3,39 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from './user.entity';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AdminSeeder implements OnApplicationBootstrap {
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+        private readonly configService: ConfigService,
     ) { }
 
     async onApplicationBootstrap() {
-        const adminEmail = 'admin@erankup.com';
+        const seedAdmin = this.configService.get<string | boolean>('SEED_ADMIN');
+        const shouldSeed = seedAdmin === true || seedAdmin === 'true';
+
+        if (!shouldSeed) {
+            console.log('Admin seeding is disabled (SEED_ADMIN=false). Skipping.');
+            return;
+        }
+
+        const adminEmail = this.configService.get<string>('ADMIN_EMAIL');
+        const adminPassword = this.configService.get<string>('ADMIN_PASSWORD');
+
+        if (!adminEmail || !adminPassword) {
+            console.warn('⚠️ Admin seeding enabled but ADMIN_EMAIL or ADMIN_PASSWORD is not set. Skipping.');
+            return;
+        }
+
         const adminExists = await this.userRepository.findOne({ where: { email: adminEmail } });
+        const forceUpdate = this.configService.get<string | boolean>('SEED_ADMIN_FORCE_UPDATE') === 'true' || this.configService.get('SEED_ADMIN_FORCE_UPDATE') === true;
 
         if (!adminExists) {
-            console.log('Seeding Admin User...');
-            const hashedPassword = await bcrypt.hash('adminpassword', 10);
+            console.log(`Seeding Admin User: ${adminEmail}...`);
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
             const adminUser = this.userRepository.create({
                 email: adminEmail,
                 password: hashedPassword,
@@ -26,14 +44,18 @@ export class AdminSeeder implements OnApplicationBootstrap {
                 isActive: true,
             });
             await this.userRepository.save(adminUser);
-            console.log('Admin User Seeded: admin@erankup.com / adminpassword');
+            console.log(`Admin User Seeded successfully: ${adminEmail}`);
+        } else if (forceUpdate) {
+            // Update existing admin password and role ONLY if force update is enabled
+            console.log(`[FORCE UPDATE] Updating existing Admin User: ${adminEmail}...`);
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
+            adminExists.password = hashedPassword;
+            adminExists.role = UserRole.ADMIN;
+            adminExists.isActive = true;
+            await this.userRepository.save(adminExists);
+            console.log(`Admin User updated successfully: ${adminEmail}`);
         } else {
-            // Ensure role is admin if it exists
-            if (adminExists.role !== UserRole.ADMIN) {
-                adminExists.role = UserRole.ADMIN;
-                await this.userRepository.save(adminExists);
-                console.log('Updated existing admin user role.');
-            }
+            console.log(`Admin user exists. Skipping update to preserve manual password changes.`);
         }
     }
 }

@@ -15,20 +15,26 @@ export class MediaService {
     }
 
     async uploadFile(file: Express.Multer.File) {
+        return this.uploadBuffer(file.buffer, file.originalname, file.mimetype);
+    }
+
+    async uploadBuffer(buffer: Buffer, originalName: string, mimetype: string) {
         const fileId = uuidv4();
-        const fileExt = path.extname(file.originalname);
-        const filename = `${fileId}${fileExt}`;
+        const ext = path.extname(originalName) || `.${mimetype.split('/')[1]}`;
+        const filename = `${fileId}${ext}`;
         const filePath = path.join(this.uploadDir, filename);
 
         // Save file to disk
-        fs.writeFileSync(filePath, file.buffer);
+        fs.writeFileSync(filePath, buffer);
+
+        const stats = fs.statSync(filePath);
 
         const mediaFile = {
             id: fileId,
             filename: filename,
-            originalName: file.originalname,
-            mimetype: file.mimetype,
-            size: file.size,
+            originalName: originalName,
+            mimetype: mimetype || this.getMimeType(filename),
+            size: stats.size,
             path: filePath,
             url: `/uploads/media/${filename}`,
             uploadedAt: new Date()

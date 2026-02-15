@@ -1,10 +1,11 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Request, UseInterceptors, ClassSerializerInterceptor } from '@nestjs/common';
 import { TestSessionService } from './test-session.service';
 import { AuthGuard } from '@nestjs/passport';
 import { PremiumGuard } from '../payments/guards/premium.guard';
 
 @Controller('test-session')
 @UseGuards(AuthGuard('jwt'))
+@UseInterceptors(ClassSerializerInterceptor)
 export class TestSessionController {
     constructor(private readonly sessionService: TestSessionService) { }
 
@@ -15,9 +16,27 @@ export class TestSessionController {
     }
 
     @UseGuards(AuthGuard('jwt'), PremiumGuard)
+    @Post('start/chapter')
+    async startChapterSession(@Request() req: any, @Body('chapterId') chapterId: string) {
+        return this.sessionService.startChapterSession(req.user.userId, chapterId);
+    }
+
+    @UseGuards(AuthGuard('jwt'), PremiumGuard)
     @Get(':testId')
     async getSession(@Request() req: any, @Param('testId') testId: string) {
-        return this.sessionService.getSession(req.user.userId, testId);
+        console.log(`[TestSessionController] getSession called for ${testId}, User: ${req.user.userId}`);
+        const session = await this.sessionService.getSession(req.user.userId, testId);
+
+        if (!session) {
+            console.log(`[TestSessionController] Session not found in Redis. Attempting to start new session...`);
+            try {
+                return await this.sessionService.startSession(req.user.userId, testId);
+            } catch (e) {
+                console.error(`[TestSessionController] startSession failed:`, e);
+                throw e;
+            }
+        }
+        return session;
     }
 
     @Post(':testId/answer')
@@ -27,6 +46,15 @@ export class TestSessionController {
         @Body() body: { questionId: string; answerId: string }
     ) {
         return this.sessionService.saveAnswer(req.user.userId, testId, body.questionId, body.answerId);
+    }
+
+    @Post(':testId/sync')
+    async syncProgress(
+        @Request() req: any,
+        @Param('testId') testId: string,
+        @Body() body: { answers: Record<string, string>; timings: Record<string, number> }
+    ) {
+        return this.sessionService.syncProgress(req.user.userId, testId, body.answers, body.timings);
     }
 
     @Post(':testId/flag')
@@ -46,5 +74,15 @@ export class TestSessionController {
     ) {
         const { timings, answers } = body;
         return this.sessionService.completeSession(req.user.userId, testId, timings, answers);
+    }
+
+    @Post(':testId/pause')
+    async pauseSession(@Request() req: any, @Param('testId') testId: string) {
+        return this.sessionService.pauseSession(req.user.userId, testId);
+    }
+
+    @Post(':testId/resume')
+    async resumeSession(@Request() req: any, @Param('testId') testId: string) {
+        return this.sessionService.resumeSession(req.user.userId, testId);
     }
 }

@@ -1,0 +1,18 @@
+    /**
+     * Detect MIME type from file extension
+     * Private helper method
+     */
+    private detectMimeType(filePath: string): string {
+        const ext = path.extname(filePath).toLowerCase();
+        const mimeTypes: Record<string, string> = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp',
+            '.bmp': 'image/bmp',
+            '.svg': 'image/svg+xml',
+        };
+        return mimeTypes[ext] || 'image/jpeg';
+    }
+}

@@ -33,11 +33,184 @@ export class ExamsSeederService implements OnApplicationBootstrap {
     }
 
     async onApplicationBootstrap() {
+        if (this.configService.get('SKIP_SEEDING') === 'true') {
+            console.log('SKIP_SEEDING is true. Skipping all automatic content seeding.');
+            return;
+        }
+
         const count = await this.examsRepository.count();
-        if (count > 0) return;
+        if (count === 0) {
+            console.log('Seeding Global Content Bank...');
+            await this.seedInitialContent();
+        }
 
-        console.log('Seeding Global Content Bank...');
+        await this.seedRRBNTPC2024();
+        await this.seedSSC2024Refinement();
+        await this.seedManualTestingData();
+    }
 
+    public async seedManualTestingData() {
+        console.log('Seeding Manual Testing Data (2 tests per category)...');
+        // Live Tests
+        await this.seedLiveTest('Sample Live Test 1', 'Arithmetic & Reasoning', new Date(Date.now() + 3600000)); // Starts in 1 hour
+        await this.seedLiveTest('Sample Live Test 2', 'General Awareness', new Date(Date.now() - 3600000)); // Started 1 hour ago (Active)
+
+        // Previous Year Papers
+        await this.seedPYP('Sample PYP 1', 'SSC CGL 2022 Shift 1');
+        await this.seedPYP('Sample PYP 2', 'RRB NTPC 2021 Shift 2');
+
+        // Model Tests (Mock)
+        await this.seedModelTest('Sample Model Test 1', 'Full Length Mock A');
+        await this.seedModelTest('Sample Model Test 2', 'Full Length Mock B');
+
+        // Quizzes
+        await this.seedQuiz('Daily Quiz 1', 'Current Affairs');
+        await this.seedQuiz('Daily Quiz 2', 'Science Quiz');
+    }
+
+    private async createDummyQuestions(model: Model, exam: Exam, subject: Subject, chapter: Chapter, count: number, prefix: string) {
+        const questions = [];
+        for (let i = 1; i <= count; i++) {
+            questions.push({
+                content: `[${prefix}] Question ${i}: This is a sample question for manual testing.`,
+                options: [
+                    { id: 'a', text: 'Option A' },
+                    { id: 'b', text: 'Option B' },
+                    { id: 'c', text: 'Option C' },
+                    { id: 'd', text: 'Option D' }
+                ],
+                correctOptionId: ['a', 'b', 'c', 'd'][Math.floor(Math.random() * 4)],
+                explanation: `Explanation for ${prefix} Q${i}.`,
+                topic: 'General',
+                models: [model],
+                exams: [exam],
+                subject,
+                chapter
+            });
+        }
+        await this.questionRepository.save(this.questionRepository.create(questions));
+    }
+
+    private async seedLiveTest(title: string, subjectName: string, startTime: Date) {
+        let exam = await this.examsRepository.findOne({ where: { title } });
+        if (exam) return;
+
+        const subject = await this.getOrCreateSubject(subjectName);
+        const chapter = await this.getOrCreateChapter(subject, 'Live Test Chapter');
+
+        exam = this.examsRepository.create({
+            title,
+            description: 'Live Test for Manual Testing',
+            type: 'live_exam' as any,
+            isLive: true,
+            isActive: true,
+            startTime: startTime, // dynamic start time
+            endTime: new Date(startTime.getTime() + 7200000) // +2 hours
+        });
+        exam = await this.examsRepository.save(exam);
+
+        const model = await this.modelRepository.save({
+            title: `${title} - Paper`,
+            chapter,
+            category: 'Live Test',
+            exams: [exam],
+            totalQuestions: 10,
+            duration: 60
+        });
+
+        await this.createDummyQuestions(model, exam, subject, chapter, 10, title);
+        console.log(`Seeded Live Test: ${title}`);
+    }
+
+    private async seedPYP(title: string, subjectName: string) {
+        let exam = await this.examsRepository.findOne({ where: { title } });
+        if (exam) return;
+
+        const subject = await this.getOrCreateSubject(subjectName);
+        const chapter = await this.getOrCreateChapter(subject, 'PYP Chapter');
+
+        exam = this.examsRepository.create({
+            title,
+            description: 'Previous Year Paper for Manual Testing',
+            type: 'previous_year_paper' as any,
+            isActive: true
+        });
+        exam = await this.examsRepository.save(exam);
+
+        const model = await this.modelRepository.save({
+            title: `${title} - Paper`,
+            chapter,
+            category: 'Previous Year',
+            exams: [exam],
+            totalQuestions: 10,
+            duration: 90
+        });
+
+        await this.createDummyQuestions(model, exam, subject, chapter, 10, title);
+        console.log(`Seeded PYP: ${title}`);
+    }
+
+    private async seedModelTest(title: string, subjectName: string) {
+        let exam = await this.examsRepository.findOne({ where: { title } });
+        if (exam) return;
+
+        const subject = await this.getOrCreateSubject(subjectName);
+        const chapter = await this.getOrCreateChapter(subject, 'Mock Chapter');
+
+        exam = this.examsRepository.create({
+            title,
+            description: 'Model Test for Manual Testing',
+            type: 'real_exam' as any,
+            category: 'Full Mock',
+            isActive: true
+        });
+        exam = await this.examsRepository.save(exam);
+
+        const model = await this.modelRepository.save({
+            title: `${title} - Paper`,
+            chapter,
+            exams: [exam],
+            totalQuestions: 10,
+            duration: 60
+        });
+
+        await this.createDummyQuestions(model, exam, subject, chapter, 10, title);
+        console.log(`Seeded Model Test: ${title}`);
+    }
+
+    private async seedQuiz(title: string, subjectName: string) {
+        // Quizzes are often just exams with category='Quiz' or specific type if defined.
+        // Assuming 'real_exam' with category 'Quiz' based on typical structure, or 'question_bank'
+        // But requested as a category. Let's use 'real_exam' and mark category.
+        let exam = await this.examsRepository.findOne({ where: { title } });
+        if (exam) return;
+
+        const subject = await this.getOrCreateSubject(subjectName);
+        const chapter = await this.getOrCreateChapter(subject, 'Quiz Chapter');
+
+        exam = this.examsRepository.create({
+            title,
+            description: 'Daily Quiz for Manual Testing',
+            type: 'real_exam' as any,
+            category: 'Free Quiz',
+            isActive: true,
+            duration: 15
+        });
+        exam = await this.examsRepository.save(exam);
+
+        const model = await this.modelRepository.save({
+            title: `${title} - Paper`,
+            chapter,
+            exams: [exam],
+            totalQuestions: 10,
+            duration: 15
+        });
+
+        await this.createDummyQuestions(model, exam, subject, chapter, 10, title);
+        console.log(`Seeded Quiz: ${title}`);
+    }
+
+    public async seedInitialContent() {
         const subject = await this.subjectRepository.save({
             title: 'Quantitative Aptitude',
             description: 'Numerical ability and mathematical skills.',
@@ -336,5 +509,139 @@ export class ExamsSeederService implements OnApplicationBootstrap {
 
         await this.invalidateCache();
         return results;
+    }
+
+    async seedRRBNTPC2024() {
+        const title = 'RRB NTPC 2024';
+        let exam = await this.examsRepository.findOne({ where: { title } });
+        if (exam) return { message: 'Exam already exists', id: exam.id };
+
+        console.log(`Seeding ${title}...`);
+
+        exam = this.examsRepository.create({
+            title,
+            description: 'Previous Year Paper Mock for RRB NTPC 2024. Includes Mathematics, Reasoning, and GA.',
+            isPremium: false,
+            type: 'previous_year_paper' as any
+        });
+        exam = await this.examsRepository.save(exam);
+
+        const subjectsData = [
+            { name: 'Mathematics', chapter: 'Arithmetic' },
+            { name: 'General Intelligence & Reasoning', chapter: 'Logical Reasoning' },
+            { name: 'General Awareness', chapter: 'Static GK' }
+        ];
+
+        for (const sData of subjectsData) {
+            const subject = await this.getOrCreateSubject(sData.name);
+            const chapter = await this.getOrCreateChapter(subject, sData.chapter);
+
+            const model = this.modelRepository.create({
+                title: `${title} - ${sData.name} Section`,
+                chapter,
+                totalQuestions: 30,
+                exams: [exam]
+            });
+            await this.modelRepository.save(model);
+
+            const questionsBatch = [];
+            for (let i = 1; i <= 30; i++) {
+                questionsBatch.push({
+                    content: `[${title}] ${sData.name} Question #${i}: Practice question based on 2024 railway pattern.`,
+                    options: [
+                        { id: 'a', text: 'Option A' },
+                        { id: 'b', text: 'Option B' },
+                        { id: 'c', text: 'Option C' },
+                        { id: 'd', text: 'Option D' }
+                    ],
+                    correctOptionId: 'b',
+                    explanation: `Explanation for ${sData.name} question #${i}.`,
+                    topic: sData.chapter,
+                    models: [model],
+                    exams: [exam],
+                    subject,
+                    chapter
+                });
+            }
+            const qEntities = this.questionRepository.create(questionsBatch);
+            await this.questionRepository.save(qEntities);
+        }
+
+        await this.invalidateCache(exam.id);
+        console.log(`${title} seeded successfully.`);
+        return { message: 'Seeded RRB NTPC 2024', examId: exam.id };
+    }
+
+    async seedSSC2024Refinement() {
+        const title = 'SSC CGL Tier I - 2024';
+        let exam = await this.examsRepository.findOne({ where: { title } });
+
+        // If it doesn't exist, it might be named differently in seed.ts ('SSC CGL 2024 (Full Prep)')
+        if (!exam) {
+            exam = await this.examsRepository.findOne({ where: { title: 'SSC CGL 2024 (Full Prep)' } });
+        }
+
+        if (!exam) {
+            console.log('SSC CGL 2024 not found for refinement, creating new...');
+            exam = this.examsRepository.create({
+                title,
+                description: 'Official-style mock for SSC CGL 2024 Tier I aspirants.',
+                isPremium: false,
+                type: 'previous_year_paper' as any
+            });
+            exam = await this.examsRepository.save(exam);
+        } else {
+            // Update title and type if needed
+            exam.title = title;
+            exam.type = 'previous_year_paper' as any;
+            await this.examsRepository.save(exam);
+        }
+
+        const subjects = ['General Intelligence', 'General Awareness', 'Quantitative Aptitude', 'English Comprehension'];
+        for (const sName of subjects) {
+            const subject = await this.getOrCreateSubject(sName);
+            const chapter = await this.getOrCreateChapter(subject, 'Mixed Practice');
+
+            // Check if model already exists for this subject in this exam
+            let model = await this.modelRepository.createQueryBuilder('m')
+                .innerJoin('m.exams', 'e')
+                .where('e.id = :examId', { examId: exam.id })
+                .andWhere('m.title LIKE :title', { title: `%${sName}%` })
+                .getOne();
+
+            if (!model) {
+                model = this.modelRepository.create({
+                    title: `SSC CGL 2024 - ${sName}`,
+                    chapter,
+                    totalQuestions: 25,
+                    exams: [exam]
+                });
+                await this.modelRepository.save(model);
+
+                const questions = [];
+                for (let i = 1; i <= 25; i++) {
+                    questions.push({
+                        content: `[SSC CGL 2024] ${sName} Q#${i}: Sample question for 2024 Tier I exam.`,
+                        options: [
+                            { id: 'a', text: 'Option A' },
+                            { id: 'b', text: 'Option B' },
+                            { id: 'c', text: 'Option C' },
+                            { id: 'd', text: 'Option D' }
+                        ],
+                        correctOptionId: 'a',
+                        explanation: `Logic explanation for ${sName} Q#${i}.`,
+                        topic: 'Mixed',
+                        models: [model],
+                        exams: [exam],
+                        subject,
+                        chapter
+                    });
+                }
+                await this.questionRepository.save(this.questionRepository.create(questions));
+            }
+        }
+
+        await this.invalidateCache(exam.id);
+        console.log('SSC CGL 2024 refinement complete.');
     }
 }

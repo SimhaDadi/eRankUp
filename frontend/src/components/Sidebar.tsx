@@ -1,11 +1,12 @@
-'use client';
-
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Home,
     Zap,
+    Users,
     Tv,
     Book,
     Layers,
@@ -21,7 +22,16 @@ import {
     List,
     Bookmark,
     AlertTriangle,
-    HelpCircle
+    HelpCircle,
+    ChevronLeft,
+    ChevronRight,
+    Menu,
+    Settings,
+    MonitorPlay,
+    BookOpen,
+    History,
+    PieChart,
+    XCircle
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -41,19 +51,61 @@ interface NavSection {
 interface SidebarProps {
     customNavSections?: NavSection[];
     title?: string;
+    isCollapsed?: boolean;
+    onToggle?: () => void;
 }
 
-export default function Sidebar({ customNavSections, title }: SidebarProps) {
+export default function Sidebar({ customNavSections, title, isCollapsed: controlledCollapsed, onToggle }: SidebarProps) {
     const pathname = usePathname();
+    const [internalIsCollapsed, setInternalIsCollapsed] = useState(true);
+
+    const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalIsCollapsed;
+    const handleToggle = onToggle || (() => setInternalIsCollapsed(!internalIsCollapsed));
+    const sidebarRef = useRef<HTMLDivElement>(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    const handleNavItemClick = () => {
+        if (isMobile && !isCollapsed) {
+            handleToggle();
+        }
+    };
+
+    // Track screen size for mobile view
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 1024);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // Close sidebar when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node) && !isCollapsed) {
+                if (onToggle) {
+                    onToggle();
+                } else {
+                    setInternalIsCollapsed(true);
+                }
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isCollapsed, onToggle]);
 
     const defaultSections: NavSection[] = [
         {
             items: [
-                { icon: Home, label: 'Home', href: '/dashboard' }
+                { icon: Home, label: 'Home', href: '/dashboard' },
+                { icon: HelpCircle, label: 'Tutor', href: '/dashboard/ai-chat', badge: 'BETA', badgeColor: 'bg-purple-500' },
             ]
         },
         {
-            title: 'LEARN',
             items: [
                 // { icon: Zap, label: 'SuperCoaching', href: '/dashboard/super-coaching' },
                 // { icon: Tv, label: 'Live Classes', href: '/dashboard/live', badge: 'FREE', badgeColor: 'bg-green-500' },
@@ -61,89 +113,256 @@ export default function Sidebar({ customNavSections, title }: SidebarProps) {
             ]
         },
         {
-            title: 'TESTS',
             items: [
-                { icon: Layers, label: 'Test Series', href: '/dashboard/exams' }, // Main exams page
-                { icon: Activity, label: 'Live Tests & Quizzes', href: '/dashboard/live-tests' },
-                { icon: FileText, label: 'Previous Year Papers', href: '/dashboard/pyp' },
-                { icon: Crosshair, label: 'Practice', href: '/dashboard/practice' },
-                { icon: Clock, label: 'Free Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },
+                { icon: Layers, label: 'Mock Tests', href: '/dashboard/test-series' },
+                { icon: MonitorPlay, label: 'Live Tests', href: '/dashboard/live-tests' },
+                { icon: History, label: 'Previous Year Papers', href: '/dashboard/pyp' },
+                { icon: BookOpen, label: 'Chapter Wise Tests', href: '/dashboard/practice' },
+                { icon: Zap, label: 'Current Affairs', href: '/dashboard/current-affairs', badge: 'FREE', badgeColor: 'bg-green-500' },
+                { icon: Clock, label: 'Daily Quizzes', href: '/dashboard/quizzes', badge: 'NEW', badgeColor: 'bg-orange-500' },
+                { icon: Users, label: 'Community', href: '/dashboard/community', badge: 'HOT', badgeColor: 'bg-rose-500' },
                 { icon: CheckCircle, label: 'Attempted Tests', href: '/dashboard/performance' }, // Performance page
-                { icon: Ticket, label: 'Pass', href: '/dashboard/pass' },
-                // { icon: Crown, label: 'Pass Pro', href: '/dashboard/pass-pro' },
-                // { icon: Star, label: 'Pass Elite', href: '/dashboard/pass-elite' },
-                // { icon: Trophy, label: 'Rank Predictor', href: '/dashboard/leaderboard', badge: 'NEW', badgeColor: 'bg-orange-500' }, // Leaderboard
+                { icon: PieChart, label: 'Analytics', href: '/dashboard/analytics' },
+                { icon: Ticket, label: 'Pass', href: '/dashboard/plans' },
             ]
         },
         {
-            title: 'MISCELLANEOUS',
             items: [
                 { icon: List, label: 'Exams', href: '/dashboard/all-exams' },
                 { icon: Bookmark, label: 'Saved Questions', href: '/dashboard/saved' },
                 { icon: AlertTriangle, label: 'Reported Questions', href: '/dashboard/reported' },
-                { icon: HelpCircle, label: 'Doubts', href: '/dashboard/doubts' },
             ]
-        }
+        },
     ];
 
     const sections = customNavSections || defaultSections;
 
+    // Color mapping for "living" icons
+    const getItemColor = (label: string) => {
+        const colors: Record<string, string> = {
+            'Home': 'from-blue-500 to-indigo-600',
+            'Test Series': 'from-violet-500 to-purple-600',
+            'Live Tests': 'from-rose-500 to-pink-600',
+            'Previous Year Papers': 'from-amber-400 to-orange-500',
+            'Practice': 'from-emerald-400 to-teal-500',
+            'Free Quizzes': 'from-cyan-400 to-blue-500',
+            'Attempted Tests': 'from-lime-400 to-green-500',
+            'Pass': 'from-yellow-400 to-amber-500',
+            'Exams': 'from-indigo-400 to-blue-600',
+            'Saved Questions': 'from-fuchsia-500 to-pink-600',
+            'Reported Questions': 'from-red-500 to-rose-600',
+            'Current Affairs': 'from-blue-400 to-cyan-500',
+            'Community': 'from-rose-500 to-pink-600',
+            'Analytics': 'from-indigo-500 to-violet-600',
+            'Doubts': 'from-teal-400 to-emerald-600',
+        };
+        return colors[label] || 'from-slate-700 to-slate-900';
+    };
+
+    const sidebarVariants = {
+        expanded: { width: 290, x: 0 },
+        collapsed: { width: 90, x: 0 },
+        mobileHidden: { x: "-100%", width: 290 },
+        mobileVisible: { x: 0, width: 290 }
+    };
+
+    const navContainerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.05,
+                delayChildren: 0.1
+            }
+        }
+    };
+
+    const navItemVariants = {
+        hidden: { opacity: 0, x: -10 },
+        visible: { opacity: 1, x: 0 }
+    };
+
+    const textVariants = {
+        expanded: { opacity: 1, x: 0, width: "auto", display: "flex", transition: { delay: 0.2 } },
+        collapsed: { opacity: 0, x: -10, width: 0, transition: { duration: 0.1 }, display: "none" }
+    };
+
     return (
-        <div className="h-screen w-64 bg-[#1a1d21] text-white flex flex-col fixed left-0 top-0 overflow-y-auto z-30 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {/* Logo Area */}
-            <div className="p-5 border-b border-gray-800">
-                <Link href="/" className="flex items-center gap-3 transition-transform hover:scale-105 cursor-pointer">
-                    <div className="w-8 h-8 bg-[#00bfa5] rounded-lg flex items-center justify-center font-bold text-white text-lg">
-                        e
-                    </div>
-                    <span className="text-xl font-bold tracking-tight text-white">{title || 'eRankUp'}</span>
-                </Link>
-            </div>
+        <>
+            {/* Mobile Backdrop */}
+            <AnimatePresence>
+                {isMobile && !isCollapsed && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={handleToggle}
+                        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[45]"
+                    />
+                )}
+            </AnimatePresence>
 
-            {/* Navigation */}
-            <div className="flex-1 py-4">
-                {sections.map((section, idx) => (
-                    <div key={idx} className="mb-6">
-                        {section.title && (
-                            <div className="px-6 mb-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                                {section.title}
-                            </div>
-                        )}
-                        <div className="space-y-0.5">
-                            {section.items.map((item) => {
-                                const isActive = pathname === item.href;
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${isActive
-                                            ? 'bg-gradient-to-r from-cyan-600/20 to-blue-600/10 text-cyan-400 border border-cyan-500/20 shadow-lg shadow-cyan-500/5'
-                                            : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-                                            }`}
-                                    >
-                                        <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
-                                        <span className="font-medium">{item.label}</span>
-                                        {item.badge && (
-                                            <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${item.badgeColor || 'bg-blue-500'}`}>
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                        {isActive && (
-                                            <motion.div
-                                                layoutId="activeSide"
-                                                className="absolute left-0 w-1 h-6 bg-cyan-500 rounded-r-full shadow-[0_0_15px_rgba(6,182,212,0.5)]"
-                                            />
-                                        )}
-                                    </Link>
-                                );
-                            })}
+            <motion.div
+                ref={sidebarRef}
+                initial={isMobile ? "mobileHidden" : (isCollapsed ? "collapsed" : "expanded")}
+                animate={isMobile ? (isCollapsed ? "mobileHidden" : "mobileVisible") : (isCollapsed ? "collapsed" : "expanded")}
+                variants={sidebarVariants}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="h-screen bg-white text-slate-800 flex flex-col fixed left-0 top-0 overflow-y-auto overflow-x-hidden z-50 scrollbar-none border-r border-slate-100 shadow-2xl shadow-slate-200/50"
+            >
+                {/* Larger Logo Area */}
+                <div className={`px-3 py-4 flex items-center sticky top-0 bg-white/95 backdrop-blur-sm z-20 transition-all duration-300 w-full ${isCollapsed ? 'flex-col gap-4 justify-center' : 'flex-row justify-between'}`}>
+                    <Link
+                        href="/dashboard"
+                        onClick={handleNavItemClick}
+                        className="flex items-center gap-3 cursor-pointer overflow-hidden group z-50 transition-opacity hover:opacity-90"
+                    >
+                        <div className="w-11 h-11 min-w-[44px] bg-slate-900 rounded-xl flex items-center justify-center font-black text-white text-xl shadow-xl shadow-slate-900/20 ring-1 ring-slate-900/10 relative overflow-hidden transition-transform group-hover:scale-105">
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <span className="relative z-10">e</span>
                         </div>
-                    </div>
-                ))}
-            </div>
 
-            {/* Footer gradient fade (optional visual touch) */}
-            <div className="h-20 bg-gradient-to-t from-[#1a1d21] to-transparent pointer-events-none fixed bottom-0 left-0 w-64" />
-        </div>
+                        <motion.div
+                            variants={textVariants}
+                            className="flex flex-col whitespace-nowrap"
+                        >
+                            <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">
+                                eRankUp
+                            </span>
+                        </motion.div>
+                    </Link>
+
+                    <button
+                        onClick={handleToggle}
+                        className={`lg:hidden z-50 w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'bg-slate-50 text-slate-900 shadow-sm' : ''}`}
+                    >
+                        {isMobile ? <XCircle className="w-6 h-6" /> : (isCollapsed ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />)}
+                    </button>
+
+                    {isCollapsed && (
+                        <button
+                            onClick={handleToggle}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-40"
+                            title="Expand Sidebar"
+                        />
+                    )}
+                </div>
+
+                {/* Living Navigation */}
+                <div className="flex-1 py-2 px-3 space-y-2 overflow-y-auto scrollbar-none">
+                    {sections.map((section, idx) => (
+                        <div key={idx} className={`space-y-1 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
+                            {section.title && (
+                                <motion.div
+                                    variants={textVariants}
+                                    className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-60 whitespace-nowrap overflow-hidden"
+                                >
+                                    {section.title}
+                                </motion.div>
+                            )}
+                            <motion.div
+                                variants={navContainerVariants}
+                                initial="hidden"
+                                animate="visible"
+                                className="space-y-1 w-full relative"
+                            >
+                                {section.items.map((item) => {
+                                    const isActive = pathname === item.href;
+                                    const gradient = getItemColor(item.label);
+
+                                    return (
+                                        <motion.div
+                                            key={item.href}
+                                            variants={navItemVariants}
+                                            whileHover={{ x: 5 }}
+                                            className="w-full"
+                                        >
+                                            <Link
+                                                href={item.href}
+                                                onClick={handleNavItemClick}
+                                                className={`relative flex items-center gap-4 px-3 py-2 transition-all duration-200 group active:scale-95 ${isActive
+                                                    ? isCollapsed ? 'z-10' : 'bg-slate-900 text-white shadow-xl shadow-slate-900/20 z-10 rounded-2xl'
+                                                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-2xl'
+                                                    } ${isCollapsed ? 'justify-center w-14 h-14 mx-auto p-0 rounded-xl' : ''}`}
+                                                title={isCollapsed ? item.label : ''}
+                                            >
+                                                {/* Living Icon Container */}
+                                                <div className={`relative z-10 w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-300 shrink-0 ${item.label === 'Tutor'
+                                                    ? 'bg-transparent scale-125'
+                                                    : isActive
+                                                        ? `bg-gradient-to-br ${gradient} text-white shadow-lg shadow-sm scale-105`
+                                                        : 'bg-white border-2 border-slate-200 text-slate-500 shadow-sm group-hover:border-slate-300 group-hover:text-slate-700 group-hover:scale-110'
+                                                    }`}>
+                                                    {item.label === 'Tutor' ? (
+                                                        <Image
+                                                            src="/south_indian_teacher.png"
+                                                            alt="Tutor"
+                                                            width={44}
+                                                            height={44}
+                                                            className="w-full h-full object-contain drop-shadow-md"
+                                                        />
+                                                    ) : (
+                                                        <item.icon className="w-5 h-5" strokeWidth={isActive ? 3 : 2.5} />
+                                                    )}
+                                                </div>
+
+                                                <motion.span
+                                                    variants={textVariants}
+                                                    animate={isCollapsed ? "collapsed" : "expanded"}
+                                                    className={`text-[15px] tracking-tight whitespace-nowrap font-black leading-none pt-0.5 overflow-hidden ${isActive ? 'text-white' : ''}`}
+                                                >
+                                                    {item.label}
+                                                </motion.span>
+
+                                                {item.badge && (
+                                                    <motion.span
+                                                        variants={textVariants}
+                                                        animate={isCollapsed ? "collapsed" : "expanded"}
+                                                        className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-full text-white shadow-sm ${item.badgeColor || 'bg-blue-500'}`}
+                                                    >
+                                                        {item.badge}
+                                                    </motion.span>
+                                                )}
+                                            </Link>
+                                        </motion.div>
+                                    );
+                                })}
+                            </motion.div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Upgrade / Pro Access Area */}
+                <motion.div
+                    variants={{
+                        expanded: { opacity: 1, scale: 1, height: "auto", margin: "1rem" },
+                        collapsed: { opacity: 1, scale: 1, height: "auto", margin: "0.5rem" }
+                    }}
+                    className="mt-auto bg-slate-50 border border-slate-100 rounded-2xl relative overflow-hidden group mb-4 transition-all duration-300"
+                >
+                    {isCollapsed ? (
+                        <Link
+                            href="/dashboard/plans"
+                            onClick={handleNavItemClick}
+                            className="w-14 h-14 mx-auto flex items-center justify-center bg-slate-900 text-white rounded-2xl shadow-lg relative overflow-hidden group/mini"
+                            title="Upgrade to Pro"
+                        >
+                            <Crown className="w-6 h-6 z-10" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover/mini:opacity-100 transition-opacity" />
+                        </Link>
+                    ) : (
+                        <Link href="/dashboard/plans" onClick={handleNavItemClick} className="p-4 relative z-10 flex items-center justify-between gap-3 min-w-[200px]">
+                            <div>
+                                <h4 className="font-black text-sm text-slate-900 leading-none mb-1">Pro Access</h4>
+                                <p className="text-[10px] text-slate-500 font-bold leading-tight uppercase tracking-tight">Unlock premium</p>
+                            </div>
+                            <div className="px-3 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all hover:bg-black">
+                                UPGRADE
+                            </div>
+                        </Link>
+                    )}
+                </motion.div>
+            </motion.div >
+        </>
     );
 }

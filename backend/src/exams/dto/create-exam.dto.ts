@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsNumber, IsDateString, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsNumber, IsDateString, Min, Max, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ExamType } from '../entities/exam.entity';
 
@@ -14,6 +14,14 @@ export class CreateExamDto {
     @IsString()
     @IsOptional()
     description?: string;
+
+    @IsString()
+    @IsOptional()
+    videoSolutionUrl?: string;
+
+    @IsString()
+    @IsOptional()
+    category?: string;
 
     @IsDateString()
     @IsOptional()
@@ -34,14 +42,31 @@ export class CreateExamDto {
     price?: number;
 
     @IsNumber()
+    @Min(5)
+    @Max(300)
+    @IsOptional()
+    @Type(() => Number)
+    duration?: number;
+
+    @IsNumber()
+    @Min(0.1)
     @IsOptional()
     @Type(() => Number)
     defaultPositiveMarks?: number;
 
     @IsNumber()
+    @Min(0)
     @IsOptional()
     @Type(() => Number)
     defaultNegativeMarks?: number;
+
+    @IsBoolean()
+    @IsOptional()
+    isPublished?: boolean;
+
+    @IsObject()
+    @IsOptional()
+    metadata?: Record<string, any>;
 }
 
 export class UpdateExamDto {
@@ -49,6 +74,10 @@ export class UpdateExamDto {
     @IsOptional()
     title?: string;
 
-    // ... potentially map other fields as optional, or use PartialType if installed
-    // For now, I'll keep it simple or minimal.
+    @IsBoolean()
+    @IsOptional()
+    isPublished?: boolean;
+
+    @IsOptional()
+    metadata?: Record<string, any>;
 }

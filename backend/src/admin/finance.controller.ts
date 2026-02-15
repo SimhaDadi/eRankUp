@@ -18,19 +18,21 @@ export class FinanceController {
 
     @Get('payments')
     async getPayments(
-        @Query('page') page: string,
-        @Query('limit') limit: string,
+        @Query('page') page: any = 1,
+        @Query('limit') limit: any = 20,
         @Query('status') status: string
     ) {
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 20;
         return this.financeService.getPayments(
-            page ? parseInt(page) : 1,
-            limit ? parseInt(limit) : 20,
+            pageNum,
+            limitNum,
             status
         );
     }
 
-    @Post('refund/:paymentId')
-    async processRefund(@Param('paymentId') paymentId: string) {
+    @Post('refund/:id')
+    async processRefund(@Param('id') paymentId: string) {
         try {
             return await this.financeService.processRefund(paymentId);
         } catch (error) {

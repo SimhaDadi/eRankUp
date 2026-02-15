@@ -1,15 +1,20 @@
-import { Controller, Post, Get, Patch, Body, Param, Query, Request, UseGuards, UseInterceptors, UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Body, Param, Query, Request, UseGuards, UseInterceptors, UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Brackets } from 'typeorm';
 import { Question } from '../exams/entities/question.entity';
 import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
 import { Exam } from '../exams/entities/exam.entity';
+import { AIService } from '../ai/ai.service';
+import { ExamsService } from './exams.service';
+import { MediaService } from '../admin/media.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Controller('questions')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -24,7 +29,28 @@ export class QuestionsController {
         private chapterRepository: Repository<Chapter>,
         @InjectRepository(Exam)
         private examRepository: Repository<Exam>,
+        private readonly aiService: AIService,
+        private readonly examsService: ExamsService,
+        private readonly mediaService: MediaService,
     ) { }
+
+    @Post('upload-image')
+    @UseInterceptors(FileInterceptor('image'))
+    async uploadImage(@UploadedFile() file: Express.Multer.File) {
+        if (!file) {
+            throw new HttpException('No file uploaded', HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            const media = await this.mediaService.uploadFile(file);
+            return {
+                success: true,
+                url: media.url
+            };
+        } catch (error) {
+            throw new HttpException(error.message || 'Image upload failed', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     @Get()
     async findAll(
@@ -35,7 +61,6 @@ export class QuestionsController {
         @Query('difficulty') difficulty?: string
     ) {
         try {
-
             const queryBuilder = this.questionRepository.createQueryBuilder('question')
                 .leftJoinAndSelect('question.subject', 'subject')
                 .leftJoinAndSelect('question.chapter', 'chapter');
@@ -59,6 +84,104 @@ export class QuestionsController {
             return questions;
         } catch (error) {
             throw new HttpException(error.message || 'Failed to fetch questions', HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Get('export')
+    async exportQuestions(
+        @Request() req: any,
+        @Query('examId') examId?: string,
+        @Query('subjectId') subjectId?: string,
+        @Query('chapterId') chapterId?: string,
+        @Query('modelId') modelId?: string
+    ) {
+        console.log(`[Export] Request filters:`, { examId, subjectId, chapterId, modelId });
+        try {
+            const queryBuilder = this.questionRepository.createQueryBuilder('question')
+                .leftJoinAndSelect('question.subject', 'subject')
+                .leftJoinAndSelect('question.chapter', 'chapter')
+                .leftJoinAndSelect('question.models', 'models');
+
+            if (examId) {
+                // [FIX] Use leftJoin and allow global questions (exams.id IS NULL)
+                // This matches the behaviour of the question list view
+                queryBuilder.leftJoin('question.exams', 'exams')
+                    .andWhere(new Brackets(qb => {
+                        qb.where('exams.id = :examId', { examId })
+                            .orWhere('exams.id IS NULL');
+                    }));
+            } else {
+                queryBuilder.leftJoinAndSelect('question.exams', 'exams');
+            }
+
+            if (subjectId) queryBuilder.andWhere('subject.id = :subjectId', { subjectId });
+            if (chapterId) queryBuilder.andWhere('chapter.id = :chapterId', { chapterId });
+            if (modelId) queryBuilder.andWhere('models.id = :modelId', { modelId });
+
+            const questions = await queryBuilder.getMany();
+            console.log(`[Export] Found ${questions.length} questions matching filters.`);
+
+            const csvHeaders = [
+                'Content', 'OptionA', 'OptionB', 'OptionC', 'OptionD',
+                'CorrectOptionId', 'Explanation', 'Topic', 'DifficultyWeight',
+                'PositiveMarks', 'NegativeMarks',
+                'SubjectId', 'ChapterId', 'ExamId', 'ModelId', 'ImageUrl'
+            ];
+
+            const csvRows = questions.map(q => {
+                const optA = q.options.find(o => o.id === 'A')?.text || '';
+                const optB = q.options.find(o => o.id === 'B')?.text || '';
+                const optC = q.options.find(o => o.id === 'C')?.text || '';
+                const optD = q.options.find(o => o.id === 'D')?.text || '';
+                const examIdsArr = q.exams?.map(e => e.id) || [];
+                const examIds = examIdsArr.join(';');
+                const difficulty = q.difficultyWeight <= 0.3 ? 'easy' : q.difficultyWeight >= 0.7 ? 'hard' : 'medium';
+                const modelIds = q.models?.map(m => m.id).join(';') || '';
+
+                return [
+                    `"${(q.content || '').replace(/"/g, '""')}"`,
+                    `"${optA.replace(/"/g, '""')}"`,
+                    `"${optB.replace(/"/g, '""')}"`,
+                    `"${optC.replace(/"/g, '""')}"`,
+                    `"${optD.replace(/"/g, '""')}"`,
+                    q.correctOptionId,
+                    `"${(q.explanation || '').replace(/"/g, '""')}"`,
+                    `"${(q.topic || '').replace(/"/g, '""')}"`,
+                    difficulty,
+                    q.positiveMarks,
+                    q.negativeMarks,
+                    q.subject?.id || '',
+                    q.chapter?.id || '',
+                    examIds,
+                    modelIds,
+                    q.imageUrl || ''
+                ].join(',');
+            });
+
+            let filename = `questions_backup_${new Date().toISOString().split('T')[0]}`;
+
+            if (chapterId) {
+                const chapter = await this.chapterRepository.findOne({ where: { id: chapterId } });
+                if (chapter) {
+                    const saneName = chapter.title.replace(/[^a-zA-Z0-9-_]/g, '_');
+                    filename = `${saneName}_${new Date().toISOString().split('T')[0]}`;
+                }
+            } else if (examId) {
+                const exam = await this.examRepository.findOne({ where: { id: examId } });
+                if (exam) {
+                    const saneTitle = exam.title.replace(/[^a-zA-Z0-9-_]/g, '_');
+                    filename = `${saneTitle}_${new Date().toISOString().split('T')[0]}`;
+                }
+            }
+
+            const csvString = [csvHeaders.join(','), ...csvRows].join('\n');
+            const res = req.res;
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename=${filename}.csv`);
+            return res.send(csvString);
+        } catch (error) {
+            console.error('[Export] Error:', error);
+            throw new HttpException(error.message || 'Export failed', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -87,6 +210,8 @@ export class QuestionsController {
                 text: text
             }));
 
+            // const embedding = await this.aiService.generateEmbedding(questionText);
+
             const question = this.questionRepository.create({
                 content: questionText,
                 options: formattedOptions,
@@ -99,7 +224,8 @@ export class QuestionsController {
                 subject: subject,
                 chapter: chapter,
                 chapterId: chapterId,
-                exams: exam ? [exam] : [] // Now an array, can be empty for global questions
+                exams: exam ? [exam] : [], // Now an array, can be empty for global questions
+                // embedding: embedding
             });
 
             const saved = await this.questionRepository.save(question);
@@ -142,11 +268,33 @@ export class QuestionsController {
                 }
             }
 
-            if (updateData.questionText) question.content = updateData.questionText;
+            if (updateData.questionText) {
+                question.content = updateData.questionText;
+                // try {
+                //     question.embedding = await this.aiService.generateEmbedding(updateData.questionText);
+                // } catch (e) {
+                //     console.error(`Failed to update embedding during question edit: ${e.message}`);
+                // }
+            }
             if (updateData.correctAnswer !== undefined) question.correctOptionId = String.fromCharCode(65 + updateData.correctAnswer);
             if (updateData.explanation) question.explanation = updateData.explanation;
             if (updateData.topic) question.topic = updateData.topic;
             if (updateData.difficulty) question.difficultyWeight = updateData.difficulty === 'easy' ? 0.3 : updateData.difficulty === 'hard' ? 0.7 : 0.5;
+            if (updateData.difficultyWeight !== undefined) question.difficultyWeight = parseFloat(updateData.difficultyWeight);
+
+            if (updateData.options) {
+                if (Array.isArray(updateData.options) && typeof updateData.options[0] === 'string') {
+                    question.options = updateData.options.map((text: string, index: number) => ({
+                        id: String.fromCharCode(65 + index),
+                        text: text
+                    }));
+                } else {
+                    question.options = updateData.options;
+                }
+            }
+            if (updateData.positiveMarks !== undefined) question.positiveMarks = parseFloat(updateData.positiveMarks);
+            if (updateData.negativeMarks !== undefined) question.negativeMarks = parseFloat(updateData.negativeMarks);
+            if (updateData.imageUrl !== undefined) question.imageUrl = updateData.imageUrl;
 
             const saved = await this.questionRepository.save(question);
             return { success: true, data: saved };
@@ -158,24 +306,68 @@ export class QuestionsController {
 
     @Post('bulk-upload')
     @UseInterceptors(FileInterceptor('file'))
-    async bulkUpload(@UploadedFile() file: Express.Multer.File) {
-        if (!file) {
-            throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
-        }
+    async bulkUpload(@UploadedFile() file: Express.Multer.File, @Request() req: any) {
+        if (!file) throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
 
         if (file.mimetype !== 'text/csv' && !file.originalname.endsWith('.csv')) {
             throw new HttpException('Only CSV files are allowed', HttpStatus.BAD_REQUEST);
         }
 
         try {
-            const csvContent = file.buffer.toString('utf-8');
-            const lines = csvContent.split(/\r?\n/);
+            const logFile = 'D:\\eRankUp\\bulk_upload_controller.log';
+            const log = (msg: string) => {
+                const timestampedMsg = `${new Date().toISOString()} ${msg}`;
+                console.log(timestampedMsg);
+                try {
+                    fs.appendFileSync(logFile, timestampedMsg + '\n');
+                } catch (e) {
+                    console.error('Failed to write to D:\\ log:', e.message);
+                }
+            };
 
-            if (lines.length < 2) {
-                throw new Error('CSV file is empty or missing headers');
+            log(`[BulkUpload] HEARTBEAT - Method Entered. File: ${file.originalname}`);
+            log(`[BulkUpload] Mime: ${file.mimetype}, Size: ${file.size} bytes`);
+
+            // Diagnostic: Check for common binary signatures
+            const buffer = file.buffer;
+            if (buffer[0] === 0x50 && buffer[1] === 0x4B) { // PK signature
+                log('[BulkUpload] ERROR: File appears to be a ZIP or XLSX file, NOT a CSV.');
+                throw new Error('File format mismatch: This appears to be an Excel (.xlsx) file. Please save it as "CSV (Comma delimited)" and try again.');
             }
 
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            let csvContent = buffer.toString('utf-8');
+            // Check for UTF-16 (le)
+            if (buffer[0] === 0xFF && buffer[1] === 0xFE) {
+                log('[BulkUpload] Encoding detected: UTF-16LE. Converting...');
+                csvContent = buffer.toString('utf16le');
+            }
+
+            // 1. Strip BOM (Byte Order Mark) if present (common in Excel CSVs)
+            if (csvContent.charCodeAt(0) === 0xFEFF) {
+                csvContent = csvContent.slice(1);
+            }
+
+            // Diagnostic: Show first 100 characters of the string
+            log(`[BulkUpload] Raw string dump (100 chars): ${JSON.stringify(csvContent.substring(0, 100))}`);
+
+            const lines = csvContent.split(/\r?\n/).filter(l => l.trim().length > 0);
+            log(`[BulkUpload] Total non-empty lines found: ${lines.length}`);
+
+            if (lines.length < 2) {
+                log(`[BulkUpload] File contains fewer than 2 lines. Content dump: ${JSON.stringify(csvContent)}`);
+                throw new Error('CSV file is empty or missing headers. Ensure you have a header row and data rows.');
+            }
+
+            const firstLine = lines[0];
+            log(`[BulkUpload] Raw Headers Line: ${firstLine}`);
+
+            // 2. Clean headers: Detect separator (comma vs semicolon)
+            const separator = firstLine.includes(';') && !firstLine.includes(',') ? ';' : ',';
+            log(`[BulkUpload] Detected separator: ${separator}`);
+
+            const headers = firstLine.split(separator).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+            log(`[BulkUpload] Headers found: ${headers.join(', ')}`);
+
             const validQuestions = [];
             const errors = [];
 
@@ -183,59 +375,75 @@ export class QuestionsController {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                const values = this.parseCSVLine(line);
-
-                if (values.length !== headers.length) {
-                    errors.push(`Line ${i + 1}: Mismatch column count`);
-                    continue;
-                }
-
+                const values = this.parseCSVLine(line, separator);
                 const row: any = {};
                 headers.forEach((h, index) => {
-                    row[h] = values[index];
+                    row[h] = values[index] ? values[index].trim().replace(/^"(.*)"$/, '$1') : '';
                 });
 
-                try {
-                    const examId = row['examid'];
-                    const subjectId = row['subjectid'];
-                    const chapterId = row['chapterid'];
+                // Debug: Log first few parsed rows
+                if (i <= 3) log(`[BulkUpload] Row ${i} parsed: ${JSON.stringify(row)}`);
 
-                    if (!subjectId || !chapterId) {
-                        errors.push(`Line ${i + 1}: Missing hierarchy IDs (subjectId and chapterId required)`);
+                try {
+                    const content = row['content'] || row['questiontext'] || row['question_text'];
+                    if (!content) {
+                        errors.push(`Line ${i + 1}: Missing question content`);
                         continue;
                     }
 
-                    // Fetch hierarchy entities
-                    const exam = examId ? await this.examRepository.findOne({ where: { id: examId } }) : null;
-                    const subject = await this.subjectRepository.findOne({ where: { id: subjectId } });
-                    const chapter = await this.chapterRepository.findOne({ where: { id: chapterId } });
+                    const chapterId = row['chapterid'] || row['chapter_id'];
+                    if (!chapterId) {
+                        errors.push(`Line ${i + 1}: Missing chapterId (required)`);
+                        continue;
+                    }
 
-                    if (!subject || !chapter || (examId && !exam)) {
-                        errors.push(`Line ${i + 1}: Invalid hierarchy IDs - subject, chapter, or specified exam not found`);
+                    const chapter = await this.chapterRepository.findOne({ where: { id: chapterId } });
+                    if (!chapter) {
+                        errors.push(`Line ${i + 1}: Chapter not found`);
+                        continue;
+                    }
+
+                    const correctOptionRaw = row['correctoptionid'] || row['correctoption'] || row['correctanswer'] || row['correct_option_id'];
+                    if (!correctOptionRaw) {
+                        errors.push(`Line ${i + 1}: Missing correct answer`);
                         continue;
                     }
 
                     const options = [
-                        { id: 'A', text: row['optiona'] || row['option1'] },
-                        { id: 'B', text: row['optionb'] || row['option2'] },
-                        { id: 'C', text: row['optionc'] || row['option3'] },
-                        { id: 'D', text: row['optiond'] || row['option4'] }
+                        { id: 'A', text: row['optiona'] || row['option1'] || 'Option A' },
+                        { id: 'B', text: row['optionb'] || row['option2'] || 'Option B' },
+                        { id: 'C', text: row['optionc'] || row['option3'] || 'Option C' },
+                        { id: 'D', text: row['optiond'] || row['option4'] || 'Option D' }
                     ];
 
-                    const question = this.questionRepository.create({
-                        content: row['content'] || row['questiontext'],
+                    const examIdRaw = row['examid'] || row['exam_id'];
+                    const exams = [];
+                    if (examIdRaw) {
+                        const ids = String(examIdRaw).split(';').map(id => id.trim()).filter(id => !!id);
+                        ids.forEach(id => exams.push({ id }));
+                    }
+
+                    const modelIdRaw = row['modelid'] || row['model_id'];
+                    const models = [];
+                    if (modelIdRaw) {
+                        const ids = String(modelIdRaw).split(';').map(id => id.trim()).filter(id => !!id);
+                        ids.forEach(id => models.push({ id }));
+                    }
+
+                    const question = {
+                        content: content,
                         options: options,
-                        correctOptionId: (row['correctoption'] || row['correctanswer']).toUpperCase(),
+                        correctOptionId: correctOptionRaw.toUpperCase(),
                         explanation: row['explanation'] || '',
-                        topic: row['topic'],
+                        topic: row['topic'] || '',
                         positiveMarks: parseFloat(row['positivemarks']) || 1.0,
                         negativeMarks: parseFloat(row['negativemarks']) || 0.25,
-                        difficultyWeight: row['difficulty'] === 'easy' ? 0.3 : row['difficulty'] === 'hard' ? 0.7 : 0.5,
-                        exams: exam ? [exam] : [], // Now an array, can be empty for global questions
-                        subject: subject,
-                        chapter: chapter,
-                        chapterId: chapterId
-                    });
+                        difficultyWeight: row['difficultyweight'] ? parseFloat(row['difficultyweight']) : (row['difficulty'] === 'easy' ? 0.3 : row['difficulty'] === 'hard' ? 0.7 : 0.5),
+                        exams: exams,
+                        models: models,
+                        chapterId: chapterId,
+                        imageUrl: row['imageurl'] || row['image_url'] || row['image']
+                    };
 
                     validQuestions.push(question);
                 } catch (err) {
@@ -243,13 +451,24 @@ export class QuestionsController {
                 }
             }
 
+            let actualImported = 0;
             if (validQuestions.length > 0) {
-                await this.questionRepository.save(validQuestions);
+                const user = req.user;
+                log(`[BulkUpload] Calling createQuestionsBulk with ${validQuestions.length} questions...`);
+                const result = await this.examsService.createQuestionsBulk(user.id, user.role, undefined, validQuestions);
+                actualImported = Array.isArray(result) ? result.length : validQuestions.length;
+                log(`[BulkUpload] Service completed. validQuestions: ${validQuestions.length}, results: ${actualImported}`);
+            } else {
+                log(`[BulkUpload] No valid questions found. Errors: ${JSON.stringify(errors.slice(0, 5))}`);
             }
 
+            const message = validQuestions.length > 0
+                ? `Successfully processed ${validQuestions.length} questions. (Check Question Bank for updates)`
+                : `Upload Failed: 0 valid questions found. Errors: ${errors.slice(0, 3).join('; ')}`;
+
             return {
-                success: true,
-                message: `Successfully imported ${validQuestions.length} questions`,
+                success: validQuestions.length > 0,
+                message: message,
                 importedCount: validQuestions.length,
                 errors: errors
             };
@@ -258,29 +477,26 @@ export class QuestionsController {
         }
     }
 
-    private parseCSVLine(line: string): string[] {
+    private parseCSVLine(line: string, separator: string = ','): string[] {
         const result = [];
         let currentValue = '';
         let inQuotes = false;
-
         for (let i = 0; i < line.length; i++) {
             const char = line[i];
-
             if (char === '"') {
-                if (inQuotes && line[i + 1] === '"') {
-                    currentValue += '"';
-                    i++;
-                } else {
-                    inQuotes = !inQuotes;
-                }
-            } else if (char === ',' && !inQuotes) {
+                if (inQuotes && line[i + 1] === '"') { currentValue += '"'; i++; }
+                else { inQuotes = !inQuotes; }
+            } else if (char === separator && !inQuotes) {
                 result.push(currentValue);
                 currentValue = '';
-            } else {
-                currentValue += char;
-            }
+            } else { currentValue += char; }
         }
         result.push(currentValue);
         return result;
+    }
+
+    @Delete(':id')
+    async delete(@Param('id') id: string) {
+        return this.examsService.deleteQuestion(id);
     }
 }

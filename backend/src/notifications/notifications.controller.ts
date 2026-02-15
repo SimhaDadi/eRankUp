@@ -5,39 +5,36 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 
-@Controller('admin/notifications')
+@Controller('notifications')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles(UserRole.ADMIN)
 export class NotificationsController {
     constructor(private readonly notificationsService: NotificationsService) { }
 
     @Get('templates')
+    @Roles(UserRole.ADMIN)
     async getTemplates() {
         return this.notificationsService.getAllTemplates();
     }
 
     @Post('templates')
+    @Roles(UserRole.ADMIN)
     async createTemplate(@Body() body: any) {
         return this.notificationsService.createTemplate(body);
     }
 
-    @Put('templates/:id')
-    async updateTemplate(@Param('id') id: string, @Body() body: any) {
-        return this.notificationsService.updateTemplate(id, body);
-    }
-
     @Delete('templates/:id')
+    @Roles(UserRole.ADMIN)
     async deleteTemplate(@Param('id') id: string) {
         return this.notificationsService.deleteTemplate(id);
     }
 
     @Post('send')
-    async sendNotification(@Body() body: { title: string; body: string; recipients: string[] | 'ALL' }) {
-        return this.notificationsService.sendBulkNotification(body);
+    @Roles(UserRole.ADMIN)
+    async sendNotification(@Body() body: { title: string; message: string; targetUsers: 'all' | 'active' | 'inactive'; userIds?: string[] }) {
+        return this.notificationsService.sendAdminNotification(body);
     }
 
     @Get('my')
-    @UseGuards(AuthGuard('jwt'))
     async getMyNotifications(@Request() req) {
         return this.notificationsService.getUserNotifications(req.user.userId);
     }

@@ -7,16 +7,20 @@ import '../theme/app_theme.dart';
 
 class ShimmerLoading {
   /// Shimmer effect for exam cards
-  static Widget examCard() {
+  static Widget examCard(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? const Color(0xFF1E293B) : Colors.grey.shade300;
+    final highlightColor = isDark ? const Color(0xFF334155) : Colors.grey.shade100;
+
     return Container(
       height: 180,
       margin: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
+        baseColor: baseColor,
+        highlightColor: highlightColor,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
           ),
         ),
@@ -25,13 +29,14 @@ class ShimmerLoading {
   }
 
   /// Shimmer effect for stat cards
-  static Widget statCard() {
+  static Widget statCard(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade300,
+      highlightColor: isDark ? const Color(0xFF334155) : Colors.grey.shade100,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         ),
       ),
@@ -39,20 +44,21 @@ class ShimmerLoading {
   }
 
   /// Shimmer effect for list items
-  static Widget listItem({double height = 80}) {
+  static Widget listItem(BuildContext context, {double height = 80}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: height,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
+        baseColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade300,
+        highlightColor: isDark ? const Color(0xFF334155) : Colors.grey.shade100,
         child: Row(
           children: [
             Container(
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               ),
             ),
@@ -66,7 +72,7 @@ class ShimmerLoading {
                     height: 16,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -75,7 +81,7 @@ class ShimmerLoading {
                     height: 14,
                     width: 150,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -89,18 +95,19 @@ class ShimmerLoading {
   }
 
   /// Shimmer effect for text lines
-  static Widget textLine({
+  static Widget textLine(BuildContext context, {
     double width = double.infinity,
     double height = 16,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade300,
+      highlightColor: isDark ? const Color(0xFF334155) : Colors.grey.shade100,
       child: Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(4),
         ),
       ),
@@ -108,15 +115,16 @@ class ShimmerLoading {
   }
 
   /// Shimmer effect for circular avatar
-  static Widget avatar({double size = 60}) {
+  static Widget avatar(BuildContext context, {double size = 60}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade300,
+      highlightColor: isDark ? const Color(0xFF334155) : Colors.grey.shade100,
       child: Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           shape: BoxShape.circle,
         ),
       ),
@@ -124,14 +132,14 @@ class ShimmerLoading {
   }
 
   /// Shimmer effect for home screen
-  static Widget homeScreen() {
+  static Widget homeScreen(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       children: [
         // Header shimmer
-        textLine(width: 200, height: 24),
+        textLine(context, width: 200, height: 24),
         const SizedBox(height: AppSpacing.sm),
-        textLine(width: 150, height: 20),
+        textLine(context, width: 150, height: 20),
         const SizedBox(height: AppSpacing.xxl),
         
         // Stats grid shimmer
@@ -142,7 +150,7 @@ class ShimmerLoading {
           mainAxisSpacing: AppSpacing.md,
           crossAxisSpacing: AppSpacing.md,
           childAspectRatio: 1.3,
-          children: List.generate(4, (_) => statCard()),
+          children: List.generate(4, (_) => statCard(context)),
         ),
         
         const SizedBox(height: AppSpacing.xxl),
@@ -151,11 +159,11 @@ class ShimmerLoading {
         Container(
           height: 200,
           child: Shimmer.fromColors(
-            baseColor: Colors.grey.shade300,
-            highlightColor: Colors.grey.shade100,
+            baseColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey.shade300,
+            highlightColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
               ),
             ),
@@ -166,11 +174,11 @@ class ShimmerLoading {
   }
 
   /// Shimmer effect for exam list
-  static Widget examList({int count = 5}) {
+  static Widget examList(BuildContext context, {int count = 5}) {
     return ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       itemCount: count,
-      itemBuilder: (context, index) => examCard(),
+      itemBuilder: (ctx, index) => examCard(context),
     );
   }
 }
@@ -190,9 +198,11 @@ class SkeletonLoader extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!isLoading) return child;
     
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade300,
+      highlightColor: isDark ? const Color(0xFF334155) : Colors.grey.shade100,
       child: child,
     );
   }
@@ -248,7 +258,7 @@ class PulsingDots extends StatefulWidget {
   
   const PulsingDots({
     super.key,
-    this.color = Colors.blue,
+    this.color = AppColors.primaryBlue,
     this.size = 8,
   });
 

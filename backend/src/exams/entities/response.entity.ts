@@ -1,8 +1,10 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, Index } from 'typeorm';
+import { Type, Expose } from 'class-transformer';
 import { Attempt } from './attempt.entity';
 import { Question } from './question.entity';
 
 @Entity()
+@Index(['attempt', 'isCorrect']) // Fast count: "How many correct in this attempt?"
 export class Response {
     @PrimaryGeneratedColumn('uuid')
     id: string;
@@ -11,8 +13,10 @@ export class Response {
     @ManyToOne(() => Attempt, (attempt) => attempt.responses)
     attempt: Attempt;
 
+    @Expose()
     @Index()
     @ManyToOne(() => Question)
+    @Type(() => Question)
     question: Question;
 
     @Column()

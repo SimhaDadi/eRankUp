@@ -2,22 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+@import 'katex/dist/katex.min.css';
+
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
+  /* Core Palette: Black, White, Blue, Green */
+  --bg-app: #f8fafc;
+  /* Slate 50 - Soft White */
+  --bg-surface: #ffffff;
+  /* Pure White */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
+  --text-primary: #0f172a;
+  /* Slate 900 - Sharp Black */
+  --text-secondary: #64748b;
+  /* Slate 500 - Soft Grey */
 
-body {
-  color: rgb(var(--foreground-rgb));
+  --brand-blue: #2563eb;
+  /* Blue 600 */
+  --brand-green: #10b981;
+  /* Emerald 500 */
+
+  --border-sharp: #e2e8f0;
+  /* Slate 200 */
+  --border-soft: #f1f5f9;
+  /* Slate 100 */
 }
 
 @layer utilities {
@@ -25,19 +32,122 @@ body {
     text-wrap: balance;
   }
 
+  /* Soft Touch: Glassmorphism & Blurs */
   .glass-panel {
-    @apply bg-white/60 backdrop-blur-xl border border-gray-100 shadow-xl;
+    @apply bg-white/60 backdrop-blur-2xl border border-white/40 shadow-2xl shadow-slate-200/50;
   }
 
-  .nebula-card {
-    @apply bg-white border border-gray-100 shadow-lg shadow-gray-200/50 rounded-3xl;
+  .glass-nav {
+    @apply bg-white/70 backdrop-blur-lg border-b border-slate-200/40 sticky top-0 z-[100];
   }
 
-  .nebula-glow {
-    @apply shadow-lg shadow-teal-500/20;
+  .glass-card {
+    @apply bg-white/40 backdrop-blur-md border border-white/60 shadow-lg;
   }
 
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#00bfa5] to-blue-600 font-bold;
+  /* Ultra Premium: Sharp Linings & Smooth Curves */
+  .ultra-card {
+    @apply bg-white rounded-[2.5rem] border border-slate-100 transition-all duration-500 relative overflow-hidden;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.01);
   }
+
+  .ultra-card:hover {
+    @apply -translate-y-2;
+    box-shadow: 0 40px 80px -20px rgba(0, 191, 165, 0.12);
+  }
+
+  .ultra-card::before {
+    content: '';
+    @apply absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#00bfa5] via-[#5eead4] to-[#00bfa5] opacity-0 transition-opacity duration-500;
+  }
+
+  .ultra-card:hover::before {
+    @apply opacity-100;
+  }
+
+  /* Sharp Gradient Text */
+  .text-gradient-ultra {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-slate-950 via-slate-800 to-slate-900 font-extrabold tracking-tight;
+  }
+
+  .text-gradient-accent {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#00bfa5] via-blue-500 to-[#00bfa5] bg-[length:200%_auto] animate-gradient font-black;
+  }
+
+  /* Buttons */
+  .btn-ultra-primary {
+    @apply bg-slate-950 text-white font-bold py-4 px-8 rounded-3xl shadow-2xl shadow-slate-900/10 active:scale-95 transition-all hover:bg-black hover:shadow-slate-900/20 flex items-center justify-center gap-2;
+  }
+
+  .btn-ultra-blue {
+    @apply bg-gradient-to-r from-[#00bfa5] to-[#2dd4bf] text-white font-bold py-4 px-10 rounded-2xl shadow-xl shadow-[#00bfa5]/25 active:scale-95 transition-all hover:shadow-[#00bfa5]/40 hover:-translate-y-1 relative overflow-hidden;
+  }
+
+  /* Bento Grid Layout Utility */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* Decor */
+  .sharp-separator {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-slate-200 to-transparent my-8;
+  }
+
+  /* Decorations */
+  .floating {
+    animation: floating 3s ease-in-out infinite;
+  }
+
+  @keyframes floating {
+    0% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-15px);
+    }
+
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .animate-gradient {
+    animation: gradient 4s ease infinite;
+  }
+}
+
+/* Custom Scrollbar for Smooth Feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

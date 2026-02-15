@@ -1,4 +1,5 @@
-import { Controller, Post, Get, Param, Body, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, UseGuards, HttpException, HttpStatus, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -9,12 +10,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Question } from '../exams/entities/question.entity';
 
+import { AIQueueService } from './ai-queue.service';
+
 @Controller('ai')
 @UseGuards(AuthGuard('jwt'))
 export class AIController {
     constructor(
         private aiService: AIService,
         private explanationService: ExplanationService,
+        private aiQueueService: AIQueueService,
         @InjectRepository(Question)
         private questionRepository: Repository<Question>,
     ) { }
@@ -33,10 +37,10 @@ export class AIController {
     @Post('generate-explanation/:questionId')
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
-    async generateExplanation(@Param('questionId') questionId: string) {
+    async generateExplanation(@Request() req: any, @Param('questionId') questionId: string) {
         try {
             // Delegate to ExplanationService (superior implementation)
-            const explanation = await this.explanationService.generateExplanation(questionId);
+            const explanation = await this.explanationService.generateExplanation(req.user.userId, req.user.role, questionId);
 
             return {
                 success: true,
@@ -60,6 +64,7 @@ export class AIController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     async batchGenerateExplanations(
+        @Request() req: any,
         @Body() body: { examId?: string; subjectId?: string; chapterId?: string; limit?: number }
     ) {
         try {
@@ -84,7 +89,7 @@ export class AIController {
 
             // Delegate to ExplanationService for bulk generation
             const questionIds = questions.map(q => q.id);
-            const explanations = await this.explanationService.generateBulkExplanations(questionIds);
+            const explanations = await this.explanationService.generateBulkExplanations(req.user.userId, req.user.role, questionIds);
 
             return {
                 success: true,
@@ -104,10 +109,10 @@ export class AIController {
      * Kept for backward compatibility
      */
     @Get('explanation/:questionId')
-    async getExplanation(@Param('questionId') questionId: string) {
+    async getExplanation(@Request() req: any, @Param('questionId') questionId: string) {
         try {
             // Delegate to ExplanationService
-            const explanation = await this.explanationService.generateExplanation(questionId);
+            const explanation = await this.explanationService.generateExplanation(req.user.userId, req.user.role, questionId);
 
             return {
                 questionId,
@@ -116,5 +121,26 @@ export class AIController {
         } catch (error) {
             throw new HttpException(error.message || 'Failed to fetch explanation', HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @Post('photo-search')
+    @UseInterceptors(FileInterceptor('file'))
+    async photoSearch(@UploadedFile() file: Express.Multer.File) {
+        if (!file) throw new HttpException('No file uploaded', HttpStatus.BAD_REQUEST);
+        try {
+            return await this.aiService.photoSearch(file);
+        } catch (error) {
+            throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Get('status')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
+    getQueueStatus() {
+        return {
+            success: true,
+            status: this.aiQueueService.getStats()
+        };
     }
 }

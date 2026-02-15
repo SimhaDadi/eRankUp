@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../widgets/math_rich_text.dart';
 
 class SavedQuestionsScreen extends StatefulWidget {
   const SavedQuestionsScreen({super.key});
@@ -23,10 +24,12 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
   Future<void> _fetchSavedQuestions() async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
-      final response = await apiService.get('/questions/saved');
+      final response = await apiService.get('/users/saved-questions');
       if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
         setState(() {
-          _savedQuestions = jsonDecode(response.body) as List;
+          // Extract the nested question objects from SavedQuestion list
+          _savedQuestions = data.map((item) => item['question']).toList();
           _isLoading = false;
         });
       }
@@ -39,7 +42,8 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
   Future<void> _unsaveQuestion(String questionId) async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
-      await apiService.delete('/questions/$questionId/save');
+      // Using the unified toggle endpoint
+      await apiService.post('/users/saved-questions/$questionId/toggle', {});
       setState(() {
         _savedQuestions?.removeWhere((q) => q['id'] == questionId);
       });
@@ -71,20 +75,20 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.bookmark_border, size: 80, color: Colors.grey.shade300),
+                  Icon(Icons.bookmark_border, size: 80, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade300),
                   const SizedBox(height: 16),
                   Text(
                     'No saved questions yet',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.grey.shade600,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Save questions during tests to review later',
-                    style: TextStyle(color: Colors.grey.shade500),
+                    style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.grey.shade500),
                   ),
                 ],
               ),
@@ -106,14 +110,17 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
     final difficulty = question['difficulty'] ?? 'Medium';
     final questionId = question['id'];
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
+        boxShadow: isDark ? [] : [
           BoxShadow(
             color: Colors.grey.shade100,
             blurRadius: 4,
@@ -130,7 +137,7 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: isDark ? const Color(0xFF1E3A8A).withOpacity(0.3) : Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -138,7 +145,7 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
+                    color: isDark ? const Color(0xFF60A5FA) : Colors.blue.shade700,
                   ),
                 ),
               ),
@@ -146,7 +153,7 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getDifficultyColor(difficulty).withOpacity(0.1),
+                  color: _getDifficultyColor(difficulty).withOpacity(isDark ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -154,7 +161,7 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: _getDifficultyColor(difficulty),
+                    color: isDark ? _getDarkDifficultyColor(difficulty) : _getDifficultyColor(difficulty),
                   ),
                 ),
               ),
@@ -169,11 +176,11 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
           const SizedBox(height: 12),
           
           // Question content
-          Text(
-            content,
-            style: const TextStyle(
+          MathRichText(
+            text: content,
+            style: TextStyle(
               fontSize: 14,
-              color: Colors.black87,
+              color: isDark ? Colors.white70 : Colors.black87,
               height: 1.5,
             ),
           ),
@@ -218,6 +225,19 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
         ],
       ),
     );
+  }
+
+  Color _getDarkDifficultyColor(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case 'easy':
+        return Colors.greenAccent;
+      case 'medium':
+        return Colors.orangeAccent;
+      case 'hard':
+        return Colors.redAccent;
+      default:
+        return Colors.grey;
+    }
   }
 
   Color _getDifficultyColor(String difficulty) {

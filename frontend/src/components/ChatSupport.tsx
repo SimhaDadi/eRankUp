@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { MessageCircle, X, Send, User } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -9,19 +9,35 @@ export default function ChatSupport() {
     const [isOpen, setIsOpen] = useState(false);
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<any[]>([]);
-    const socketRef = useRef<Socket | null>(null);
+    const socketRef = useRef<any>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const token = useAuthStore((state) => state.token);
     const user = useAuthStore((state) => state.user);
 
     useEffect(() => {
         if (isOpen && !socketRef.current) {
-            socketRef.current = io('http://localhost:3001', {
+            const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+            console.log(`[ChatSupport] Connecting to ${socketUrl}...`);
+
+            socketRef.current = io(socketUrl, {
                 query: { token },
+                transports: ['websocket'],
             });
 
-            socketRef.current.on('receiveMessage', (data) => {
+            socketRef.current.on('connect', () => {
+                console.log('[ChatSupport] Socket connected successfully');
+            });
+
+            socketRef.current.on('connect_error', (error: Error) => {
+                console.error('[ChatSupport] Socket connection error:', error.message);
+            });
+
+            socketRef.current.on('receiveMessage', (data: any) => {
                 setMessages((prev) => [...prev, data]);
+            });
+
+            socketRef.current.on('previousMessages', (data: any) => {
+                setMessages(data);
             });
         }
 
@@ -45,6 +61,23 @@ export default function ChatSupport() {
         }
     }, [messages]);
 
+    // Click outside detection
+    const chatWidgetRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (chatWidgetRef.current && !chatWidgetRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        }
+
+        if (isOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isOpen]);
+
     const sendMessage = () => {
         if (message.trim() && socketRef.current) {
             socketRef.current.emit('sendMessage', { message });
@@ -53,7 +86,7 @@ export default function ChatSupport() {
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-6 md:bottom-6 max-md:bottom-28 right-6 z-50" ref={chatWidgetRef}>
             {isOpen ? (
                 <div className="bg-slate-900 border border-slate-800 w-80 h-[450px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
                     {/* Header */}
@@ -84,7 +117,7 @@ export default function ChatSupport() {
                                         {!isMe && <div className="text-[10px] font-bold text-blue-400 mb-1">{msg.user}</div>}
                                         <p>{msg.message}</p>
                                         <div className="text-[9px] opacity-50 mt-1 text-right">
-                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                                         </div>
                                     </div>
                                 </div>

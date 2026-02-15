@@ -8,15 +8,20 @@ import { Attempt } from './exams/entities/attempt.entity';
 import { Response } from './exams/entities/response.entity';
 import { Purchase } from './exams/entities/purchase.entity';
 import { User, UserRole } from './users/user.entity';
+import * as dotenv from 'dotenv';
+import { join } from 'path';
+
+// Load environment variables
+dotenv.config({ path: join(__dirname, '../.env') });
 
 async function seed() {
     const dataSource = new DataSource({
         type: 'postgres',
-        host: 'localhost',
-        port: 5432,
-        username: 'admin',
-        password: 'password',
-        database: 'erankup_db',
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        username: process.env.DB_USER || 'admin',
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME || 'erankup_db',
         entities: [Exam, Chapter, Subject, Model, Question, Attempt, Response, Purchase, User],
         synchronize: true,
     });
@@ -31,15 +36,32 @@ async function seed() {
     const questionRepo = dataSource.getRepository(Question);
 
     // 1. Ensure SSC CGL Exam exists
+    // 1. Ensure SSC CGL Exam exists
     let sscExam = await examRepo.findOne({ where: { title: 'SSC CGL 2024 (Full Prep)' } });
     if (!sscExam) {
         sscExam = examRepo.create({
             title: 'SSC CGL 2024 (Full Prep)',
             description: 'Comprehensive preparation set with 100 questions.',
+            category: 'SSC CGL',
             isPremium: false,
             price: 0,
+            type: 'real_exam' as any // Force cast to avoid circular dependency import issues if enum not available
         });
         await examRepo.save(sscExam);
+    }
+
+    // 1b. Ensure Global Question Bank exists (for Hierarchy Page)
+    let globalBank = await examRepo.findOne({ where: { title: 'Global Question Bank' } });
+    if (!globalBank) {
+        globalBank = examRepo.create({
+            title: 'Global Question Bank',
+            description: 'Master repository for all subjects and topics.',
+            isPremium: false,
+            price: 0,
+            isPublished: true,
+            type: 'question_bank' as any
+        });
+        await examRepo.save(globalBank);
     }
 
     const chapterData = [
@@ -78,7 +100,7 @@ async function seed() {
             title: `${chInfo.title} Mastery Set`,
             chapter: chapter,
             totalQuestions: chInfo.topics.length * chInfo.questionsPerTopic,
-            exams: [sscExam] // Link model to exam
+            exams: [sscExam, globalBank] // Link model to BOTH Real Exam and Question Bank
         });
         await modelRepo.save(model);
 
@@ -96,6 +118,7 @@ async function seed() {
                         { id: '4', text: `Option D for question ${i}` }
                     ],
                     correctOptionId: '2',
+                    explanation: `**Detailed Solution:**\n\nThe correct answer is Option B.\n\nHere is the step-by-step reasoning for this ${topic} problem:\n1. Analyze the input parameters.\n2. Apply the standard formula for ${topic}.\n3. Verify the result against the constraints.\n\nTherefore, Option B is the logically consistent choice.`,
                     topic: topic,
                     models: [model],
                     difficultyWeight: Math.random() // Initialize with random difficulty
@@ -105,34 +128,6 @@ async function seed() {
         }
     }
 
-
-    // 2. Create Admin User
-    const userRepo = dataSource.getRepository(User);
-    const adminEmail = 'admin@erankup.com';
-    let adminUser = await userRepo.findOne({ where: { email: adminEmail } });
-    // dynamic import bcrypt to avoid issues if it's not top-level
-    const bcrypt = require('bcrypt');
-    const hashedPassword = await bcrypt.hash('adminpassword', 10);
-
-    if (!adminUser) {
-        // Create new
-        adminUser = userRepo.create({
-            email: adminEmail,
-            password: hashedPassword,
-            fullName: 'System Admin',
-            role: UserRole.ADMIN,
-            isActive: true
-        });
-        await userRepo.save(adminUser);
-        console.log('SUCCESS: Admin user created: admin@erankup.com / adminpassword');
-    } else {
-        // Update existing to ensure password is correct
-        adminUser.password = hashedPassword;
-        adminUser.role = UserRole.ADMIN;
-        adminUser.isActive = true;
-        await userRepo.save(adminUser);
-        console.log('SUCCESS: Admin user updated: admin@erankup.com / adminpassword');
-    }
 
     console.log('------------------------------------------');
     console.log('SUCCESS: 100 Questions seeded across 4 chapters!');

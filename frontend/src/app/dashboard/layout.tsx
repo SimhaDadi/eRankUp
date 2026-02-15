@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Sidebar from '../../components/Sidebar';
 import Topbar from '../../components/Topbar';
 import ChatSupport from '../../components/ChatSupport';
+import PageTransition from '../../components/PageTransition';
+import DashboardSkeleton from '../../components/DashboardSkeleton';
 
 export default function DashboardLayout({
     children,
@@ -14,29 +16,65 @@ export default function DashboardLayout({
 }) {
     const { user, isLoading } = useAuthStore();
     const router = useRouter();
+    const pathname = usePathname();
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const [isMounted, setIsMounted] = useState(false);
+
+    const isTestMode = pathname?.startsWith('/dashboard/test/');
 
     useEffect(() => {
-        if (!isLoading && !user) {
+        setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (isMounted && !isLoading && !user) {
             router.push('/login');
         }
-    }, [user, isLoading, router]);
+    }, [user, isLoading, router, isMounted]);
 
-    if (isLoading) {
-        return <div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading...</div>;
+    if (!isMounted || isLoading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col">
+                <div className="h-16 bg-white border-b border-slate-200 animate-pulse" />
+                <div className="flex-1 p-6">
+                    <DashboardSkeleton />
+                </div>
+            </div>
+        );
     }
 
     if (!user) {
-        // Prevent flashing content before redirect
         return null;
     }
 
-    return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 flex">
-            <Sidebar />
-            <div className="flex-1 ml-64 flex flex-col min-h-screen">
-                <Topbar />
-                <main className="flex-1 p-8 overflow-y-auto">
+    if (isTestMode) {
+        return (
+            <div className="min-h-screen bg-white">
+                <main className="h-screen overflow-hidden">
                     {children}
+                </main>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-slate-50 text-slate-900 flex selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
+            <Sidebar
+                isCollapsed={isSidebarCollapsed}
+                onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            />
+            <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${isSidebarCollapsed ? 'lg:ml-[86px]' : 'lg:ml-[280px]'} ml-0`}>
+                <Suspense fallback={<div className="h-20 bg-white/80 border-b border-white/50" />}>
+                    <Topbar onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+                </Suspense>
+                <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+                    <div className="max-w-[1600px] mx-auto">
+                        <PageTransition>
+                            <Suspense fallback={<DashboardSkeleton />}>
+                                {children}
+                            </Suspense>
+                        </PageTransition>
+                    </div>
                 </main>
                 <ChatSupport />
             </div>

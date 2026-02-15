@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../models/exam.dart';
+import '../theme/app_theme.dart';
+import 'exam_detail_screen.dart';
 
 class LiveTestsScreen extends StatefulWidget {
   const LiveTestsScreen({super.key});
@@ -38,6 +41,7 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -54,20 +58,20 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.live_tv, size: 80, color: Colors.grey.shade300),
+                  Icon(Icons.live_tv, size: 80, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade300),
                   const SizedBox(height: 16),
                   Text(
                     'No live tests available',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade600,
+                    style: AppTextStyles.h3.copyWith(
+                      color: isDark ? Colors.white : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Check back later for live competitions',
-                    style: TextStyle(color: Colors.grey.shade500),
+                    style: AppTextStyles.body.copyWith(
+                      color: isDark ? Colors.white54 : AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -90,20 +94,25 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
     final endTime = test['endTime'];
     final participants = test['participants'] ?? 0;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.red.shade400, Colors.orange.shade600],
+          colors: isDark 
+            ? [const Color(0xFF1E1B4B), const Color(0xFF312E81)]
+            : [const Color(0xFF4F46E5), const Color(0xFF4338CA)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.red.shade200,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: isDark ? Colors.black.withOpacity(0.2) : AppColors.primaryBlue.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -112,7 +121,12 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () {
-            // Navigate to test
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ExamDetailScreen(exam: Exam.fromJson(test)),
+              ),
+            );
           },
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -122,21 +136,24 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.red.shade600,
+                        borderRadius: BorderRadius.circular(100),
+                        boxShadow: [
+                          BoxShadow(color: Colors.red.withOpacity(0.4), blurRadius: 8)
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.circle, size: 8, color: Colors.white),
+                          const Icon(Icons.circle, size: 6, color: Colors.white),
                           const SizedBox(width: 6),
-                          const Text(
-                            'LIVE',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.black,
+                          Text(
+                            'LIVE NOW',
+                            style: AppTextStyles.overline.copyWith(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
                               color: Colors.white,
                               letterSpacing: 1,
                             ),
@@ -192,26 +209,97 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
                       ),
                     ),
                     const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Join Now',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.black,
-                          color: Colors.red.shade600,
-                        ),
-                      ),
-                    ),
+                    _buildActionButton(startTime, endTime, isDark),
                   ],
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String? start, String? end) {
+    if (start == null || end == null) return const SizedBox.shrink();
+    
+    final now = DateTime.now();
+    final startDate = DateTime.parse(start);
+    final endDate = DateTime.parse(end);
+
+    String label = 'LIVE';
+    Color bgColor = Colors.white.withOpacity(0.3);
+
+    if (now.isBefore(startDate)) {
+      label = 'UPCOMING';
+      bgColor = Colors.blue.withOpacity(0.3);
+    } else if (now.isAfter(endDate)) {
+      label = 'ENDED';
+      bgColor = Colors.black.withOpacity(0.3);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (label == 'LIVE') ...[
+            Icon(Icons.circle, size: 8, color: Colors.white),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(String? start, String? end, bool isDark) {
+    final now = DateTime.now();
+    final startDate = start != null ? DateTime.parse(start) : null;
+    final endDate = end != null ? DateTime.parse(end) : null;
+
+    bool isUpcoming = startDate != null && now.isBefore(startDate);
+    bool isEnded = endDate != null && now.isAfter(endDate);
+
+    String text = 'Join Now';
+    Color textColor = isDark ? const Color(0xFFDC2626) : Colors.red.shade600;
+    Color bgColor = Colors.white;
+
+    if (isUpcoming) {
+      text = 'Set Reminder';
+      textColor = Colors.white;
+      bgColor = Colors.blue.withOpacity(0.2);
+    } else if (isEnded) {
+      text = 'View Results';
+      textColor = Colors.white;
+      bgColor = Colors.black.withOpacity(0.2);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: (isUpcoming || isEnded) ? Border.all(color: Colors.white.withOpacity(0.3)) : null,
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+          color: textColor,
         ),
       ),
     );

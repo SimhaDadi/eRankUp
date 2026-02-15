@@ -25,8 +25,31 @@ export class AnalyticsController {
     @Get('students')
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
-    async getStudentList(@Query('page') page: number, @Query('limit') limit: number, @Query('search') search: string) {
-        return this.analyticsService.getStudentList(page, limit, search);
+    async getStudentList(@Query('page') page: any = 1, @Query('limit') limit: any = 20, @Query('search') search: string) {
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 20;
+        return this.analyticsService.getStudentList(pageNum, limitNum, search);
+    }
+
+    @Get('students/:id')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async getStudentDetails(@Param('id') id: string) {
+        return this.analyticsService.getStudentDetails(id);
+    }
+
+    @Get('students/:id/attempts')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async getStudentAttempts(@Param('id') id: string) {
+        return this.analyticsService.getStudentAttempts(id);
+    }
+
+    @Get('students/:id/activity')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async getStudentActivity(@Param('id') id: string) {
+        return this.analyticsService.getStudentActivity(id);
     }
 
     @Get('users')
@@ -34,6 +57,18 @@ export class AnalyticsController {
     @Roles(UserRole.ADMIN)
     async getUserAnalytics() {
         return this.analyticsService.getUserAnalytics();
+    }
+
+    @Get('user/matrix')
+    @UseGuards(AuthGuard('jwt'))
+    async getPerformanceMatrix(@Request() req) {
+        return this.analyticsService.getPerformanceMatrix(req.user.userId);
+    }
+
+    @Get('user/peer')
+    @UseGuards(AuthGuard('jwt'))
+    async getPeerComparison(@Request() req) {
+        return this.analyticsService.getPeerComparison(req.user.userId);
     }
 
     @Get('exams')
@@ -134,5 +169,14 @@ export class AnalyticsController {
         } catch (error) {
             throw new HttpException(error.message || 'Failed to detect patterns', HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * Get subject mastery breakdown for current user
+     */
+    @Get('mastery')
+    @UseGuards(AuthGuard('jwt'))
+    async getSubjectMastery(@Request() req: any) {
+        return this.analyticsService.getSubjectMastery(req.user.userId);
     }
 }

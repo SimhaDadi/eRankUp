@@ -1,5 +1,8 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '@erankup/shared';
 import { GamificationService } from './gamification.service';
 
 @Controller('gamification')
@@ -13,11 +16,15 @@ export class GamificationController {
     }
 
     @Get('profile/:userId')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
     async getUserProfile(@Param('userId') userId: string) {
         return this.gamificationService.getOrCreateProfile(userId);
     }
 
     @Post('award-xp')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
     async awardXP(@Body() body: { userId: string; amount: number; reason: string }) {
         return this.gamificationService.awardXP(body.userId, body.amount, body.reason);
     }
@@ -53,5 +60,10 @@ export class GamificationController {
             body.value,
         );
         return { success: true };
+    }
+
+    @Post('daily-target')
+    async updateDailyTarget(@Request() req: any, @Body() body: { target: number }) {
+        return this.gamificationService.updateDailyTarget(req.user.userId, body.target);
     }
 }

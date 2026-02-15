@@ -146,9 +146,64 @@ export default function AdminDashboard() {
                         <AlertCircle className="w-5 h-5 text-blue-600" /> Maintenance
                     </h2>
                     <div className="space-y-4">
-                        <button className="w-full py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-sm font-bold transition-all border border-slate-200"> Clear Redis Cache </button>
-                        <button className="w-full py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-sm font-bold transition-all border border-slate-200"> Re-seed Sample Data </button>
-                        <button className="w-full py-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-bold hover:bg-red-100 transition-all"> System Lockdown </button>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await api.post('/admin/system/clear-cache');
+                                    alert(res.data.message || 'Cache cleared!');
+                                } catch (e) {
+                                    alert('Failed to clear cache');
+                                }
+                            }}
+                            className="w-full py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-sm font-bold transition-all border border-slate-200"
+                        >
+                            Clear Redis Cache
+                        </button>
+                        <button
+                            onClick={async () => {
+                                if (!confirm('Re-seeding will repopulate sample data. Are you sure?')) return;
+                                try {
+                                    const res = await api.post('/admin/system/re-seed');
+                                    alert(res.data.message || 'Data re-seeded!');
+                                } catch (e) {
+                                    alert('Failed to re-seed data');
+                                }
+                            }}
+                            className="w-full py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-sm font-bold transition-all border border-slate-200"
+                        >
+                            Re-seed Sample Data
+                        </button>
+                        <button
+                            onClick={async () => {
+                                if (!confirm('⚠️ WARNING: This will delete ALL explanations from the database.\n\nThis action is useful when you want to regenerate all explanations with improved prompts.\n\nAre you sure you want to continue?')) return;
+                                try {
+                                    const res = await api.delete('/explanations/admin/clear-all');
+                                    if (res.data.success) {
+                                        alert(`✅ Success!\n\nDeleted ${res.data.deletedExplanations} explanation records\nCleared ${res.data.clearedQuestions} question explanations\n\nYou can now regenerate explanations with improved prompts.`);
+                                    } else {
+                                        alert('Failed to clear explanations');
+                                    }
+                                } catch (e: any) {
+                                    alert(`Failed to clear explanations: ${e.response?.data?.message || e.message}`);
+                                }
+                            }}
+                            className="w-full py-3 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 text-sm font-bold hover:bg-orange-100 transition-all"
+                        >
+                            🗑️ Clear All Explanations
+                        </button>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await api.post('/admin/system/lockdown');
+                                    alert(res.data.message || 'System lockdown toggled!');
+                                } catch (e) {
+                                    alert('Failed to toggle lockdown');
+                                }
+                            }}
+                            className="w-full py-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-bold hover:bg-red-100 transition-all"
+                        >
+                            System Lockdown
+                        </button>
                     </div>
                 </div>
             </div>

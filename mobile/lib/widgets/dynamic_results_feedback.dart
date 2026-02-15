@@ -82,11 +82,12 @@ class _DynamicResultsFeedbackState extends State<DynamicResultsFeedback>
         message: 'You\'re in the top 5%!',
         subtitle: 'Exceptional performance',
         gradient: LinearGradient(
-          colors: [Colors.green.shade600, Colors.teal.shade600],
+          colors: Theme.of(context).brightness == Brightness.dark 
+            ? [const Color(0xFF065F46), const Color(0xFF064E3B)]
+            : [Colors.green.shade600, Colors.teal.shade700],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        backgroundColor: Colors.green.shade50,
       );
     } else if (widget.score >= 75) {
       return ScoreFeedback(
@@ -95,11 +96,12 @@ class _DynamicResultsFeedbackState extends State<DynamicResultsFeedback>
         message: 'Keep up the excellent work!',
         subtitle: 'You\'re doing amazing',
         gradient: LinearGradient(
-          colors: [Colors.blue.shade600, Colors.indigo.shade600],
+          colors: Theme.of(context).brightness == Brightness.dark 
+            ? [const Color(0xFF1E40AF), const Color(0xFF1E3A8A)]
+            : [Colors.blue.shade600, Colors.indigo.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        backgroundColor: Colors.blue.shade50,
       );
     } else if (widget.score >= 60) {
       return ScoreFeedback(
@@ -108,11 +110,12 @@ class _DynamicResultsFeedbackState extends State<DynamicResultsFeedback>
         message: 'You\'re making progress!',
         subtitle: 'Keep practicing',
         gradient: LinearGradient(
-          colors: [Colors.orange.shade600, Colors.amber.shade600],
+          colors: Theme.of(context).brightness == Brightness.dark 
+            ? [const Color(0xFF9A3412), const Color(0xFF7C2D12)]
+            : [Colors.orange.shade600, Colors.amber.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        backgroundColor: Colors.orange.shade50,
       );
     } else if (widget.score >= 40) {
       return ScoreFeedback(
@@ -121,11 +124,12 @@ class _DynamicResultsFeedbackState extends State<DynamicResultsFeedback>
         message: 'Every attempt makes you stronger!',
         subtitle: 'You\'re improving',
         gradient: LinearGradient(
-          colors: [Colors.purple.shade600, Colors.pink.shade600],
+          colors: Theme.of(context).brightness == Brightness.dark 
+            ? [const Color(0xFF701A75), const Color(0xFF4C1D95)]
+            : [Colors.purple.shade600, Colors.pink.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        backgroundColor: Colors.purple.shade50,
       );
     } else {
       return ScoreFeedback(
@@ -134,11 +138,12 @@ class _DynamicResultsFeedbackState extends State<DynamicResultsFeedback>
         message: 'Review the topics and try again',
         subtitle: 'Practice makes perfect',
         gradient: LinearGradient(
-          colors: [Colors.red.shade600, Colors.orange.shade600],
+          colors: Theme.of(context).brightness == Brightness.dark 
+            ? [const Color(0xFF991B1B), const Color(0xFF7F1D1D)]
+            : [Colors.red.shade600, Colors.orange.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        backgroundColor: Colors.red.shade50,
       );
     }
   }
@@ -219,7 +224,7 @@ class _DynamicResultsFeedbackState extends State<DynamicResultsFeedback>
                         '${widget.score}%',
                         style: const TextStyle(
                           fontSize: 64,
-                          fontWeight: FontWeight.black,
+                          fontWeight: FontWeight.w900,
                           color: Colors.white,
                           height: 1,
                         ),
@@ -264,14 +269,9 @@ class _DynamicResultsFeedbackState extends State<DynamicResultsFeedback>
               emissionFrequency: 0.05,
               numberOfParticles: 20,
               gravity: 0.3,
-              colors: const [
-                Colors.green,
-                Colors.blue,
-                Colors.pink,
-                Colors.orange,
-                Colors.purple,
-                Colors.yellow,
-              ],
+              colors: Theme.of(context).brightness == Brightness.dark 
+                ? [const Color(0xFF60A5FA), const Color(0xFF34D399), const Color(0xFFF472B6), const Color(0xFFFBBF24)]
+                : [Colors.blue, Colors.green, Colors.pink, Colors.orange],
             ),
           ),
       ],
@@ -285,7 +285,6 @@ class ScoreFeedback {
   final String message;
   final String subtitle;
   final Gradient gradient;
-  final Color backgroundColor;
 
   ScoreFeedback({
     required this.emoji,
@@ -293,7 +292,6 @@ class ScoreFeedback {
     required this.message,
     required this.subtitle,
     required this.gradient,
-    required this.backgroundColor,
   });
 }
 
@@ -350,7 +348,7 @@ class _AnimatedScoreCounterState extends State<AnimatedScoreCounter>
           '${_scoreAnimation.value}%',
           style: const TextStyle(
             fontSize: 64,
-            fontWeight: FontWeight.black,
+            fontWeight: FontWeight.w900,
             color: Colors.white,
           ),
         );

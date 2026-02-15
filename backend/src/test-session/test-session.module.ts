@@ -8,6 +8,7 @@ import { ExamsModule } from '../exams/exams.module';
 import { UsersModule } from '../users/users.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { Model } from '../exams/entities/model.entity';
+import { PassesModule } from '../passes/passes.module';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { Model } from '../exams/entities/model.entity';
         forwardRef(() => ExamsModule),
         UsersModule,
         PaymentsModule,
+        PassesModule,
         ClientsModule.registerAsync([
             {
                 name: 'KAFKA_SERVICE',

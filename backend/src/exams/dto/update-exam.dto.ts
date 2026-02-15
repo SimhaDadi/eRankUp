@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsNumber, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ExamType } from '../entities/exam.entity';
 
@@ -10,6 +10,14 @@ export class UpdateExamDto {
     @IsString()
     @IsOptional()
     description?: string;
+
+    @IsString()
+    @IsOptional()
+    videoSolutionUrl?: string;
+
+    @IsString()
+    @IsOptional()
+    category?: string;
 
     @IsEnum(ExamType)
     @IsOptional()
@@ -24,4 +32,8 @@ export class UpdateExamDto {
     @IsOptional()
     @Type(() => Number)
     defaultNegativeMarks?: number;
+
+    @IsBoolean()
+    @IsOptional()
+    isPublished?: boolean;
 }

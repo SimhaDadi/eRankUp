@@ -1,12 +1,15 @@
-
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { UsersService } from '../../users/users.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(configService: ConfigService) {
+    constructor(
+        configService: ConfigService,
+        private usersService: UsersService,
+    ) {
         const secret = configService.get<string>('JWT_SECRET');
         if (!secret) throw new Error('JWT_SECRET environment variable is missing');
 
@@ -18,6 +21,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(payload: any) {
-        return { userId: payload.sub, email: payload.email, role: payload.role };
+        const user = await this.usersService.findOneById(payload.sub);
+        if (!user) {
+            throw new UnauthorizedException('User no longer exists');
+        }
+        if (!user.isActive) {
+            throw new UnauthorizedException('User account is inactive');
+        }
+        return { userId: payload.sub, email: payload.email, role: user.role };
     }
 }

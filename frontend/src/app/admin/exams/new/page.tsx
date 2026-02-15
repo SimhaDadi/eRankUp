@@ -113,35 +113,79 @@ export default function NewExamPage() {
                                 />
                             </div>
 
+                            {/* Category Field - NEW */}
+                            <div>
+                                <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Category (Exam Name)</label>
+                                <input
+                                    type="text"
+                                    value={(examData as any).category || ''}
+                                    onChange={(e) => setExamData({ ...examData, category: e.target.value } as any)}
+                                    placeholder="e.g. SSC CGL, RRB NTPC, Banking"
+                                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 focus:ring-2 focus:ring-blue-500/50 outline-none"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">This groups exams together on the student dashboard.</p>
+                            </div>
+
                             {/* Exam Type Selector */}
                             <div>
                                 <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Type</label>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <button
                                         onClick={() => setExamData({ ...examData, type: 'real_exam' })}
-                                        className={`p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${examData.type === 'real_exam'
+                                        className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all ${examData.type === 'real_exam'
                                             ? 'bg-blue-600/10 border-blue-600 text-blue-400'
                                             : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
                                             }`}
                                     >
-                                        <BookOpen className="w-5 h-5" />
-                                        <div className="text-left">
-                                            <div className="font-bold">Real Exam</div>
-                                            <div className="text-xs opacity-70">For students to attempt</div>
+                                        <BookOpen className="w-6 h-6" />
+                                        <div className="text-center">
+                                            <div className="font-bold text-sm">Real Exam</div>
+                                            <div className="text-[10px] opacity-70">Mock Tests</div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setExamData({ ...examData, type: 'live_exam' })}
+                                        className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all ${examData.type === 'live_exam'
+                                            ? 'bg-red-600/10 border-red-600 text-red-400'
+                                            : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+                                            }`}
+                                    >
+                                        <div className="relative">
+                                            <Layout className="w-6 h-6" />
+                                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="font-bold text-sm">Live Exam</div>
+                                            <div className="text-[10px] opacity-70">Scheduled</div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setExamData({ ...examData, type: 'previous_year_paper' })}
+                                        className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all ${examData.type === 'previous_year_paper'
+                                            ? 'bg-amber-600/10 border-amber-600 text-amber-400'
+                                            : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+                                            }`}
+                                    >
+                                        <BookOpen className="w-6 h-6" />
+                                        <div className="text-center">
+                                            <div className="font-bold text-sm">PYP</div>
+                                            <div className="text-[10px] opacity-70">Past Papers</div>
                                         </div>
                                     </button>
 
                                     <button
                                         onClick={() => setExamData({ ...examData, type: 'question_bank' })}
-                                        className={`p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${examData.type === 'question_bank'
+                                        className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-3 transition-all ${examData.type === 'question_bank'
                                             ? 'bg-purple-600/10 border-purple-600 text-purple-400'
                                             : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
                                             }`}
                                     >
-                                        <Layout className="w-5 h-5" />
-                                        <div className="text-left">
-                                            <div className="font-bold">Question Bank</div>
-                                            <div className="text-xs opacity-70">Repository for questions</div>
+                                        <Layout className="w-6 h-6" />
+                                        <div className="text-center">
+                                            <div className="font-bold text-sm">Bank</div>
+                                            <div className="text-[10px] opacity-70">Repository</div>
                                         </div>
                                     </button>
                                 </div>

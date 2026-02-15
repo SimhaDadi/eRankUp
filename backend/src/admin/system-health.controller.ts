@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -64,5 +64,33 @@ export class SystemHealthController {
     @Get('metrics')
     async getSystemMetrics() {
         return await this.systemHealthService.getSystemMetrics();
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Post('clear-cache')
+    async clearCache() {
+        return await this.systemHealthService.clearCache();
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Post('re-seed')
+    async reSeed() {
+        return await this.systemHealthService.reSeedData();
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Post('lockdown')
+    async toggleLockdown() {
+        return await this.systemHealthService.toggleLockdown();
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Get('lockdown-status')
+    getLockdownStatus() {
+        return { isLockedDown: this.systemHealthService.getLockdownStatus() };
     }
 }

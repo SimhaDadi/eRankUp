@@ -27,31 +27,32 @@ import PerformanceHeatmap from '@/components/dashboard/PerformanceHeatmap';
 import TopperComparison from '@/components/dashboard/TopperComparison';
 import MacroAIInsights from '@/components/dashboard/MacroAIInsights';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
 
 export default function PerformancePage() {
     const [trendData, setTrendData] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
+    const [topperStats, setTopperStats] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
 
-    const mockTopperStats = [
-        { topic: 'Algebra', yourScore: 85, topperScore: 92 },
-        { topic: 'Geometry', yourScore: 65, topperScore: 88 },
-        { topic: 'Trigonometry', yourScore: 78, topperScore: 85 },
-        { topic: 'Calculus', yourScore: 92, topperScore: 95 },
-    ];
+
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [trendRes, statsRes] = await Promise.all([
-                    api.get('/exams/performance/trend'),
-                    api.get('/exams/user/stats')
+                const [trendRes, statsRes, topperRes] = await Promise.all([
+                    api.get('/exams/performance/trend?limit=15'),
+                    api.get('/exams/user/stats'),
+                    api.get('/adaptive/mastery')
                 ]);
 
                 if (trendRes.data) {
                     const formatted = trendRes.data.map((item: any) => ({
-                        id: item.id, // Ensure ID is mapped
+                        id: item.id,
                         date: new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                        title: item.exam?.title || item.model?.title || 'Practice Module',
                         score: item.score,
                         accuracy: item.accuracy,
                         time: Math.round(item.timeTaken / 60)
@@ -60,6 +61,7 @@ export default function PerformancePage() {
                 }
 
                 setStats(statsRes.data);
+                setTopperStats(topperRes.data);
             } catch (error) {
                 console.error("Failed to fetch performance data", error);
             } finally {
@@ -85,7 +87,7 @@ export default function PerformancePage() {
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00bfa5]/10 text-[#00bfa5] text-xs font-black uppercase tracking-widest mb-4">
                         <Sparkles className="w-4 h-4" /> Your Growth Journey
                     </div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">
                         Performance <span className="text-[#00bfa5]">Analytics</span>
                     </h1>
                     <p className="text-slate-500 font-medium text-lg max-w-2xl">
@@ -138,7 +140,7 @@ export default function PerformancePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                 {/* Heatmap Section - Now taking 2 columns */}
                 <div className="lg:col-span-2 h-full">
-                    <PerformanceHeatmap />
+                    <PerformanceHeatmap data={stats?.topicPerformance} />
                 </div>
 
                 {/* Main Trend Chart - Now taking 1 column */}
@@ -219,7 +221,7 @@ export default function PerformancePage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                    <TopperComparison stats={mockTopperStats} />
+                    <TopperComparison stats={topperStats} />
                 </div>
 
                 {/* Activity Log */}
@@ -230,41 +232,40 @@ export default function PerformancePage() {
                         </h2>
                     </div>
                     <div className="divide-y divide-gray-50">
-                        {trendData.slice().reverse().slice(0, 5).map((item, idx) => (
+                        {trendData.slice().reverse().filter(item =>
+                            item.title.toLowerCase().includes(searchQuery.toLowerCase())
+                        ).slice(0, 5).map((item, idx) => (
                             <div
                                 key={idx}
-                                className="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors group relative border-b border-gray-50 last:border-0"
+                                className="p-4 hover:bg-slate-50 transition-colors group relative border-b border-gray-50 last:border-0"
                             >
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${item.score >= 80 ? 'bg-emerald-100 text-emerald-600' :
+                                {/* Top Row: Score + Title */}
+                                <div className="flex items-start gap-4 mb-3">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${item.score >= 80 ? 'bg-emerald-100 text-emerald-600' :
                                         item.score >= 60 ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
                                         }`}>
                                         {item.score}
                                     </div>
-                                    <div>
-                                        <div className="font-bold text-slate-900 text-sm">Test Assessment</div>
+                                    <div className="min-w-0">
+                                        <div className="font-bold text-slate-900 text-sm leading-tight mb-1">{item.title}</div>
                                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{item.date}</div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
-                                    <div className="text-right mr-4 hidden sm:block">
-                                        <div className="text-sm font-bold text-slate-700">{item.accuracy}% Acc.</div>
-                                        <div className="text-[10px] font-bold text-slate-400">{item.time} min</div>
+                                {/* Bottom Row: Stats + Buttons */}
+                                <div className="flex items-center justify-between pl-14">
+                                    <div className="flex items-center gap-3 text-xs font-semibold text-slate-500">
+                                        <span>{item.accuracy}% Acc.</span>
+                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                        <span>{item.time} min</span>
                                     </div>
 
                                     <div className="flex gap-2">
                                         <Link
                                             href={`/dashboard/solutions/${item.id}`}
-                                            className="px-4 py-2 bg-white border border-[#00bfa5] text-[#00bfa5] text-xs font-bold rounded-xl hover:bg-[#00bfa5] hover:text-white transition-all shadow-sm"
+                                            className="px-3 py-1.5 bg-white border border-[#00bfa5] text-[#00bfa5] text-[10px] font-bold rounded-lg hover:bg-[#00bfa5] hover:text-white transition-all shadow-sm"
                                         >
                                             Solution
-                                        </Link>
-                                        <Link
-                                            href={`/dashboard/results/${item.id}`}
-                                            className="px-4 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:border-slate-900 hover:text-slate-900 transition-all shadow-sm"
-                                        >
-                                            Analysis
                                         </Link>
                                     </div>
                                 </div>

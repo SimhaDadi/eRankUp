@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/math_rich_text.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -32,13 +34,34 @@ class _ChatScreenState extends State<ChatScreen> {
       _myUserId = userId;
     });
 
-    socket = io.io('http://10.0.2.2:3001', io.OptionBuilder()
+    final socketUrl = ApiService.baseUrl.replaceFirst('/api', '');
+    debugPrint('[ChatScreen] Connecting to socket: $socketUrl');
+
+    socket = io.io(socketUrl, io.OptionBuilder()
       .setTransports(['websocket'])
       .setQuery({'token': token})
       .build());
 
     socket.onConnect((_) {
-      debugPrint('Connected to chat server');
+      debugPrint('[ChatScreen] Connected to chat server');
+    });
+
+    socket.onConnectError((err) {
+      debugPrint('[ChatScreen] Connection Error: $err');
+    });
+
+    socket.onDisconnect((_) {
+      debugPrint('[ChatScreen] Disconnected from chat server');
+    });
+
+    socket.on('previousMessages', (data) {
+      if (mounted) {
+        setState(() {
+          _messages.clear();
+          _messages.addAll(List<Map<String, dynamic>>.from(data));
+        });
+        _scrollToBottom();
+      }
     });
 
     socket.on('receiveMessage', (data) {
@@ -98,13 +121,24 @@ class _ChatScreenState extends State<ChatScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isMe ? const Color(0xFF2563EB) : const Color(0xFF1E293B),
+                      color: isMe 
+                        ? AppColors.primaryBlue 
+                        : (Theme.of(context).brightness == Brightness.dark 
+                            ? const Color(0xFF1E293B) 
+                            : Colors.grey.shade200),
                       borderRadius: BorderRadius.circular(16).copyWith(
                         bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(16),
                         bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(0),
                       ),
                     ),
-                    child: Text(msg['message'] ?? '', style: const TextStyle(color: Colors.white)),
+                    child: MathRichText(
+                      text: msg['message'] ?? '', 
+                      style: TextStyle(
+                        color: isMe 
+                          ? Colors.white 
+                          : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87)
+                      )
+                    ),
                   ),
                 );
               },
@@ -120,7 +154,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     decoration: InputDecoration(
                       hintText: 'Type a message...',
                       filled: true,
-                      fillColor: const Color(0xFF1E293B),
+                      fillColor: Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF1E293B) 
+                        : Colors.grey.shade100,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
@@ -132,7 +168,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 IconButton.filled(
                   onPressed: _sendMessage,
                   icon: const Icon(Icons.send),
-                  style: IconButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
+                  style: IconButton.styleFrom(backgroundColor: AppColors.primaryBlue),
                 ),
               ],
             ),

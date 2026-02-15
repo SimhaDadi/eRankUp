@@ -1,15 +1,19 @@
 import { Controller, Post, Body, UseGuards, Req, Headers } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 @Controller('payments')
 export class PaymentsController {
     constructor(private readonly paymentsService: PaymentsService) { }
 
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, ThrottlerGuard)
+    @Throttle({ default: { limit: 10, ttl: 60000 } })
     @Post('create-order')
     async createOrder(@Req() req, @Body('examId') examId: string, @Body('couponCode') couponCode?: string) {
-        return this.paymentsService.createOrder(req.user, examId, couponCode);
+        // Map JWT userId to entity id
+        const user = { ...req.user, id: req.user.userId };
+        return this.paymentsService.createOrder(user, examId, couponCode);
     }
 
     @Post('webhook')

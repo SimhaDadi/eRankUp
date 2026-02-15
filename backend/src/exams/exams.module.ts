@@ -4,6 +4,7 @@ import { ExamsService } from './exams.service';
 import { ExamsController } from './exams.controller';
 import { SubjectsController } from './subjects.controller';
 import { ChaptersController } from './chapters.controller';
+import { ModelsController } from './models.controller';
 import { QuestionsController } from './questions.controller';
 import { Exam } from './entities/exam.entity';
 import { Subject } from './entities/subject.entity';
@@ -13,6 +14,7 @@ import { Question } from './entities/question.entity';
 import { Attempt } from './entities/attempt.entity';
 import { Response } from './entities/response.entity';
 import { Purchase } from './entities/purchase.entity';
+import { User } from '../users/user.entity';
 import { ExamsSeederService } from './exams-seeder.service';
 import { ScorerService } from './scorer.service';
 import { DifficultyService } from './difficulty.service';
@@ -22,18 +24,29 @@ import { QuestionsUploadService } from './services/questions-upload.service';
 import { GamificationModule } from '../gamification/gamification.module';
 import { AdaptiveLearningModule } from '../adaptive-learning/adaptive-learning.module';
 import { TestSessionModule } from '../test-session/test-session.module';
+import { PassesModule } from '../passes/passes.module';
+import { QualityModule } from '../quality/quality.module';
+import { StudentQuestionsController } from './student-questions.controller';
+
+
+
+import { UserStats } from '../users/entities/user-stats.entity';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Exam, Subject, Chapter, Model, Question, Attempt, Response, Purchase]),
+        TypeOrmModule.forFeature([Exam, Subject, Chapter, Model, Question, Attempt, Response, Purchase, User, UserStats]),
         forwardRef(() => PaymentsModule),
         forwardRef(() => TestSessionModule),
+        forwardRef(() => AdminModule),
         AIModule,
         GamificationModule,
         AdaptiveLearningModule,
+        PassesModule,
+        QualityModule,
     ],
-    controllers: [ExamsController, SubjectsController, ChaptersController, QuestionsController],
+    controllers: [ExamsController, SubjectsController, ChaptersController, ModelsController, QuestionsController, StudentQuestionsController],
     providers: [ExamsService, ExamsSeederService, ScorerService, DifficultyService, QuestionsUploadService],
-    exports: [ExamsService, ScorerService, DifficultyService]
+    exports: [ExamsService, ScorerService, DifficultyService, ExamsSeederService]
 })
 export class ExamsModule { }

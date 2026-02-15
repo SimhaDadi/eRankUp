@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:14
+    image: pgvector/pgvector:pg14
     container_name: erankup-postgres
     restart: unless-stopped
     environment:
@@ -32,6 +32,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: erankup-zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: erankup-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    depends_on:
+      - zookeeper
 
 volumes:
   postgres_data:

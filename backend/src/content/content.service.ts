@@ -14,108 +14,138 @@ export class ContentService {
     ) { }
 
     async importQuestions(fileBuffer: Buffer) {
-        const csvContent = fileBuffer.toString('utf-8');
-        const lines = csvContent.split(/\r?\n/);
-
-        if (lines.length < 2) {
-            throw new Error('CSV file is empty or missing headers');
-        }
-
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-        const requiredHeaders = ['content', 'optiona', 'optionb', 'optionc', 'optiond', 'correctoption', 'topic'];
-
-        for (const req of requiredHeaders) {
-            if (!headers.includes(req)) {
-                throw new Error(`Missing required header: ${req}`);
-            }
-        }
+        const stream = require('stream');
+        const csv = require('csv-parser');
+        const readableStream = stream.Readable.from(fileBuffer);
 
         const validQuestions = [];
         const errors = [];
+        let lineCount = 1;
 
-        for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
+        return new Promise((resolve, reject) => {
+            readableStream
+                .pipe(csv())
+                .on('data', (row: any) => {
+                    lineCount++;
+                    try {
+                        // Validate headers mapping
+                        const content = row['content'];
+                        const optionA = row['optiona'];
+                        const optionB = row['optionb'];
+                        const optionC = row['optionc'];
+                        const optionD = row['optiond'];
+                        const correctOption = row['correctoption'];
+                        const topic = row['topic'];
 
-            // Handle quoted CSV fields basic parsing
-            const values = this.parseCSVLine(line);
+                        if (!content || !optionA || !optionB || !correctOption || !topic) {
+                            errors.push(`Line ${lineCount}: Missing required fields`);
+                            return;
+                        }
 
-            if (values.length !== headers.length) {
-                errors.push(`Line ${i + 1}: Mismatch column count`);
-                continue;
-            }
+                        const options = [
+                            { id: 'A', text: optionA },
+                            { id: 'B', text: optionB },
+                            { id: 'C', text: optionC || '' },
+                            { id: 'D', text: optionD || '' }
+                        ];
 
-            const row: any = {};
-            headers.forEach((h, index) => {
-                row[h] = values[index];
-            });
+                        const question = this.questionRepository.create({
+                            content: content,
+                            options: options,
+                            correctOptionId: correctOption.toUpperCase(),
+                            explanation: row['explanation'] || '',
+                            topic: topic,
+                            positiveMarks: parseFloat(row['positivemarks']) || 1.0,
+                            negativeMarks: parseFloat(row['negativemarks']) || 0.25,
+                            difficultyWeight: 0.5
+                        });
 
-            try {
-                // Map CSV row to Question Entity
-                const options = [
-                    { id: 'A', text: row['optiona'] },
-                    { id: 'B', text: row['optionb'] },
-                    { id: 'C', text: row['optionc'] },
-                    { id: 'D', text: row['optiond'] }
-                ];
-
-                const question = this.questionRepository.create({
-                    content: row['content'],
-                    options: options,
-                    correctOptionId: row['correctoption'].toUpperCase(), // Expecting 'A', 'B', 'C', or 'D'
-                    explanation: row['explanation'] || '',
-                    topic: row['topic'],
-                    positiveMarks: parseFloat(row['positivemarks']) || 1.0,
-                    negativeMarks: parseFloat(row['negativemarks']) || 0.25,
-                    difficultyWeight: 0.5 // Default
-                });
-
-                validQuestions.push(question);
-            } catch (err) {
-                errors.push(`Line ${i + 1}: ${err.message}`);
-            }
-        }
-
-        if (validQuestions.length > 0) {
-            await this.questionRepository.save(validQuestions);
-        }
-
-        return {
-            importedCount: validQuestions.length,
-            errors: errors
-        };
+                        validQuestions.push(question);
+                    } catch (err) {
+                        errors.push(`Line ${lineCount}: ${err.message}`);
+                    }
+                })
+                .on('end', async () => {
+                    try {
+                        if (validQuestions.length > 0) {
+                            // Batch save to avoid huge memory spikes but still fast
+                            const batchSize = 1000;
+                            for (let i = 0; i < validQuestions.length; i += batchSize) {
+                                const batch = validQuestions.slice(i, i + batchSize);
+                                await this.questionRepository.save(batch);
+                            }
+                        }
+                        resolve({
+                            importedCount: validQuestions.length,
+                            errors: errors
+                        });
+                    } catch (err) {
+                        reject(err);
+                    }
+                })
+                .on('error', (err) => reject(err));
+        });
     }
 
-    async exportQuestions() {
-        const questions = await this.questionRepository.find();
+    exportQuestions() {
+        const stream = require('stream');
+        const readable = new stream.Readable({
+            read() { }
+        });
 
         const headers = ['id', 'content', 'optionA', 'optionB', 'optionC', 'optionD', 'correctOption', 'explanation', 'topic', 'positiveMarks', 'negativeMarks'];
-        const csvRows = [headers.join(',')];
+        readable.push(headers.join(',') + '\n');
 
-        for (const q of questions) {
-            const optionsMap = q.options?.reduce((acc: any, opt: any) => {
-                acc[opt.id] = opt.text;
-                return acc;
-            }, {}) || {};
+        // Note: In a real production environment with 10M+ rows, 
+        // we would use a DB cursor here. For current scale, batching is sufficient.
+        const batchSize = 500;
+        let offset = 0;
 
-            const row = [
-                q.id,
-                this.escapeCSV(q.content),
-                this.escapeCSV(optionsMap['A'] || ''),
-                this.escapeCSV(optionsMap['B'] || ''),
-                this.escapeCSV(optionsMap['C'] || ''),
-                this.escapeCSV(optionsMap['D'] || ''),
-                q.correctOptionId,
-                this.escapeCSV(q.explanation || ''),
-                this.escapeCSV(q.topic),
-                q.positiveMarks,
-                q.negativeMarks
-            ];
+        const pushNextBatch = async () => {
+            try {
+                const questions = await this.questionRepository.find({
+                    skip: offset,
+                    take: batchSize,
+                    order: { id: 'DESC' }
+                });
 
-            csvRows.push(row.join(','));
-        }
+                if (questions.length === 0) {
+                    readable.push(null);
+                    return;
+                }
 
-        return csvRows.join('\n');
+                for (const q of questions) {
+                    const optionsMap = q.options?.reduce((acc: any, opt: any) => {
+                        acc[opt.id] = opt.text;
+                        return acc;
+                    }, {}) || {};
+
+                    const row = [
+                        q.id,
+                        this.escapeCSV(q.content),
+                        this.escapeCSV(optionsMap['A'] || ''),
+                        this.escapeCSV(optionsMap['B'] || ''),
+                        this.escapeCSV(optionsMap['C'] || ''),
+                        this.escapeCSV(optionsMap['D'] || ''),
+                        q.correctOptionId,
+                        this.escapeCSV(q.explanation || ''),
+                        this.escapeCSV(q.topic),
+                        q.positiveMarks,
+                        q.negativeMarks
+                    ];
+                    readable.push(row.join(',') + '\n');
+                }
+
+                offset += batchSize;
+                // Schedule next batch to keep event loop free
+                setImmediate(pushNextBatch);
+            } catch (err) {
+                readable.emit('error', err);
+            }
+        };
+
+        pushNextBatch();
+        return readable;
     }
 
     private parseCSVLine(line: string): string[] {

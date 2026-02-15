@@ -6,6 +6,8 @@ import { UserTopicMastery } from './entities/user-topic-mastery.entity';
 import { LearningPath } from './entities/learning-path.entity';
 import { Question } from '../exams/entities/question.entity';
 import { Response } from '../exams/entities/response.entity';
+import { TestSessionModule } from '../test-session/test-session.module';
+import { AIModule } from '../ai/ai.module';
 
 @Module({
     imports: [
@@ -15,6 +17,8 @@ import { Response } from '../exams/entities/response.entity';
             Question,
             Response,
         ]),
+        TestSessionModule,
+        AIModule,
     ],
     controllers: [AdaptiveLearningController],
     providers: [AdaptiveLearningService],

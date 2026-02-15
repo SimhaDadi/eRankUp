@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
     CheckCircle,
@@ -11,22 +11,36 @@ import {
     Eye,
     TrendingUp,
     Filter,
-    RefreshCw
+    RefreshCw,
+    Search,
+    AlertCircle,
+    BookOpen,
+    Layers,
+    AlertTriangle,
+    Box,
+    Bot
 } from 'lucide-react';
 import api from '@/lib/api';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
-interface Explanation {
+// Types
+interface ExplanationItem {
     id: string;
     questionId: string;
     questionContent: string;
-    aiExplanation: string;
+    subject?: string;
+    chapter?: string;
+    aiExplanation: string | null;
     adminApprovedExplanation: string | null;
     isVerified: boolean;
+    status: 'pending' | 'generated' | 'verified';
     helpfulCount: number;
     notHelpfulCount: number;
     averageRating: number;
     viewCount: number;
     createdAt: string;
+    isLogicalMismatch?: boolean;
+    logicalSolveOutcome?: string;
 }
 
 interface Stats {
@@ -42,36 +56,138 @@ interface Stats {
     };
 }
 
+interface FilterOption {
+    id: string;
+    title: string;
+    subjectId?: string;
+    chapterId?: string;
+}
+
 export default function AIExplanationsPage() {
-    const [explanations, setExplanations] = useState<Explanation[]>([]);
+    // Data State
+    const [items, setItems] = useState<ExplanationItem[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'verified' | 'unverified'>('all');
+    const [total, setTotal] = useState(0);
+
+    // Filter State
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'generated' | 'verified' | 'mismatch'>('all');
+    const [examId, setExamId] = useState('');  // [FIX] Added examId filter
+    const [subjectId, setSubjectId] = useState('');
+    const [chapterId, setChapterId] = useState('');
+    const [modelId, setModelId] = useState('');
+
+    // Metadata for filters
+    const [exams, setExams] = useState<FilterOption[]>([]);  // [FIX] Added exams metadata
+    const [subjects, setSubjects] = useState<FilterOption[]>([]);
+    const [chapters, setChapters] = useState<FilterOption[]>([]);
+    const [models, setModels] = useState<FilterOption[]>([]);
+
+    // Edit State
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editText, setEditText] = useState('');
+    const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+    const [verifyingIds, setVerifyingIds] = useState<Set<string>>(new Set());
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
+    const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+    const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
+        setNotification({ type, message });
+        setTimeout(() => setNotification(null), 5000);
+    };
+
+    const toggleExpand = (id: string) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    // Fetch Metadata (Exams, Subjects, Models) on mount
     useEffect(() => {
-        fetchData();
-    }, [filter]);
+        const fetchMetadata = async () => {
+            try {
+                const [examsRes, subjectsRes, modelsRes] = await Promise.all([
+                    api.get('/exams'),  // [FIX] Fetch exams for Question Bank filter
+                    api.get('/subjects'),
+                    api.get('/models')
+                ]);
+                const examsData = examsRes.data?.data || examsRes.data;
+                setExams(Array.isArray(examsData) ? examsData : []);
+                setSubjects(subjectsRes.data || []);
+                setModels(modelsRes.data || []);
+            } catch (error) {
+                console.error('Failed to fetch metadata:', error);
+            }
+        };
+        fetchMetadata();
+    }, []);
 
-    const fetchData = async () => {
+    // Fetch Chapters when Subject changes
+    useEffect(() => {
+        if (!subjectId) {
+            setChapters([]);
+            return;
+        }
+        const fetchChapters = async () => {
+            try {
+                const res = await api.get(`/chapters/subject/${subjectId}`);
+                setChapters(res.data || []);
+            } catch (error) {
+                console.error('Failed to fetch chapters:', error);
+            }
+        };
+        fetchChapters();
+    }, [subjectId]);
+
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+    // Fetch Main Data
+    const fetchData = useCallback(async () => {
         setLoading(true);
+        setErrorMsg(null);
         try {
-            const [explanationsRes, statsRes] = await Promise.all([
+            console.log('Fetching explanation data...');
+            const [dataRes, statsRes] = await Promise.all([
                 api.get('/explanations', {
-                    params: filter !== 'all' ? { verified: filter === 'verified' } : {}
+                    params: {
+                        search,
+                        status: statusFilter,
+                        examId: examId || undefined,  // [FIX] Pass examId to API
+                        subjectId: subjectId || undefined,
+                        chapterId: chapterId || undefined,
+                        modelId: modelId || undefined,
+                        limit: 50
+                    }
                 }),
                 api.get('/explanations/admin/stats')
             ]);
 
-            setExplanations(explanationsRes.data.explanations);
-            setStats(statsRes.data);
-        } catch (error) {
+            setItems(dataRes.data?.items || []);
+            setTotal(dataRes.data?.total || 0);
+            setStats(statsRes.data || null);
+        } catch (error: any) {
             console.error('Failed to fetch data:', error);
+            setErrorMsg(JSON.stringify(error.response?.data || error.message || 'Unknown error'));
         } finally {
             setLoading(false);
         }
-    };
+    }, [search, statusFilter, examId, subjectId, chapterId, modelId]); // [FIX] Added examId dependency
+
+
+
+    // Debounce Search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchData();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [fetchData]);
+
 
     const handleApprove = async (id: string, editedText?: string) => {
         try {
@@ -81,15 +197,59 @@ export default function AIExplanationsPage() {
             setEditingId(null);
             fetchData();
         } catch (error) {
+            // If manual approval of a "pending" item (create new explanation) logic is needed, handle it here.
+            // Usually dashboard handles "Verify" on existing. For pending, we might need "Generate" first.
             console.error('Failed to approve:', error);
+        }
+    };
+
+    // Special handler for generating explanation for a pending question
+    const handleGenerate = async (questionId: string) => {
+        try {
+            console.log(`[Dashboard] Starting generation for ${questionId}`);
+            setGeneratingIds(prev => new Set(prev).add(questionId));
+            const res = await api.post(`/explanations/generate/${questionId}`);
+            console.log(`[Dashboard] Generation success for ${questionId}`, res.data);
+            showNotification('success', 'Explanation generated successfully!');
+            fetchData();
+        } catch (error: any) {
+            console.error('Failed to generate:', error);
+            showNotification('error', `Failed to generate: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setGeneratingIds(prev => {
+                const next = new Set(prev);
+                next.delete(questionId);
+                return next;
+            });
+        }
+    };
+
+    const handleVerifyAI = async (id: string, questionId: string) => {
+        try {
+            setVerifyingIds(prev => new Set(prev).add(id));
+            const res = await api.post(`/explanations/${id}/verify-ai`);
+
+            if (res.data.isValid) {
+                // Success!
+                fetchData();
+            } else {
+                alert(`AI Audit Failed:\n${res.data.feedback}`);
+            }
+        } catch (error) {
+            console.error('Failed to verify:', error);
+            alert('AI Verification failed');
+        } finally {
+            setVerifyingIds(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
         }
     };
 
     const handleReject = async (id: string) => {
         if (!confirm('Are you sure you want to reject and delete this explanation?')) return;
-
         try {
-            // Backend expects DELETE with body
             await api.delete(`/explanations/${id}/reject`, {
                 data: { reason: 'Quality control' }
             });
@@ -99,8 +259,17 @@ export default function AIExplanationsPage() {
         }
     };
 
-    const handleUpdate = async (id: string) => {
+    const handleUpdate = async (id: string, questionId: string) => {
         try {
+            // If it's a "missing-..." ID, we need to generate first or create.
+            // But usually edit flow assumes existence.
+            // If status is pending, we assume we are Creating.
+            if (id.startsWith('missing-')) {
+                // Create new logic if needed, but for now we rely on Generate first.
+                alert('Please generate an AI explanation first before editing.');
+                return;
+            }
+
             await api.put(`/explanations/${id}`, {
                 text: editText
             });
@@ -111,32 +280,75 @@ export default function AIExplanationsPage() {
         }
     };
 
-    const startEditing = (explanation: Explanation) => {
-        setEditingId(explanation.id);
-        setEditText(explanation.adminApprovedExplanation || explanation.aiExplanation);
+    const startEditing = (item: ExplanationItem) => {
+        if (item.status === 'pending') {
+            handleGenerate(item.questionId);
+            return;
+        }
+        setEditingId(item.id);
+        setEditText(item.adminApprovedExplanation || item.aiExplanation || '');
     };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <RefreshCw className="w-8 h-8 animate-spin text-cyan-500" />
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-8 pb-10">
             {/* Header */}
-            <header className="flex flex-col gap-1">
-                <h1 className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                    AI Explanation Management
-                </h1>
-                <p className="text-slate-400 font-medium">
-                    Review, approve, and manage AI-generated question explanations
-                </p>
+            <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                        Explanation Management
+                    </h1>
+                    <p className="text-slate-400 font-medium">
+                        Search, filter, and manage explanations for {total} questions
+                    </p>
+                </div>
+                <div className="flex gap-3">
+                    <button
+                        onClick={async () => {
+                            if (confirm('Generate missing explanations for 50 pending questions?')) {
+                                try {
+                                    await api.post('/explanations/generate-missing', { limit: 50 });
+                                    alert('Background generation started!');
+                                    fetchData();
+                                } catch (e: any) {
+                                    alert(e.message);
+                                }
+                            }
+                        }}
+                        className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all"
+                    >
+                        <RefreshCw className="w-5 h-5" />
+                        <span>Auto-Generate (50)</span>
+                    </button>
+                    <button
+                        onClick={fetchData}
+                        className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all"
+                    >
+                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
             </header>
 
-            {/* Statistics Cards */}
+            {/* Notification Toast */}
+            {notification && (
+                <div className={`fixed top-8 right-8 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${notification.type === 'success' ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-200' :
+                    notification.type === 'error' ? 'bg-red-900/90 border-red-500/50 text-red-200' :
+                        'bg-indigo-900/90 border-indigo-500/50 text-indigo-200'
+                    }`}>
+                    {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> :
+                        notification.type === 'error' ? <XCircle className="w-5 h-5" /> :
+                            <Bot className="w-5 h-5" />}
+                    <span className="font-bold">{notification.message}</span>
+                </div>
+            )}
+
+            {/* Error Banner */}
+            {errorMsg && (
+                <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl text-red-200">
+                    <strong>Error:</strong> {errorMsg}
+                </div>
+            )}
+
+            {/* Stats Cards */}
             {stats && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
@@ -152,9 +364,9 @@ export default function AIExplanationsPage() {
                         color="emerald"
                     />
                     <StatCard
-                        icon={<XCircle className="w-5 h-5 text-amber-500" />}
-                        label="Unverified"
-                        value={stats.unverified}
+                        icon={<AlertCircle className="w-5 h-5 text-amber-500" />}
+                        label="Pending / Unverified"
+                        value={stats.unverified} // Note: This stats object might need update from backend to count 'Pending' accurately
                         color="amber"
                     />
                     <StatCard
@@ -166,164 +378,258 @@ export default function AIExplanationsPage() {
                 </div>
             )}
 
-            {/* Filters */}
-            <div className="flex gap-3">
-                <button
-                    onClick={() => setFilter('all')}
-                    className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${filter === 'all'
-                        ? 'bg-cyan-500 text-white'
-                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
-                        }`}
-                >
-                    All ({stats?.total || 0})
-                </button>
-                <button
-                    onClick={() => setFilter('verified')}
-                    className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${filter === 'verified'
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
-                        }`}
-                >
-                    Verified ({stats?.verified || 0})
-                </button>
-                <button
-                    onClick={() => setFilter('unverified')}
-                    className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${filter === 'unverified'
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
-                        }`}
-                >
-                    Unverified ({stats?.unverified || 0})
-                </button>
+            {/* Search & Filters */}
+            <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 p-6 rounded-3xl shadow-xl space-y-4">
+                <div className="flex flex-col md:flex-row gap-4">
+                    {/* Search */}
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Search questions or explanations..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500/50 outline-none text-white placeholder-slate-500 transition-all"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {/* Question Bank (Exam) Filter */}
+                    <select
+                        value={examId}
+                        onChange={(e) => {
+                            setExamId(e.target.value);
+                            // Reset dependent filters when exam changes
+                            setSubjectId('');
+                            setChapterId('');
+                            setModelId('');
+                        }}
+                        className="px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer"
+                    >
+                        <option value="">All Question Banks</option>
+                        {exams.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+                    </select>
+
+                    {/* Status Filter */}
+                    <select
+                        value={statusFilter}
+                        onChange={(e: any) => setStatusFilter(e.target.value)}
+                        className="px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer"
+                    >
+                        <option value="all">All Statuses</option>
+                        <option value="pending">Pending (No Explanation)</option>
+                        <option value="generated">Generated (Unverified)</option>
+                        <option value="verified">Verified</option>
+                        <option value="mismatch">Logic Mismatches ⚠️</option>
+                    </select>
+
+                    {/* Subject Filter */}
+                    <div className="relative">
+                        <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                        <select
+                            value={subjectId}
+                            onChange={(e) => {
+                                setSubjectId(e.target.value);
+                                setChapterId(''); // Reset chapter
+                            }}
+                            className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer"
+                        >
+                            <option value="">All Subjects</option>
+                            {subjects.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Chapter Filter */}
+                    <div className="relative">
+                        <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                        <select
+                            value={chapterId}
+                            onChange={(e) => setChapterId(e.target.value)}
+                            disabled={!subjectId}
+                            className={`w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer ${!subjectId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            <option value="">All Chapters</option>
+                            {chapters.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Model Filter */}
+                    <div className="relative">
+                        <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                        <select
+                            value={modelId}
+                            onChange={(e) => setModelId(e.target.value)}
+                            className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer"
+                        >
+                            <option value="">All Models</option>
+                            {models
+                                .filter(m => (!subjectId || m.subjectId === subjectId) && (!chapterId || m.chapterId === chapterId))
+                                .map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+                        </select>
+                    </div>
+                </div>
             </div>
 
-            {/* Explanations List */}
+            {/* List */}
             <div className="space-y-4">
-                {explanations.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500">
-                        No explanations found
+                {items.length === 0 ? (
+                    <div className="text-center py-20 text-slate-500 border border-dashed border-slate-800 rounded-3xl">
+                        <div className="flex justify-center mb-4"><Filter className="w-10 h-10 opacity-50" /></div>
+                        No questions found matching your filters.
                     </div>
                 ) : (
-                    explanations.map((explanation) => (
+                    items.map((item) => (
                         <motion.div
-                            key={explanation.id}
-                            initial={{ opacity: 0, y: 20 }}
+                            key={item.id}
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-3xl p-6 shadow-xl"
+                            className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-3xl p-6 shadow-xl hover:border-slate-700 transition-colors"
                         >
-                            {/* Question */}
-                            <div className="mb-4">
-                                <div className="flex items-start justify-between mb-2">
-                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">
-                                        Question
-                                    </h3>
-                                    <div className="flex items-center gap-2">
-                                        {explanation.isVerified ? (
-                                            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold">
-                                                ✓ Verified
-                                            </span>
-                                        ) : (
-                                            <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-xs font-bold">
-                                                ⚠ Pending Review
-                                            </span>
-                                        )}
-                                    </div>
+                            {/* Meta & Status */}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-800/50">
+                                <div className="flex gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                                    {item.subject && <span className="bg-slate-800 px-2 py-1 rounded">{item.subject}</span>}
+                                    {item.chapter && <span className="bg-slate-800 px-2 py-1 rounded">{item.chapter}</span>}
                                 </div>
-                                <p className="text-white font-medium">
-                                    {explanation.questionContent}
-                                </p>
-                            </div>
-
-                            {/* AI Explanation */}
-                            <div className="mb-4">
-                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
-                                    {editingId === explanation.id ? 'Edit Explanation' : 'Explanation'}
-                                </h4>
-                                {editingId === explanation.id ? (
-                                    <textarea
-                                        value={editText}
-                                        onChange={(e) => setEditText(e.target.value)}
-                                        className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-white font-medium resize-none"
-                                        rows={6}
-                                    />
-                                ) : (
-                                    <p className="text-slate-300 leading-relaxed">
-                                        {explanation.adminApprovedExplanation || explanation.aiExplanation}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Stats */}
-                            <div className="flex items-center gap-6 mb-4 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <Eye className="w-4 h-4 text-slate-500" />
-                                    <span className="text-slate-400">{explanation.viewCount} views</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <ThumbsUp className="w-4 h-4 text-emerald-500" />
-                                    <span className="text-slate-400">{explanation.helpfulCount}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <ThumbsDown className="w-4 h-4 text-red-500" />
-                                    <span className="text-slate-400">{explanation.notHelpfulCount}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-slate-400">
-                                        Rating: {explanation.averageRating.toFixed(1)}/5.0
-                                    </span>
+                                <div>
+                                    {item.status === 'verified' && (
+                                        <span className="flex items-center gap-1 px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold">
+                                            <CheckCircle className="w-3 h-3" /> Verified
+                                        </span>
+                                    )}
+                                    {item.status === 'generated' && (
+                                        <span className="flex items-center gap-1 px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-full text-xs font-bold">
+                                            <RefreshCw className="w-3 h-3" /> Generated
+                                        </span>
+                                    )}
+                                    {item.status === 'pending' && (
+                                        <span className="flex items-center gap-1 px-3 py-1 bg-slate-700 text-slate-400 rounded-full text-xs font-bold">
+                                            <AlertCircle className="w-3 h-3" /> Pending
+                                        </span>
+                                    )}
+                                    {item.isLogicalMismatch && (
+                                        <span className="flex items-center gap-1 px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold border border-red-500/30">
+                                            <AlertTriangle className="w-3 h-3" /> Logic Mismatch ⚠️
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Actions */}
-                            <div className="flex gap-3">
-                                {editingId === explanation.id ? (
-                                    <>
-                                        <button
-                                            onClick={() => handleUpdate(explanation.id)}
-                                            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-all"
-                                        >
-                                            Save Changes
-                                        </button>
-                                        <button
-                                            onClick={() => setEditingId(null)}
-                                            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-sm transition-all"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        {!explanation.isVerified && (
+                            {/* Content */}
+                            <div className="mb-6">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Question</h3>
+                                    <button
+                                        onClick={() => toggleExpand(`q-${item.id}`)}
+                                        className="text-xs text-indigo-400 hover:text-indigo-300 font-bold"
+                                    >
+                                        {expandedIds.has(`q-${item.id}`) ? 'Collapse' : 'Expand'}
+                                    </button>
+                                </div>
+                                <MarkdownRenderer
+                                    content={item.questionContent}
+                                    className={`text-white font-medium ${expandedIds.has(`q-${item.id}`) ? '' : 'line-clamp-3'}`}
+                                />
+                            </div>
+
+                            {item.status !== 'pending' && (
+                                <div className="mb-6 bg-slate-950/30 rounded-xl p-4 border border-slate-800/50">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            {editingId === item.id ? 'Edit Explanation' : 'Explanation Preview'}
+                                        </h3>
+                                        {editingId !== item.id && (
                                             <button
-                                                onClick={() => handleApprove(explanation.id)}
-                                                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"
+                                                onClick={() => toggleExpand(`e-${item.id}`)}
+                                                className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold"
                                             >
-                                                <CheckCircle className="w-4 h-4" />
-                                                Approve
+                                                {expandedIds.has(`e-${item.id}`) ? 'Collapse' : 'Expand'}
                                             </button>
                                         )}
-                                        <button
-                                            onClick={() => startEditing(explanation)}
-                                            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"
-                                        >
-                                            <Edit3 className="w-4 h-4" />
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => handleReject(explanation.id)}
-                                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"
-                                        >
-                                            <XCircle className="w-4 h-4" />
-                                            Reject
-                                        </button>
-                                    </>
+                                    </div>
+                                    {editingId === item.id ? (
+                                        <textarea
+                                            value={editText}
+                                            onChange={(e) => setEditText(e.target.value)}
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white font-medium resize-none focus:ring-1 focus:ring-cyan-500"
+                                            rows={6}
+                                        />
+                                    ) : (
+                                        <MarkdownRenderer
+                                            content={item.adminApprovedExplanation || item.aiExplanation || ''}
+                                            className={`text-slate-300 text-sm ${expandedIds.has(`e-${item.id}`) ? '' : 'line-clamp-3'}`}
+                                        />
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                {item.status !== 'pending' ? (
+                                    <div className="flex items-center gap-4 text-xs text-slate-400">
+                                        <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {item.viewCount}</span>
+                                        <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3 text-emerald-500" /> {item.helpfulCount}</span>
+                                        <span className="flex items-center gap-1"><ThumbsDown className="w-3 h-3 text-red-500" /> {item.notHelpfulCount}</span>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-amber-500 font-bold">
+                                        Requires Generation
+                                    </div>
                                 )}
+
+                                <div className="flex gap-2">
+                                    {editingId === item.id ? (
+                                        <>
+                                            <button onClick={() => handleUpdate(item.id, item.questionId)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs">Save</button>
+                                            <button onClick={() => setEditingId(null)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold text-xs">Cancel</button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {item.status === 'pending' ? (
+                                                <button
+                                                    onClick={() => handleGenerate(item.questionId)}
+                                                    disabled={generatingIds.has(item.questionId)}
+                                                    className={`px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-bold text-xs flex items-center gap-2 ${generatingIds.has(item.questionId) ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                                >
+                                                    <RefreshCw className={`w-3 h-3 ${generatingIds.has(item.questionId) ? 'animate-spin' : ''}`} />
+                                                    {generatingIds.has(item.questionId) ? 'Generating...' : 'Generate'}
+                                                </button>
+                                            ) : (
+                                                <>
+                                                    {!item.isVerified && (
+                                                        <div className="flex gap-2">
+                                                            <button onClick={() => handleApprove(item.id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center gap-2">
+                                                                <CheckCircle className="w-3 h-3" /> Approve
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleVerifyAI(item.id, item.questionId)}
+                                                                disabled={verifyingIds.has(item.id)}
+                                                                className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs flex items-center gap-2 ${verifyingIds.has(item.id) ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                                            >
+                                                                <Bot className={`w-3 h-3 ${verifyingIds.has(item.id) ? 'animate-pulse' : ''}`} />
+                                                                {verifyingIds.has(item.id) ? 'Auditing...' : 'Audit'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <button onClick={() => startEditing(item)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold text-xs flex items-center gap-2">
+                                                        <Edit3 className="w-3 h-3" /> Edit
+                                                    </button>
+                                                    <button onClick={() => handleReject(item.id)} className="px-4 py-2 bg-red-900/50 hover:bg-red-900 text-red-200 rounded-lg font-bold text-xs">
+                                                        Reject
+                                                    </button>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
                             </div>
+
                         </motion.div>
                     ))
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 

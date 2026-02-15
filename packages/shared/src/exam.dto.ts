@@ -1,10 +1,25 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsNumber, IsDateString, Min, ValidateNested, IsArray, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsNumber, IsDateString, Min, ValidateNested, IsArray, IsUUID, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum ExamType {
     REAL_EXAM = 'real_exam',
-    QUESTION_BANK = 'question_bank'
+    QUESTION_BANK = 'question_bank',
+    PREVIOUS_YEAR_PAPER = 'previous_year_paper',
+    LIVE_EXAM = 'live_exam',
+    CHAPTER_WISE_TEST = 'chapter_wise_test'
 }
+
+export const EXAM_CATEGORIES = [
+    { id: 'SSC', label: 'SSC Exams' },
+    { id: 'Banking', label: 'Banking & Insurance' },
+    { id: 'Railways', label: 'Railways (RRB)' },
+    { id: 'Teaching', label: 'Teaching Exams' },
+    { id: 'Defence', label: 'Defence' },
+    { id: 'UPSC', label: 'UPSC & State PSC' },
+    { id: 'Other', label: 'Other' }
+] as const;
+
+export type ExamCategory = typeof EXAM_CATEGORIES[number]['id'];
 
 export class CreateExamDto {
     @IsString()
@@ -19,6 +34,10 @@ export class CreateExamDto {
     @IsOptional()
     description?: string;
 
+    @IsString()
+    @IsOptional()
+    category?: string;
+
     @IsDateString()
     @IsOptional()
     startTime?: Date;
@@ -26,6 +45,12 @@ export class CreateExamDto {
     @IsDateString()
     @IsOptional()
     endTime?: Date;
+
+    @IsNumber()
+    @Min(0)
+    @IsOptional()
+    @Type(() => Number)
+    duration?: number;
 
     @IsBoolean()
     @IsOptional()
@@ -46,20 +71,40 @@ export class CreateExamDto {
     @IsOptional()
     @Type(() => Number)
     defaultNegativeMarks?: number;
+
+    @IsObject()
+    @IsOptional()
+    metadata?: Record<string, any>;
 }
 
 export class UpdateExamDto {
     @IsString()
     @IsOptional()
     title?: string;
+
+    @IsString()
+    @IsOptional()
+    category?: string;
+
+    @IsBoolean()
+    @IsOptional()
+    isPublished?: boolean;
+
+    @IsObject()
+    @IsOptional()
+    metadata?: Record<string, any>;
 }
 
 // Content Hierarchy
 
 export class CreateSubjectDto {
     @IsString()
-    @IsNotEmpty()
-    title!: string;
+    @IsOptional()
+    title?: string;
+
+    @IsString()
+    @IsOptional()
+    name?: string;
 
     @IsString()
     @IsOptional()
@@ -90,12 +135,20 @@ export class UpdateSubjectDto {
 
 export class CreateChapterDto {
     @IsString()
-    @IsNotEmpty()
-    title!: string;
+    @IsOptional()
+    title?: string;
+
+    @IsString()
+    @IsOptional()
+    name?: string;
 
     @IsString()
     @IsOptional()
     description?: string;
+
+    @IsUUID()
+    @IsOptional()
+    subjectId?: string;
 }
 
 export class UpdateChapterDto {
@@ -110,12 +163,30 @@ export class UpdateChapterDto {
 
 export class CreateModelDto {
     @IsString()
-    @IsNotEmpty()
-    title!: string;
+    @IsOptional()
+    title?: string;
+
+    @IsString()
+    @IsOptional()
+    name?: string;
 
     @IsDateString()
     @IsOptional()
     scheduledAt?: Date;
+
+    @IsNumber()
+    @Min(0)
+    @IsOptional()
+    @Type(() => Number)
+    duration?: number;
+
+    @IsUUID()
+    @IsOptional()
+    chapterId?: string;
+
+    @IsArray()
+    @IsOptional()
+    exams?: any[];
 }
 
 // Question Bank
@@ -179,4 +250,5 @@ export interface Model {
     id: string;
     title: string;
     totalQuestions: number;
+    duration?: number;
 }

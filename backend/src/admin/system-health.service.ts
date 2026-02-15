@@ -1,5 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../common/cache.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SystemMetric } from './entities/system-metric.entity';
+import { ExamsSeederService } from '../exams/exams-seeder.service';
 
 export interface HealthMetric {
     service: string;
@@ -20,42 +25,66 @@ export interface APIUsageMetric {
 @Injectable()
 export class SystemHealthService {
     private apiCallCounts: Map<string, { daily: number; monthly: number; lastReset: Date }> = new Map();
+    private isLockedDown = false;
 
     constructor(
         private configService: ConfigService,
+        private cacheService: CacheService,
+        @Inject(forwardRef(() => ExamsSeederService))
+        private seederService: ExamsSeederService,
+        @InjectRepository(SystemMetric)
+        private metricRepo: Repository<SystemMetric>,
     ) {
-        // Initialize counters
+        // Initialize counters from DB (or default)
         this.initializeCounters();
     }
 
-    private initializeCounters() {
-        this.apiCallCounts.set('gemini', { daily: 0, monthly: 0, lastReset: new Date() });
-        this.apiCallCounts.set('razorpay', { daily: 0, monthly: 0, lastReset: new Date() });
+    // ... (rest of methods)
+
+    private async initializeCounters() {
+        const services = ['gemini', 'razorpay', 'groq'];
+        const today = new Date().toISOString().split('T')[0];
+
+        for (const service of services) {
+            const key = `usage_${service}_${today}`;
+            let metric = await this.metricRepo.findOneBy({ key });
+
+            if (!metric) {
+                metric = this.metricRepo.create({
+                    key,
+                    value: { daily: 0, monthly: 0, lastReset: new Date() }
+                });
+                await this.metricRepo.save(metric);
+            }
+            // Sync memory with DB
+            this.apiCallCounts.set(service, metric.value);
+        }
     }
 
     /**
-     * Track API call
+     * Track API call (Persisted)
      */
-    trackAPICall(service: 'gemini' | 'razorpay') {
-        const counter = this.apiCallCounts.get(service);
-        if (counter) {
-            const now = new Date();
-            const lastReset = counter.lastReset;
+    async trackAPICall(service: 'gemini' | 'razorpay' | 'groq') {
+        const today = new Date().toISOString().split('T')[0];
+        const key = `usage_${service}_${today}`;
 
-            // Reset daily counter if it's a new day
-            if (now.getDate() !== lastReset.getDate()) {
-                counter.daily = 0;
-            }
-
-            // Reset monthly counter if it's a new month
-            if (now.getMonth() !== lastReset.getMonth()) {
-                counter.monthly = 0;
-            }
-
-            counter.daily++;
-            counter.monthly++;
-            counter.lastReset = now;
+        // Optimistic update in memory first
+        let counter = this.apiCallCounts.get(service);
+        if (!counter) {
+            counter = { daily: 0, monthly: 0, lastReset: new Date() };
+            this.apiCallCounts.set(service, counter);
         }
+        counter.daily++;
+        counter.monthly++; // NOTE: Monthly logic needs distinct keys or aggregation. Keeping simple for now.
+
+        // Async persistence
+        let metric = await this.metricRepo.findOneBy({ key });
+        if (!metric) {
+            metric = this.metricRepo.create({ key, value: counter });
+        } else {
+            metric.value = counter;
+        }
+        await this.metricRepo.save(metric);
     }
 
     /**
@@ -75,6 +104,9 @@ export class SystemHealthService {
         // Check Gemini API
         const geminiHealth = this.checkGeminiHealth();
         services.push(geminiHealth);
+
+        // Check Groq API
+        services.push(this.checkGroqHealth());
 
         // Check Redis (if available)
         const redisHealth = this.checkRedisHealth();
@@ -113,6 +145,13 @@ export class SystemHealthService {
                 callsToday: razorpayCounter?.daily || 0,
                 callsThisMonth: razorpayCounter?.monthly || 0,
                 estimatedCost: 0, // No per-call cost
+            },
+            {
+                service: 'Groq Cloud',
+                callsToday: this.apiCallCounts.get('groq')?.daily || 0,
+                callsThisMonth: this.apiCallCounts.get('groq')?.monthly || 0,
+                estimatedCost: 0, // Free Tier
+                limit: 14400 // ~30 RPM * 60 * 8 (working hours?) or 14k/day
             }
         ];
     }
@@ -210,6 +249,21 @@ export class SystemHealthService {
         };
     }
 
+    private checkGroqHealth(): HealthMetric {
+        const apiKey = this.configService.get<string>('GROQ_API_KEY');
+        const hasKey = !!apiKey;
+
+        return {
+            service: 'Groq Cloud',
+            status: hasKey ? 'healthy' : 'degraded',
+            lastChecked: new Date(),
+            details: {
+                configured: hasKey,
+                callsToday: this.apiCallCounts.get('groq')?.daily || 0
+            }
+        };
+    }
+
     private checkRedisHealth(): HealthMetric {
         // Placeholder - would check actual Redis connection
         return {
@@ -218,5 +272,40 @@ export class SystemHealthService {
             lastChecked: new Date(),
             details: { connected: true }
         };
+    }
+
+    /**
+     * Clear system cache
+     */
+    async clearCache() {
+        await this.cacheService.flush();
+        return { success: true, message: 'Cache cleared successfully' };
+    }
+
+    /**
+     * Re-seed database (dev only)
+     */
+    async reSeedData() {
+        if (process.env.NODE_ENV === 'production') {
+            throw new Error('Re-seeding is disabled in production');
+        }
+        await this.seederService.seedInitialContent();
+        await this.seederService.seedManualTestingData();
+        return { success: true, message: 'Database re-seeded successfully' };
+    }
+
+    /**
+     * Toggle system lockdown
+     */
+    async toggleLockdown() {
+        this.isLockedDown = !this.isLockedDown;
+        return { success: true, isLockedDown: this.isLockedDown };
+    }
+
+    /**
+     * Get lockdown status
+     */
+    getLockdownStatus() {
+        return this.isLockedDown;
     }
 }

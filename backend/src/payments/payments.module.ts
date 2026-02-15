@@ -4,17 +4,24 @@ import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
 import { Purchase } from '../exams/entities/purchase.entity';
 import { Exam } from '../exams/entities/exam.entity';
+import { Pass } from '../passes/entities/pass.entity';
+import { UserPass } from '../passes/entities/user-pass.entity';
 import { ExamsModule } from '../exams/exams.module';
 import { MarketingModule } from '../marketing/marketing.module';
+import { PassesModule } from '../passes/passes.module';
+
+import { User } from '../users/user.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Purchase, Exam]),
+        TypeOrmModule.forFeature([Purchase, Exam, Pass, UserPass, User]),
         forwardRef(() => ExamsModule),
         MarketingModule,
+        PassesModule,
     ],
     controllers: [PaymentsController],
     providers: [PaymentsService],
     exports: [PaymentsService],
 })
 export class PaymentsModule { }
+

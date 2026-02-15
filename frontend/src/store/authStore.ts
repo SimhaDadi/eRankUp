@@ -5,21 +5,29 @@ import { User, AuthState } from '../types/auth.types';
 export const useAuthStore = create<AuthState>((set) => ({
     user: typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || 'null') : null,
     token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
+    refreshToken: typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null,
     isLoading: false,
     error: null,
+    activePass: null,
 
     login: async (credentials) => {
         set({ isLoading: true, error: null });
         try {
             const response = await api.post('/auth/login', credentials);
-            const { access_token, user } = response.data;
+            const { access_token, refresh_token, user } = response.data;
 
             localStorage.setItem('token', access_token);
+            if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
             localStorage.setItem('user', JSON.stringify(user));
             set({ user, token: access_token, isLoading: false });
         } catch (error: any) {
+            console.error("Login Error Full Object:", error);
+            const status = error.response?.status;
+            const msg = error.response?.data?.message || error.message || 'Unknown Error';
+            const detailedError = `Login Failed (${status || 'Network'}): ${msg}`;
+
             set({
-                error: error.response?.data?.message || 'Login failed',
+                error: detailedError,
                 isLoading: false
             });
             throw error;
@@ -42,10 +50,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     logout: () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
-        set({ user: null, token: null });
+        set({ user: null, token: null, activePass: null });
     },
 
     setUser: (user) => set({ user }),
+    setActivePass: (activePass) => set({ activePass }),
 }));
 

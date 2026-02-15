@@ -5,6 +5,8 @@ import 'home_screen.dart';
 import 'exams_screen.dart';
 import 'performance_screen.dart';
 import 'settings_screen.dart';
+import 'ai_chat_screen.dart';
+import 'community_screen.dart';
 
 class MainAppScreen extends StatefulWidget {
   const MainAppScreen({super.key});
@@ -19,7 +21,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
   final List<Widget> _screens = const [
     HomeScreen(),
     ExamsScreen(),
-    PerformanceScreen(),
+    AIChatScreen(),
+    CommunityScreen(),
     SettingsScreen(),
   ];
 
@@ -42,7 +45,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          boxShadow: [
+          boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
@@ -53,8 +56,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
         child: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: _onTabTapped,
-          backgroundColor: AppColors.bgPrimary,
-          indicatorColor: AppColors.primaryBlue.withOpacity(0.1),
           height: 70,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           animationDuration: const Duration(milliseconds: 300),
@@ -70,9 +71,14 @@ class _MainAppScreenState extends State<MainAppScreen> {
               label: 'Tests',
             ),
             NavigationDestination(
-              icon: Icon(Icons.trending_up_outlined),
-              selectedIcon: Icon(Icons.trending_up),
-              label: 'Progress',
+              icon: Icon(Icons.auto_awesome_outlined),
+              selectedIcon: Icon(Icons.auto_awesome),
+              label: 'Tutor',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.people_outline),
+              selectedIcon: Icon(Icons.people),
+              label: 'Community',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),

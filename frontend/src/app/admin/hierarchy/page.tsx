@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, ChevronRight, ChevronDown, BookOpen, FolderOpen, FileText, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronRight, ChevronDown, BookOpen, FolderOpen, FileText, Search, Upload, Eraser } from 'lucide-react';
+import UploadModelModal from '@/components/admin/UploadModelModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 
@@ -24,6 +25,7 @@ interface Model {
     title: string;
     totalQuestions: number;
     chapterId: string;
+    duration?: number;
 }
 
 interface Chapter {
@@ -46,12 +48,18 @@ export default function HierarchyPage() {
     const [showModelModal, setShowModelModal] = useState(false);
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
     const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+    const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
+    const [selectedModel, setSelectedModel] = useState<Model | null>(null);
     const [editMode, setEditMode] = useState(false);
 
     const [examForm, setExamForm] = useState({ title: '', description: '' });
     const [subjectForm, setSubjectForm] = useState({ title: '', examId: '' });
     const [chapterForm, setChapterForm] = useState({ title: '', subjectId: '' });
-    const [modelForm, setModelForm] = useState({ title: '', chapterId: '' });
+    const [modelForm, setModelForm] = useState({ title: '', chapterId: '', duration: 0 });
+
+    // Upload Modal State
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [uploadModelData, setUploadModelData] = useState<{ id: string, title: string } | null>(null);
 
     useEffect(() => {
         fetchHierarchy();
@@ -60,9 +68,10 @@ export default function HierarchyPage() {
     const fetchHierarchy = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/exams/hierarchy');
+            const response = await api.get('/exams/hierarchy?type=question_bank');
+            const data = Array.isArray(response.data) ? response.data : [];
             // Transform backend response (name) to frontend format (title)
-            const transformedData = response.data.map((exam: any) => ({
+            const transformedData = data.map((exam: any) => ({
                 ...exam,
                 title: exam.name || exam.title,
                 subjects: exam.subjects?.map((subject: any) => ({
@@ -118,55 +127,143 @@ export default function HierarchyPage() {
 
     const handleCreateExam = async () => {
         try {
-            await api.post('/exams', examForm);
+            if (editMode && selectedExam) {
+                await api.put(`/exams/${selectedExam.id}`, examForm);
+                alert('Question Bank updated successfully!');
+            } else {
+                await api.post('/exams', { ...examForm, type: 'question_bank' });
+                alert('Question Bank created successfully!');
+            }
             setShowExamModal(false);
             setExamForm({ title: '', description: '' });
+            setEditMode(false);
+            setSelectedExam(null);
             fetchHierarchy();
-            alert('Exam created successfully!');
         } catch (error) {
-            console.error('Error creating exam:', error);
-            alert('Failed to create exam');
+            console.error('Error saving question bank:', error);
+            alert('Failed to save question bank');
         }
     };
+
+    const handleDeleteExam = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this Question Bank? All subjects, chapters, and models will be unlinked or deleted.')) return;
+        try {
+            await api.delete(`/exams/${id}`);
+            fetchHierarchy();
+            alert('Question Bank deleted successfully!');
+        } catch (error) {
+            console.error('Error deleting exam:', error);
+            alert('Failed to delete question bank');
+        }
+    }
 
     const handleCreateSubject = async () => {
         try {
-            await api.post('/subjects', { name: subjectForm.title, examId: subjectForm.examId });
+            if (editMode && selectedSubject) {
+                await api.put(`/exams/subjects/${selectedSubject.id}`, { name: subjectForm.title });
+                alert('Subject updated successfully!');
+            } else {
+                await api.post('/subjects', { name: subjectForm.title, examId: subjectForm.examId });
+                alert('Subject created successfully!');
+            }
             setShowSubjectModal(false);
             setSubjectForm({ title: '', examId: '' });
+            setEditMode(false);
+            setSelectedSubject(null);
             fetchHierarchy();
-            alert('Subject created successfully!');
         } catch (error) {
-            console.error('Error creating subject:', error);
-            alert('Failed to create subject');
+            console.error('Error saving subject:', error);
+            alert('Failed to save subject');
         }
     };
+
+    const handleDeleteSubject = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this subject? Chapters will be unlinked.')) return;
+        try {
+            await api.delete(`/exams/subjects/${id}`);
+            fetchHierarchy();
+            alert('Subject deleted successfully!');
+        } catch (error) {
+            console.error('Error deleting subject:', error);
+            alert('Failed to delete subject');
+        }
+    }
 
     const handleCreateChapter = async () => {
         try {
-            await api.post('/chapters', { name: chapterForm.title, subjectId: chapterForm.subjectId });
+            if (editMode && selectedChapter) {
+                await api.put(`/exams/chapters/${selectedChapter.id}`, { name: chapterForm.title });
+                alert('Chapter updated successfully!');
+            } else {
+                await api.post('/chapters', { name: chapterForm.title, subjectId: chapterForm.subjectId });
+                alert('Chapter created successfully!');
+            }
             setShowChapterModal(false);
             setChapterForm({ title: '', subjectId: '' });
+            setEditMode(false);
+            setSelectedChapter(null);
             fetchHierarchy();
-            alert('Chapter created successfully!');
         } catch (error) {
-            console.error('Error creating chapter:', error);
-            alert('Failed to create chapter');
+            console.error('Error saving chapter:', error);
+            alert('Failed to save chapter');
         }
     };
 
+    const handleDeleteChapter = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this chapter? Models will be unlinked.')) return;
+        try {
+            await api.delete(`/exams/chapters/${id}`);
+            fetchHierarchy();
+            alert('Chapter deleted successfully!');
+        } catch (error) {
+            console.error('Error deleting chapter:', error);
+            alert('Failed to delete chapter');
+        }
+    }
+
     const handleCreateModel = async () => {
         try {
-            await api.post(`/exams/chapters/${modelForm.chapterId}/models`, { title: modelForm.title });
+            if (editMode && selectedModel) {
+                await api.put(`/exams/models/${selectedModel.id}`, { title: modelForm.title, duration: modelForm.duration });
+                alert('Model updated successfully!');
+            } else {
+                await api.post(`/exams/chapters/${modelForm.chapterId}/models`, { title: modelForm.title, duration: modelForm.duration });
+                alert('Model created successfully!');
+            }
             setShowModelModal(false);
-            setModelForm({ title: '', chapterId: '' });
+            setModelForm({ title: '', chapterId: '', duration: 0 });
+            setEditMode(false);
+            setSelectedModel(null);
             fetchHierarchy();
-            alert('Model created successfully!');
         } catch (error) {
-            console.error('Error creating model:', error);
-            alert('Failed to create model');
+            console.error('Error saving model:', error);
+            alert('Failed to save model');
         }
     };
+
+    const handleDeleteModel = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this model?')) return;
+        try {
+            await api.delete(`/exams/models/${id}`);
+            fetchHierarchy();
+            alert('Model deleted successfully!');
+        } catch (error) {
+            console.error('Error deleting model:', error);
+            alert('Failed to delete model');
+        }
+    }
+
+    const handleDeleteQuestions = async (modelId: string, modelTitle: string) => {
+        if (!confirm(`Are you sure you want to DELETE ALL QUESTIONS from model "${modelTitle}"? \n\nThis action cannot be undone.`)) return;
+        try {
+            const res = await api.delete(`/exams/models/${modelId}/questions`);
+            alert(res.data.message || 'Questions deleted successfully');
+            fetchHierarchy(); // Refresh counts
+        } catch (error: any) {
+            console.error('Error deleting questions:', error);
+            alert(error.response?.data?.message || 'Failed to delete questions');
+        }
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-8">
@@ -175,7 +272,7 @@ export default function HierarchyPage() {
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-4xl font-black text-gray-900 mb-2">Content Hierarchy</h1>
-                        <p className="text-gray-600">Manage exams, subjects, and chapters structure</p>
+                        <p className="text-gray-600">Manage structure: Question Banks &gt; Subjects &gt; Chapters</p>
                     </div>
                     <button
                         onClick={() => {
@@ -186,7 +283,7 @@ export default function HierarchyPage() {
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-lg"
                     >
                         <Plus className="w-5 h-5" />
-                        Add Exam
+                        Add Question Bank
                     </button>
                 </div>
 
@@ -200,13 +297,13 @@ export default function HierarchyPage() {
                     ) : exams.length === 0 ? (
                         <div className="text-center py-12">
                             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">No exams yet</h3>
-                            <p className="text-gray-500 mb-4">Create your first exam to get started</p>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">No Question Banks yet</h3>
+                            <p className="text-gray-500 mb-4">Create your first Question Bank to get started</p>
                             <button
                                 onClick={() => setShowExamModal(true)}
                                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
                             >
-                                Add First Exam
+                                Add Question Bank
                             </button>
                         </div>
                     ) : (
@@ -244,10 +341,21 @@ export default function HierarchyPage() {
                                             >
                                                 Add Subject
                                             </button>
-                                            <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-white rounded">
+                                            <button
+                                                onClick={() => {
+                                                    setEditMode(true);
+                                                    setSelectedExam(exam);
+                                                    setExamForm({ title: exam.title, description: exam.description || '' });
+                                                    setShowExamModal(true);
+                                                }}
+                                                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-white rounded"
+                                            >
                                                 <Edit className="w-4 h-4" />
                                             </button>
-                                            <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-white rounded">
+                                            <button
+                                                onClick={() => handleDeleteExam(exam.id)}
+                                                className="p-2 text-gray-600 hover:text-red-600 hover:bg-white rounded"
+                                            >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
@@ -284,10 +392,21 @@ export default function HierarchyPage() {
                                                             >
                                                                 Add Chapter
                                                             </button>
-                                                            <button className="p-1.5 text-gray-600 hover:text-emerald-600 hover:bg-white rounded">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditMode(true);
+                                                                    setSelectedSubject(subject);
+                                                                    setSubjectForm({ title: subject.title, examId: exam.id });
+                                                                    setShowSubjectModal(true);
+                                                                }}
+                                                                className="p-1.5 text-gray-600 hover:text-emerald-600 hover:bg-white rounded"
+                                                            >
                                                                 <Edit className="w-3.5 h-3.5" />
                                                             </button>
-                                                            <button className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-white rounded">
+                                                            <button
+                                                                onClick={() => handleDeleteSubject(subject.id)}
+                                                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-white rounded"
+                                                            >
                                                                 <Trash2 className="w-3.5 h-3.5" />
                                                             </button>
                                                         </div>
@@ -321,17 +440,28 @@ export default function HierarchyPage() {
                                                                         <div className="flex items-center gap-1">
                                                                             <button
                                                                                 onClick={() => {
-                                                                                    setModelForm({ title: '', chapterId: chapter.id });
+                                                                                    setModelForm({ title: '', chapterId: chapter.id, duration: 0 });
                                                                                     setShowModelModal(true);
                                                                                 }}
                                                                                 className="px-2 py-1 text-xs bg-white hover:bg-gray-50 text-purple-600 border border-purple-200 rounded font-medium"
                                                                             >
                                                                                 Add Model
                                                                             </button>
-                                                                            <button className="p-1.5 text-gray-600 hover:text-purple-600 hover:bg-gray-100 rounded">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setEditMode(true);
+                                                                                    setSelectedChapter(chapter);
+                                                                                    setChapterForm({ title: chapter.title, subjectId: subject.id });
+                                                                                    setShowChapterModal(true);
+                                                                                }}
+                                                                                className="p-1.5 text-gray-600 hover:text-purple-600 hover:bg-gray-100 rounded"
+                                                                            >
                                                                                 <Edit className="w-3.5 h-3.5" />
                                                                             </button>
-                                                                            <button className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded">
+                                                                            <button
+                                                                                onClick={() => handleDeleteChapter(chapter.id)}
+                                                                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded"
+                                                                            >
                                                                                 <Trash2 className="w-3.5 h-3.5" />
                                                                             </button>
                                                                         </div>
@@ -348,10 +478,38 @@ export default function HierarchyPage() {
                                                                                         <span className="text-xs text-gray-400">({model.totalQuestions || 0} qs)</span>
                                                                                     </div>
                                                                                     <div className="flex items-center gap-1">
-                                                                                        <button className="p-1 text-gray-400 hover:text-blue-600">
+                                                                                        <button
+                                                                                            onClick={() => {
+                                                                                                setUploadModelData({ id: model.id, title: model.title });
+                                                                                                setShowUploadModal(true);
+                                                                                            }}
+                                                                                            className="p-1 text-gray-400 hover:text-emerald-600"
+                                                                                            title="Bulk Upload Questions"
+                                                                                        >
+                                                                                            <Upload className="w-3 h-3" />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => handleDeleteQuestions(model.id, model.title)}
+                                                                                            className="p-1 text-gray-400 hover:text-red-500"
+                                                                                            title="Delete All Questions"
+                                                                                        >
+                                                                                            <Eraser className="w-3 h-3" />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => {
+                                                                                                setEditMode(true);
+                                                                                                setSelectedModel(model);
+                                                                                                setModelForm({ title: model.title, chapterId: chapter.id, duration: model.duration || 0 });
+                                                                                                setShowModelModal(true);
+                                                                                            }}
+                                                                                            className="p-1 text-gray-400 hover:text-blue-600"
+                                                                                        >
                                                                                             <Edit className="w-3 h-3" />
                                                                                         </button>
-                                                                                        <button className="p-1 text-gray-400 hover:text-red-600">
+                                                                                        <button
+                                                                                            onClick={() => handleDeleteModel(model.id)}
+                                                                                            className="p-1 text-gray-400 hover:text-red-600"
+                                                                                        >
                                                                                             <Trash2 className="w-3 h-3" />
                                                                                         </button>
                                                                                     </div>
@@ -427,7 +585,7 @@ export default function HierarchyPage() {
                 {showSubjectModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Add New Subject</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">{editMode ? 'Edit Subject' : 'Add New Subject'}</h2>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Subject Name *</label>
@@ -445,10 +603,14 @@ export default function HierarchyPage() {
                                     onClick={handleCreateSubject}
                                     className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium"
                                 >
-                                    Create Subject
+                                    {editMode ? 'Update' : 'Create'} Subject
                                 </button>
                                 <button
-                                    onClick={() => setShowSubjectModal(false)}
+                                    onClick={() => {
+                                        setShowSubjectModal(false);
+                                        setEditMode(false);
+                                        setSelectedSubject(null);
+                                    }}
                                     className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium"
                                 >
                                     Cancel
@@ -462,7 +624,7 @@ export default function HierarchyPage() {
                 {showChapterModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Add New Chapter</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">{editMode ? 'Edit Chapter' : 'Add New Chapter'}</h2>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Chapter Name *</label>
@@ -480,10 +642,14 @@ export default function HierarchyPage() {
                                     onClick={handleCreateChapter}
                                     className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium"
                                 >
-                                    Create Chapter
+                                    {editMode ? 'Update' : 'Create'} Chapter
                                 </button>
                                 <button
-                                    onClick={() => setShowChapterModal(false)}
+                                    onClick={() => {
+                                        setShowChapterModal(false);
+                                        setEditMode(false);
+                                        setSelectedChapter(null);
+                                    }}
                                     className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium"
                                 >
                                     Cancel
@@ -497,7 +663,7 @@ export default function HierarchyPage() {
                 {showModelModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Add New Model</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">{editMode ? 'Edit Model' : 'Add New Model'}</h2>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Model Title *</label>
@@ -509,16 +675,32 @@ export default function HierarchyPage() {
                                         placeholder="e.g., Practice Set 1"
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Duration (Min) (Optional)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={modelForm.duration}
+                                        onChange={(e) => setModelForm({ ...modelForm, duration: parseInt(e.target.value) || 0 })}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
+                                        placeholder="0 (Inherit from Exam)"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Leave 0 to use Exam default duration.</p>
+                                </div>
                             </div>
                             <div className="flex gap-3 mt-6">
                                 <button
                                     onClick={handleCreateModel}
                                     className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium"
                                 >
-                                    Create Model
+                                    {editMode ? 'Update' : 'Create'} Model
                                 </button>
                                 <button
-                                    onClick={() => setShowModelModal(false)}
+                                    onClick={() => {
+                                        setShowModelModal(false);
+                                        setEditMode(false);
+                                        setSelectedModel(null);
+                                    }}
                                     className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium"
                                 >
                                     Cancel
@@ -526,6 +708,18 @@ export default function HierarchyPage() {
                             </div>
                         </div>
                     </div>
+                )}
+                {showUploadModal && uploadModelData && (
+                    <UploadModelModal
+                        isOpen={showUploadModal}
+                        onClose={() => setShowUploadModal(false)}
+                        onSuccess={() => {
+                            fetchHierarchy(); // Refresh counts
+                            // setShowUploadModal(false); // Handled by onClose
+                        }}
+                        modelId={uploadModelData.id}
+                        modelTitle={uploadModelData.title}
+                    />
                 )}
             </div>
         </div>

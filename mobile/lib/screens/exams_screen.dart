@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../models/exam.dart';
 import '../theme/app_theme.dart';
 import 'exam_detail_screen.dart';
+import 'results_screen.dart';
 
 class ExamsScreen extends StatefulWidget {
   const ExamsScreen({super.key});
@@ -13,51 +14,161 @@ class ExamsScreen extends StatefulWidget {
   State<ExamsScreen> createState() => _ExamsScreenState();
 }
 
-class _ExamsScreenState extends State<ExamsScreen> {
+class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  
   List<Exam> _allExams = [];
   List<Exam> _filteredExams = [];
   bool _isLoading = true;
   String _searchQuery = '';
-  String _selectedFilter = 'all';
   
-  final TextEditingController _searchController = TextEditingController();
+  int _page = 1;
+  final int _limit = 10;
+  bool _hasMore = true;
+  bool _isLoadMoreRunning = false;
+  String _currentType = 'all';
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(_onTabChanged);
+    _scrollController.addListener(_onScroll);
     _fetchExams();
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _scrollController.dispose();
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchExams() async {
-    setState(() => _isLoading = true);
-    final apiService = Provider.of<ApiService>(context, listen: false);
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
     
-    try {
-      final response = await apiService.get('/exams');
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+    // Map tab to type
+    String newType = 'all';
+    switch (_tabController.index) {
+        case 0: newType = 'all'; break;
+        case 1: newType = 'real_exam'; break;
+        case 2: newType = 'previous_year_paper'; break;
+        case 3: newType = 'question_bank'; break;
+        case 4: newType = 'all'; break; // Daily Quiz handled by filtering later or add specific type if backend supports
+    }
+    
+    // If Daily Quiz (index 4), we might still fetch 'all' and filter, OR we need a backend type.
+    // For now, let's reset and fetch.
+    if (_currentType != newType || _tabController.index == 4) {
         setState(() {
-          _allExams = data.map((e) => Exam.fromJson(e)).toList();
-          _applyFilters();
+            _currentType = newType;
+            _searchController.clear();
+            _searchQuery = '';
         });
+        _fetchExams(refresh: true);
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent &&
+        !_isLoading &&
+        !_isLoadMoreRunning &&
+        _hasMore) {
+      _fetchExams(loadMore: true);
+    }
+  }
+
+  Future<void> _fetchExams({bool refresh = false, bool loadMore = false}) async {
+    if (refresh) {
+      setState(() {
+        _isLoading = true;
+        _page = 1;
+        _hasMore = true;
+        _allExams = [];
+        _filteredExams = [];
+      });
+    } else if (loadMore) {
+      setState(() {
+        _isLoadMoreRunning = true;
+      });
+    }
+
+    try {
+      final api = ApiService();
+      // Construct URL with pagination and type
+      String url = '/exams?page=$_page&limit=$_limit';
+      if (_currentType != 'all') {
+          url += '&type=$_currentType';
+      }
+      
+      // Note: Daily Quiz logic is client-side filter on 'all' or we need backend support.
+      // Keeping 'all' for now if specific type missing.
+
+      final response = await api.get(url);
+
+      if (response.statusCode == 200) {
+        final dynamic jsonResponse = jsonDecode(response.body);
+        List<Exam> newExams = [];
+        int total = 0;
+
+        // Handle both paginated and legacy responses for robustness
+        if (jsonResponse is Map<String, dynamic> && jsonResponse.containsKey('data')) {
+            newExams = (jsonResponse['data'] as List).map((json) => Exam.fromJson(json)).toList();
+            total = jsonResponse['meta']['total'];
+        } else if (jsonResponse is List) {
+            // Legacy fallback
+            newExams = jsonResponse.map((json) => Exam.fromJson(json)).toList();
+            total = newExams.length; // Can't really know total, assume this is all
+            _hasMore = false; // Disable infinite scroll if legacy
+        }
+
+        if (mounted) {
+          setState(() {
+            if (refresh) {
+                _allExams = newExams;
+            } else {
+                _allExams.addAll(newExams);
+            }
+            
+            // Check if we have loaded all available items
+            // If strict pagination: _allExams.length < total
+            // Or simple check: if newExams.length < _limit
+            if (newExams.length < _limit) {
+                _hasMore = false;
+            } else {
+                _page++;
+            }
+            
+            _isLoading = false;
+            _isLoadMoreRunning = false;
+          });
+          _applyFilters();
+        }
+      } else {
+        throw Exception('Failed to load exams');
       }
     } catch (e) {
-      debugPrint('Error fetching exams: $e');
-    } finally {
-      setState(() => _isLoading = false);
+      print('Error fetching exams: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isLoadMoreRunning = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading exams: $e')),
+        );
+      }
     }
   }
 
   void _applyFilters() {
     setState(() {
       _filteredExams = _allExams.where((exam) {
-        // Search filter
+        // Search Filter
         if (_searchQuery.isNotEmpty) {
           final query = _searchQuery.toLowerCase();
           if (!exam.title.toLowerCase().contains(query) &&
@@ -66,22 +177,24 @@ class _ExamsScreenState extends State<ExamsScreen> {
           }
         }
 
-        // Category filter
-        if (_selectedFilter != 'all') {
-          if (_selectedFilter == 'free' && exam.isPremium) return false;
-          if (_selectedFilter == 'premium' && !exam.isPremium) return false;
-          // Add more category filters as needed
+        // Strict filtering: Only show published exams
+        if (!exam.isPublished) return false;
+
+        // Tab specific filtering (Client Side refinement)
+        // Since we now check type on server, we mostly just handle special cases here
+        
+        if (_tabController.index == 4) {
+           // Daily Quizzes
+           return exam.category == 'Free Quiz' || exam.category == 'Quiz';
+        }
+
+        if (_tabController.index == 1) {
+             // Mock Tests - Exclude free quizzes
+             if (exam.category == 'Free Quiz' || exam.category == 'Quiz') return false;
         }
 
         return true;
       }).toList();
-    });
-  }
-
-  void _setFilter(String filter) {
-    setState(() {
-      _selectedFilter = filter;
-      _applyFilters();
     });
   }
 
@@ -92,71 +205,6 @@ class _ExamsScreenState extends State<ExamsScreen> {
     });
   }
 
-  void _showFilterSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        decoration: const BoxDecoration(
-          color: AppColors.bgPrimary,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppSpacing.radiusXxl),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Filter Exams', style: AppTextStyles.h2),
-            const SizedBox(height: AppSpacing.xl),
-            
-            Text('Type', style: AppTextStyles.h4),
-            const SizedBox(height: AppSpacing.md),
-            Wrap(
-              spacing: AppSpacing.sm,
-              children: [
-                ChoiceChip(
-                  label: const Text('All'),
-                  selected: _selectedFilter == 'all',
-                  onSelected: (val) {
-                    _setFilter('all');
-                    Navigator.pop(context);
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Free'),
-                  selected: _selectedFilter == 'free',
-                  onSelected: (val) {
-                    _setFilter('free');
-                    Navigator.pop(context);
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Premium'),
-                  selected: _selectedFilter == 'premium',
-                  onSelected: (val) {
-                    _setFilter('premium');
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: AppSpacing.xxl),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Apply Filters'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,13 +213,30 @@ class _ExamsScreenState extends State<ExamsScreen> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.all(AppSpacing.screenPadding),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.screenPadding, AppSpacing.screenPadding, AppSpacing.screenPadding, 0),
               child: Row(
                 children: [
-                  Text('Test Series', style: AppTextStyles.h1),
+                  Text('Test Series', style: AppTextStyles.h1.copyWith(color: Theme.of(context).textTheme.displayLarge?.color)),
                 ],
               ),
             ),
+
+            // Tab Bar
+            TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              dividerColor: Colors.transparent, // Remove line under tabs
+              tabs: const [
+                Tab(text: 'All'),
+                Tab(text: 'Mock Tests'),
+                Tab(text: 'PYPs'),
+                Tab(text: 'Banks'),
+                Tab(text: 'Daily Quizzes'),
+              ],
+            ),
+            
+            const SizedBox(height: AppSpacing.lg),
             
             // Search Bar
             Padding(
@@ -184,9 +249,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 decoration: InputDecoration(
                   hintText: 'Search exams...',
                   hintStyle: AppTextStyles.body.copyWith(
-                    color: AppColors.textTertiary,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
                   ),
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search, color: AppColors.primaryBlue),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear),
@@ -195,52 +261,32 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             _onSearchChanged('');
                           },
                         )
-                      : IconButton(
-                          icon: const Icon(Icons.tune),
-                          onPressed: _showFilterSheet,
-                        ),
+                      : null,
                   filled: true,
-                  fillColor: AppColors.bgTertiary,
+                  fillColor: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFF1E293B) 
+                      : Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    borderSide: BorderSide(color: AppColors.divider.withOpacity(0.5)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    borderSide: BorderSide(color: AppColors.divider.withOpacity(0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.md,
+                    horizontal: 20,
+                    vertical: 14,
                   ),
                 ),
-              ),
-            ),
-            
-            const SizedBox(height: AppSpacing.lg),
-            
-            // Filter Chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenPadding,
-              ),
-              child: Row(
-                children: [
-                  FilterChip(
-                    label: const Text('All'),
-                    selected: _selectedFilter == 'all',
-                    onSelected: (val) => _setFilter('all'),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  FilterChip(
-                    label: const Text('Free'),
-                    selected: _selectedFilter == 'free',
-                    onSelected: (val) => _setFilter('free'),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  FilterChip(
-                    label: const Text('Premium'),
-                    selected: _selectedFilter == 'premium',
-                    onSelected: (val) => _setFilter('premium'),
-                  ),
-                ],
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             
@@ -255,7 +301,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 child: Row(
                   children: [
                     Text(
-                      '${_filteredExams.length} ${_filteredExams.length == 1 ? 'exam' : 'exams'} found',
+                      '${_filteredExams.length} ${_filteredExams.length == 1 ? 'exam' : 'exams'} loaded',
                       style: AppTextStyles.caption.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -270,17 +316,24 @@ class _ExamsScreenState extends State<ExamsScreen> {
             Expanded(
               child: _isLoading
                   ? _buildLoadingState()
-                  : _filteredExams.isEmpty
+                  : _filteredExams.isEmpty && !_isLoadMoreRunning
                       ? _buildEmptyState()
                       : RefreshIndicator(
-                          onRefresh: _fetchExams,
+                          onRefresh: () => _fetchExams(refresh: true),
                           color: AppColors.primaryBlue,
                           child: ListView.builder(
+                            controller: _scrollController,
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.screenPadding,
                             ),
-                            itemCount: _filteredExams.length,
+                            itemCount: _filteredExams.length + (_isLoadMoreRunning ? 1 : 0),
                             itemBuilder: (context, index) {
+                              if (index == _filteredExams.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 20),
+                                  child: Center(child: CircularProgressIndicator()),
+                                );
+                              }
                               return _buildEnhancedExamCard(
                                 _filteredExams[index],
                               );
@@ -340,7 +393,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
             OutlinedButton(
               onPressed: () {
                 _searchController.clear();
-                _setFilter('all');
+                _tabController.index = 0;
                 _onSearchChanged('');
               },
               child: const Text('Clear Filters'),
@@ -376,59 +429,149 @@ class _ExamsScreenState extends State<ExamsScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
           onTap: () {
-            Navigator.push(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                    ExamDetailScreen(exam: exam),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(1.0, 0.0);
-                  const end = Offset.zero;
-                  const curve = Curves.easeInOutCubic;
-                  
-                  var tween = Tween(begin: begin, end: end)
-                      .chain(CurveTween(curve: curve));
-                  var offsetAnimation = animation.drive(tween);
-                  
-                  return SlideTransition(
-                    position: offsetAnimation,
-                    child: child,
+            if (exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0) {
+                 Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ResultsScreen(attemptId: exam.attempts!['latestAttemptId']),
+                    ),
                   );
-                },
-                transitionDuration: const Duration(milliseconds: 300),
-              ),
-            );
+            } else {
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      ExamDetailScreen(exam: exam),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(1.0, 0.0);
+                    const end = Offset.zero;
+                    const curve = Curves.easeInOutCubic;
+                    
+                    var tween = Tween(begin: begin, end: end)
+                        .chain(CurveTween(curve: curve));
+                    var offsetAnimation = animation.drive(tween);
+                    
+                    return SlideTransition(
+                      position: offsetAnimation,
+                      child: child,
+                    );
+                  },
+                  transitionDuration: const Duration(milliseconds: 300),
+                ),
+              );
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.xl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        ),
+                        child: Icon(
+                          _getCategoryIcon(exam.title),
+                          color: Colors.white,
+                          size: AppSpacing.iconLg,
+                        ),
                       ),
-                      child: Icon(
-                        _getCategoryIcon(exam.title),
-                        color: Colors.white,
-                        size: AppSpacing.iconLg,
+                      const Spacer(),
+                      if (exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: Colors.green, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                "ATTEMPTED",
+                                style: TextStyle(
+                                  fontSize: 10, 
+                                  fontWeight: FontWeight.bold, 
+                                  color: Colors.green.shade700
+                                )
+                              )
+                            ],
+                          )
+                        )
+                      else if (exam.isPremium)
+                        const Icon(
+                          Icons.workspace_premium,
+                          color: Colors.amber,
+                          size: 24,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Metadata Badges (Authority / Year)
+                  if (exam.metadata != null && (exam.metadata!['authority'] != null || exam.metadata!['year'] != null))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        children: [
+                          if (exam.metadata!['authority'] != null)
+                            Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.white.withOpacity(0.3), width: 0.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.verified, size: 10, color: Colors.amberAccent),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${exam.metadata!['authority']}'.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (exam.metadata!['year'] != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.white.withOpacity(0.3), width: 0.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today, size: 10, color: Colors.lightBlueAccent),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${exam.metadata!['year']}',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    const Spacer(),
-                    if (exam.isPremium)
-                      const Icon(
-                        Icons.workspace_premium,
-                        color: Colors.amber,
-                        size: 24,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
                 
                 // Title
                 Text(
@@ -474,30 +617,39 @@ class _ExamsScreenState extends State<ExamsScreen> {
   }
 
   Widget _buildStat(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.white70),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: AppTextStyles.caption.copyWith(
-            color: Colors.white70,
-            fontWeight: FontWeight.w500,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: AppTextStyles.caption.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   List<Color> _getGradientColors(String title) {
-    // Simple hash-based color selection for variety
+    // Vibrant modern gradients
     final hash = title.hashCode.abs();
     final gradients = [
-      [const Color(0xFF2563EB), const Color(0xFF00BFA5)], // Blue to Cyan
-      [const Color(0xFF7C3AED), const Color(0xFF2563EB)], // Purple to Blue
-      [const Color(0xFFEF4444), const Color(0xFFF59E0B)], // Red to Amber
-      [const Color(0xFF10B981), const Color(0xFF059669)], // Green to Teal
-      [const Color(0xFFF59E0B), const Color(0xFFEF4444)], // Amber to Red
+      [const Color(0xFF4F46E5), const Color(0xFF7C3AED)], // Indigo to Violet
+      [const Color(0xFF2563EB), const Color(0xFF06B6D4)], // Blue to Cyan
+      [const Color(0xFF059669), const Color(0xFF34D399)], // Emerald to Teal
+      [const Color(0xFFDC2626), const Color(0xFFF59E0B)], // Red to Amber
+      [const Color(0xFFDB2777), const Color(0xFFF472B6)], // Pink to Rose
+      [const Color(0xFFea580c), const Color(0xFFfb923c)], // Orange
     ];
     
     return gradients[hash % gradients.length];

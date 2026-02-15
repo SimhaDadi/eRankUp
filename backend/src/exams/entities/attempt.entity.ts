@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn, Index } from 'typeorm';
+import { Type, Expose } from 'class-transformer';
 import { User } from '../../users/user.entity';
 import { Model } from './model.entity';
 import { Exam } from './exam.entity';
@@ -6,6 +7,8 @@ import { Response } from './response.entity';
 
 @Entity()
 @Index(['score', 'timeTaken'])
+@Index(['user', 'exam']) // Fast lookup: "How many times did User X attempt Exam Y?"
+@Index(['user', 'createdAt']) // Fast lookup: "Get User X's history"
 export class Attempt {
     @PrimaryGeneratedColumn('uuid')
     id: string;
@@ -13,9 +16,11 @@ export class Attempt {
     @ManyToOne(() => User)
     user: User;
 
+    @Index()
     @ManyToOne(() => Model, { nullable: true })
     model: Model;
 
+    @Index()
     @ManyToOne(() => Exam, { nullable: true })
     exam: Exam;
 
@@ -23,7 +28,9 @@ export class Attempt {
     @Column({ nullable: true })
     examId: string;
 
+    @Expose()
     @OneToMany(() => Response, (response) => response.attempt, { cascade: true })
+    @Type(() => Response)
     responses: Response[];
 
     @Index()

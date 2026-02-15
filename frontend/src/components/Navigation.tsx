@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '📊' },
-    { name: 'Practice', href: '/practice', icon: '📝' },
     { name: 'AI Tutor', href: '/ai-study', icon: '🤖' },
+    { name: 'Practice', href: '/practice', icon: '📝' },
     { name: 'Badges', href: '/badges', icon: '🏆' },
     { name: 'Leaderboard', href: '/leaderboard', icon: '👑' },
     { name: 'Results', href: '/dashboard/results', icon: '📈' },
@@ -32,8 +32,8 @@ export default function Navigation() {
                                         key={item.name}
                                         href={item.href}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive
-                                                ? 'bg-blue-600 text-white'
-                                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                             }`}
                                     >
                                         <span className="mr-2">{item.icon}</span>

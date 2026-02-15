@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, Info, Flag, Shield, Menu, X, User } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, Info, Flag, Shield, Menu, X, User, Pause, Play } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
 import MathRenderer from '@/components/MathRenderer';
 
@@ -12,11 +13,14 @@ interface Question {
     content: string;
     options: { id: string; text: string }[];
     topic?: string;
+    positiveMarks?: number;
+    negativeMarks?: number;
 }
 
 export default function TestPage() {
     const params = useParams();
     const router = useRouter();
+    const { user } = useAuthStore();
     const [questions, setQuestions] = useState<Question[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -24,7 +28,14 @@ export default function TestPage() {
     const [visited, setVisited] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
+    const [pauseReason, setPauseReason] = useState<'manual' | 'security'>('manual');
     const [timeLeft, setTimeLeft] = useState(60 * 60); // 60 minutes default
+    const [modelTitle, setModelTitle] = useState('Assessment in Progress');
+    const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+
+
+
 
     // Sections Logic
     const sections = useMemo(() => {
@@ -70,27 +81,110 @@ export default function TestPage() {
         const fetchQuestions = async () => {
             try {
                 if (params.id?.toString().startsWith('adaptive')) {
-                    // Fetch dynamic AI recommended questions for adaptive session
-                    const response = await api.post('/ai/start-adaptive-session');
-                    const { questions: adaptiveQuestions } = response.data;
+                    // Fetch existing session info (including questions) for adaptive session
+                    try {
+                        const sessionRes = await api.get(`/test-session/${params.id}`);
+                        const session = sessionRes.data;
 
-                    if (!adaptiveQuestions || adaptiveQuestions.length === 0) {
-                        setIsLoading(false);
-                        return;
+                        if (session && session.questions && session.questions.length > 0) {
+                            setQuestions(session.questions);
+                            setModelTitle('Adaptive AI Practice');
+
+                            // Load session state
+                            if (session.answers) setAnswers(session.answers);
+                            if (session.timings) setQuestionTimeLog(session.timings);
+                            if (session.flags) setFlags(session.flags);
+
+                            // Restore visited state
+                            const visitedSet = new Set<string>();
+                            if (session.answers) Object.keys(session.answers).forEach(k => visitedSet.add(k));
+                            if (session.timings) Object.keys(session.timings).forEach(k => visitedSet.add(k));
+                            setVisited(Array.from(visitedSet));
+
+                            // Timer Sync
+                            if (session.startTime) {
+                                const now = Date.now();
+                                const elapsedSeconds = Math.floor((now - session.startTime) / 1000);
+                                const durationSeconds = session.durationSeconds || (60 * 60); // Use session duration or default
+                                const remaining = Math.max(0, durationSeconds - elapsedSeconds);
+                                setTimeLeft(remaining);
+                            }
+                        } else {
+                            console.error("Adaptive session found but no questions available");
+                        }
+                    } catch (err) {
+                        console.error("Failed to load adaptive session", err);
                     }
+                    setIsLoading(false);
+                    return;
+                } else if (params.id?.toString().startsWith('chapter-')) {
+                    // --- Chapter Wise Practice Mode ---
+                    const chapterId = params.id.toString().replace('chapter-', '');
+                    try {
+                        // 1. Fetch Questions for Chapter
+                        const response = await api.get(`/exams/chapters/${chapterId}/questions`);
+                        const loadedQuestions = response.data;
 
-                    setQuestions(adaptiveQuestions);
-                    // Session is already started by the start-adaptive-session endpoint in backend
+                        if (loadedQuestions && loadedQuestions.length > 0) {
+                            setQuestions(loadedQuestions);
+                            setModelTitle('Chapter Practice');
+
+                            // 2. Load Session (Already started by PracticePage)
+                            const sessionRes = await api.get(`/test-session/${params.id}`);
+                            const session = sessionRes.data;
+
+                            if (session) {
+                                if (session.answers) setAnswers(session.answers);
+                                if (session.timings) setQuestionTimeLog(session.timings);
+                                if (session.flags) setFlags(session.flags);
+
+                                // Restore visited state
+                                const visitedSet = new Set<string>();
+                                if (session.answers) Object.keys(session.answers).forEach(k => visitedSet.add(k));
+                                if (session.timings) Object.keys(session.timings).forEach(k => visitedSet.add(k));
+                                setVisited(Array.from(visitedSet));
+
+                                // Set Timer (Practice Mode usually untimed, but let's keep it consistent or huge)
+                                // Let's give 2 hours for practice
+                                if (session.startTime) {
+                                    const now = Date.now();
+                                    const elapsedSeconds = Math.floor((now - session.startTime) / 1000);
+                                    const durationSeconds = session.durationSeconds || (loadedQuestions.length * 2 * 60);
+                                    const remaining = Math.max(0, durationSeconds - elapsedSeconds);
+                                    setTimeLeft(remaining);
+                                }
+                            }
+                        } else {
+                            console.warn('No questions found for this chapter');
+                        }
+                    } catch (err) {
+                        console.error('Failed to load chapter practice', err);
+                    }
+                    setIsLoading(false);
+                    return;
                 } else {
                     // Standard exam model loading
                     let loadedQuestions: Question[] = [];
+                    let testDurationMinutes = 60; // Default
 
                     // Try fetching as Model first
                     try {
                         const response = await api.get(`/exams/models/${params.id}`);
                         const model = response.data;
-                        if (model && model.questions && model.questions.length > 0) {
-                            loadedQuestions = model.questions;
+                        if (model) {
+                            setModelTitle(model.title);
+                            if (model.questions && model.questions.length > 0) {
+                                loadedQuestions = model.questions;
+                            }
+                            // Use Model duration, or fallback to Exam default if linked
+                            // If model.duration > 0 use it. 
+                            // If not, check if model has exams and use first exam's duration?
+                            // For now, assume Model duration is authoritative if set, else 60.
+                            if (model.duration && model.duration > 0) {
+                                testDurationMinutes = model.duration;
+                            } else if (model.exams && model.exams[0]?.duration) {
+                                testDurationMinutes = model.exams[0].duration;
+                            }
                         }
                     } catch (err) {
                         console.warn('Failed to fetch as model, trying as exam...', err);
@@ -101,8 +195,13 @@ export default function TestPage() {
                         try {
                             const response = await api.get(`/exams/${params.id}`);
                             const exam = response.data;
-                            if (exam && exam.questions && exam.questions.length > 0) {
-                                loadedQuestions = exam.questions;
+                            if (exam) {
+                                if (exam.questions && exam.questions.length > 0) {
+                                    loadedQuestions = exam.questions;
+                                }
+                                if (exam.duration && exam.duration > 0) {
+                                    testDurationMinutes = exam.duration;
+                                }
                             }
                         } catch (err) {
                             console.error('Failed to fetch as exam', err);
@@ -115,15 +214,51 @@ export default function TestPage() {
                     }
 
                     setQuestions(loadedQuestions);
+                    // Duration Sync
+                    const durationSeconds = testDurationMinutes * 60;
 
                     // Start Test Session
                     try {
-                        await api.post('/test-session/start', { testId: params.id });
-                        console.log('Session started successfully');
+                        const sessionRes = await api.post('/test-session/start', { testId: params.id });
+                        const session = sessionRes.data;
+                        if (session) {
+                            console.log('Session loaded/started:', session);
+                            if (session.answers) setAnswers(session.answers);
+                            if (session.timings) setQuestionTimeLog(session.timings);
+                            if (session.flags) setFlags(session.flags);
+
+                            // Restore visited state from existing interactions
+                            const visitedSet = new Set<string>();
+                            if (session.answers) Object.keys(session.answers).forEach(k => visitedSet.add(k));
+                            if (session.timings) Object.keys(session.timings).forEach(k => visitedSet.add(k));
+                            setVisited(Array.from(visitedSet));
+
+                            // Set current index to last answered or first
+                            const lastAnsweringIdx = loadedQuestions.findIndex(q => !session.answers[q.id]);
+                            if (lastAnsweringIdx !== -1) setCurrentQuestionIndex(lastAnsweringIdx);
+
+                            // === TIMER SYNC ===
+                            if (session.startTime) {
+                                const now = Date.now();
+                                const accumulated = session.accumulatedTime || 0;
+                                let elapsedSeconds = accumulated;
+
+                                if (session.status === 'PAUSED') {
+                                    setIsPaused(true);
+                                } else {
+                                    elapsedSeconds += Math.floor((now - session.startTime) / 1000);
+                                }
+
+                                const totalDuration = session.durationSeconds || durationSeconds;
+                                const remaining = Math.max(0, totalDuration - elapsedSeconds);
+                                setTimeLeft(remaining);
+                            }
+                        }
                     } catch (e) {
-                        console.error('Failed to start session:', e);
+                        console.error('Failed to start/load session:', e);
                     }
                 }
+
             } catch (err) {
                 console.error('Failed to load test:', err);
             } finally {
@@ -134,12 +269,69 @@ export default function TestPage() {
     }, [params.id]);
 
     useEffect(() => {
-        if (!questions.length) return;
+        if (!questions.length || isSubmitting || isPaused) return;
         const timer = setInterval(() => {
+            const currentQId = questions[currentQuestionIndex]?.id;
+            if (currentQId) {
+                setQuestionTimeLog(prev => ({
+                    ...prev,
+                    [currentQId]: (prev[currentQId] || 0) + 1
+                }));
+            }
             setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
         }, 1000);
         return () => clearInterval(timer);
-    }, [questions]);
+    }, [questions, currentQuestionIndex, isSubmitting, isPaused]);
+
+    const handlePause = async (reason: 'manual' | 'security' = 'manual') => {
+        if (isPaused || isSubmitting) return;
+        try {
+            setPauseReason(reason);
+            setIsPaused(true); // Set local state immediately for responsiveness
+
+            // Force progress sync before pausing
+            await syncProgress(answers, questionTimeLog);
+            await api.post(`/test-session/${params.id}/pause`);
+
+            if (document.fullscreenElement) {
+                try {
+                    await document.exitFullscreen();
+                } catch (e) {
+                    // Silently fail if already exiting
+                }
+            }
+        } catch (error) {
+            console.error('Failed to pause session:', error);
+            // Optionally revert isPaused if API fails? 
+            // But usually we want to stop the timer anyway for user.
+        }
+    };
+
+
+    const handleResume = async () => {
+        if (!isPaused || isSubmitting) return;
+        try {
+            await api.post(`/test-session/${params.id}/resume`);
+
+            // Re-enter fullscreen for integrity
+            try {
+                if (!document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                }
+            } catch (e) {
+                console.warn("Fullscreen resume failed:", e);
+                // Even if fullscreen fails, we might want to let them continue 
+                // but the security logic will just pause them again if they aren't in it.
+                // However, the user request says it should work.
+            }
+
+            setIsPaused(false);
+            setIsStarted(true);
+        } catch (error) {
+            console.error('Failed to resume session:', error);
+        }
+    };
+
 
     const handleOptionSelect = (optionId: string) => {
         const questionId = questions[currentQuestionIndex].id;
@@ -151,31 +343,56 @@ export default function TestPage() {
         const newAnswers = { ...answers };
         delete newAnswers[questionId];
         setAnswers(newAnswers);
+        syncProgress(newAnswers, questionTimeLog);
     };
 
+    const syncProgress = async (currentAnswers: any, currentTimings: any) => {
+        try {
+            await api.post(`/test-session/${params.id}/sync`, {
+                answers: currentAnswers,
+                timings: currentTimings
+            });
+        } catch (error) {
+            console.error('Failed to sync progress:', error);
+        }
+    };
+
+    // Periodic Auto-Sync (Every 30s)
+    useEffect(() => {
+        if (!questions.length || isSubmitting) return;
+        const syncInterval = setInterval(() => {
+            syncProgress(answers, questionTimeLog);
+        }, 30000); // 30 seconds
+        return () => clearInterval(syncInterval);
+    }, [answers, questionTimeLog, questions, isSubmitting]);
+
     const handleSaveAndNext = () => {
-        // Answer is already saved in state via handleOptionSelect selection
-        // Just move next
+        // Incrementally sync before moving
+        syncProgress(answers, questionTimeLog);
+
         if (currentQuestionIndex < questions.length - 1) {
             const nextIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(nextIndex);
-            if (nextIndex === questions.length - 1) {
-                alert("You have reached the last question");
-            }
+        } else {
+            // [NEW] Trigger submit summary prompt on the last question
+            handleSubmit();
         }
-        // TODO: Sync API call in background
     };
 
     const handlePrevious = () => {
         if (currentQuestionIndex > 0) {
+            syncProgress(answers, questionTimeLog);
             setCurrentQuestionIndex(currentQuestionIndex - 1);
         }
     };
 
-    const handleMarkForReview = () => {
+    const handleMarkForReview = async () => {
         const questionId = questions[currentQuestionIndex].id;
         if (!flags.includes(questionId)) {
-            setFlags(prev => [...prev, questionId]);
+            const newFlags = [...flags, questionId];
+            setFlags(newFlags);
+            // Toggle flag on backend
+            try { await api.post(`/test-session/${params.id}/flag`, { questionId }); } catch (e) { }
         }
         handleSaveAndNext();
     };
@@ -198,6 +415,16 @@ export default function TestPage() {
 
             const response = await api.post(`/test-session/${params.id}/submit`, payload);
             const { attemptId } = response.data;
+
+            // Exit fullscreen if active
+            if (document.fullscreenElement) {
+                try {
+                    await document.exitFullscreen();
+                } catch (err) {
+                    console.error("Failed to exit fullscreen:", err);
+                }
+            }
+
             router.push(`/dashboard/results/${attemptId}`);
         } catch (error: any) {
             console.error("Failed to submit test:", error);
@@ -207,16 +434,18 @@ export default function TestPage() {
         }
     };
 
+
+
     const getStatusColor = (idx: number, id: string) => {
         const isAnswered = !!answers[id];
         const isFlagged = flags.includes(id);
         const isVisited = visited.includes(id);
         const isCurrent = currentQuestionIndex === idx;
 
-        if (isCurrent) return 'bg-gray-200 border-gray-400'; // Current is handled by outline usually, but distinct status?
         if (isFlagged && isAnswered) return 'bg-[#7c3aed] text-white'; // Purple (Marked & Answered)
         if (isFlagged) return 'bg-[#a855f7] text-white'; // Purple (Marked)
         if (isAnswered) return 'bg-[#22c55e] text-white'; // Green
+        if (isCurrent) return 'bg-gray-200 border-gray-400'; // Current (if not answered/marked)
         if (isVisited && !isAnswered) return 'bg-[#ef4444] text-white'; // Red (Not Answered)
         return 'bg-white border-gray-300'; // Not Visited
     };
@@ -228,37 +457,105 @@ export default function TestPage() {
         return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    const [isFullScreen, setIsFullScreen] = useState(false);
-    const enterFullScreen = () => {
-        const element = document.documentElement;
-        if (element.requestFullscreen) {
-            element.requestFullscreen();
+    const [isStarted, setIsStarted] = useState(false);
+
+    // Auto-submit when time runs out
+
+    useEffect(() => {
+        if (timeLeft <= 0 && isStarted && !isSubmitting && questions.length > 0) {
+            submitTest();
         }
+    }, [timeLeft, isStarted, isSubmitting, questions.length]);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement && isStarted && !isSubmitting && !isPaused) {
+                handlePause('security');
+            }
+        };
+
+
+        const preventDefault = (e: Event) => e.preventDefault();
+
+        if (isStarted) {
+            document.addEventListener('contextmenu', preventDefault);
+            document.addEventListener('copy', preventDefault);
+            document.addEventListener('cut', preventDefault);
+            document.addEventListener('paste', preventDefault);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+                    e.preventDefault();
+                }
+            });
+        }
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('contextmenu', preventDefault);
+            document.removeEventListener('copy', preventDefault);
+            document.removeEventListener('cut', preventDefault);
+            document.removeEventListener('paste', preventDefault);
+        };
+    }, [isStarted, isSubmitting, isPaused]);
+
+    // Auto-start test on mount
+    useEffect(() => {
+        if (!isLoading && questions.length > 0 && !isStarted) {
+            const startTest = async () => {
+                try {
+                    await document.documentElement.requestFullscreen();
+                } catch (err) {
+                    console.error("Fullscreen denied:", err);
+                }
+                setIsStarted(true);
+            };
+            startTest();
+        }
+    }, [isLoading, questions.length, isStarted]);
+
+    const reEnterFullscreen = async () => {
+        handleResume();
     };
+
 
     if (isLoading) return <div className="flex h-screen items-center justify-center">Loading Assessment...</div>;
     if (questions.length === 0) return <div>No Questions Found</div>;
 
+
+
     const currentQuestion = questions[currentQuestionIndex];
 
     return (
-        <div className="flex flex-col h-screen bg-gray-100 overflow-hidden font-sans">
+        <div className="flex flex-col h-screen bg-gray-100 overflow-hidden font-sans select-none">
             {/* 1. Header */}
             <header className="h-16 bg-white border-b flex items-center justify-between px-4 shrink-0 shadow-sm z-20">
-                <div className="font-bold text-lg text-slate-800 truncate max-w-md">SSC CGL 2030 Tier-I Mock Test</div>
-                <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
-                        <div className="text-xs font-bold text-slate-500 uppercase">Time Left</div>
-                        <div className="font-mono font-bold text-xl text-slate-800">{formatTime(timeLeft)}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <User className="w-8 h-8 rounded-full bg-slate-200 p-1.5 text-slate-500" />
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsPaletteOpen(true)}
+                        className="lg:hidden p-2 hover:bg-slate-100 rounded-xl transition-all"
+                    >
+                        <Menu className="w-6 h-6 text-slate-600" />
+                    </button>
+                    <div className="font-bold text-sm md:text-lg text-slate-800 truncate max-w-[120px] md:max-w-md">{modelTitle}</div>
+                </div>
+                <div className="flex items-center gap-2 md:gap-6">
+                    <button
+                        onClick={() => handlePause('manual')}
+                        className="flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-[10px] md:text-xs transition-all"
+                    >
+                        <Pause className="w-3 h-3" /> <span className="hidden sm:inline">PAUSE</span>
+                    </button>
+                    <div className="flex items-center gap-2 bg-slate-100 px-2 md:px-3 py-1.5 rounded-full border border-slate-200">
+                        <div className="text-[9px] md:text-xs font-bold text-slate-500 uppercase hidden sm:block">Time Left</div>
+                        <div className="font-mono font-bold text-sm md:text-xl text-slate-800">{formatTime(timeLeft)}</div>
                     </div>
                 </div>
             </header>
 
             {/* 2. Section Tabs */}
-            <div className="h-12 bg-white border-b flex items-center px-2 shadow-sm shrink-0 overflow-x-auto no-scrollbar">
+            <div className="h-12 bg-white border-b flex items-center px-1 md:px-2 shadow-sm shrink-0 overflow-x-auto no-scrollbar scroll-smooth">
                 {sections.map(section => (
                     <button
                         key={section.name}
@@ -266,12 +563,12 @@ export default function TestPage() {
                             setActiveSection(section.name);
                             setCurrentQuestionIndex(section.firstIndex);
                         }}
-                        className={`px-6 h-full text-sm font-bold border-b-2 transition-colors whitespace-nowrap
+                        className={`px-4 md:px-6 h-full text-[11px] md:text-sm font-bold border-b-2 transition-colors whitespace-nowrap overflow-hidden
                             ${activeSection === section.name
                                 ? 'border-blue-600 text-blue-600 bg-blue-50/50'
                                 : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
                     >
-                        {section.name} ({section.indices.length})
+                        {section.name} <span className="text-[9px] md:text-xs opacity-60">({section.indices.length})</span>
                     </button>
                 ))}
             </div>
@@ -282,97 +579,125 @@ export default function TestPage() {
                 <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
 
                     {/* Top Info Bar */}
-                    <div className="h-12 border-b flex items-center justify-between px-6 bg-slate-50 text-sm">
+                    <div className="h-12 border-b flex items-center justify-between px-4 md:px-6 bg-slate-50 text-[10px] md:text-sm">
                         <div className="font-bold text-blue-700">Question No. {currentQuestionIndex + 1}</div>
-                        <div className="flex items-center gap-4 text-xs font-bold">
-                            <span className="text-slate-500">Marks: <span className="text-green-600">+2.0</span> / <span className="text-red-500">-0.5</span></span>
-                            <div className="flex items-center gap-1 text-slate-500 border-l pl-4 border-slate-300">
-                                <AlertCircle className="w-3 h-3" /> Report
-                            </div>
+                        <div className="flex items-center gap-4 font-bold">
+                            <span className="text-slate-500">Marks:
+                                <span className="text-green-600"> +{currentQuestion.positiveMarks || 1.0}</span> /
+                                <span className="text-red-500"> -{currentQuestion.negativeMarks || 0.25}</span>
+                            </span>
                         </div>
                     </div>
 
                     {/* Question Content (Scrollable) */}
-                    <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
-                        {/* Question Text */}
-                        <div className="mb-8 text-lg font-medium text-slate-900 border-b pb-8 border-gray-100">
-                            <MathRenderer content={currentQuestion.content} />
-                        </div>
+                    <div className="flex-1 overflow-y-auto w-full">
+                        <div className="max-w-[95%] md:max-w-[90%] mx-auto py-4 md:py-8">
+                            {/* Question Text */}
+                            <div className="mb-4 md:mb-8 text-base md:text-xl md:leading-8 font-medium text-slate-800 border-b pb-4 md:pb-8 border-gray-100">
+                                <MathRenderer content={currentQuestion.content} />
+                            </div>
 
-                        {/* Options */}
-                        <div className="space-y-4 max-w-3xl">
-                            {currentQuestion.options.map((option, idx) => {
-                                const isSelected = answers[currentQuestion.id] === option.id;
-                                return (
-                                    <label
-                                        key={option.id}
-                                        className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all
-                                            ${isSelected
-                                                ? 'border-blue-500 bg-blue-50'
-                                                : 'border-gray-200 hover:bg-slate-50 hover:border-slate-300'}`}
-                                    >
-                                        <div className="pt-0.5 relative">
+                            {/* Options */}
+                            <div className="space-y-3 md:space-y-4">
+                                {currentQuestion.options.map((option, idx) => {
+                                    const isSelected = answers[currentQuestion.id] === option.id;
+                                    const optionLabel = String.fromCharCode(65 + idx); // A, B, C, D...
+
+                                    return (
+                                        <label
+                                            key={option.id}
+                                            className={`flex items-center gap-3 md:gap-5 p-3 md:p-5 rounded-xl md:rounded-2xl border-2 cursor-pointer transition-all group relative overflow-hidden
+                                                ${isSelected
+                                                    ? 'border-[#00bfa5] bg-teal-50 shadow-md shadow-teal-500/10'
+                                                    : 'border-slate-200 md:hover:border-slate-400 md:hover:bg-white bg-slate-50/50'}`}
+                                        >
+                                            {/* Selection Indicator */}
+                                            <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-black text-sm md:text-lg border-2 shrink-0 transition-colors
+                                                ${isSelected
+                                                    ? 'bg-[#00bfa5] border-[#00bfa5] text-white'
+                                                    : 'bg-white border-slate-300 text-slate-400 group-hover:border-slate-500 group-hover:text-slate-600'}`}>
+                                                {optionLabel}
+                                            </div>
+
+                                            <div className="text-sm md:text-lg text-slate-700 font-medium pt-0.5">
+                                                <MathRenderer content={option.text} />
+                                            </div>
+
+                                            {/* Hidden Radio for accessibility */}
                                             <input
                                                 type="radio"
                                                 name="question-option"
                                                 checked={isSelected}
                                                 onChange={() => handleOptionSelect(option.id)}
-                                                className="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                                className="absolute opacity-0 w-0 h-0"
                                             />
-                                        </div>
-                                        <div className="text-base text-slate-800 font-medium pt-0.5">
-                                            <MathRenderer content={option.text} />
-                                        </div>
-                                    </label>
-                                );
-                            })}
+
+                                            {isSelected && (
+                                                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-[#00bfa5]/20 to-transparent rounded-bl-3xl -mr-4 -mt-4" />
+                                            )}
+                                        </label>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
 
                     {/* Bottom Action Footer */}
-                    <div className="h-16 border-t bg-white flex items-center justify-between px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 shrink-0">
-                        <div className="flex gap-3">
+                    <div className="h-auto md:h-16 border-t bg-white flex flex-col md:flex-row items-center justify-between px-4 py-3 md:px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 shrink-0 gap-3 md:gap-0">
+                        <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 w-full md:w-auto">
                             <button
                                 onClick={handlePrevious}
                                 disabled={currentQuestionIndex === 0}
-                                className={`px-4 py-2 rounded-lg border font-bold transition-colors text-sm flex items-center gap-2
+                                className={`px-3 md:px-4 py-2 rounded-lg border font-bold transition-colors text-[10px] md:text-sm flex items-center gap-1 md:gap-2
                                     ${currentQuestionIndex === 0
                                         ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
                                         : 'bg-white border-gray-300 text-slate-600 hover:bg-gray-100'}`}
                             >
-                                <ChevronLeft className="w-4 h-4" /> Previous
+                                <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Previous</span>
                             </button>
                             <button
                                 onClick={handleClearResponse}
-                                className="px-4 py-2 rounded-lg border border-gray-300 text-slate-600 font-bold hover:bg-gray-100 transition-colors text-sm"
+                                className="px-3 md:px-4 py-2 rounded-lg border border-gray-300 text-slate-600 font-bold hover:bg-gray-100 transition-colors text-[10px] md:text-sm"
                             >
-                                Clear Response
+                                Clear
                             </button>
                             <button
                                 onClick={handleMarkForReview}
-                                className="px-4 py-2 rounded-lg border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 font-bold transition-colors text-sm flex items-center gap-2"
+                                className="px-3 md:px-4 py-2 rounded-lg border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 font-bold transition-colors text-[10px] md:text-sm flex items-center gap-1 md:gap-2"
                             >
-                                <Flag className="w-4 h-4 fill-purple-700" /> Mark for Review & Next
+                                <Flag className="w-3 md:w-4 h-3 md:h-4 fill-purple-700" /> <span className="hidden sm:inline">Mark for Review</span><span className="sm:hidden">Mark</span>
                             </button>
                         </div>
 
                         <button
                             onClick={handleSaveAndNext}
-                            className="px-8 py-2.5 rounded-lg bg-[#2563eb] text-white font-bold hover:bg-blue-700 shadow-md shadow-blue-500/20 text-sm flex items-center gap-2"
+                            className="w-full md:w-auto px-6 md:px-8 py-2.5 rounded-lg bg-[#2563eb] text-white font-bold hover:bg-blue-700 shadow-md shadow-blue-500/20 text-sm flex items-center justify-center gap-2"
                         >
-                            Save & Next <ChevronRight className="w-4 h-4" />
+                            {currentQuestionIndex === questions.length - 1 ? 'Save & Submit' : 'Save & Next'}
+                            <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
 
                 {/* 3b. Right Sidebar (Palette) */}
-                <div className="w-[320px] bg-slate-50 border-l flex flex-col shrink-0">
+                <aside className={`fixed lg:static inset-y-0 right-0 w-[300px] md:w-[340px] bg-slate-50 border-l border-slate-200 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] flex flex-col shrink-0 z-[60] lg:z-30 transform transition-transform duration-300 ease-in-out ${isPaletteOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
+                    {/* Mobile Close Button */}
+                    <button
+                        onClick={() => setIsPaletteOpen(false)}
+                        className="lg:hidden absolute -left-10 top-4 w-10 h-10 bg-white border border-slate-200 border-r-0 rounded-l-xl flex items-center justify-center text-slate-400 shadow-lg shadow-slate-200/50"
+                    >
+                        <X className="w-5 h-5 text-slate-600" />
+                    </button>
                     {/* User & Info */}
                     <div className="p-4 bg-white border-b flex items-center gap-4">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" className="w-12 h-12 rounded-full border bg-slate-100" />
+                        <div className="w-12 h-12 rounded-full border bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-500 overflow-hidden">
+                            {user?.fullName?.charAt(0) || 'U'}
+                        </div>
                         <div>
-                            <div className="font-bold text-sm">Demo User</div>
-                            <div className="text-xs text-slate-500">Student</div>
+                            <div className="font-bold text-sm text-slate-900 truncate max-w-[150px]" title={user?.fullName || 'User'}>
+                                {user?.fullName || 'User'}
+                            </div>
+                            <div className="text-xs text-slate-500 capitalize">{user?.role || 'Student'}</div>
                         </div>
                     </div>
 
@@ -422,10 +747,23 @@ export default function TestPage() {
                             onClick={handleSubmit}
                             className="w-full py-3 bg-[#00bfa5] hover:bg-[#00a891] text-white font-bold rounded-lg shadow-lg shadow-teal-500/20 transition-all text-sm uppercase tracking-wide"
                         >
-                            Submit Test
+                            Submit Assessment
                         </button>
                     </div>
-                </div>
+                </aside>
+
+                {/* Mobile Backdrop for Palette */}
+                <AnimatePresence>
+                    {isPaletteOpen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsPaletteOpen(false)}
+                            className="lg:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50"
+                        />
+                    )}
+                </AnimatePresence>
             </div>
             {/* Submit Confirmation Modal */}
             <AnimatePresence>
@@ -441,8 +779,8 @@ export default function TestPage() {
                                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <CheckCircle className="w-6 h-6 text-blue-600" />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Submit your test</h3>
-                                <div className="mt-6 mb-8 overflow-hidden rounded-xl border border-gray-200">
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Submit your assessment</h3>
+                                <div className="mt-6 mb-8 overflow-x-auto rounded-xl border border-gray-200">
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-[#00bfa5] text-white text-[11px] uppercase tracking-wider">
                                             <tr>
@@ -513,6 +851,50 @@ export default function TestPage() {
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* PAUSED / SECURITY OVERLAY */}
+            <AnimatePresence>
+                {isPaused && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xl flex items-center justify-center p-4"
+                    >
+                        <div className="bg-white p-10 md:p-12 rounded-[3rem] shadow-2xl max-w-lg w-full text-center space-y-8 border border-white/20">
+                            <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border shadow-inner ${pauseReason === 'security' ? 'bg-sky-50 border-sky-100' : 'bg-amber-50 border-amber-100'
+                                }`}>
+                                {pauseReason === 'security' ? (
+                                    <Shield className="w-10 h-10 text-sky-500" />
+                                ) : (
+                                    <Pause className="w-10 h-10 text-amber-500" />
+                                )}
+                            </div>
+
+                            <div className="space-y-3">
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                                    {pauseReason === 'security' ? 'Security Protocol' : 'Assessment Paused'}
+                                </h2>
+                                <p className="text-slate-500 font-medium leading-relaxed">
+                                    {pauseReason === 'security' ? (
+                                        "Integrity check triggered. To maintain a fair environment, this session has been suspended. Please re-enter secure mode to continue."
+                                    ) : (
+                                        "Your progress has been synchronized and the timer is suspended. Ready to continue when you are."
+                                    )}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={handleResume}
+                                className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl shadow-xl shadow-slate-900/20 uppercase tracking-[0.2em] text-xs transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
+                            >
+                                <Play className="w-4 h-4 fill-current" />
+                                Resume Assessment
+                            </button>
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

@@ -4,6 +4,13 @@ export interface Stats {
     totalTimeTaken: number;
     accuracy: number;
     streak: number;
+    dailyQuestions?: number;
+    totalXp?: number;
+    level?: number;
+    badges?: any[];
+    dailyQuestionTarget?: number;
+    bestScore?: number;
+    rank?: string;
 }
 
 export interface RecentAttempt {

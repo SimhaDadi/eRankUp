@@ -6,6 +6,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../services/api_service.dart';
 import '../models/chapter.dart';
 import '../models/exam.dart';
+import 'exam_start_screen.dart';
 import 'test_engine_screen.dart';
 
 class ExamDetailScreen extends StatefulWidget {
@@ -164,18 +165,21 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
-                    color: Colors.amber.withOpacity(0.1),
+                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF451A03).withOpacity(0.3) : Colors.amber.withOpacity(0.1),
                     child: Column(
                       children: [
-                        const Text(
+                        Text(
                           'This is a Premium Exam',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? Colors.amberAccent : const Color(0xFFB45309)),
                         ),
                         const SizedBox(height: 8),
                         ElevatedButton(
                           onPressed: _startPayment,
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
-                          child: Text('Unlock for ₹${_currentExam.price}', style: const TextStyle(color: Colors.black)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFFD97706) : Colors.amber,
+                            foregroundColor: Colors.black,
+                          ),
+                          child: Text('Unlock for ₹${_currentExam.price}', style: const TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
@@ -193,25 +197,32 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: Text(
                               chapter.title,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                              style: TextStyle(
+                                fontSize: 16, 
+                                fontWeight: FontWeight.bold, 
+                                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF60A5FA) : Colors.blue.shade700
+                              ),
                             ),
                           ),
                           ...chapter.models.map((model) => Card(
                                 margin: const EdgeInsets.only(bottom: 8),
-                                color: canAccess ? null : Colors.grey.withOpacity(0.1),
-                                child: ListTile(
-                                  title: Text(model.title, style: TextStyle(color: canAccess ? null : Colors.grey)),
-                                  subtitle: Text('${model.totalQuestions} Questions'),
-                                  trailing: !canAccess 
-                                    ? const Icon(Icons.lock, color: Colors.grey)
-                                    : (model.isLive 
-                                        ? const Icon(Icons.play_arrow, color: Colors.emerald)
-                                        : const Icon(Icons.lock_clock, color: Colors.amber)),
+                            color: canAccess ? null : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155).withOpacity(0.5) : Colors.grey.withOpacity(0.1)),
+                            child: ListTile(
+                              title: Text(model.title, style: TextStyle(color: canAccess ? null : (Theme.of(context).brightness == Brightness.dark ? Colors.white24 : Colors.grey))),
+                              subtitle: Text('${model.totalQuestions} Questions'),
+                              trailing: !canAccess 
+                                ? Icon(Icons.lock, color: Theme.of(context).brightness == Brightness.dark ? Colors.white24 : Colors.grey)
+                                : (model.isLive 
+                                    ? const Icon(Icons.play_arrow, color: Colors.green)
+                                    : Icon(Icons.lock_clock, color: Theme.of(context).brightness == Brightness.dark ? Colors.amberAccent : Colors.amber)),
                                   onTap: (canAccess && model.isLive) ? () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => TestEngineScreen(model: model),
+                                        builder: (_) => ExamStartScreen(
+                                          model: model,
+                                          parentMetadata: _currentExam.metadata,
+                                        ),
                                       ),
                                     );
                                   } : null,

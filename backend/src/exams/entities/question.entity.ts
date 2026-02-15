@@ -1,8 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, Index, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Exclude, Expose } from 'class-transformer';
 import { Model } from './model.entity';
 import { Subject } from './subject.entity';
 import { Chapter } from './chapter.entity';
 import { Exam } from './exam.entity';
+import type { QuestionExplanation } from '../../ai/entities/question-explanation.entity';
 
 @Entity()
 export class Question {
@@ -12,12 +14,17 @@ export class Question {
     @Column('text')
     content: string;
 
+    @Column('text', { nullable: true })
+    imageUrl: string;
+
     @Column('simple-json', { nullable: true })
     options: { id: string; text: string }[];
 
-    @Column()
+    @Expose({ groups: ['admin', 'review'] })
+    @Column({ nullable: true })
     correctOptionId: string;
 
+    @Expose({ groups: ['admin', 'review'] })
     @Column('text', { nullable: true })
     explanation: string;
 
@@ -27,6 +34,7 @@ export class Question {
     @ManyToOne(() => Subject, { nullable: true })
     subject: Subject;
 
+    @Index()
     @ManyToOne(() => Chapter, { nullable: true })
     chapter: Chapter;
 
@@ -34,6 +42,7 @@ export class Question {
     @Column({ nullable: true })
     chapterId: string;
 
+    @Index()
     @ManyToOne(() => Exam, { nullable: true })
     exam: Exam;
 
@@ -51,15 +60,36 @@ export class Question {
     @Column('float', { default: 1.0 })
     positiveMarks: number;
 
+    @Expose({ groups: ['admin', 'review'] })
     @Column('float', { default: 0.25 })
     negativeMarks: number;
 
+    @Expose({ groups: ['admin', 'review'] })
     @Column({ default: 0 })
     correctCount: number;
 
+    @Expose({ groups: ['admin', 'review'] })
     @Column({ default: 0 })
     totalAttempts: number;
 
+    @Expose({ groups: ['admin', 'review'] })
+    @Column('float', { default: 0 })
+    avgTopperTime: number; // Average time taken by students who got it right
+
     @ManyToMany(() => Model, (model) => model.questions)
     models: Model[];
+
+
+    @OneToMany('QuestionExplanation', (explanation: any) => explanation.question)
+    explanations: QuestionExplanation[];
+
+    @Column({ type: 'text', nullable: true }) // Migrated to vector(768) in DB
+    @Exclude({ toPlainOnly: true })
+    embedding: any;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
+
+    @CreateDateColumn()
+    createdAt: Date;
 }

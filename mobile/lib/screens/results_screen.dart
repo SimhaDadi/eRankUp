@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../widgets/topper_comparison_widget.dart';
 import '../theme/app_theme.dart';
+import 'solution_explorer_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ResultsScreen extends StatefulWidget {
   final String attemptId;
@@ -52,6 +54,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -93,6 +98,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
     final strengths = (insights?['strengths'] as List?)?.map((e) => e.toString()).toList() ?? [];
     final topicAnalysis = insights?['topicAnalysis'] as Map<String, dynamic>?;
 
+    String? videoUrl;
+    if (_results?['exam'] != null && _results!['exam']['videoSolutionUrl'] != null) {
+      videoUrl = _results!['exam']['videoSolutionUrl'];
+    } else if (exams != null && exams.isNotEmpty && exams[0]['videoSolutionUrl'] != null) {
+      videoUrl = exams[0]['videoSolutionUrl'];
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Test Results'),
@@ -113,10 +125,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     children: [
                       Text(
                         examTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: theme.textTheme.bodyLarge?.color,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -124,7 +136,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         modelTitle,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: isDark ? Colors.white60 : Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -144,10 +156,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     ),
                     Text(
                       _formatDate(createdAt),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: theme.textTheme.bodyLarge?.color,
                       ),
                     ),
                   ],
@@ -159,16 +171,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
             
             // Hero Score Card
             Container(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(AppSpacing.xxl),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [Color(0xFF2563EB), Color(0xFF00BFA5)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight
-                ),
-                borderRadius: BorderRadius.circular(24),
+                gradient: AppColors.heroGradient,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
                 boxShadow: [
-                    BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))
+                    BoxShadow(color: AppColors.primaryBlue.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))
                 ]
               ),
               child: Column(
@@ -179,11 +187,21 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     letterSpacing: 1.2,
                   )),
                   const SizedBox(height: 8),
-                  Text('$score%', style: AppTextStyles.whiteWithShadow.copyWith(
-                    fontSize: 64,
-                    fontWeight: FontWeight.black,
-                    height: 1.1,
-                  )),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: score.toDouble()),
+                    duration: const Duration(seconds: 2),
+                    curve: Curves.easeOutQuart,
+                    builder: (context, value, child) {
+                      return Text(
+                        '${value.round()}%',
+                        style: AppTextStyles.whiteWithShadow.copyWith(
+                          fontSize: 64,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 8),
                   Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -214,25 +232,25 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 crossAxisSpacing: AppSpacing.lg,
                 childAspectRatio: 1.5,
                 children: [
-                    _buildMetricCard(Icons.center_focus_strong, "Accuracy", "$accuracy%", Colors.blue),
+                    _buildMetricCard(Icons.center_focus_strong, "Accuracy", "$accuracy%", AppColors.primaryBlue),
                     _buildMetricCard(Icons.timer, "Time Taken", "${(timeTaken/60).round()}m", Colors.orange),
                     _buildMetricCard(Icons.check_circle, "Correct", "$correct", Colors.green),
-                    _buildMetricCard(Icons.cancel, "Incorrect", "$incorrect", Colors.red),
+                    _buildMetricCard(Icons.cancel, "Incorrect", "$incorrect", AppColors.errorText),
                 ],
             ),
 
             const SizedBox(height: 32),
             
             if (insights != null) ...[ 
-              Text('AI Insights', style: AppTextStyles.h2),
+              Text('Performance Insights', style: AppTextStyles.h2),
               const SizedBox(height: 16),
               
               // Recommendation
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.04),
-                  border: Border.all(color: Colors.blue.withOpacity(0.1)),
+                  color: isDark ? const Color(0xFF1E293B) : Colors.blue.withOpacity(0.04),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.blue.withOpacity(0.1)),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -243,7 +261,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     Expanded(
                       child: Text(
                         insights['recommendation'] ?? 'Keep practicing to improve your score!',
-                        style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.black87),
+                        style: TextStyle(
+                          fontSize: 15, 
+                          height: 1.5, 
+                          color: isDark ? Colors.white70 : Colors.black87
+                        ),
                       ),
                     ),
                   ],
@@ -288,10 +310,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: theme.cardTheme.color,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade100),
-                              boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 4, offset: const Offset(0, 2))]
+                              border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
+                              boxShadow: isDark ? [] : [BoxShadow(color: Colors.grey.shade100, blurRadius: 4, offset: const Offset(0, 2))]
                           ),
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,7 +336,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                       ),
                                   ),
                                   const SizedBox(height: 8),
-                                  Text('$tCorrect / $tTotal Correct', style: const TextStyle(fontSize: 12, color: Colors.grey))
+                                  Text('$tCorrect / $tTotal Correct', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600))
                               ],
                           ),
                       );
@@ -350,11 +372,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
-                    icon: const Icon(Icons.grid_view),
-                    label: const Text('Choose Another'),
+                    onPressed: () {
+                       Navigator.push(
+                         context,
+                         MaterialPageRoute(
+                           builder: (_) => SolutionExplorerScreen(attemptId: widget.attemptId),
+                         ),
+                       );
+                    },
+                    icon: const Icon(Icons.reviews_outlined),
+                    label: const Text('Review Questions'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade900,
+                      backgroundColor: AppColors.primaryBlue,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
@@ -362,6 +391,46 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            if (videoUrl != null && videoUrl!.isNotEmpty) ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final uri = Uri.parse(videoUrl!);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Could not launch video URL')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.play_circle_fill),
+                  label: const Text('Watch Video Analysis'),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+                icon: const Icon(Icons.grid_view),
+                label: const Text('Choose Another'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade900,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
+                ),
+              ),
             ),
             
             const SizedBox(height: 24),
@@ -378,12 +447,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
   
   Widget _buildMetricCard(IconData icon, String label, String value, Color color) {
-      return Container(
-          decoration: BoxDecoration(
-              color: AppColors.bgPrimary,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
               borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: AppShadows.small,
+              border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
+              boxShadow: isDark ? [] : AppShadows.small,
           ),
           child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -396,7 +468,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   )),
                   const SizedBox(height: 2),
                   Text(value, style: AppTextStyles.h3.copyWith(
-                    fontWeight: FontWeight.black,
+                    fontWeight: FontWeight.w900,
                   )),
               ],
           ),

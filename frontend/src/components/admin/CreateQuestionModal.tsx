@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Plus, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
@@ -86,7 +87,8 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
     const fetchExams = async () => {
         try {
             const response = await api.get('/exams');
-            setExams(response.data);
+            const data = response.data;
+            setExams(Array.isArray(data) ? data : (data.data || []));
         } catch (error) {
             console.error("Failed to fetch hierarchy", error);
         }
@@ -110,6 +112,7 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
             const payload = {
                 questions: [{
                     content: questionData.content,
+                    imageUrl: (questionData as any).imageUrl,
                     options: transformedOptions,
                     correctOptionId: transformedOptions[questionData.correctOptionIndex]?.id,
                     difficultyWeight: questionData.difficultyWeight,
@@ -211,6 +214,31 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
                                 </div>
                             </div>
 
+                            {/* Image URL for DI/Figures */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Question Image URL (Optional)</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-blue-500 outline-none placeholder:text-slate-600"
+                                    placeholder="https://example.com/chart.png"
+                                    value={(questionData as any).imageUrl || ''}
+                                    onChange={e => setQuestionData({ ...questionData, imageUrl: e.target.value } as any)}
+                                />
+                                {(questionData as any).imageUrl && (
+                                    <div className="mt-2 p-2 bg-slate-900 rounded-xl border border-dashed border-slate-700 flex justify-center">
+                                        <Image
+                                            src={(questionData as any).imageUrl}
+                                            alt="Preview"
+                                            width={192}
+                                            height={192}
+                                            className="max-h-48 rounded-lg object-contain"
+                                            unoptimized
+                                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Options */}
                             <div className="space-y-3">
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Options</label>
@@ -285,8 +313,9 @@ export default function CreateQuestionModal({ isOpen, onClose, onSuccess, preSel
                             </button>
                         </div>
                     </motion.div>
-                </div>
-            )}
-        </AnimatePresence>
+                </div >
+            )
+            }
+        </AnimatePresence >
     );
 }
