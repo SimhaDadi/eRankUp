@@ -334,10 +334,24 @@ export class ScorerService implements OnModuleInit {
     }
 
     async getAttempt(id: string, userId: string) {
-        return this.attemptRepository.findOne({
+        // [OPTIMIZATION] Spliting retrieval into two steps to avoid massive join overhead
+        // 1. Fetch Attempt and high-level metadata
+        const attempt = await this.attemptRepository.findOne({
             where: { id, user: { id: userId } },
-            relations: ['model', 'model.chapter', 'model.exams', 'exam', 'responses', 'responses.question', 'responses.question.chapter'],
+            relations: ['model', 'model.chapter', 'model.exams', 'exam'],
         });
+
+        if (!attempt) return null;
+
+        // 2. Fetch Responses with their nested details in a separate batch
+        attempt.responses = await this.responseRepository.find({
+            where: { attempt: { id: attempt.id } },
+            relations: ['question', 'question.chapter'],
+            // Ensure consistent order matches attempt sequence
+            order: { answeredAt: 'ASC' }
+        });
+
+        return attempt;
     }
 
     async getLatestAttempts(userId: string, limit: number = 10) {
@@ -494,37 +508,49 @@ export class ScorerService implements OnModuleInit {
     }
 
     async getUserExamStats(userId: string) {
-        const attempts = await this.attemptRepository.find({
-            where: { user: { id: userId } },
-            relations: ['model', 'model.exams', 'exam'],
-            order: { createdAt: 'DESC' }
-        });
+        // [OPTIMIZATION] Using QueryBuilder with projection to avoid fetching full entities
+        // and large relation graphs. This is significantly faster for users with many attempts.
+        const rawAttempts = await this.attemptRepository.createQueryBuilder('attempt')
+            .leftJoin('attempt.model', 'model')
+            .leftJoin('model.exams', 'modelExams')
+            .leftJoin('attempt.exam', 'directExam')
+            .select([
+                'attempt.id',
+                'attempt.score',
+                'attempt.createdAt',
+                'directExam.id',
+                'model.id',
+                'modelExams.id'
+            ])
+            .where('attempt.userId = :userId', { userId })
+            .orderBy('attempt.createdAt', 'DESC')
+            .getRawMany();
 
-        this.logger.log(`Found ${attempts.length} attempts for user ${userId}`);
+        this.logger.log(`Found ${rawAttempts.length} raw attempt records for user ${userId}`);
 
         const stats: Record<string, { count: number; latestScore: number; bestScore: number; attemptedModelIds: string[]; latestAttemptId?: string }> = {};
 
-        for (const attempt of attempts) {
-            const examId = attempt.exam?.id || attempt.model?.exams?.[0]?.id;
+        for (const row of rawAttempts) {
+            // Map raw column names (TypeORM aliases them with entity_property)
+            const examId = row.directExam_id || row.modelExams_id;
 
             if (!examId) continue;
 
             if (!stats[examId]) {
                 stats[examId] = {
                     count: 0,
-                    latestScore: attempt.score,
-                    bestScore: attempt.score,
+                    latestScore: row.attempt_score,
+                    bestScore: row.attempt_score,
                     attemptedModelIds: [],
-                    latestAttemptId: attempt.id
+                    latestAttemptId: row.attempt_id
                 };
             }
             stats[examId].count++;
-            stats[examId].bestScore = Math.max(stats[examId].bestScore, attempt.score);
+            stats[examId].bestScore = Math.max(stats[examId].bestScore, row.attempt_score);
 
-            // Since attempts are DESC, the latestAttemptId is already the first one found
-            // No need to update it for subsequent older attempts in the loop
+            // latestAttemptId and latestScore are already correct because of DESC order
 
-            const refId = attempt.model?.id || attempt.exam?.id;
+            const refId = row.model_id || row.directExam_id;
             if (refId && !stats[examId].attemptedModelIds.includes(refId)) {
                 stats[examId].attemptedModelIds.push(refId);
             }

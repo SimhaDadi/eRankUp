@@ -62,8 +62,7 @@ export class ExamsController {
         }
 
         const purchasedSet = new Set(purchasedExamIds);
-
-        for (const exam of exams) {
+        await Promise.all(exams.map(async (exam) => {
             if (exam.isPremium) {
                 const hasDirectlyPurchased = purchasedSet.has(exam.id);
                 // [FIX] Pass pre-fetched activePasses
@@ -102,7 +101,7 @@ export class ExamsController {
                 totalModels = 1;
             }
             (exam as any).totalModels = totalModels;
-        }
+        }));
 
         if (meta) {
             return { data: exams, meta };
