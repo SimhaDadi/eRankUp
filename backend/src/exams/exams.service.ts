@@ -49,27 +49,83 @@ export class ExamsService implements OnApplicationBootstrap {
         private aiService: AIService,
     ) { }
 
+    private mapChaptersFromModels(exam: Exam): any[] {
+        const chaptersMap = new Map();
+
+        // [DEBUG]
+        if (exam.subjects && exam.subjects.length > 0) {
+            console.log(`[DEBUG-MAP] Exam ${exam.id} has ${exam.subjects.length} subjects.`);
+            exam.subjects.forEach(s => {
+                console.log(`   - Subject ${s.title}: ${s.chapters?.length || 0} chapters`);
+            });
+        }
+
+        // 1. Map from direct models via exam.models
+        if (exam.models && exam.models.length > 0) {
+            exam.models.forEach(model => {
+                if (model.chapter) {
+                    if (!chaptersMap.has(model.chapter.id)) {
+                        chaptersMap.set(model.chapter.id, {
+                            ...model.chapter,
+                            models: []
+                        });
+                    }
+                    chaptersMap.get(model.chapter.id).models.push(model);
+                }
+            });
+        }
+
+        // 2. Map from hierarchy via exam.subjects
+        if (exam.subjects && exam.subjects.length > 0) {
+            exam.subjects.forEach(subject => {
+                if (subject.chapters) {
+                    subject.chapters.forEach(chapter => {
+                        if (!chaptersMap.has(chapter.id)) {
+                            // Initialize chapter without models if not already present
+                            chaptersMap.set(chapter.id, {
+                                ...chapter,
+                                models: []
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        return Array.from(chaptersMap.values());
+    }
+
     async findAll(options: { includeUnpublished?: boolean; type?: string; page?: number; limit?: number } = {}) {
         const { includeUnpublished = false, type, page, limit } = options;
         const isPaginated = page !== undefined && limit !== undefined;
 
         const cacheKey = includeUnpublished
-            ? `exams:all:admin:${type || 'all'}:${page || 'nopage'}:${limit || 'nolimit'}:v6`
-            : `exams:all:${type || 'all'}:${page || 'nopage'}:${limit || 'nolimit'}:v6`;
+            ? `exams:all:admin:${type || 'all'}:${page || 'nopage'}:${limit || 'nolimit'}:v8`
+            : `exams:all:${type || 'all'}:${page || 'nopage'}:${limit || 'nolimit'}:v8`;
 
-        const cached = await this.cacheService.get<any>(cacheKey);
-        if (cached) return cached;
+        console.log(`[DEBUG] findAll called with key: ${cacheKey}`);
+
+        // const cached = await this.cacheService.get<any>(cacheKey);
+        // if (cached) {
+        //    console.log('[DEBUG] Returning cached result');
+        //    return cached;
+        // }
 
         const query = this.examsRepository.createQueryBuilder('exam')
+            // Direct models relation
             .leftJoinAndSelect('exam.models', 'models')
             .leftJoinAndSelect('models.chapter', 'chapter')
             .leftJoinAndSelect('chapter.subject', 'subject')
+            // Hierarchy relation (for Real Exams)
+            .leftJoinAndSelect('exam.subjects', 'subjects')
+            .leftJoinAndSelect('subjects.chapters', 'subjectChapters')
+            // Count relations
             .loadRelationCountAndMap('exam.directQuestionCount', 'exam.questions');
 
         if (!includeUnpublished) {
             query.andWhere('exam.isPublished = :isPublished', { isPublished: true });
         }
-        if (type && type !== 'all') {
+        if (type) {
             query.andWhere('exam.type = :type', { type });
         }
 
@@ -77,30 +133,51 @@ export class ExamsService implements OnApplicationBootstrap {
         query.orderBy('exam.createdAt', 'DESC');
 
         if (isPaginated) {
-            query.skip((page - 1) * limit!)
-                .take(limit);
+            const pageNum = parseInt(page.toString());
+            const limitNum = parseInt(limit.toString());
+            query.skip((pageNum - 1) * limitNum).take(limitNum);
 
             const [exams, total] = await query.getManyAndCount();
 
+            // Transform exams to include chapters
+            const transformedExams = exams.map(exam => {
+                const chapters = this.mapChaptersFromModels(exam);
+                // [DEBUG] Logs kept for verification
+                console.log(`[DEBUG] Exam "${exam.title}" (ID: ${exam.id}):`);
+                console.log(`   - Mapped Chapters: ${chapters.length}`);
+                return {
+                    ...exam,
+                    chapters
+                };
+            });
+
             const result = {
-                data: exams,
+                data: transformedExams,
                 meta: {
                     total,
-                    page: +page,
-                    limit: +limit,
-                    totalPages: Math.ceil(total / limit!)
-                }
+                    page: pageNum,
+                    limit: limitNum,
+                    totalPages: Math.ceil(total / limitNum),
+                },
             };
 
-            await this.cacheService.set(cacheKey, result, 300);
+            await this.cacheService.set(cacheKey, result, 300); // 5 minutes cache
             return result;
+        } else {
+            const exams = await query.getMany();
+            // Transform exams to include chapters
+            const transformedExams = exams.map(exam => {
+                const chapters = this.mapChaptersFromModels(exam);
+                console.log(`[DEBUG] Exam "${exam.title}" (ID: ${exam.id}):`);
+                console.log(`   - Mapped Chapters: ${chapters.length}`);
+                return {
+                    ...exam,
+                    chapters
+                };
+            });
+            await this.cacheService.set(cacheKey, transformedExams, 300);
+            return transformedExams;
         }
-
-        const exams = await query.getMany();
-
-        // [FIX] Reduced TTL to 5m (300s) to avoid stale data issues
-        await this.cacheService.set(cacheKey, exams, 300);
-        return exams;
     }
 
     async findOne(id: string, includeUnpublished: boolean = false) {

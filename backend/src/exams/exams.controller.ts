@@ -75,8 +75,8 @@ export class ExamsController {
             const directCount = (exam as any).directQuestionCount || 0;
             (exam as any).questionCount = Math.max(modelCount, directCount);
 
-            const uniqueChapters = new Set(exam.models?.map((m: any) => m.chapter?.id).filter((id: any) => !!id));
-            (exam as any).chapters = Array.from(uniqueChapters).map(id => ({ id }));
+            // const uniqueChapters = new Set(exam.models?.map((m: any) => m.chapter?.id).filter((id: any) => !!id));
+            // (exam as any).chapters = Array.from(uniqueChapters).map(id => ({ id }));
 
             // Attach attempts stats
             if (attemptStats[exam.id]) {
