@@ -194,13 +194,12 @@ export class ExplanationService {
         offset?: number;
     }) {
         try {
+            // 1. Fetch Questions with paging (Decoupled from One-to-Many Explanations for stability)
             const qb = this.questionRepository.createQueryBuilder('question')
                 .leftJoinAndSelect('question.subject', 'subject')
-                .leftJoinAndSelect('question.chapter', 'chapter')
-                // Basic join for explanations - filtering logic moved to mapping for stability
-                .leftJoinAndSelect('question.explanations', 'explanation');
+                .leftJoinAndSelect('question.chapter', 'chapter');
 
-            // 1. Core Filters (Single Table or Simple ManyToOne)
+            // 1.1 Core Filters
             if (filters.search) {
                 qb.andWhere(new Brackets(sqb => {
                     sqb.where('question.content ILIKE :search', { search: `%${filters.search}%` })
@@ -217,7 +216,7 @@ export class ExplanationService {
                 qb.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
             }
 
-            // 2. Complex Many-to-Many Filters (Hardened via EXISTS Subqueries)
+            // 1.2 Complex Many-to-Many Filters (Hardened via EXISTS Subqueries)
             if (filters.modelId) {
                 qb.andWhere(`EXISTS (
                     SELECT 1 FROM model_questions mq 
@@ -246,7 +245,6 @@ export class ExplanationService {
             }
 
             if (filters.status && filters.status !== 'all') {
-                // Filter logic for global explanations (contextExamId is null)
                 if (filters.status === 'pending') {
                     qb.andWhere(`NOT EXISTS (
                         SELECT 1 FROM question_explanation qe 
@@ -265,43 +263,55 @@ export class ExplanationService {
                 }
             }
 
-            // Order by ID or some stable field if createdAt is missing
             qb.orderBy('question.id', 'DESC');
-
             qb.take(filters.limit || 50);
             qb.skip(filters.offset || 0);
 
-            this.logger.log(`[listExplanations] Executing HARDENED query (EXISTS pattern) with filters: ${JSON.stringify(filters)}`);
+            this.logger.log(`[listExplanations] Executing DECOUPLED query (paging scale: ${filters.limit})`);
             const [questions, total] = await qb.getManyAndCount();
 
-            // Map to the unified structure expected by frontend
-            return {
-                items: questions.map((q: any) => {
-                    try {
-                        // Find the global explanation (where contextExamId is null)
-                        const explanation = q.explanations?.find((e: any) => e.contextExamId === null);
+            if (questions.length === 0) {
+                return { items: [], total, limit: filters.limit || 50, offset: filters.offset || 0 };
+            }
 
-                        return {
-                            id: explanation?.id || `missing-${q.id}`,
-                            questionId: q.id,
-                            questionContent: this.aiService.cleanAIResponse(q.content || ''),
-                            subject: q.subject?.title || 'Unknown',
-                            chapter: q.chapter?.title || 'Unknown',
-                            aiExplanation: this.aiService.cleanAIResponse(explanation?.aiExplanation || null),
-                            adminApprovedExplanation: this.aiService.cleanAIResponse(explanation?.adminApprovedExplanation || null),
-                            isVerified: explanation?.isVerified || false,
-                            status: !explanation ? 'pending' : (explanation.isVerified ? 'verified' : 'generated'),
-                            helpfulCount: explanation?.helpfulCount || 0,
-                            notHelpfulCount: explanation?.notHelpfulCount || 0,
-                            averageRating: explanation?.averageRating || 0,
-                            viewCount: explanation?.viewCount || 0,
-                            createdAt: (explanation?.createdAt || q.createdAt || new Date()).toISOString()
-                        };
-                    } catch (mapError) {
-                        this.logger.error(`Failed to map question ${q.id}:`, mapError);
-                        return null;
-                    }
-                }).filter(Boolean),
+            // 2. Fetch specific global explanations for these paged questions only
+            const questionIds = questions.map(q => q.id);
+            const explanations = await this.explanationRepository.find({
+                where: {
+                    questionId: In(questionIds),
+                    contextExamId: IsNull()
+                }
+            });
+
+            // 3. Merge and Map
+            const items = questions.map((q: any) => {
+                try {
+                    const explanation = explanations.find(e => e.questionId === q.id);
+
+                    return {
+                        id: explanation?.id || `missing-${q.id}`,
+                        questionId: q.id,
+                        questionContent: this.aiService.cleanAIResponse(q.content || ''),
+                        subject: q.subject?.title || 'Unknown',
+                        chapter: q.chapter?.title || 'Unknown',
+                        aiExplanation: this.aiService.cleanAIResponse(explanation?.aiExplanation || null),
+                        adminApprovedExplanation: this.aiService.cleanAIResponse(explanation?.adminApprovedExplanation || null),
+                        isVerified: explanation?.isVerified || false,
+                        status: !explanation ? 'pending' : (explanation.isVerified ? 'verified' : 'generated'),
+                        helpfulCount: explanation?.helpfulCount || 0,
+                        notHelpfulCount: explanation?.notHelpfulCount || 0,
+                        averageRating: explanation?.averageRating || 0,
+                        viewCount: explanation?.viewCount || 0,
+                        createdAt: new Date(explanation?.createdAt || q.createdAt || new Date()).toISOString()
+                    };
+                } catch (mapError) {
+                    this.logger.error(`Failed to map question ${q.id}:`, mapError);
+                    return null;
+                }
+            }).filter(Boolean);
+
+            return {
+                items,
                 total,
                 limit: filters.limit || 50,
                 offset: filters.offset || 0
