@@ -28,6 +28,12 @@ interface Chapter {
     name?: string;
     description?: string;
     modelCount?: number;
+    attempts?: {
+        count: number;
+        latestAttemptId: string;
+        bestScore: number;
+        latestScore: number;
+    };
 }
 
 interface Subject {
@@ -77,7 +83,8 @@ export default function PracticePage() {
                         title: chapterName,
                         name: chapterName,
                         description: exam.description,
-                        modelCount: 1 // Each exam is one test
+                        modelCount: 1, // Each exam is one test
+                        attempts: exam.attempts // Map attempts data from API
                     });
                 });
 
@@ -282,15 +289,27 @@ export default function PracticePage() {
                                                                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Practice Module</span>
                                                                         </div>
                                                                     </div>
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            startChapterPractice(chapter.id);
-                                                                        }}
-                                                                        className="px-6 py-2.5 bg-white border border-sky-100 text-sky-600 hover:bg-sky-600 hover:text-white hover:border-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm"
-                                                                    >
-                                                                        Launch
-                                                                    </button>
+                                                                    {chapter.attempts?.latestAttemptId ? (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                router.push(`/dashboard/results/${chapter.attempts?.latestAttemptId}`);
+                                                                            }}
+                                                                            className="px-6 py-2.5 bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                                                                        >
+                                                                            View Result
+                                                                        </button>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                startChapterPractice(chapter.id);
+                                                                            }}
+                                                                            className="px-6 py-2.5 bg-white border border-sky-100 text-sky-600 hover:bg-sky-600 hover:text-white hover:border-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                                                                        >
+                                                                            Launch
+                                                                        </button>
+                                                                    )}
                                                                 </motion.div>
                                                             ))}
                                                             {(!subject.chapters || subject.chapters.length === 0) && (

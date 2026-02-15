@@ -23,7 +23,7 @@ import { ExplanationService } from './explanation.service';
 import { AIPriority } from './ai-queue.service';
 
 @Controller('explanations')
-// @UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'))
 export class ExplanationController {
     constructor(private explanationService: ExplanationService) { }
 
@@ -32,7 +32,7 @@ export class ExplanationController {
      * Admin only - generates and caches AI explanation
      */
     @Post('generate/:questionId')
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     async generateExplanation(
         @Request() req: any,
@@ -73,7 +73,7 @@ export class ExplanationController {
     }
 
     @Post('generate-missing')
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     async generateMissingExplanations(
         @Request() req: any,
@@ -104,7 +104,7 @@ export class ExplanationController {
      * Admin only - processes questions without explanations
      */
     @Post('bulk-generate')
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @UseGuards(RolesGuard)
     @Roles(UserRole.ADMIN)
     async bulkGenerateExplanations(
         @Request() req: any,
@@ -163,14 +163,15 @@ export class ExplanationController {
     async getExplanation(
         @Request() req: any,
         @Param('questionId') questionId: string,
-        @Query('examId') examId?: string
+        @Query('examId') examId?: string,
+        @Query('userAnswer') userAnswer?: string
     ) {
         try {
             const explanation = await this.explanationService.generateExplanation(
                 req.user.userId,
                 req.user.role,
                 questionId,
-                undefined,
+                userAnswer,
                 examId
             );
 

@@ -336,7 +336,7 @@ export class ScorerService implements OnModuleInit {
     async getAttempt(id: string, userId: string) {
         return this.attemptRepository.findOne({
             where: { id, user: { id: userId } },
-            relations: ['model', 'model.chapter', 'model.exams', 'exam', 'responses', 'responses.question'],
+            relations: ['model', 'model.chapter', 'model.exams', 'exam', 'responses', 'responses.question', 'responses.question.chapter'],
         });
     }
 
