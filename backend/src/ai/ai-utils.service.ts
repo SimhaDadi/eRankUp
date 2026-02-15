@@ -65,6 +65,9 @@ export class AIUtilsService {
         let cleaned = this.stripHidden(text)
             // Remove citation markers like 【0†source】
             .replace(/【[^】]*】/g, '')
+            // Defensive: Remove common AI "self-correction" markers if they leak out
+            .replace(/^(Actually|Wait|Incorrect|Re-checking|Correction):?\s*/gi, '')
+            .replace(/->\s*(Actually|Wait|Incorrect|Re-checking|Correction):?\s*/gi, '→ ')
             // Normalize newlines
             .replace(/\\n/g, '\n')
             // Fix LaTeX escaping (\\sqrt -> \sqrt)

@@ -112,9 +112,6 @@ export class PromptBuilderService {
   
   ### Relevant Shortcut Hint
   ${this.getShortcutHint(subjectTitle, question.topic || '')}
-  
-  ### Math Verification Rule
-  ${PROMPTS_CONFIG.syllabusGuardrails.mathVerification}
   `;
 
         if (userAnswer && userAnswer !== question.correctOptionId) {
@@ -125,8 +122,14 @@ export class PromptBuilderService {
   [HIDDEN THINKING INSTRUCTION]
   You MUST first plan your logic inside a '[HIDDEN]' ... '[/HIDDEN]' block. 
   - Analyze the question step-by-step here to ensure accuracy.
-  - Verify your facts or logic before committing to the final answer.
+  - ${PROMPTS_CONFIG.syllabusGuardrails.mathVerification}
+  - Verify your logic before committing to the final answer.
   - This block will NOT be seen by the student.
+
+  ### NEGATIVE CONSTRAINTS (FOR VISIBLE OUTPUT):
+  - Do NOT include internal deliberation phrases like "Wait...", "Actually...", "Incorrect...", or "Re-checking...".
+  - If you find an error during hidden thinking, fix it BEFORE writing the final response.
+  - The final response must be confident and lead with the solution.
 
   [MANDATORY FORMAT - YOU MUST INCLUDE ALL SECTIONS BELOW]
   
@@ -327,8 +330,10 @@ Tutor:`;
         [HIDDEN THINKING INSTRUCTION]
         You MUST first plan your logic inside a '[HIDDEN]' ... '[/HIDDEN]' block. 
         - Analyze the question step-by-step here to ensure accuracy.
-        - Verify your facts or logic before committing to the final answer.
+        - ${PROMPTS_CONFIG.syllabusGuardrails.mathVerification}
+        - Verify your logic before committing to the final answer.
         - This block will NOT be seen by the student.
+        - **Visible Constraint**: Do NOT include self-correction phrases like "Actually" or "Incorrect" in the final output.
 
         [MANDATORY RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY]
         💡 CORE: Identify the main concept/rule in one line.
