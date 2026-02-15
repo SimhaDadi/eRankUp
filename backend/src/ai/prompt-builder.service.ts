@@ -115,19 +115,19 @@ export class PromptBuilderService {
   "${PROMPTS_CONFIG.syllabusGuardrails.refusalMessage}"
   
   ### Context
-  - **Subject**: ${subjectTitle}
-  - **Topic**: ${question.topic}${question.chapter ? ` - ${question.chapter.title}` : ''}
+  - **Subject**: ${subjectTitle || 'General Studies'}
+  - **Topic**: ${question.topic || 'General'}${question.chapter ? ` - ${question.chapter.title || 'General'}` : ''}
   - **Question**: 
   [USER_DATA_START]
-  ${this.sanitizeInput(question.content)}
+  ${this.sanitizeInput(question.content || '')}
   [USER_DATA_END]
   
   - **Options**:
-  ${question.options.map(opt => `${opt.id}) ${this.sanitizeInput(opt.text)}`).join('\n')}
-  - **Correct Answer**: ${question.correctOptionId}) ${correctOption?.text}
+  ${(question.options || []).map(opt => `${opt.id}) ${this.sanitizeInput(opt.text || '')}`).join('\n')}
+  - **Correct Answer**: ${question.correctOptionId || 'N/A'}) ${correctOption?.text || 'Correct option data missing'}
   
   ### Relevant Shortcut Hint
-  ${this.getShortcutHint(subjectTitle, question.topic || '')}
+  ${this.getShortcutHint(subjectTitle || 'General', question.topic || '')}
   `;
 
         if (userAnswer && userAnswer !== question.correctOptionId) {

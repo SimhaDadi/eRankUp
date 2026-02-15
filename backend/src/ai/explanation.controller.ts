@@ -58,6 +58,7 @@ export class ExplanationController {
                 explanation
             };
         } catch (error) {
+            this.logger.error(`[generateExplanation] Failed for questionId=${questionId}: ${error.message}`, error.stack);
             throw new HttpException(
                 error.message || 'Failed to generate explanation',
                 error.status || HttpStatus.INTERNAL_SERVER_ERROR

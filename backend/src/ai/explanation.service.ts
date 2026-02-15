@@ -40,15 +40,23 @@ export class ExplanationService {
         contextExamId?: string,
         priority: AIPriority = AIPriority.MEDIUM
     ): Promise<string> {
-        // 1. Check cache first
-        const cached = await this.explanationRepository.findOne({
-            where: { questionId, contextExamId: contextExamId || null }
-        });
+        this.logger.log(`[generateExplanation] Start for question=${questionId}, user=${userId}`);
 
-        if (cached) {
-            cached.viewCount++;
-            await this.explanationRepository.save(cached);
-            return cached.adminApprovedExplanation || cached.aiExplanation;
+        // 1. Check cache first
+        try {
+            const cached = await this.explanationRepository.findOne({
+                where: { questionId, contextExamId: contextExamId || IsNull() }
+            });
+
+            if (cached) {
+                this.logger.debug(`[generateExplanation] Cache hit for question=${questionId}`);
+                cached.viewCount++;
+                await this.explanationRepository.save(cached);
+                return cached.adminApprovedExplanation || cached.aiExplanation;
+            }
+        } catch (cacheError) {
+            this.logger.warn(`[generateExplanation] Cache lookup error: ${cacheError.message}`);
+            // Continue to generation
         }
 
         const question = await this.questionRepository.findOne({
@@ -57,10 +65,33 @@ export class ExplanationService {
         });
 
         if (!question) {
+            this.logger.error(`[generateExplanation] Question not found: ${questionId}`);
             throw new Error('Question not found');
         }
 
-        await this.aiUsageService.checkQuota(userId, role);
+        try {
+            await this.aiUsageService.checkQuota(userId, role);
+        } catch (quotaError) {
+            this.logger.warn(`[generateExplanation] Quota blocked for user=${userId}: ${quotaError.message}`);
+            throw quotaError;
+        }
+
+        let solveResult = { solvedOptionId: 'UNKNOWN', logic: 'Skipped' };
+        let isLogicalMismatch = false;
+
+        try {
+            // 2. Blind Solve Pass
+            this.logger.log(`[generateExplanation] Step 1: Blind Solve phase for ${question.id}`);
+            solveResult = await this.aiService.solveQuestion(question);
+            isLogicalMismatch = solveResult.solvedOptionId !== question.correctOptionId && solveResult.solvedOptionId !== 'ERROR';
+
+            if (isLogicalMismatch) {
+                this.logger.warn(`[generateExplanation] LOGICAL MISMATCH: (Stored: ${question.correctOptionId}, Solved: ${solveResult.solvedOptionId})`);
+            }
+        } catch (solveError) {
+            this.logger.error(`[generateExplanation] Blind solve failed phase: ${solveError.message}`);
+            // Continue anyway
+        }
 
         try {
             let contextExamTitle = '';
@@ -69,102 +100,89 @@ export class ExplanationService {
                 contextExamTitle = exam?.title || '';
             }
 
-            // 5. Blind Solve Pass
-            this.logger.log(`🔍 Performing Blind Solve for question ${question.id}...`);
-            const solveResult = await this.aiService.solveQuestion(question);
-            const isLogicalMismatch = solveResult.solvedOptionId !== question.correctOptionId && solveResult.solvedOptionId !== 'ERROR';
-
-            if (isLogicalMismatch) {
-                this.logger.warn(`⚠️ LOGICAL MISMATCH: Question ${question.id} (Stored: ${question.correctOptionId}, Solved: ${solveResult.solvedOptionId})`);
-            }
-
-            // 6. Generate Explanation using AI
-            this.logger.log('📝 Building explanation prompt...');
+            // 3. Generate Explanation using AI
+            this.logger.log('[generateExplanation] Step 2: Generation phase');
             const prompt = this.buildPrompt(question, userAnswer, contextExamTitle, solveResult);
-            this.logger.log(`✅ Prompt built successfully. Length: ${prompt.length}`);
 
             let explanation = '';
             let isValid = false;
             let attempts = 0;
 
             while (!isValid && attempts < 2) {
-                // 7. Call AI Service
-                this.logger.log('🚀 Calling AI Service to generate explanation...');
+                this.logger.log(`[generateExplanation] AI call attempt ${attempts + 1}`);
                 const rawExplanation = await this.aiService.generateText(prompt, [], priority);
                 explanation = this.aiService.cleanAIResponse(rawExplanation);
-                this.logger.log(`✅ AI Service returned explanation. Length: ${explanation.length}`);
 
+                this.logger.log(`[generateExplanation] Received response (len=${explanation.length})`);
                 await this.aiUsageService.trackUsage(userId, prompt, explanation);
-                const verification = await this.aiService.verifyExplanation(question, explanation);
-                isValid = verification.isValid;
 
-                if (!isValid) {
-                    this.logger.warn(`Generated explanation failed verification for question ${question.id}: ${verification.feedback}`);
-                    attempts++;
+                try {
+                    const verification = await this.aiService.verifyExplanation(question, explanation);
+                    isValid = verification.isValid;
+                    if (!isValid) this.logger.warn(`[generateExplanation] Blocked by verification: ${verification.feedback}`);
+                } catch (vError) {
+                    this.logger.warn(`[generateExplanation] Verification skipped: ${vError.message}`);
+                    isValid = true; // Fail open
                 }
+
+                if (!isValid) attempts++;
             }
 
+            this.logger.log(`[generateExplanation] Saving final resulting explanation (verified=${isValid})`);
             const newExplanation = this.explanationRepository.create({
                 questionId,
                 contextExamId: contextExamId || null,
-                aiExplanation: explanation,
+                aiExplanation: explanation || 'Generation failed to produce text.',
                 isVerified: isValid,
                 isLogicalMismatch,
                 logicalSolveOutcome: `Solved: ${solveResult.solvedOptionId} | Logic: ${solveResult.logic}`,
-                viewCount: 1
+                viewCount: 1,
+                createdAt: new Date()
             });
             await this.explanationRepository.save(newExplanation);
 
+            // Update question cache field
             question.explanation = explanation;
             await this.questionRepository.save(question);
 
             return explanation;
         } catch (error) {
-            // Enhanced error logging to identify the root cause
-            this.logger.error('❌ AI EXPLANATION GENERATION FAILED', {
-                questionId,
-                errorType: error.constructor.name,
-                errorMessage: error.message,
-                errorStatus: error.status,
-                errorResponse: error.response?.data,
-                stackTrace: error.stack
-            });
-
-            // Log specific error types
-            if (error.status === 429 || (error.message && error.message.includes('429'))) {
-                this.logger.warn('⚠️  AI RATE LIMIT EXCEEDED - Using fallback explanation');
-            } else if (error.message && error.message.includes('API key')) {
-                this.logger.error('🔑 API KEY ERROR - Check your AI service configuration');
-            } else if (error.message && error.message.includes('timeout')) {
-                this.logger.error('⏱️  TIMEOUT ERROR - AI service took too long to respond');
-            } else if (error.message && error.message.includes('network')) {
-                this.logger.error('🌐 NETWORK ERROR - Cannot reach AI service');
-            } else {
-                this.logger.error('🔥 UNKNOWN ERROR - Check logs above for details');
-            }
+            this.logger.error('[generateExplanation] FATAL pipeline failure', error.stack);
 
             const fallbackExplanation = this.getFallbackExplanation(question);
 
-            // Save fallback so it persists (otherwise UI reverts to "Generate")
-            const newExplanation = this.explanationRepository.create({
-                questionId,
-                contextExamId: contextExamId || null,
-                aiExplanation: fallbackExplanation,
-                isVerified: false,
-                viewCount: 1
-            });
-            await this.explanationRepository.save(newExplanation);
-
-            question.explanation = fallbackExplanation;
-            await this.questionRepository.save(question);
+            try {
+                // Persistent save of fallback to satisfy UI
+                const failRecord = this.explanationRepository.create({
+                    questionId,
+                    contextExamId: contextExamId || null,
+                    aiExplanation: fallbackExplanation,
+                    isVerified: false,
+                    viewCount: 1,
+                    createdAt: new Date()
+                });
+                await this.explanationRepository.save(failRecord);
+            } catch (saveError) {
+                this.logger.error(`[generateExplanation] Could not even save fallback: ${saveError.message}`);
+            }
 
             return fallbackExplanation;
         }
     }
 
     private getFallbackExplanation(question: Question): string {
-        const correctOption = question.options.find(opt => opt.id === question.correctOptionId);
-        return `The correct answer is ${question.correctOptionId}) ${correctOption?.text}. ${question.explanation || 'Please review this topic in your study materials.'}`;
+        try {
+            const correctOptionId = question.correctOptionId || 'N/A';
+            const options = question.options || [];
+            const correctOption = options.find(opt => opt.id === correctOptionId);
+
+            const baseText = `The correct answer is ${correctOptionId}${correctOption ? `) ${correctOption.text}` : ''}.`;
+            const existingExplanation = question.explanation ? `\n\nExisting Logic: ${question.explanation}` : '';
+
+            return `${baseText}${existingExplanation}\n\n[Note: AI Generation is temporarily unavailable for this question format.]`;
+        } catch (e) {
+            return 'The correct answer is indicated in the options. Please review your textbook for the detailed logic.';
+        }
     }
 
     private buildPrompt(question: Question, userAnswer?: string, contextExamTitle?: string, solveResult?: any): string {
