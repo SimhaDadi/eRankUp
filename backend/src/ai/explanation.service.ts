@@ -198,13 +198,7 @@ export class ExplanationService {
                 .leftJoinAndSelect('question.subject', 'subject')
                 .leftJoinAndSelect('question.chapter', 'chapter')
                 // Join only global explanations (contextExamId is null)
-                .leftJoinAndSelect('question.explanations', 'explanation', 'explanation.contextExamId IS NULL')
-                // [FIX] Join for exam filtering through the hierarchical path: Question → Subject → Exam
-                .leftJoin('subject.exam', 'subjectExam')
-                // Legacy relationships for backward compatibility
-                .leftJoin('question.exams', 'exams')
-                .leftJoin('question.models', 'models')
-                .leftJoin('models.exams', 'modelExams');
+                .leftJoinAndSelect('question.explanations', 'explanation', 'explanation.contextExamId IS NULL');
 
             if (filters.search) {
                 qb.andWhere(new Brackets(sqb => {
@@ -222,31 +216,25 @@ export class ExplanationService {
                 qb.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
             }
 
-            if (filters.modelId) {
-                qb.andWhere('models.id = :modelId', { modelId: filters.modelId });
-            }
+            // ONLY join models/exams if specifically requested to avoid Cartesian product explosion
+            if (filters.modelId || filters.examId) {
+                qb.leftJoin('question.models', 'models');
 
-            // [FIX] Filter by examId - finds questions linked via:
-            // 1. Subject → Exam (PRIMARY PATH - Subject belongs to Exam)
-            // 2. Direct examId column (ManyToOne - legacy)
-            // 3. exams ManyToMany junction table (legacy)
-            // 4. models → exams junction (via Model entity)
-            if (filters.examId) {
-                qb.andWhere(new Brackets(sqb => {
-                    sqb.where('subjectExam.id = :examId', { examId: filters.examId })
-                        .orWhere('question.examId = :examId', { examId: filters.examId })
-                        .orWhere('exams.id = :examId', { examId: filters.examId })
-                        .orWhere('modelExams.id = :examId', { examId: filters.examId });
-                }));
-            }
+                if (filters.modelId) {
+                    qb.andWhere('models.id = :modelId', { modelId: filters.modelId });
+                }
 
-            if (filters.status && filters.status !== 'all') {
-                if (filters.status === 'pending') {
-                    qb.andWhere('explanation.id IS NULL');
-                } else if (filters.status === 'generated') {
-                    qb.andWhere('explanation.id IS NOT NULL AND explanation.isVerified = :verified', { verified: false });
-                } else if (filters.status === 'verified') {
-                    qb.andWhere('explanation.id IS NOT NULL AND explanation.isVerified = :verified', { verified: true });
+                if (filters.examId) {
+                    qb.leftJoin('subject.exam', 'subjectExam')
+                        .leftJoin('question.exams', 'exams')
+                        .leftJoin('models.exams', 'modelExams');
+
+                    qb.andWhere(new Brackets(sqb => {
+                        sqb.where('subjectExam.id = :examId', { examId: filters.examId })
+                            .orWhere('question.examId = :examId', { examId: filters.examId })
+                            .orWhere('exams.id = :examId', { examId: filters.examId })
+                            .orWhere('modelExams.id = :examId', { examId: filters.examId });
+                    }));
                 }
             }
 
@@ -256,30 +244,35 @@ export class ExplanationService {
             qb.take(filters.limit || 50);
             qb.skip(filters.offset || 0);
 
+            this.logger.log(`[listExplanations] Executing optimized query with filters: ${JSON.stringify(filters)}`);
             const [questions, total] = await qb.getManyAndCount();
 
             // Map to the unified structure expected by frontend
             return {
                 items: questions.map((q: any) => {
-                    // Because of the join condition, explains[0] will be our global explanation
-                    const explanation = q.explanations?.[0];
-                    return {
-                        id: explanation?.id || `missing-${q.id}`,
-                        questionId: q.id,
-                        questionContent: this.aiService.cleanAIResponse(q.content),
-                        subject: q.subject?.title,
-                        chapter: q.chapter?.title,
-                        aiExplanation: this.aiService.cleanAIResponse(explanation?.aiExplanation || null),
-                        adminApprovedExplanation: this.aiService.cleanAIResponse(explanation?.adminApprovedExplanation || null),
-                        isVerified: explanation?.isVerified || false,
-                        status: !explanation ? 'pending' : (explanation.isVerified ? 'verified' : 'generated'),
-                        helpfulCount: explanation?.helpfulCount || 0,
-                        notHelpfulCount: explanation?.notHelpfulCount || 0,
-                        averageRating: explanation?.averageRating || 0,
-                        viewCount: explanation?.viewCount || 0,
-                        createdAt: explanation?.createdAt || q.createdAt || new Date().toISOString()
-                    };
-                }),
+                    try {
+                        const explanation = q.explanations?.[0];
+                        return {
+                            id: explanation?.id || `missing-${q.id}`,
+                            questionId: q.id,
+                            questionContent: this.aiService.cleanAIResponse(q.content || ''),
+                            subject: q.subject?.title || 'Unknown',
+                            chapter: q.chapter?.title || 'Unknown',
+                            aiExplanation: this.aiService.cleanAIResponse(explanation?.aiExplanation || null),
+                            adminApprovedExplanation: this.aiService.cleanAIResponse(explanation?.adminApprovedExplanation || null),
+                            isVerified: explanation?.isVerified || false,
+                            status: !explanation ? 'pending' : (explanation.isVerified ? 'verified' : 'generated'),
+                            helpfulCount: explanation?.helpfulCount || 0,
+                            notHelpfulCount: explanation?.notHelpfulCount || 0,
+                            averageRating: explanation?.averageRating || 0,
+                            viewCount: explanation?.viewCount || 0,
+                            createdAt: explanation?.createdAt || q.createdAt || new Date()
+                        };
+                    } catch (mapError) {
+                        this.logger.error(`Failed to map question ${q.id}:`, mapError);
+                        return null;
+                    }
+                }).filter(Boolean),
                 total,
                 limit: filters.limit || 50,
                 offset: filters.offset || 0

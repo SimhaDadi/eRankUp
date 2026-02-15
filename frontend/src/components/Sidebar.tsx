@@ -234,7 +234,7 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
 
                     <button
                         onClick={handleToggle}
-                        className={`z-50 w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'bg-slate-50 text-slate-900 shadow-sm' : ''}`}
+                        className={`lg:hidden z-50 w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors ${isCollapsed ? 'bg-slate-50 text-slate-900 shadow-sm' : ''}`}
                     >
                         {isMobile ? <XCircle className="w-6 h-6" /> : (isCollapsed ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />)}
                     </button>
