@@ -146,11 +146,11 @@ export class ExplanationService {
             });
             await this.explanationRepository.save(newExplanation);
 
-            // Update question cache field
             question.explanation = explanation;
             await this.questionRepository.save(question);
 
-            return explanation;
+            // [NEW] Return the full UI-ready item for immediate frontend sync
+            return this.mapToItem(question, newExplanation);
         } catch (error) {
             this.logger.error('[generateExplanation] FATAL pipeline failure', error.stack);
 
@@ -354,52 +354,12 @@ Please check back shortly! Our team is working to ensure you get the absolute be
             // 3. Merge and Map
             const items = questions.map((q: any) => {
                 if (!q) return null;
-                try {
-                    // [HARDEN] Multi-layer matching: Try raw questionId first, then relation id
-                    const qId = String(q.id).toLowerCase();
-                    const explanationMatch = explanations.find(e => {
-                        const targetId = e.questionId || e.question?.id;
-                        return targetId && String(targetId).toLowerCase() === qId;
-                    });
-
-                    // [FIX] Use the cached question.explanation as a fallback to ensure visibility
-                    const rawAiExpl = explanationMatch?.aiExplanation || q.explanation || null;
-
-                    // Log if we are falling back
-                    if (!explanationMatch && q.explanation) {
-                        this.logger.debug(`[listExplanations] Item ${q.id} missing QE record but has cached explanation. Using cached.`);
-                    }
-
-                    // Defensive date handling
-                    const getSafeISO = (d: any) => {
-                        try {
-                            const dateObj = d ? new Date(d) : new Date();
-                            return isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString();
-                        } catch {
-                            return new Date().toISOString();
-                        }
-                    };
-
-                    return {
-                        id: explanationMatch?.id || `missing-${q.id}`,
-                        questionId: q.id,
-                        questionContent: this.aiService ? this.aiService.cleanAIResponse(q.content || '') : (q.content || ''),
-                        subject: q.subject?.title || 'Unknown',
-                        chapter: q.chapter?.title || 'Unknown',
-                        aiExplanation: (rawAiExpl && this.aiService) ? this.aiService.cleanAIResponse(rawAiExpl) : (rawAiExpl || null),
-                        adminApprovedExplanation: (explanationMatch?.adminApprovedExplanation && this.aiService) ? this.aiService.cleanAIResponse(explanationMatch.adminApprovedExplanation) : (explanationMatch?.adminApprovedExplanation || null),
-                        isVerified: !!explanationMatch?.isVerified,
-                        status: (!explanationMatch && !q.explanation) ? 'pending' : (explanationMatch?.isVerified ? 'verified' : 'generated'),
-                        helpfulCount: explanationMatch?.helpfulCount || 0,
-                        notHelpfulCount: explanationMatch?.notHelpfulCount || 0,
-                        averageRating: explanationMatch?.averageRating || 0,
-                        viewCount: explanationMatch?.viewCount || 0,
-                        createdAt: getSafeISO(explanationMatch?.createdAt || q.createdAt)
-                    };
-                } catch (mapError) {
-                    this.logger.error(`[listExplanations] Mapping error for question ${q?.id}: ${mapError.message}`, mapError.stack);
-                    return null;
-                }
+                const qId = String(q.id).toLowerCase();
+                const explanationMatch = explanations.find(e => {
+                    const targetId = e.questionId || e.question?.id;
+                    return targetId && String(targetId).toLowerCase() === qId;
+                });
+                return this.mapToItem(q, explanationMatch);
             }).filter(Boolean);
 
             this.logger.log(`[listExplanations] Mapping complete. Items: ${items.length}, Pending: ${items.filter(i => i.status === 'pending').length}`);
@@ -506,7 +466,7 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         };
     }
 
-    async verifyStoredExplanation(id: string): Promise<{ isValid: boolean; feedback: string; solveResult?: any }> {
+    async verifyStoredExplanation(id: string): Promise<{ isValid: boolean; feedback: string; solveResult?: any; item: any }> {
         const explanation = await this.explanationRepository.findOne({
             where: { id },
             relations: ['question', 'question.options']
@@ -544,7 +504,8 @@ Please check back shortly! Our team is working to ensure you get the absolute be
 
         return {
             ...verification,
-            solveResult
+            solveResult,
+            item: this.mapToItem(explanation.question || { id: explanation.questionId }, explanation)
         };
     }
 
@@ -571,11 +532,7 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         return {
             success: true,
             message: 'Explanation approved',
-            explanation: {
-                id: explanation.id,
-                isVerified: explanation.isVerified,
-                approvedText: explanation.adminApprovedExplanation
-            }
+            item: this.mapToItem(explanation.question || { id: explanation.questionId }, explanation)
         };
     }
 
@@ -614,10 +571,7 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         return {
             success: true,
             message: 'Explanation updated',
-            explanation: {
-                id: explanation.id,
-                text: explanation.adminApprovedExplanation
-            }
+            item: this.mapToItem(explanation.question || { id: explanation.questionId }, explanation)
         };
     }
 
@@ -679,6 +633,48 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         }
         this.logger.log(`Synced ${updated} explanations to Question table.`);
         return { updated };
+    }
+
+    /**
+     * Map a Question and its (optional) Explanation record to a UI-friendly item
+     */
+    private mapToItem(q: any, explanationMatch?: QuestionExplanation): any {
+        try {
+            // [FIX] Use the cached question.explanation as a fallback to ensure visibility
+            const rawAiExpl = explanationMatch?.aiExplanation || q.explanation || null;
+
+            // Defensive date handling
+            const getSafeISO = (d: any) => {
+                try {
+                    const dateObj = d ? new Date(d) : new Date();
+                    return isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString();
+                } catch {
+                    return new Date().toISOString();
+                }
+            };
+
+            return {
+                id: explanationMatch?.id || `missing-${q.id}`,
+                questionId: q.id,
+                questionContent: this.aiService ? this.aiService.cleanAIResponse(q.content || '') : (q.content || ''),
+                subject: q.subject?.title || 'Unknown',
+                chapter: q.chapter?.title || 'Unknown',
+                aiExplanation: (rawAiExpl && this.aiService) ? this.aiService.cleanAIResponse(rawAiExpl) : (rawAiExpl || null),
+                adminApprovedExplanation: (explanationMatch?.adminApprovedExplanation && this.aiService) ? this.aiService.cleanAIResponse(explanationMatch.adminApprovedExplanation) : (explanationMatch?.adminApprovedExplanation || null),
+                isVerified: !!explanationMatch?.isVerified,
+                isLogicalMismatch: !!explanationMatch?.isLogicalMismatch,
+                logicalSolveOutcome: explanationMatch?.logicalSolveOutcome || null,
+                status: (!explanationMatch && !q.explanation) ? 'pending' : (explanationMatch?.isVerified ? 'verified' : 'generated'),
+                helpfulCount: explanationMatch?.helpfulCount || 0,
+                notHelpfulCount: explanationMatch?.notHelpfulCount || 0,
+                averageRating: explanationMatch?.averageRating || 0,
+                viewCount: explanationMatch?.viewCount || 0,
+                createdAt: getSafeISO(explanationMatch?.createdAt || q.createdAt)
+            };
+        } catch (mapError) {
+            this.logger.error(`[mapToItem] Error for question ${q?.id}: ${mapError.message}`, mapError.stack);
+            return null;
+        }
     }
 
     /**

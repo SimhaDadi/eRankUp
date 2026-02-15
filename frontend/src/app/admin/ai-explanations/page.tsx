@@ -191,11 +191,13 @@ export default function AIExplanationsPage() {
 
     const handleApprove = async (id: string, editedText?: string) => {
         try {
-            await api.post(`/explanations/${id}/approve`, {
+            const res = await api.post(`/explanations/${id}/approve`, {
                 editedText: editedText || undefined
             });
+            const updatedItem = res.data.item;
+            setItems(prev => prev.map(item => item.id === id ? { ...item, ...updatedItem } : item));
             setEditingId(null);
-            fetchData();
+            setTimeout(() => fetchData(), 300);
         } catch (error) {
             // If manual approval of a "pending" item (create new explanation) logic is needed, handle it here.
             // Usually dashboard handles "Verify" on existing. For pending, we might need "Generate" first.
@@ -209,9 +211,19 @@ export default function AIExplanationsPage() {
             console.log(`[Dashboard] Starting generation for ${questionId}`);
             setGeneratingIds(prev => new Set(prev).add(questionId));
             const res = await api.post(`/explanations/generate/${questionId}`);
-            console.log(`[Dashboard] Generation success for ${questionId}`, res.data);
+            const newItem = res.data.explanation; // This is now a full object from backend
+
+            // 1. Optimistic/Immediate State Update
+            setItems(prev => prev.map(item =>
+                item.questionId === questionId ? { ...item, ...newItem } : item
+            ));
+
             showNotification('success', 'Explanation generated successfully!');
-            fetchData();
+
+            // 2. Delayed Global Refresh (Wait 500ms for DB to settle for the EXISTS filters)
+            setTimeout(() => {
+                fetchData();
+            }, 500);
         } catch (error: any) {
             console.error('Failed to generate:', error);
             showNotification('error', `Failed to generate: ${error.response?.data?.message || error.message}`);
@@ -230,8 +242,9 @@ export default function AIExplanationsPage() {
             const res = await api.post(`/explanations/${id}/verify-ai`);
 
             if (res.data.isValid) {
-                // Success!
-                fetchData();
+                const updatedItem = res.data.item;
+                setItems(prev => prev.map(item => item.id === id ? { ...item, ...updatedItem } : item));
+                setTimeout(() => fetchData(), 300);
             } else {
                 alert(`AI Audit Failed:\n${res.data.feedback}`);
             }
@@ -253,7 +266,8 @@ export default function AIExplanationsPage() {
             await api.delete(`/explanations/${id}/reject`, {
                 data: { reason: 'Quality control' }
             });
-            fetchData();
+            setItems(prev => prev.filter(item => item.id !== id));
+            setTimeout(() => fetchData(), 300);
         } catch (error) {
             console.error('Failed to reject:', error);
         }
@@ -270,11 +284,13 @@ export default function AIExplanationsPage() {
                 return;
             }
 
-            await api.put(`/explanations/${id}`, {
+            const res = await api.put(`/explanations/${id}`, {
                 text: editText
             });
+            const updatedItem = res.data.item;
+            setItems(prev => prev.map(item => item.id === id ? { ...item, ...updatedItem } : item));
             setEditingId(null);
-            fetchData();
+            setTimeout(() => fetchData(), 300);
         } catch (error) {
             console.error('Failed to update:', error);
         }
