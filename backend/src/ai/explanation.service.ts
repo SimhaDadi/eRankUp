@@ -281,17 +281,17 @@ export class ExplanationService {
             let explanations: QuestionExplanation[] = [];
 
             try {
-                this.logger.debug(`[listExplanations] Bulk loading explanations for ${questionIds.length} IDs`);
-                explanations = await this.explanationRepository.find({
-                    where: {
-                        questionId: In(questionIds),
-                        contextExamId: IsNull()
-                    }
-                });
-                this.logger.debug(`[listExplanations] Found ${explanations.length} matching explanations`);
+                this.logger.debug(`[listExplanations] Bulk loading explanations for ${questionIds.length} IDs. Example ID: ${questionIds[0]}`);
+
+                // Use QueryBuilder to force-load columns if needed and filter correctly
+                explanations = await this.explanationRepository.createQueryBuilder('qe')
+                    .where('qe.questionId IN (:...ids)', { ids: questionIds })
+                    .andWhere('qe.contextExamId IS NULL')
+                    .getMany();
+
+                this.logger.log(`[listExplanations] Found ${explanations.length} matching explanations in DB`);
             } catch (explError) {
                 this.logger.error(`[listExplanations] Failed to load explanations: ${explError.message}`, explError.stack);
-                // Continue with empty explanations rather than crashing
                 explanations = [];
             }
 
@@ -299,7 +299,11 @@ export class ExplanationService {
             const items = questions.map((q: any) => {
                 if (!q) return null;
                 try {
-                    const explanation = explanations.find(e => String(e.questionId) === String(q.id));
+                    // [HARDEN] Robust ID matching with string conversion and case normalization
+                    const qId = String(q.id).toLowerCase();
+                    const explanation = explanations.find(e =>
+                        e.questionId && String(e.questionId).toLowerCase() === qId
+                    );
 
                     // Defensive date handling
                     const getSafeISO = (d: any) => {
@@ -332,6 +336,8 @@ export class ExplanationService {
                     return null;
                 }
             }).filter(Boolean);
+
+            this.logger.log(`[listExplanations] Mapping complete. Items: ${items.length}, Pending: ${items.filter(i => i.status === 'pending').length}`);
 
             return {
                 items,
