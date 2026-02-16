@@ -39,12 +39,16 @@ export class AIController {
     @Roles(UserRole.ADMIN)
     async generateExplanation(@Request() req: any, @Param('questionId') questionId: string) {
         try {
-            // Delegate to ExplanationService (superior implementation)
-            const explanation = await this.explanationService.generateExplanation(req.user.userId, req.user.role, questionId);
+            const result = await this.explanationService.generateExplanation(req.user.userId, req.user.role, questionId) as any;
+
+            // [FIX] Normalize: Ensure we always return the string text for UI consistency
+            const explanationText = typeof result === 'string'
+                ? result
+                : (result.adminApprovedExplanation || result.aiExplanation);
 
             return {
                 success: true,
-                explanation,
+                explanation: explanationText,
                 questionId
             };
         } catch (error) {
@@ -112,11 +116,14 @@ export class AIController {
     async getExplanation(@Request() req: any, @Param('questionId') questionId: string) {
         try {
             // Delegate to ExplanationService
-            const explanation = await this.explanationService.generateExplanation(req.user.userId, req.user.role, questionId);
+            const result = await this.explanationService.generateExplanation(req.user.userId, req.user.role, questionId) as any;
+
+            // [FIX] Normalize: Ensure we always return the string text for UI consistency
+            const explanationText = typeof result === 'string' ? result : (result?.explanation || 'No explanation available yet.');
 
             return {
                 questionId,
-                explanation: explanation || 'No explanation available yet.'
+                explanation: explanationText
             };
         } catch (error) {
             throw new HttpException(error.message || 'Failed to fetch explanation', HttpStatus.INTERNAL_SERVER_ERROR);

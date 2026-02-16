@@ -212,7 +212,7 @@ export default function AIExplanationsPage() {
             console.log(`[Dashboard] Starting generation for ${questionId}`);
             setGeneratingIds(prev => new Set(prev).add(questionId));
             const res = await api.post(`/explanations/generate/${questionId}`);
-            const newItem = res.data.explanation; // This is now a full object from backend
+            const newItem = res.data.fullItem || { explanation: res.data.explanation };
 
             // 1. Optimistic/Immediate State Update
             setItems(prev => prev.map(item =>

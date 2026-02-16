@@ -43,19 +43,26 @@ export class ExplanationController {
         @Body('examId') examId?: string
     ) {
         try {
-            const explanation = await this.explanationService.generateExplanation(
+            const result = await this.explanationService.generateExplanation(
                 req.user.userId,
                 req.user.role,
                 questionId,
                 userAnswer,
                 examId,
                 AIPriority.HIGH // Force High Priority for manual requests
-            );
+            ) as any;
+
+            // [FIX] Normalize response: Always return the text string for the 'explanation' field
+            // The mapToItem object uses aiExplanation/adminApprovedExplanation
+            const explanationText = typeof result === 'string'
+                ? result
+                : (result.adminApprovedExplanation || result.aiExplanation);
 
             return {
                 success: true,
                 questionId,
-                explanation
+                explanation: explanationText,
+                fullItem: typeof result === 'object' ? result : null
             };
         } catch (error) {
             this.logger.error(`[generateExplanation] Failed for questionId=${questionId}: ${error.message}`, error.stack);
@@ -170,17 +177,22 @@ export class ExplanationController {
         @Query('userAnswer') userAnswer?: string
     ) {
         try {
-            const explanation = await this.explanationService.generateExplanation(
+            const result = await this.explanationService.generateExplanation(
                 req.user.userId,
                 req.user.role,
                 questionId,
                 userAnswer,
                 examId
-            );
+            ) as any;
+
+            // [FIX] Normalize response: Ensure we always return the string text for UI consistency
+            const explanationText = typeof result === 'string'
+                ? result
+                : (result.adminApprovedExplanation || result.aiExplanation);
 
             return {
                 questionId,
-                explanation
+                explanation: explanationText
             };
         } catch (error) {
             throw new HttpException(
