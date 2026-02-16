@@ -204,15 +204,18 @@ export default function SolutionPage() {
         const nextState = !showSolution;
         setShowSolution(nextState);
 
-        // Auto-trigger AI generation if solution is opened and explanation is missing
         if (nextState) {
-            const isMissing = !question.explanation?.trim() ||
-                question.explanation.trim() === 'No explanation provided.' ||
-                question.explanation.trim() === 'No explanation provided' ||
-                question.explanation.trim().includes("It seems like you didn't type anything") ||
-                question.explanation.trim().length < 5;
+            const content = question.explanation?.trim() || '';
+            const isPlaceholder = content.includes('Content Under Review') ||
+                content.includes('currently being reviewed');
 
-            if (isMissing && !isGenerating) {
+            const isMissing = !content ||
+                content === 'No explanation provided.' ||
+                content === 'No explanation provided' ||
+                content.includes("It seems like you didn't type anything") ||
+                content.length < 5;
+
+            if (isMissing && !isPlaceholder && !isGenerating) {
                 handleGenerateAIExplanation();
             }
         }

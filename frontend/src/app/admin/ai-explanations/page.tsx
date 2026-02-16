@@ -18,7 +18,8 @@ import {
     Layers,
     AlertTriangle,
     Box,
-    Bot
+    Bot,
+    EyeOff
 } from 'lucide-react';
 import api from '@/lib/api';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
@@ -527,6 +528,15 @@ export default function AIExplanationsPage() {
                                     {item.isLogicalMismatch && (
                                         <span className="flex items-center gap-1 px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold border border-red-500/30">
                                             <AlertTriangle className="w-3 h-3" /> Logic Mismatch ⚠️
+                                        </span>
+                                    )}
+                                    {(item.adminApprovedExplanation || item.isVerified) ? (
+                                        <span className="flex items-center gap-1 px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-full text-xs font-bold border border-indigo-500/30 ml-2">
+                                            <Eye className="w-3 h-3" /> Live for Students
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-1 px-3 py-1 bg-slate-800 text-slate-500 rounded-full text-xs font-bold border border-slate-700 ml-2">
+                                            <EyeOff className="w-3 h-3" /> Hidden from Students
                                         </span>
                                     )}
                                 </div>

@@ -543,6 +543,11 @@ Please check back shortly! Our team is working to ensure you get the absolute be
             throw new Error('Explanation not found');
         }
 
+        // [FIX] Sync: Clear explanation field from the Question entity
+        await this.questionRepository.update(explanation.questionId, {
+            explanation: null
+        });
+
         await this.explanationRepository.remove(explanation);
 
         return {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SystemHealthService } from '../admin/system-health.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -32,6 +32,7 @@ export interface MasteryReport {
 
 @Injectable()
 export class AIService {
+    private readonly logger = new Logger(AIService.name);
     private getGroqModel(complexity: 'FAST' | 'REASONING', hasImages: boolean): string {
         if (hasImages) {
             return this.configService.get<string>('GROQ_MODEL_VISION', 'meta-llama/llama-4-scout-17b-16e-instruct');
@@ -349,9 +350,15 @@ Verification Result:`;
 
             // Robust parsing: Check for "VALID" at start, ignoring markdown (**VALID**) or case
             const cleanResult = result.trim();
-            const isValid = /^\s*(\*\*|__)?VALID(\*\*|__)?/i.test(cleanResult);
+            // Robust parsing: Check for "VALID" at start or within common markdown patterns
+            // Now matches: VALID, **VALID**, ### VALID, Logic is: VALID, etc.
+            const isValid = /\bVALID\b/i.test(cleanResult) && !/\bINVALID\b/i.test(cleanResult);
 
-            console.log(`[AIService] Verification: ${isValid ? 'PASS' : 'FAIL'} | Question: ${question.id} | Result: "${cleanResult.substring(0, 100)}..."`);
+            if (!isValid) {
+                this.logger.warn(`[AIService] Verification REJECTED | Question: ${question.id} | AI Feedback: "${cleanResult}"`);
+            } else {
+                console.log(`[AIService] Verification: PASS | Question: ${question.id}`);
+            }
 
             return {
                 isValid,

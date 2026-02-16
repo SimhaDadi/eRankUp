@@ -1,26 +1,31 @@
-# Tech Lead Audit Report: Stability Issue in /explanations
+# Tech Lead Audit Report: Stability & Visibility Audit
 
-## Problem Statement
-The `/explanations` list is experiencing a persistent 500 Internal Server Error, especially when filtering by `examId`.
+## Update: 2026-02-16 - Visibility & Strictness Audit
+After a deep-dive into the code following yesterday's stabilization of the 500 errors, I have audited the **AI Solution Visibility** pipeline.
 
-## Audit Findings
-1. **Query Complexity**: The previous optimization correctly reduced redundant joins, but the logic still relies on multiple ManyToMany paths (exams, models, modelExams) using `OR` conditions. This creates a "result set explosion" before the pagination limit is applied.
-2. **TypeORM Pagination (Paging Bug)**: Using `take()` (limit) alongside a complex `leftJoinAndSelect` with a custom `ON` clause condition (`contextExamId IS NULL`) is a known edge case in TypeORM that often produces invalid SQL in Postgres.
-3. **Implicit Ambiguity**: The `OR` conditions across four different tables can cause rows to be duplicated and then filtered by `take()`, which is inefficient and unstable in production under high load or with large datasets.
+### Audit Findings
+1.  **"Curated-Only" Safety Gaps**:
+    -   The `getCuratedExplanation` logic is working as intended for safety but is causing confusion. 
+    -   **Strictness**: Even if an Admin generates a solution, it remains **hidden from students** if the AI verification fails (`isVerified: false`) or if the Admin hasn't clicked "Approve". 
+    -   **Feedback**: Admins see the solution as "Generated" and might assume students can see it, leading to the "visibility issue" reports.
 
-## Resolution Plan (Hardening)
-1. **Eliminate Join Pollution**: Use `EXISTS` subqueries for filtering by `examId` and `modelId`. This ensures the main query result set never explodes, regardless of how many exams or models a question belongs to.
-2. **Standardize Joins**: Move the `contextExamId IS NULL` condition from the SQL level to the Javascript mapping phase. Joining the explanations table without a conditional `ON` clause ensures TypeORM's pagination logic stays stable.
-3. **Mapping Safety**: Harden the data transformation layer with guaranteed null-checks and explicit date serialization.
+2.  **Student UI Deadlock (Loop)**:
+    -   In `SolutionPage.tsx`, the frontend checks if an explanation is "missing" (text < 5 chars or specific "No provider" strings).
+    -   It **does not recognize** the `### Content Under Review ⏳` placeholder as a valid "Pending" state.
+    -   Result: The student sees the "Review" message -> Frontend thinks it's missing -> Frontend triggers `handleGenerateAIExplanation` -> Backend returns the *same* placeholder. This creates a redundant auto-generation loop.
 
-## Production Hardening (Update: Silent Failure & Data Inconsistency)
-Beyond the 500 errors, the audit identified two critical "Silent Failure" points:
-1. **Data Inconsistency (Null Options)**: Some questions in the DB had null or incomplete `options` records. This caused the AI generation pipeline to crash quietly (`TypeError`). I've implemented 100% null-safety in the Prompt Builder and Fallback logic to prevent this.
-2. **UI Feedback Gap**: The generation process (Blind Solve + Text Gen + Verify) takes 15-30s. The UI lacked feedback, making it appear broken. I've added a **Toast Notification System** and async state tracking to the frontend.
-3. **Relation Mappings**: Improved matching logic between Questions and Explanations to handle UUID/String identity mismatches in the TypeORM layer.
+3.  **Strict Verification False Negatives**:
+    -   The `verifyExplanation` AI logic is looking for the exact string `VALID` at the start. Minor formatting differences in the verification AI response can cause valid explanations to be flagged as `unverified`, thus hiding them from students.
 
-## Final Verdict
-With the transition to **Subquery-based Filtering**, **Null-Safe AI Prompts**, and the **Frontend Toast System**, the AI Explanation dashboard is now production-ready and fully stable.
+### Recommendations
+1.  **Harden Frontend Missing-Check**: Update `SolutionPage.tsx` to explicitly check for the "Under Review" placeholder and stop auto-generation if it's found.
+2.  **Admin Visibility Indicator**: Add a "Visible to Students" badge in the AI Explanations dashboard so Admins know exactly what is live.
+3.  **Loosen Verification (Optional but Recommended)**: Allow students to see "Generated" (unverified) solutions *if* they don't have a "Logical Mismatch" flag, OR simply make the "Approve" action more prominent for Admins.
+
+## Resolution Plan (Hardened) - *Implemented 2026-02-15*
+1. **Eliminate Join Pollution**: Use `EXISTS` subqueries for filtering.
+2. **Standardize Joins**: Decouple explanation loading from core question paging.
+3. **Mapping Safety**: Implemented 100% null-safety for question options in the Prompt Builder.
 
 ---
 **Lead Engineer Audit Signature**
