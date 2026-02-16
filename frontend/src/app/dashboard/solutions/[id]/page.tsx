@@ -26,7 +26,8 @@ import {
     Trophy,
     Info,
     History,
-    Lightbulb
+    Lightbulb,
+    AlertTriangle
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -199,6 +200,7 @@ export default function SolutionPage() {
 
     const currentResp = attempt.responses[currentIdx];
     const { question } = currentResp;
+    const isLogicMismatch = !!(question as any).isLogicalMismatch;
 
     const handleToggleSolution = () => {
         const nextState = !showSolution;
@@ -438,7 +440,25 @@ export default function SolutionPage() {
                                                 )}
                                             </div>
                                         ) : (
-                                            <MathRenderer content={prettifyMathText(question.explanation)} />
+                                            isLogicMismatch && user?.role === 'student' ? (
+                                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 md:p-6 text-amber-800 text-xs md:text-sm">
+                                                    <div className="flex items-center gap-2 mb-2 font-bold">
+                                                        <AlertTriangle className="w-4 h-4" />
+                                                        AI Logic Warning
+                                                    </div>
+                                                    <p>This explanation is currently being reviewed as the AI solved the question differently than the provided answer key.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col gap-4">
+                                                    {isLogicMismatch && (
+                                                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800 text-xs font-bold flex items-center gap-2">
+                                                            <AlertTriangle className="w-4 h-4" />
+                                                            Admin Note: Logic Mismatch Detected
+                                                        </div>
+                                                    )}
+                                                    <MathRenderer content={prettifyMathText(question.explanation)} />
+                                                </div>
+                                            )
                                         )}
                                     </div>
                                 </div>

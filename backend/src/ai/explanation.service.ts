@@ -39,7 +39,7 @@ export class ExplanationService {
         userAnswer?: string,
         contextExamId?: string,
         priority: AIPriority = AIPriority.MEDIUM
-    ): Promise<string> {
+    ): Promise<any> {
         // --- Curated-Only Enforcement for Students ---
         if (role === UserRole.STUDENT) {
             return this.getCuratedExplanation(questionId, contextExamId);

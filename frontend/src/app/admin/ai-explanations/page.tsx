@@ -221,10 +221,7 @@ export default function AIExplanationsPage() {
 
             showNotification('success', 'Explanation generated successfully!');
 
-            // 2. Delayed Global Refresh (Wait 500ms for DB to settle for the EXISTS filters)
-            setTimeout(() => {
-                fetchData();
-            }, 500);
+            // 2. Delayed Global Refresh removed to prevent race conditions with optimistic update
         } catch (error: any) {
             console.error('Failed to generate:', error);
             showNotification('error', `Failed to generate: ${error.response?.data?.message || error.message}`);
@@ -245,7 +242,6 @@ export default function AIExplanationsPage() {
             if (res.data.isValid) {
                 const updatedItem = res.data.item;
                 setItems(prev => prev.map(item => item.id === id ? { ...item, ...updatedItem } : item));
-                setTimeout(() => fetchData(), 300);
             } else {
                 alert(`AI Audit Failed:\n${res.data.feedback}`);
             }
@@ -547,15 +543,15 @@ export default function AIExplanationsPage() {
                                 <div className="flex justify-between items-center mb-2">
                                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Question</h3>
                                     <button
-                                        onClick={() => toggleExpand(`q-${item.id}`)}
+                                        onClick={() => toggleExpand(`q-${item.questionId}`)}
                                         className="text-xs text-indigo-400 hover:text-indigo-300 font-bold"
                                     >
-                                        {expandedIds.has(`q-${item.id}`) ? 'Collapse' : 'Expand'}
+                                        {expandedIds.has(`q-${item.questionId}`) ? 'Collapse' : 'Expand'}
                                     </button>
                                 </div>
                                 <MarkdownRenderer
                                     content={item.questionContent}
-                                    className={`text-white font-medium ${expandedIds.has(`q-${item.id}`) ? '' : 'line-clamp-3'}`}
+                                    className={`text-white font-medium ${expandedIds.has(`q-${item.questionId}`) ? '' : 'line-clamp-3'}`}
                                 />
                             </div>
 
@@ -567,10 +563,10 @@ export default function AIExplanationsPage() {
                                         </h3>
                                         {editingId !== item.id && (
                                             <button
-                                                onClick={() => toggleExpand(`e-${item.id}`)}
+                                                onClick={() => toggleExpand(`e-${item.questionId}`)}
                                                 className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold"
                                             >
-                                                {expandedIds.has(`e-${item.id}`) ? 'Collapse' : 'Expand'}
+                                                {expandedIds.has(`e-${item.questionId}`) ? 'Collapse' : 'Expand'}
                                             </button>
                                         )}
                                     </div>
@@ -584,7 +580,7 @@ export default function AIExplanationsPage() {
                                     ) : (
                                         <MarkdownRenderer
                                             content={item.adminApprovedExplanation || item.aiExplanation || ''}
-                                            className={`text-slate-300 text-sm ${expandedIds.has(`e-${item.id}`) ? '' : 'line-clamp-3'}`}
+                                            className={`text-slate-300 text-sm ${expandedIds.has(`e-${item.questionId}`) ? '' : 'line-clamp-2'}`}
                                         />
                                     )}
                                 </div>
