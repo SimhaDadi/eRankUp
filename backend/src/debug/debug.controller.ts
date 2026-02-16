@@ -27,11 +27,15 @@ export class DebugController {
                 undefined
             );
 
+            const length = typeof explanation === 'string'
+                ? explanation.length
+                : (explanation.adminApprovedExplanation?.length || explanation.aiExplanation?.length || 0);
+
             return {
                 success: true,
                 message: 'Explanation generated successfully',
                 explanation,
-                length: explanation.length
+                length
             };
         } catch (error) {
             // Return detailed error information
