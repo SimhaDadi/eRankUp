@@ -208,7 +208,7 @@ cd /opt/erankup
 ```bash
 git pull origin Main-111
 
-git pull origin restore-stable-3dca39b
+git pull origin Stable_Product
 # Replace 'Main-111' with your branch name
 ```
 

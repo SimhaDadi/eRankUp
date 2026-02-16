@@ -46,10 +46,13 @@ export class AIController {
                 ? result
                 : (result.adminApprovedExplanation || result.aiExplanation);
 
+            const isLogicalMismatch = typeof result === 'object' ? !!result.isLogicalMismatch : false;
+
             return {
                 success: true,
                 explanation: explanationText,
-                questionId
+                questionId,
+                isLogicalMismatch
             };
         } catch (error) {
             throw new HttpException(

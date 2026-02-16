@@ -56,9 +56,21 @@ export class ExplanationService {
 
             if (cached) {
                 this.logger.debug(`[generateExplanation] Cache hit for question=${questionId}`);
+
+                // [FIX] Healing Sync: Ensure Question table has the explanation for Attempt Review
+                const questionExplan = cached.adminApprovedExplanation || cached.aiExplanation;
+                const question = await this.questionRepository.findOne({ where: { id: questionId } });
+                if (question && (!question.explanation || question.explanation.length < 5)) {
+                    this.logger.log(`[generateExplanation] Healing Question Sync for q=${questionId}`);
+                    question.explanation = questionExplan;
+                    await this.questionRepository.save(question);
+                }
+
                 cached.viewCount++;
                 await this.explanationRepository.save(cached);
-                return cached.adminApprovedExplanation || cached.aiExplanation;
+
+                // Standardize: Always return the mapped item for consistent metadata access
+                return this.mapToItem(question, cached);
             }
         } catch (cacheError) {
             this.logger.warn(`[generateExplanation] Cache lookup error: ${cacheError.message}`);

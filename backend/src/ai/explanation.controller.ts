@@ -185,14 +185,17 @@ export class ExplanationController {
                 examId
             ) as any;
 
-            // [FIX] Normalize response: Ensure we always return the string text for UI consistency
+            // [FIX] Normalize response: Always return the string text and critical metadata
             const explanationText = typeof result === 'string'
                 ? result
                 : (result.adminApprovedExplanation || result.aiExplanation);
 
+            const isLogicalMismatch = typeof result === 'object' ? !!result.isLogicalMismatch : false;
+
             return {
                 questionId,
-                explanation: explanationText
+                explanation: explanationText,
+                isLogicalMismatch
             };
         } catch (error) {
             throw new HttpException(

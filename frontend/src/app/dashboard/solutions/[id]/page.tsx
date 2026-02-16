@@ -151,10 +151,26 @@ export default function SolutionPage() {
             });
 
             if (res.data.explanation) {
-                // Update local state
-                const newAttempt = { ...attempt };
-                newAttempt.responses[currentIdx].question.explanation = res.data.explanation;
-                setAttempt(newAttempt);
+                // [FIX] Immutably update the attempt state to trigger React re-render
+                setAttempt(prev => {
+                    if (!prev) return prev;
+                    const newResponses = [...prev.responses];
+                    const currentResp = { ...newResponses[currentIdx] };
+                    const currentQuestion = { ...currentResp.question };
+
+                    // Inject new content and metadata
+                    currentQuestion.explanation = res.data.explanation;
+                    (currentQuestion as any).isLogicalMismatch = !!res.data.isLogicalMismatch;
+
+                    currentResp.question = currentQuestion as any;
+                    newResponses[currentIdx] = currentResp;
+
+                    return {
+                        ...prev,
+                        responses: newResponses
+                    };
+                });
+
                 setShowSolution(true);
             }
         } catch (error: any) {
