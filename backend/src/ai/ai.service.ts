@@ -64,7 +64,7 @@ export class AIService {
      */
     async generateText(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority = AIPriority.HIGH, complexity: 'FAST' | 'REASONING' = 'REASONING'): Promise<string> {
         const provider = this.configService.get('AI_PROVIDER', 'gemini');
-        console.log(`🤖 AI Request: Using Provider [${provider}]`);
+        this.logger.log(`🤖 AI Request: Using Provider [${provider}]`);
 
         if (provider === 'groq') {
             return this.generateTextWithGroq(prompt, images, priority, complexity);
@@ -78,7 +78,7 @@ export class AIService {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
-                console.log(`🤖 AI Request: Using Model [${modelName}]`);
+                this.logger.log(`🤖 AI Request: Using Model [${modelName}]`);
                 const model = genAI.getGenerativeModel({ model: modelName });
 
                 const parts: any[] = [prompt];
@@ -97,7 +97,7 @@ export class AIService {
                 this.systemHealthService.trackAPICall('gemini'); // TRACK USAGE
                 return (await result.response).text();
             } catch (error) {
-                console.error('[AIService] Gemini API error:', error);
+                this.logger.error('[AIService] Gemini API error:', error);
                 throw error;
             }
         }, priority);
@@ -138,9 +138,9 @@ export class AIService {
                 this.systemHealthService.trackAPICall('groq');
                 return completion.choices[0]?.message?.content || '';
             } catch (error) {
-                console.error('[AIService] Groq API error:', error);
+                this.logger.error('[AIService] Groq API error:', error);
                 if (error.status === 429) {
-                    console.warn('Groq Rate Limited. Consider fallback?');
+                    this.logger.warn('Groq Rate Limited. Consider fallback?');
                 }
                 throw error;
             }
@@ -187,7 +187,7 @@ export class AIService {
                 if (text) yield text;
             }
         } catch (error) {
-            console.error('[AIService] Gemini Streaming error:', error);
+            this.logger.error('[AIService] Gemini Streaming error:', error);
             yield " [Communication interrupted. Please try again.]";
         } finally {
             release();

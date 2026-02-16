@@ -11,6 +11,7 @@ import { AIUsageService } from './ai-usage.service';
 import { AIService } from './ai.service';
 import { UserRole } from '../users/user.entity';
 import { PromptBuilderService } from './prompt-builder.service';
+import { ExplanationItem, PaginatedExplanations } from './interfaces/explanation.interfaces';
 
 @Injectable()
 export class ExplanationService {
@@ -39,7 +40,7 @@ export class ExplanationService {
         userAnswer?: string,
         contextExamId?: string,
         priority: AIPriority = AIPriority.MEDIUM
-    ): Promise<any> {
+    ): Promise<ExplanationItem | string> {
         // --- Curated-Only Enforcement for Students ---
         if (role === UserRole.STUDENT) {
             return this.getCuratedExplanation(questionId, contextExamId);
@@ -243,7 +244,7 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         status?: 'all' | 'pending' | 'generated' | 'verified' | 'mismatch';
         limit?: number;
         offset?: number;
-    }) {
+    }): Promise<PaginatedExplanations> {
         try {
             // 1. Fetch Questions with paging (Decoupled from One-to-Many Explanations for stability)
             const qb = this.questionRepository.createQueryBuilder('question')
@@ -386,7 +387,8 @@ Please check back shortly! Our team is working to ensure you get the absolute be
 
         for (const [index, questionId] of questionIds.entries()) {
             try {
-                const explanation = await this.generateExplanation(userId, role, questionId, undefined, undefined, AIPriority.LOW);
+                const result = await this.generateExplanation(userId, role, questionId, undefined, undefined, AIPriority.LOW);
+                const explanation = typeof result === 'string' ? result : (result.adminApprovedExplanation || result.aiExplanation || '');
                 explanations.set(questionId, explanation);
                 this.logger.log(`Generated ${index + 1}/${questionIds.length}: ${questionId}`);
             } catch (error) {
@@ -505,12 +507,15 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         return {
             ...verification,
             solveResult,
-            item: this.mapToItem(explanation.question || { id: explanation.questionId }, explanation)
+            item: this.mapToItem(explanation.question, explanation)
         };
     }
 
     async approveExplanation(id: string, editedText?: string) {
-        const explanation = await this.explanationRepository.findOne({ where: { id } });
+        const explanation = await this.explanationRepository.findOne({
+            where: { id },
+            relations: ['question', 'question.subject', 'question.chapter']
+        });
 
         if (!explanation) {
             throw new Error('Explanation not found');
@@ -532,7 +537,7 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         return {
             success: true,
             message: 'Explanation approved',
-            item: this.mapToItem(explanation.question || { id: explanation.questionId }, explanation)
+            item: this.mapToItem(explanation.question, explanation)
         };
     }
 
@@ -558,7 +563,10 @@ Please check back shortly! Our team is working to ensure you get the absolute be
     }
 
     async updateExplanation(id: string, text: string) {
-        const explanation = await this.explanationRepository.findOne({ where: { id } });
+        const explanation = await this.explanationRepository.findOne({
+            where: { id },
+            relations: ['question', 'question.subject', 'question.chapter']
+        });
 
         if (!explanation) {
             throw new Error('Explanation not found');
@@ -576,7 +584,7 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         return {
             success: true,
             message: 'Explanation updated',
-            item: this.mapToItem(explanation.question || { id: explanation.questionId }, explanation)
+            item: this.mapToItem(explanation.question, explanation)
         };
     }
 
@@ -643,7 +651,7 @@ Please check back shortly! Our team is working to ensure you get the absolute be
     /**
      * Map a Question and its (optional) Explanation record to a UI-friendly item
      */
-    private mapToItem(q: any, explanationMatch?: QuestionExplanation): any {
+    private mapToItem(q: Question, explanationMatch?: QuestionExplanation): ExplanationItem {
         try {
             // [FIX] Use the cached question.explanation as a fallback to ensure visibility
             const rawAiExpl = explanationMatch?.aiExplanation || q.explanation || null;

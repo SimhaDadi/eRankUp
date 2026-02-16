@@ -207,8 +207,8 @@ export class ExplanationController {
      * Admin only
      */
     @Get()
-    // @UseGuards(RolesGuard)
-    // @Roles(UserRole.ADMIN)
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN)
     async listExplanations(
         @Query('search') search?: string,
         @Query('subjectId') subjectId?: string,
