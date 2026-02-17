@@ -462,6 +462,28 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         return explanations;
     }
 
+    async generateMissingExplanations(
+        userId: string,
+        role: UserRole,
+        limit: number = 50
+    ): Promise<number> {
+        const qb = this.questionRepository.createQueryBuilder('question')
+            .leftJoin(QuestionExplanation, 'qe', 'qe.questionId = question.id AND qe.contextExamId IS NULL')
+            .where('qe.id IS NULL')
+            .take(limit);
+
+        const questions = await qb.getMany();
+        this.logger.log(`Found ${questions.length} questions missing global explanations`);
+
+        if (questions.length > 0) {
+            this.generateBulkExplanations(userId, role, questions.map(q => q.id)).catch(err =>
+                this.logger.error('Background bulk generation error', err.stack)
+            );
+        }
+
+        return questions.length;
+    }
+
     async listUnverifiedExplanations() {
         const explanations = await this.explanationRepository.find({
             where: { isVerified: false },
@@ -505,6 +527,49 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 solvedResult: m.logicalSolveOutcome,
                 createdAt: m.createdAt
             }))
+        };
+    }
+
+    async verifyStoredExplanation(id: string): Promise<{ isValid: boolean; feedback: string; solveResult?: any; item: any }> {
+        const explanation = await this.explanationRepository.findOne({
+            where: { id },
+            relations: ['question', 'question.options']
+        });
+
+        if (!explanation) {
+            throw new Error('Explanation not found');
+        }
+
+        // 1. Blind Solve Pass
+        this.logger.log(`🔍 Verifying logic for explanation ${id}...`);
+        const solveResult = await this.aiService.solveQuestion(explanation.question);
+
+        explanation.logicalSolveOutcome = `Solved: ${solveResult.solvedOptionId} | Logic: ${solveResult.logic}`;
+        explanation.isLogicalMismatch = solveResult.solvedOptionId !== explanation.question.correctOptionId && solveResult.solvedOptionId !== 'ERROR';
+
+        // 2. Consistency Verification
+        const verification = await this.aiService.verifyExplanation(
+            explanation.question,
+            explanation.adminApprovedExplanation || explanation.aiExplanation
+        );
+
+        if (verification.isValid) {
+            explanation.isVerified = true;
+            await this.explanationRepository.save(explanation);
+
+            // Also update the question's active explanation
+            await this.questionRepository.update(explanation.questionId, {
+                explanation: explanation.adminApprovedExplanation || explanation.aiExplanation
+            });
+        } else {
+            // Even if invalid, save the logical mismatch status
+            await this.explanationRepository.save(explanation);
+        }
+
+        return {
+            ...verification,
+            solveResult,
+            item: this.mapToItem(explanation.question, explanation)
         };
     }
 
@@ -584,6 +649,28 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 notHelpfulCount: explanation.notHelpfulCount,
                 averageRating: explanation.averageRating
             }
+        };
+    }
+
+    async getExplanationStats() {
+        const total = await this.explanationRepository.count();
+        const verified = await this.explanationRepository.count({ where: { isVerified: true } });
+        const mismatches = await this.explanationRepository.count({ where: { isLogicalMismatch: true } });
+
+        const { totalViews } = await this.explanationRepository
+            .createQueryBuilder('qe')
+            .select('SUM(qe.viewCount)', 'totalViews')
+            .getRawOne();
+
+        return {
+            total,
+            verified,
+            unverified: total - verified,
+            mismatches,
+            totalViews: parseInt(totalViews || '0'),
+            averageRating: 0,
+            helpfulRate: 0,
+            feedback: { helpful: 0, notHelpful: 0 }
         };
     }
 
