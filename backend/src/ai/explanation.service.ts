@@ -590,15 +590,30 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         explanation.isVerified = true;
         explanation.adminApprovedExplanation = editedText || explanation.aiExplanation;
 
+        // --- ANSWER KEY HEALING ---
+        // If the question is missing its correctOptionId, try to heal it using the AI's solve result
+        const question = explanation.question;
+        const updates: any = { explanation: explanation.adminApprovedExplanation };
+
+        if (!question.correctOptionId || question.correctOptionId === 'UNKNOWN') {
+            const solveMatch = explanation.logicalSolveOutcome?.match(/Solved:\s*([A-E])/i);
+            if (solveMatch) {
+                const discoveredAnswer = solveMatch[1].toUpperCase();
+                this.logger.log(`[approveExplanation] ✨ HEALING Answer Key for question ${question.id}: ${discoveredAnswer}`);
+                updates.correctOptionId = discoveredAnswer;
+
+                // Update the local explanation object too so mapToItem returns the correct state
+                question.correctOptionId = discoveredAnswer;
+            }
+        }
+
         await this.explanationRepository.save(explanation);
-        await this.questionRepository.update(explanation.questionId, {
-            explanation: explanation.adminApprovedExplanation
-        });
+        await this.questionRepository.update(explanation.questionId, updates);
 
         return {
             success: true,
-            message: 'Explanation approved',
-            item: this.mapToItem(explanation.question, explanation)
+            message: updates.correctOptionId ? 'Explanation approved and Answer Key healed' : 'Explanation approved',
+            item: this.mapToItem(question, explanation)
         };
     }
 
@@ -749,7 +764,9 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 viewCount: explanationMatch?.viewCount || 0,
                 createdAt: getSafeISO(explanationMatch?.createdAt || q.createdAt),
                 options: q.options?.map(opt => ({ id: opt.id, text: this.aiUtils.cleanAIResponse(opt.text) })),
-                correctOptionId: q.correctOptionId
+                correctOptionId: q.correctOptionId,
+                isMissingAnswerKey: !q.correctOptionId || q.correctOptionId === 'UNKNOWN',
+                aiProposedAnswerId: explanationMatch?.logicalSolveOutcome?.match(/Solved:\s*([A-E])/i)?.[1].toUpperCase()
             };
         } catch (mapError) {
             this.logger.error(`[mapToItem] Error for question ${q?.id}: ${mapError.message}`);

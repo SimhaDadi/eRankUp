@@ -13,6 +13,7 @@ import {
     Filter,
     RefreshCw,
     Search,
+    HelpCircle,
     AlertCircle,
     BookOpen,
     Layers,
@@ -44,6 +45,8 @@ interface ExplanationItem {
     logicalSolveOutcome?: string;
     options?: { id: string; text: string }[];
     correctOptionId?: string;
+    isMissingAnswerKey?: boolean;
+    aiProposedAnswerId?: string;
 }
 
 interface Stats {
@@ -546,9 +549,14 @@ export default function AIExplanationsPage() {
                                             <AlertCircle className="w-3 h-3" /> Pending
                                         </span>
                                     )}
-                                    {item.isLogicalMismatch && (
+                                    {item.isLogicalMismatch && !item.isMissingAnswerKey && (
                                         <span className="flex items-center gap-1 px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold border border-red-500/30">
                                             <AlertTriangle className="w-3 h-3" /> Logic Mismatch ⚠️
+                                        </span>
+                                    )}
+                                    {item.isMissingAnswerKey && (
+                                        <span className="flex items-center gap-1 px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-xs font-bold border border-amber-500/30">
+                                            <HelpCircle className="w-3 h-3" /> No Answer Key 🔍
                                         </span>
                                     )}
                                     {(item.adminApprovedExplanation || item.isVerified) ? (
@@ -582,26 +590,38 @@ export default function AIExplanationsPage() {
                                 {/* Question Options */}
                                 {item.options && item.options.length > 0 && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 ml-1">
-                                        {item.options.map(opt => (
-                                            <div
-                                                key={opt.id}
-                                                className={`text-[11px] p-2 rounded-lg border transition-all duration-200 ${opt.id === item.correctOptionId
-                                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold shadow-[0_0_10px_rgba(16,185,129,0.05)]'
-                                                    : 'bg-slate-900/40 border-slate-800/60 text-slate-400'
-                                                    }`}
-                                            >
-                                                <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md mr-2 text-[10px] font-mono ${opt.id === item.correctOptionId
-                                                    ? 'bg-emerald-500/20 text-emerald-400'
-                                                    : 'bg-slate-800 text-slate-500'
-                                                    }`}>
-                                                    {opt.id}
-                                                </span>
-                                                {opt.text}
-                                                {opt.id === item.correctOptionId && (
-                                                    <CheckCircle className="w-3 h-3 inline ml-2 text-emerald-500 animate-pulse" />
-                                                )}
-                                            </div>
-                                        ))}
+                                        {item.options.map(opt => {
+                                            const isCorrect = opt.id === item.correctOptionId;
+                                            const isProposed = !item.correctOptionId && opt.id === item.aiProposedAnswerId;
+
+                                            return (
+                                                <div
+                                                    key={opt.id}
+                                                    className={`text-[11px] p-2 rounded-lg border transition-all duration-200 ${isCorrect
+                                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold shadow-[0_0_10px_rgba(16,185,129,0.05)]'
+                                                        : isProposed
+                                                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 font-bold'
+                                                            : 'bg-slate-900/40 border-slate-800/60 text-slate-400'
+                                                        }`}
+                                                >
+                                                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md mr-2 text-[10px] font-mono ${isCorrect
+                                                        ? 'bg-emerald-500/20 text-emerald-400'
+                                                        : isProposed
+                                                            ? 'bg-amber-500/20 text-amber-400'
+                                                            : 'bg-slate-800 text-slate-500'
+                                                        }`}>
+                                                        {opt.id}
+                                                    </span>
+                                                    {opt.text}
+                                                    {isCorrect && (
+                                                        <CheckCircle className="w-3 h-3 inline ml-2 text-emerald-500 animate-pulse" />
+                                                    )}
+                                                    {isProposed && (
+                                                        <HelpCircle className="w-3 h-3 inline ml-2 text-amber-500 animate-pulse" />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>

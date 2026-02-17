@@ -17,6 +17,8 @@ export interface ExplanationItem {
     createdAt: string;
     options?: { id: string; text: string }[];
     correctOptionId?: string;
+    isMissingAnswerKey?: boolean;
+    aiProposedAnswerId?: string;
 }
 
 export interface PaginatedExplanations {
