@@ -42,6 +42,8 @@ interface ExplanationItem {
     createdAt: string;
     isLogicalMismatch?: boolean;
     logicalSolveOutcome?: string;
+    options?: { id: string; text: string }[];
+    correctOptionId?: string;
 }
 
 interface Stats {
@@ -576,6 +578,32 @@ export default function AIExplanationsPage() {
                                     content={item.questionContent}
                                     className={`text-white font-medium ${expandedIds.has(`q-${item.questionId}`) ? '' : 'line-clamp-3'}`}
                                 />
+
+                                {/* Question Options */}
+                                {item.options && item.options.length > 0 && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 ml-1">
+                                        {item.options.map(opt => (
+                                            <div
+                                                key={opt.id}
+                                                className={`text-[11px] p-2 rounded-lg border transition-all duration-200 ${opt.id === item.correctOptionId
+                                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold shadow-[0_0_10px_rgba(16,185,129,0.05)]'
+                                                    : 'bg-slate-900/40 border-slate-800/60 text-slate-400'
+                                                    }`}
+                                            >
+                                                <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md mr-2 text-[10px] font-mono ${opt.id === item.correctOptionId
+                                                    ? 'bg-emerald-500/20 text-emerald-400'
+                                                    : 'bg-slate-800 text-slate-500'
+                                                    }`}>
+                                                    {opt.id}
+                                                </span>
+                                                {opt.text}
+                                                {opt.id === item.correctOptionId && (
+                                                    <CheckCircle className="w-3 h-3 inline ml-2 text-emerald-500 animate-pulse" />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {item.status !== 'pending' && (

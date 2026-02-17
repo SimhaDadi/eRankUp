@@ -747,7 +747,9 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 notHelpfulCount: explanationMatch?.notHelpfulCount || 0,
                 averageRating: explanationMatch?.averageRating || 0,
                 viewCount: explanationMatch?.viewCount || 0,
-                createdAt: getSafeISO(explanationMatch?.createdAt || q.createdAt)
+                createdAt: getSafeISO(explanationMatch?.createdAt || q.createdAt),
+                options: q.options?.map(opt => ({ id: opt.id, text: this.aiUtils.cleanAIResponse(opt.text) })),
+                correctOptionId: q.correctOptionId
             };
         } catch (mapError) {
             this.logger.error(`[mapToItem] Error for question ${q?.id}: ${mapError.message}`);

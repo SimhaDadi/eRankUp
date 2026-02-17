@@ -15,6 +15,8 @@ export interface ExplanationItem {
     averageRating: number;
     viewCount: number;
     createdAt: string;
+    options?: { id: string; text: string }[];
+    correctOptionId?: string;
 }
 
 export interface PaginatedExplanations {
