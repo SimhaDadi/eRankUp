@@ -410,7 +410,9 @@ Please check back shortly! Our team is working to ensure you get the absolute be
             qb.take(filters.limit || 50);
             qb.skip(filters.offset || 0);
 
+            this.logger.debug(`[listExplanations] Executing query with filters: ${JSON.stringify(filters)}`);
             const [questions, total] = await qb.getManyAndCount();
+            this.logger.debug(`[listExplanations] Found ${questions.length} questions, total count ${total}`);
 
             if (!questions || questions.length === 0) {
                 return { items: [], total: total || 0, limit: filters.limit || 50, offset: filters.offset || 0 };
@@ -423,6 +425,8 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 .andWhere('qe.contextExamId IS NULL')
                 .getMany();
 
+            this.logger.debug(`[listExplanations] Found ${explanations.length} matching explanation records`);
+
             const items = questions.map((q: any) => {
                 const qId = String(q.id).toLowerCase();
                 const explanationMatch = explanations.find(e => {
@@ -432,14 +436,16 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 return this.mapToItem(q, explanationMatch);
             }).filter(Boolean);
 
+            this.logger.debug(`[listExplanations] mapped ${items.length} items for response`);
+
             return {
                 items,
-                total: total || 0,
+                total: typeof total === 'string' ? parseInt(total) : total,
                 limit: filters.limit || 50,
                 offset: filters.offset || 0
             };
         } catch (error) {
-            this.logger.error('listExplanations failed', error.stack);
+            this.logger.error(`[listExplanations] FATAL ERROR: ${error.message}`, error.stack);
             throw error;
         }
     }
