@@ -54,7 +54,10 @@ export class AIUtilsService {
         if (!text) return text;
         return text
             .replace(/\[HIDDEN\][\s\S]*?\[\/HIDDEN\]/gi, '')
+            .replace(/\[THOUGHTS?\][\s\S]*?\[\/THOUGHTS?\]/gi, '')
+            .replace(/\[REASONING\][\s\S]*?\[\/REASONING\]/gi, '')
             .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+            .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
             .trim();
     }
 
@@ -68,19 +71,27 @@ export class AIUtilsService {
         let cleaned = this.stripHidden(text)
             // Remove citation markers like 【0†source】
             .replace(/【[^】]*】/g, '')
-            // Defensive: Remove common AI "self-correction" markers if they leak out
+
+            // 1. Remove recursive "Re-checking" / "Incorrect" loops that leak outside tags
+            // Pattern: [Something] -> [Something Else] -> [Another Thing] where it reflects internal struggle
+            .replace(/(\s*->\s*(Actually|Wait|Incorrect|Re-checking|Correction|Mistake|Oops|Evaluation|Re-evaluation):?\s*.*)+/gi, '')
+
+            // 2. Remove meta-talk about the self-correction process
             .replace(/^(Actually|Wait|Incorrect|Re-checking|Correction|Mistake|Oops):?\s*/gi, '')
-            .replace(/->\s*(Actually|Wait|Incorrect|Re-checking|Correction|Mistake|Oops):?\s*/gi, '→ ')
-            // Remove meta-phrases about the process
             .replace(/re-?checking calculation[:\s]*/gi, '')
-            .replace(/re-?evaluating the given options[:\s]*/gi, '')
+            .replace(/re-?evaluating (the|given|provided) (options|data|calculation|answer)[:\s]*/gi, '')
             .replace(/not an option,? recheck calculation[:\s]*/gi, '')
             .replace(/indicates? a mistake in interpret(ing|ation)[:\s]*/gi, '')
             .replace(/mistake in interpretation[:\s]*/gi, '')
             .replace(/yields the actual error in interpretation[:\s]*/gi, '')
             .replace(/correct steps? is:[\s]*/gi, '')
             .replace(/no pre-computation or "Steps 1-9" allowed.?/gi, '')
-            // Normalize newlines
+            .replace(/follow this mathematical logic strictly.?/gi, '')
+
+            // 3. Remove long chains of internal logic if they start with a trigger and are very long (heuristic)
+            .replace(/([A-Z][^.!?]* (calculation|logic|evaluation) (again|considering|instead)[^.!?]*(\s*→\s*[^.!?]*){2,})/gi, '')
+
+            // Normalize structure
             .replace(/\\n/g, '\n')
             // Fix LaTeX escaping (\\sqrt -> \sqrt)
             .replace(/\\\\([a-zA-Z]+)/g, '\\$1')

@@ -393,7 +393,7 @@ Verification Result:`;
             }
 
             const rawResponse = await this.generateText(prompt, images, AIPriority.HIGH, 'REASONING');
-            const cleanResponse = this.aiUtils.stripHidden(rawResponse);
+            const cleanResponse = this.aiUtils.cleanAIResponse(rawResponse);
 
             // Extract FINAL_ANSWER: [ID] - Improved regex to handle (A), A., or just A
             const answerMatch = cleanResponse.match(/FINAL_ANSWER:\s*\(?([A-E])\)?\.?/i);
@@ -1350,22 +1350,6 @@ Extract all questions and format them as a JSON array with this structure:
 
     public cleanAIResponse(text: string): string {
         return this.aiUtils.cleanAIResponse(text);
-
-        let cleaned = text
-            // 1. Remove unwanted Markdown Artifacts but PRESERVE requested structure
-            .replace(/【[^】]*】/g, '') // Remove source citations like [1]
-            .replace(/\\n/g, '\n') // Fix escaped newlines
-
-            // 2. Fix over-escaped LaTeX (\\frac -> \frac)
-            // This is common when AI tries to escape backslashes for JSON but they end up doubled in the final text
-            .replace(/\\\\([a-zA-Z]+)/g, '\\$1')
-            .replace(/\\\\(\^|_|{|}|\\)/g, '\\$1')
-
-            // 3. Cleanup Whitespace
-            .replace(/\n{3,}/g, '\n\n')
-            .trim();
-
-        return cleaned;
     }
 
     /**

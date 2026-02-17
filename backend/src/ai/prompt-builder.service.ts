@@ -131,6 +131,11 @@ export class PromptBuilderService {
         }
 
         prompt += `
+  - If you find a conflict during thinking, fix it silently in the final solution.
+  - Do NOT mention the conflict to the student.
+  - NEVER include phrases like "Actually...", "Wait...", "Incorrect...", or "Re-checking...".
+
+  [INTERNAL_ONLY]
   <thinking>
   You MUST first plan your logic here. 
   - Solve step-by-step and verify calculations.
@@ -138,13 +143,7 @@ export class PromptBuilderService {
   - Ensure logic is airtight before writing the final student-facing sections.
   </thinking>
 
-  ### STYLISTIC CONSTRAINTS (STRICT):
-  - Lead IMMEDIATELY with the solution. 
-  - NO meta-commentary about the process.
-  - DO NOT include phrases like "Actually...", "Wait...", "Incorrect...", "Re-checking...", or "Not an option".
-  - If you find a conflict during thinking, fix it silently in the final solution.
-  - Do NOT mention the conflict to the student.
-
+  [STUDENT_VISIBLE]
   [FINAL FORMAT]
   
   **${step1Title}** 🚀
@@ -341,13 +340,16 @@ Tutor:`;
         CONSTRAINT: Use LaTeX for all mathematical expressions. Wrap inline math in $...$ (e.g., $x^2$) and block math in $$...$$.
         ${specificShortcutInstruction}
 
-        [HIDDEN THINKING INSTRUCTION]
+        [INTERNAL_ONLY]
         You MUST first plan your logic inside a '[HIDDEN]' ... '[/HIDDEN]' block. 
         - Analyze the question step-by-step here to ensure accuracy.
         - ${PROMPTS_CONFIG.syllabusGuardrails.mathVerification}
         - Verify your logic before committing to the final answer.
         - This block will NOT be seen by the student.
         - **Visible Constraint**: Do NOT include self-correction phrases like "Actually" or "Incorrect" in the final output.
+        - **Format Policy**: If you encounter an error in your logic, correct it SILENTLY. Never report "Correction: ..." to the student.
+
+        [STUDENT_VISIBLE]
 
         [MANDATORY RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY]
         💡 CORE: Identify the main concept/rule in one line.
