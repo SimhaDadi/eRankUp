@@ -13,6 +13,8 @@ import { CacheService } from '../common/cache.service';
 import { GamificationService } from '../gamification/gamification.service';
 import { AdaptiveLearningService } from '../adaptive-learning/adaptive-learning.service';
 import { isUUID } from '../common/utils';
+import { ExplanationService } from '../ai/explanation.service';
+import { UserRole } from '../users/user.entity';
 
 @Injectable()
 export class ScorerService implements OnModuleInit {
@@ -37,6 +39,7 @@ export class ScorerService implements OnModuleInit {
         private cacheService: CacheService,
         private gamificationService: GamificationService,
         private adaptiveLearningService: AdaptiveLearningService,
+        private explanationService: ExplanationService,
     ) { }
 
     async gradeAndSave(
@@ -350,6 +353,28 @@ export class ScorerService implements OnModuleInit {
             // Ensure consistent order matches attempt sequence
             order: { answeredAt: 'ASC' }
         });
+
+        // 3. Hydrate questions with unified explanations
+        if (attempt.responses && attempt.responses.length > 0) {
+            const questions = attempt.responses.map(r => r.question).filter(Boolean);
+            const questionIds = questions.map(q => q.id);
+
+            // Check if user is admin
+            const user = await this.userRepository.findOne({ where: { id: userId } });
+            const isAdmin = user?.role === UserRole.ADMIN;
+
+            const explanations = await this.explanationService.getUnifiedExplanationsBulk(
+                questionIds,
+                attempt.exam?.id || attempt.model?.exams?.[0]?.id,
+                isAdmin
+            );
+
+            for (const q of questions) {
+                if (explanations[q.id]) {
+                    q.explanation = explanations[q.id];
+                }
+            }
+        }
 
         return attempt;
     }

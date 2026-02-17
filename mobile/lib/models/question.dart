@@ -2,15 +2,17 @@ class Question {
   final String id;
   final String content;
   final String? imageUrl;
+  final String? explanation;
   final List<Option> options;
 
-  Question({required this.id, required this.content, this.imageUrl, required this.options});
+  Question({required this.id, required this.content, this.imageUrl, this.explanation, required this.options});
 
   factory Question.fromJson(Map<String, dynamic> json) {
     return Question(
       id: json['id'],
       content: json['content'],
       imageUrl: json['imageUrl'],
+      explanation: json['explanation'],
       options: (json['options'] as List)
           .map((o) => Option.fromJson(o))
           .toList(),

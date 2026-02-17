@@ -257,6 +257,11 @@ export class ExamsService implements OnApplicationBootstrap {
                 chapters: Array.from(chaptersMap.values())
             };
 
+            // Hydrate questions with unified explanations
+            if (transformedExam.questions) {
+                await this.hydrateQuestions(transformedExam.questions, includeUnpublished, exam.id);
+            }
+
             await this.cacheService.set(cacheKey, transformedExam, 3600);
             return transformedExam;
         }
@@ -337,6 +342,16 @@ export class ExamsService implements OnApplicationBootstrap {
             console.log(`[DEBUG] findModel result: NULL`);
             console.log(`============== [DEBUG] findModel END ==============\n`);
             return null;
+        }
+
+        let isAdmin = false;
+        if (userId) {
+            const user = await this.examsRepository.manager.getRepository(User).findOneBy({ id: userId });
+            isAdmin = user?.role === 'admin';
+        }
+
+        if (model.questions) {
+            await this.hydrateQuestions(model.questions, isAdmin);
         }
 
         console.log(`[DEBUG] findModel result: ${model.title} (Q: ${model.questions?.length})`);
@@ -549,11 +564,17 @@ export class ExamsService implements OnApplicationBootstrap {
         }
 
         // 3. Return questions if allowed
-        return this.questionRepository.find({
+        const questions = await this.questionRepository.find({
             where: { chapter: { id: chapterId } },
             relations: ['subject', 'chapter', 'models'],
             order: { difficultyWeight: 'ASC' }
         });
+
+        const user = await this.examsRepository.manager.getRepository(User).findOneBy({ id: userId });
+        const isAdmin = user?.role === 'admin';
+
+        await this.hydrateQuestions(questions, isAdmin);
+        return questions;
     }
 
     /**
@@ -1678,5 +1699,21 @@ export class ExamsService implements OnApplicationBootstrap {
 
         await this.invalidateCache();
         return { message: `Successfully deleted ${count} questions from model`, count };
+    }
+    /**
+     * Unified Question Hydration
+     * Ensures all platforms (Web, Mobile, Admin) see the same audited explanations.
+     */
+    async hydrateQuestions(questions: Question[], isAdmin: boolean, contextExamId?: string) {
+        if (!questions || questions.length === 0) return;
+
+        const questionIds = questions.map(q => q.id);
+        const explanations = await this.explanationService.getUnifiedExplanationsBulk(questionIds, contextExamId, isAdmin);
+
+        for (const q of questions) {
+            if (explanations[q.id]) {
+                q.explanation = explanations[q.id];
+            }
+        }
     }
 }

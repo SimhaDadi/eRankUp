@@ -133,7 +133,7 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
                 {/* Hamburger for mobile */}
                 <button
                     onClick={onToggleSidebar}
-                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95 shadow-sm border border-slate-200/50"
+                    className="lg:hidden p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95 shadow-sm border border-slate-200/50"
                 >
                     <Menu className="w-6 h-6" />
                 </button>

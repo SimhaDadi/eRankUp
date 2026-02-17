@@ -234,6 +234,20 @@ export default function AIExplanationsPage() {
         }
     };
 
+    const handleSyncLegacy = async () => {
+        try {
+            setLoading(true);
+            const res = await api.post('/explanations/admin/backfill');
+            showNotification('success', `Successfully synced ${res.data.synced} of ${res.data.total} legacy explanations!`);
+            fetchData();
+        } catch (error: any) {
+            console.error('Sync failed:', error);
+            showNotification('error', `Sync failed: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleVerifyAI = async (id: string, questionId: string) => {
         try {
             setVerifyingIds(prev => new Set(prev).add(id));
@@ -315,6 +329,15 @@ export default function AIExplanationsPage() {
                     </p>
                 </div>
                 <div className="flex gap-3">
+                    <button
+                        onClick={handleSyncLegacy}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50"
+                        title="Migrate legacy question explanations to the management table"
+                    >
+                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                        <span>Sync Legacy</span>
+                    </button>
                     <button
                         onClick={async () => {
                             if (confirm('Generate missing explanations for 50 pending questions?')) {

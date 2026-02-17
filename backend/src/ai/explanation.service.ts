@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, In, IsNull, Brackets } from 'typeorm';
+import { Repository, ILike, In, IsNull, Brackets, Not } from 'typeorm';
 import { Question } from '../exams/entities/question.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
@@ -12,10 +12,12 @@ import { AIService } from './ai.service';
 import { UserRole } from '../users/user.entity';
 import { PromptBuilderService } from './prompt-builder.service';
 import { ExplanationItem, PaginatedExplanations } from './interfaces/explanation.interfaces';
+import { AIUtilsService } from './ai-utils.service';
 
 @Injectable()
 export class ExplanationService {
     private readonly logger = new Logger(ExplanationService.name);
+    private readonly processingQuestions = new Set<string>();
 
     constructor(
         private configService: ConfigService,
@@ -30,6 +32,7 @@ export class ExplanationService {
         private aiUsageService: AIUsageService,
         private aiService: AIService,
         private promptBuilder: PromptBuilderService,
+        private aiUtils: AIUtilsService,
     ) {
     }
 
@@ -43,10 +46,17 @@ export class ExplanationService {
     ): Promise<ExplanationItem | string> {
         // --- Curated-Only Enforcement for Students ---
         if (role === UserRole.STUDENT) {
-            return this.getCuratedExplanation(questionId, contextExamId);
+            return this.getUnifiedExplanation(questionId, contextExamId);
         }
 
         this.logger.log(`[generateExplanation] ADMIN/FACULTY trigger for question=${questionId}, user=${userId}`);
+
+        // Concurrency Guard: Check if already processing this specific question/context
+        const lockKey = `${questionId}:${contextExamId || 'global'}`;
+        if (this.processingQuestions.has(lockKey)) {
+            this.logger.warn(`[generateExplanation] Already generating for ${lockKey}. Skipping duplicate request.`);
+            return 'Generation in progress. Please wait...';
+        }
 
         // 1. Check cache first
         try {
@@ -57,7 +67,7 @@ export class ExplanationService {
             if (cached) {
                 this.logger.debug(`[generateExplanation] Cache hit for question=${questionId}`);
 
-                // [FIX] Healing Sync: Ensure Question table has the explanation for Attempt Review
+                // Healing Sync: Ensure Question table has the explanation for Attempt Review
                 const questionExplan = cached.adminApprovedExplanation || cached.aiExplanation;
                 const question = await this.questionRepository.findOne({ where: { id: questionId } });
                 if (question && (!question.explanation || question.explanation.length < 5)) {
@@ -69,12 +79,10 @@ export class ExplanationService {
                 cached.viewCount++;
                 await this.explanationRepository.save(cached);
 
-                // Standardize: Always return the mapped item for consistent metadata access
                 return this.mapToItem(question, cached);
             }
         } catch (cacheError) {
             this.logger.warn(`[generateExplanation] Cache lookup error: ${cacheError.message}`);
-            // Continue to generation
         }
 
         const question = await this.questionRepository.findOne({
@@ -98,6 +106,9 @@ export class ExplanationService {
         let isLogicalMismatch = false;
 
         try {
+            // Set Lock
+            this.processingQuestions.add(lockKey);
+
             // 2. Blind Solve Pass
             this.logger.log(`[generateExplanation] Step 1: Blind Solve phase for ${question.id}`);
             solveResult = await this.aiService.solveQuestion(question);
@@ -108,7 +119,6 @@ export class ExplanationService {
             }
         } catch (solveError) {
             this.logger.error(`[generateExplanation] Blind solve failed phase: ${solveError.message}`);
-            // Continue anyway
         }
 
         try {
@@ -129,7 +139,7 @@ export class ExplanationService {
             while (!isValid && attempts < 2) {
                 this.logger.log(`[generateExplanation] AI call attempt ${attempts + 1}`);
                 const rawExplanation = await this.aiService.generateText(prompt, [], priority);
-                explanation = this.aiService.cleanAIResponse(rawExplanation);
+                explanation = this.aiUtils.cleanAIResponse(rawExplanation);
 
                 this.logger.log(`[generateExplanation] Received response (len=${explanation.length})`);
                 await this.aiUsageService.trackUsage(userId, prompt, explanation);
@@ -162,15 +172,13 @@ export class ExplanationService {
             question.explanation = explanation;
             await this.questionRepository.save(question);
 
-            // [NEW] Return the full UI-ready item for immediate frontend sync
             return this.mapToItem(question, newExplanation);
         } catch (error) {
             this.logger.error('[generateExplanation] FATAL pipeline failure', error.stack);
 
+            // Generate fallback if everything else fails
             const fallbackExplanation = this.getFallbackExplanation(question);
-
             try {
-                // Persistent save of fallback to satisfy UI
                 const failRecord = this.explanationRepository.create({
                     questionId,
                     contextExamId: contextExamId || null,
@@ -183,8 +191,10 @@ export class ExplanationService {
             } catch (saveError) {
                 this.logger.error(`[generateExplanation] Could not even save fallback: ${saveError.message}`);
             }
-
             return fallbackExplanation;
+        } finally {
+            // Cleanup lock
+            this.processingQuestions.delete(lockKey);
         }
     }
 
@@ -213,57 +223,126 @@ export class ExplanationService {
         });
     }
 
-    private async verifyExplanation(explanation: string, question: Question): Promise<{ isValid: boolean; feedback: string }> {
-        return this.aiService.verifyExplanation(question, explanation);
+    /**
+     * Bulk version of getUnifiedExplanation for better performance
+     */
+    async getUnifiedExplanationsBulk(questionIds: string[], contextExamId?: string, isAdmin: boolean = false): Promise<Record<string, string>> {
+        if (questionIds.length === 0) return {};
+
+        const explanations = await this.explanationRepository.find({
+            where: {
+                questionId: In(questionIds),
+                contextExamId: contextExamId || IsNull()
+            }
+        });
+
+        const questions = await this.questionRepository.find({
+            where: { id: In(questionIds) }
+        });
+
+        const result: Record<string, string> = {};
+
+        for (const qId of questionIds) {
+            const cached = explanations.find(e => e.questionId === qId);
+            const q = questions.find(question => question.id === qId);
+
+            if (isAdmin) {
+                const raw = cached?.adminApprovedExplanation || cached?.aiExplanation || q?.explanation || 'No explanation available.';
+                result[qId] = this.aiUtils.cleanAIResponse(raw);
+                continue;
+            }
+
+            if (cached && (cached.adminApprovedExplanation || cached.isVerified)) {
+                const raw = cached.adminApprovedExplanation || cached.aiExplanation;
+                result[qId] = this.aiUtils.cleanAIResponse(raw);
+            } else if (q?.explanation) {
+                result[qId] = this.aiUtils.cleanAIResponse(q.explanation);
+            } else {
+                result[qId] = `### Content Under Review ⏳
+This solution is currently being reviewed by our expert faculty for accuracy and formatting. 
+
+Please check back shortly! Our team is working to ensure you get the absolute best explanation for this problem.`;
+
+                // [Audit Fix] If student hits a missing explanation, trigger background generation
+                if (!cached) {
+                    this.triggerBackgroundGeneration(qId, contextExamId);
+                }
+            }
+        }
+
+        return result;
     }
 
     /**
-     * Strictly fetch curated content for students.
-     * Returns a "Pending" message if not verified or approved.
+     * Non-blocking background generation trigger
      */
-    private async getCuratedExplanation(questionId: string, contextExamId?: string): Promise<string> {
+    private async triggerBackgroundGeneration(questionId: string, contextExamId?: string) {
+        const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
+        this.generateExplanation(
+            SYSTEM_USER_ID,
+            UserRole.ADMIN,
+            questionId,
+            undefined,
+            contextExamId,
+            AIPriority.LOW
+        ).catch(err => this.logger.error(`[BackgroundTrigger] Failed for ${questionId}: ${err.message}`));
+    }
+
+    /**
+     * Get the best available explanation for a question.
+     */
+    async getUnifiedExplanation(questionId: string, contextExamId?: string, isAdmin: boolean = false): Promise<string> {
         try {
             const cached = await this.explanationRepository.findOne({
                 where: { questionId, contextExamId: contextExamId || IsNull() }
             });
 
-            // Rule: Only show to students if Admin Approved OR AI Verified
+            if (isAdmin) {
+                const raw = cached?.adminApprovedExplanation || cached?.aiExplanation;
+                if (raw) return this.aiUtils.cleanAIResponse(raw);
+
+                const q = await this.questionRepository.findOne({ where: { id: questionId } });
+                return q?.explanation ? this.aiUtils.cleanAIResponse(q.explanation) : 'No explanation available.';
+            }
+
             if (cached && (cached.adminApprovedExplanation || cached.isVerified)) {
                 cached.viewCount++;
                 await this.explanationRepository.save(cached);
-                return cached.adminApprovedExplanation || cached.aiExplanation;
+                return this.aiUtils.cleanAIResponse(cached.adminApprovedExplanation || cached.aiExplanation);
             }
 
-            // Otherwise, return the "Safety Shield" message
+            const question = await this.questionRepository.findOne({ where: { id: questionId } });
+            if (question?.explanation) {
+                return this.aiUtils.cleanAIResponse(question.explanation);
+            }
+
+            this.triggerBackgroundGeneration(questionId, contextExamId);
+
             return `### Content Under Review ⏳
 This solution is currently being reviewed by our expert faculty for accuracy and formatting. 
 
 Please check back shortly! Our team is working to ensure you get the absolute best explanation for this problem.`;
         } catch (error) {
-            this.logger.error(`[getCuratedExplanation] Fetch failed for ${questionId}: ${error.message}`);
+            this.logger.error(`[getUnifiedExplanation] Fetch failed for ${questionId}: ${error.message}`);
             return 'Explanation is temporarily unavailable. Please try again later.';
         }
     }
-
-
 
     async listExplanations(filters: {
         search?: string;
         subjectId?: string;
         chapterId?: string;
         modelId?: string;
-        examId?: string;  // [FIX] Added examId filter support
+        examId?: string;
         status?: 'all' | 'pending' | 'generated' | 'verified' | 'mismatch';
         limit?: number;
         offset?: number;
     }): Promise<PaginatedExplanations> {
         try {
-            // 1. Fetch Questions with paging (Decoupled from One-to-Many Explanations for stability)
             const qb = this.questionRepository.createQueryBuilder('question')
                 .leftJoinAndSelect('question.subject', 'subject')
                 .leftJoinAndSelect('question.chapter', 'chapter');
 
-            // 1.1 Core Filters
             if (filters.search) {
                 qb.andWhere(new Brackets(sqb => {
                     sqb.where('question.content ILIKE :search', { search: `%${filters.search}%` })
@@ -280,7 +359,6 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 qb.andWhere('chapter.id = :chapterId', { chapterId: filters.chapterId });
             }
 
-            // 1.2 Complex Many-to-Many Filters (Hardened via EXISTS Subqueries)
             if (filters.modelId) {
                 qb.andWhere(`EXISTS (
                     SELECT 1 FROM model_questions mq 
@@ -290,21 +368,17 @@ Please check back shortly! Our team is working to ensure you get the absolute be
 
             if (filters.examId) {
                 qb.andWhere(new Brackets(sqb => {
-                    // Path 1: Via Subject -> Exam
                     sqb.where('subject."examId" = :examId', { examId: filters.examId })
-                        // Path 2: Direct question.examId (legacy)
                         .orWhere('question."examId" = :examId', { examId: filters.examId })
-                        // Path 3: Via Question -> Exams Junction
                         .orWhere(`EXISTS (
-                        SELECT 1 FROM exam_questions_question eq 
-                        WHERE eq."questionId" = question.id AND eq."examId" = :examId
-                    )`)
-                        // Path 4: Via Question -> Models -> Exams Junction
+                            SELECT 1 FROM exam_questions_question eq 
+                            WHERE eq."questionId" = question.id AND eq."examId" = :examId
+                        )`)
                         .orWhere(`EXISTS (
-                        SELECT 1 FROM model_questions mq 
-                        JOIN exam_models em ON em."modelId" = mq."modelId"
-                        WHERE mq."questionId" = question.id AND em."examId" = :examId
-                    )`);
+                            SELECT 1 FROM model_questions mq 
+                            JOIN exam_models em ON em."modelId" = mq."modelId"
+                            WHERE mq."questionId" = question.id AND em."examId" = :examId
+                        )`);
                 }));
             }
 
@@ -336,37 +410,20 @@ Please check back shortly! Our team is working to ensure you get the absolute be
             qb.take(filters.limit || 50);
             qb.skip(filters.offset || 0);
 
-            this.logger.log(`[listExplanations] Fetching ${filters.limit} questions (Paging Only)`);
             const [questions, total] = await qb.getManyAndCount();
-
-            this.logger.log(`[listExplanations] Found ${questions?.length || 0} questions. Total count: ${total}`);
 
             if (!questions || questions.length === 0) {
                 return { items: [], total: total || 0, limit: filters.limit || 50, offset: filters.offset || 0 };
             }
 
-            // 2. Fetch specific global explanations for these paged questions only
             const questionIds = questions.map(q => q.id).filter(Boolean);
-            let explanations: QuestionExplanation[] = [];
+            const explanations = await this.explanationRepository.createQueryBuilder('qe')
+                .leftJoinAndSelect('qe.question', 'question')
+                .where('qe.questionId IN (:...ids)', { ids: questionIds })
+                .andWhere('qe.contextExamId IS NULL')
+                .getMany();
 
-            try {
-                // Use QueryBuilder to force-load columns if needed and filter correctly
-                // [FIX] Explicitly join question to be sure we have the reference if qe.questionId is flaky
-                explanations = await this.explanationRepository.createQueryBuilder('qe')
-                    .leftJoinAndSelect('qe.question', 'question')
-                    .where('qe.questionId IN (:...ids)', { ids: questionIds })
-                    .andWhere('qe.contextExamId IS NULL')
-                    .getMany();
-
-                this.logger.log(`[listExplanations] Found ${explanations.length} matching explanations. Example qId from first: ${explanations[0]?.questionId || explanations[0]?.question?.id}`);
-            } catch (explError) {
-                this.logger.error(`[listExplanations] Failed to load explanations: ${explError.message}`, explError.stack);
-                explanations = [];
-            }
-
-            // 3. Merge and Map
             const items = questions.map((q: any) => {
-                if (!q) return null;
                 const qId = String(q.id).toLowerCase();
                 const explanationMatch = explanations.find(e => {
                     const targetId = e.questionId || e.question?.id;
@@ -374,8 +431,6 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 });
                 return this.mapToItem(q, explanationMatch);
             }).filter(Boolean);
-
-            this.logger.log(`[listExplanations] Mapping complete. Items: ${items.length}, Pending: ${items.filter(i => i.status === 'pending').length}`);
 
             return {
                 items,
@@ -395,43 +450,16 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         questionIds: string[]
     ): Promise<Map<string, string>> {
         const explanations = new Map<string, string>();
-        this.logger.log(`Starting bulk generation for ${questionIds.length} questions`);
-
-        for (const [index, questionId] of questionIds.entries()) {
+        for (const questionId of questionIds) {
             try {
                 const result = await this.generateExplanation(userId, role, questionId, undefined, undefined, AIPriority.LOW);
                 const explanation = typeof result === 'string' ? result : (result.adminApprovedExplanation || result.aiExplanation || '');
                 explanations.set(questionId, explanation);
-                this.logger.log(`Generated ${index + 1}/${questionIds.length}: ${questionId}`);
             } catch (error) {
-                this.logger.error(`Failed to generate explanation for ${questionId}: ${error.message}`, error.stack);
+                this.logger.error(`Failed to generate explanation for ${questionId}: ${error.message}`);
             }
         }
-
         return explanations;
-    }
-
-    async generateMissingExplanations(
-        userId: string,
-        role: UserRole,
-        limit: number = 50
-    ): Promise<number> {
-        // Keeping as is, assuming it runs in background
-        const qb = this.questionRepository.createQueryBuilder('question')
-            .leftJoin(QuestionExplanation, 'qe', 'qe.questionId = question.id')
-            .where('qe.id IS NULL')
-            .take(limit);
-
-        const questions = await qb.getMany();
-        this.logger.log(`Found ${questions.length} questions missing explanations`);
-
-        if (questions.length > 0) {
-            this.generateBulkExplanations(userId, role, questions.map(q => q.id)).catch(err =>
-                this.logger.error('Background generation error', err.stack)
-            );
-        }
-
-        return questions.length;
     }
 
     async listUnverifiedExplanations() {
@@ -447,8 +475,8 @@ Please check back shortly! Our team is working to ensure you get the absolute be
             explanations: explanations.map(exp => ({
                 id: exp.id,
                 questionId: exp.questionId,
-                questionContent: this.aiService.cleanAIResponse(exp.question?.content),
-                aiExplanation: this.aiService.cleanAIResponse(exp.aiExplanation),
+                questionContent: this.aiUtils.cleanAIResponse(exp.question?.content || ''),
+                aiExplanation: this.aiUtils.cleanAIResponse(exp.aiExplanation),
                 helpfulCount: exp.helpfulCount,
                 notHelpfulCount: exp.notHelpfulCount,
                 viewCount: exp.viewCount,
@@ -480,68 +508,18 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         };
     }
 
-    async verifyStoredExplanation(id: string): Promise<{ isValid: boolean; feedback: string; solveResult?: any; item: any }> {
-        const explanation = await this.explanationRepository.findOne({
-            where: { id },
-            relations: ['question', 'question.options']
-        });
-
-        if (!explanation) {
-            throw new Error('Explanation not found');
-        }
-
-        // 1. Blind Solve Pass
-        this.logger.log(`🔍 Verifying logic for explanation ${id}...`);
-        const solveResult = await this.aiService.solveQuestion(explanation.question);
-
-        explanation.logicalSolveOutcome = `Solved: ${solveResult.solvedOptionId} | Logic: ${solveResult.logic}`;
-        explanation.isLogicalMismatch = solveResult.solvedOptionId !== explanation.question.correctOptionId && solveResult.solvedOptionId !== 'ERROR';
-
-        // 2. Consistency Verification
-        const verification = await this.aiService.verifyExplanation(
-            explanation.question,
-            explanation.adminApprovedExplanation || explanation.aiExplanation
-        );
-
-        if (verification.isValid) {
-            explanation.isVerified = true;
-            await this.explanationRepository.save(explanation);
-
-            // Also update the question's active explanation
-            await this.questionRepository.update(explanation.questionId, {
-                explanation: explanation.adminApprovedExplanation || explanation.aiExplanation
-            });
-        } else {
-            // Even if invalid, save the logical mismatch status
-            await this.explanationRepository.save(explanation);
-        }
-
-        return {
-            ...verification,
-            solveResult,
-            item: this.mapToItem(explanation.question, explanation)
-        };
-    }
-
     async approveExplanation(id: string, editedText?: string) {
         const explanation = await this.explanationRepository.findOne({
             where: { id },
             relations: ['question', 'question.subject', 'question.chapter']
         });
 
-        if (!explanation) {
-            throw new Error('Explanation not found');
-        }
+        if (!explanation) throw new Error('Explanation not found');
 
         explanation.isVerified = true;
-        if (editedText) {
-            explanation.adminApprovedExplanation = editedText;
-        } else {
-            explanation.adminApprovedExplanation = explanation.aiExplanation;
-        }
+        explanation.adminApprovedExplanation = editedText || explanation.aiExplanation;
 
         await this.explanationRepository.save(explanation);
-
         await this.questionRepository.update(explanation.questionId, {
             explanation: explanation.adminApprovedExplanation
         });
@@ -555,23 +533,12 @@ Please check back shortly! Our team is working to ensure you get the absolute be
 
     async rejectExplanation(id: string, reason: string) {
         const explanation = await this.explanationRepository.findOne({ where: { id } });
+        if (!explanation) throw new Error('Explanation not found');
 
-        if (!explanation) {
-            throw new Error('Explanation not found');
-        }
-
-        // [FIX] Sync: Clear explanation field from the Question entity
-        await this.questionRepository.update(explanation.questionId, {
-            explanation: null
-        });
-
+        await this.questionRepository.update(explanation.questionId, { explanation: null });
         await this.explanationRepository.remove(explanation);
 
-        return {
-            success: true,
-            message: 'Explanation rejected and removed',
-            reason
-        };
+        return { success: true, message: 'Explanation rejected and removed', reason };
     }
 
     async updateExplanation(id: string, text: string) {
@@ -580,15 +547,12 @@ Please check back shortly! Our team is working to ensure you get the absolute be
             relations: ['question', 'question.subject', 'question.chapter']
         });
 
-        if (!explanation) {
-            throw new Error('Explanation not found');
-        }
+        if (!explanation) throw new Error('Explanation not found');
 
         explanation.adminApprovedExplanation = text;
         explanation.isVerified = true;
 
         await this.explanationRepository.save(explanation);
-
         await this.questionRepository.update(explanation.questionId, {
             explanation: explanation.adminApprovedExplanation
         });
@@ -602,16 +566,10 @@ Please check back shortly! Our team is working to ensure you get the absolute be
 
     async submitFeedback(questionId: string, helpful: boolean, comment?: string) {
         const explanation = await this.explanationRepository.findOne({ where: { questionId } });
+        if (!explanation) throw new Error('Explanation not found');
 
-        if (!explanation) {
-            throw new Error('Explanation not found');
-        }
-
-        if (helpful) {
-            explanation.helpfulCount++;
-        } else {
-            explanation.notHelpfulCount++;
-        }
+        if (helpful) explanation.helpfulCount++;
+        else explanation.notHelpfulCount++;
 
         const totalFeedback = explanation.helpfulCount + explanation.notHelpfulCount;
         explanation.averageRating = ((explanation.helpfulCount * 5) + (explanation.notHelpfulCount * 1)) / totalFeedback;
@@ -629,21 +587,6 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         };
     }
 
-    async getExplanationStats() {
-        const total = await this.explanationRepository.count();
-        const verified = await this.explanationRepository.count({ where: { isVerified: true } });
-        const unverified = total - verified;
-        return {
-            total,
-            verified,
-            unverified,
-            averageRating: 0,
-            totalViews: 0,
-            helpfulRate: 0,
-            feedback: { helpful: 0, notHelpful: 0 }
-        };
-    }
-
     async syncExplanations(): Promise<{ updated: number }> {
         const explanations = await this.explanationRepository.find();
         let updated = 0;
@@ -651,45 +594,62 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         for (const exp of explanations) {
             const question = await this.questionRepository.findOne({ where: { id: exp.questionId } });
             if (question && !question.explanation) {
-                question.explanation = this.aiService.cleanAIResponse(exp.adminApprovedExplanation || exp.aiExplanation);
+                question.explanation = this.aiUtils.cleanAIResponse(exp.adminApprovedExplanation || exp.aiExplanation);
                 await this.questionRepository.save(question);
                 updated++;
             }
         }
-        this.logger.log(`Synced ${updated} explanations to Question table.`);
         return { updated };
     }
 
-    /**
-     * Map a Question and its (optional) Explanation record to a UI-friendly item
-     */
+    async backfillLegacyExplanations(): Promise<{ total: number; synced: number }> {
+        const questionsWithLegacy = await this.questionRepository.find({
+            where: { explanation: Not(IsNull()) }
+        });
+
+        let synced = 0;
+        for (const q of questionsWithLegacy) {
+            const existing = await this.explanationRepository.findOne({ where: { questionId: q.id } });
+            if (!existing) {
+                const newExpr = this.explanationRepository.create({
+                    questionId: q.id,
+                    aiExplanation: q.explanation,
+                    isVerified: false,
+                    createdAt: q.createdAt || new Date()
+                });
+                await this.explanationRepository.save(newExpr);
+                synced++;
+            }
+        }
+        return { total: questionsWithLegacy.length, synced };
+    }
+
     private mapToItem(q: Question, explanationMatch?: QuestionExplanation): ExplanationItem {
         try {
-            // [FIX] Use the cached question.explanation as a fallback to ensure visibility
             const rawAiExpl = explanationMatch?.aiExplanation || q.explanation || null;
-
-            // Defensive date handling
             const getSafeISO = (d: any) => {
                 try {
                     const dateObj = d ? new Date(d) : new Date();
                     return isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString();
-                } catch {
-                    return new Date().toISOString();
-                }
+                } catch { return new Date().toISOString(); }
             };
+
+            const cleanQuestion = this.aiUtils.cleanAIResponse(q.content || '');
+            const cleanAiExpl = rawAiExpl ? this.aiUtils.cleanAIResponse(rawAiExpl) : null;
+            const cleanAdminExpl = explanationMatch?.adminApprovedExplanation ? this.aiUtils.cleanAIResponse(explanationMatch.adminApprovedExplanation) : null;
 
             return {
                 id: explanationMatch?.id || `missing-${q.id}`,
                 questionId: q.id,
-                questionContent: this.aiService ? this.aiService.cleanAIResponse(q.content || '') : (q.content || ''),
+                questionContent: cleanQuestion,
                 subject: q.subject?.title || 'Unknown',
                 chapter: q.chapter?.title || 'Unknown',
-                aiExplanation: (rawAiExpl && this.aiService) ? this.aiService.cleanAIResponse(rawAiExpl) : (rawAiExpl || null),
-                adminApprovedExplanation: (explanationMatch?.adminApprovedExplanation && this.aiService) ? this.aiService.cleanAIResponse(explanationMatch.adminApprovedExplanation) : (explanationMatch?.adminApprovedExplanation || null),
+                aiExplanation: cleanAiExpl,
+                adminApprovedExplanation: cleanAdminExpl,
                 isVerified: !!explanationMatch?.isVerified,
                 isLogicalMismatch: !!explanationMatch?.isLogicalMismatch,
                 logicalSolveOutcome: explanationMatch?.logicalSolveOutcome || null,
-                status: (!explanationMatch && !q.explanation) ? 'pending' : (explanationMatch?.isVerified ? 'verified' : 'generated'),
+                status: (explanationMatch?.isVerified) ? 'verified' : ((rawAiExpl) ? 'generated' : 'pending'),
                 helpfulCount: explanationMatch?.helpfulCount || 0,
                 notHelpfulCount: explanationMatch?.notHelpfulCount || 0,
                 averageRating: explanationMatch?.averageRating || 0,
@@ -697,23 +657,15 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 createdAt: getSafeISO(explanationMatch?.createdAt || q.createdAt)
             };
         } catch (mapError) {
-            this.logger.error(`[mapToItem] Error for question ${q?.id}: ${mapError.message}`, mapError.stack);
+            this.logger.error(`[mapToItem] Error for question ${q?.id}: ${mapError.message}`);
             return null;
         }
     }
 
-    /**
-     * Clear all explanations from the database
-     * Admin only - use to regenerate all explanations with improved prompts
-     */
     async clearAllExplanations(): Promise<{ deletedExplanations: number; clearedQuestions: number }> {
-        this.logger.warn('⚠️  CLEARING ALL EXPLANATIONS FROM DATABASE');
-
-        // Delete all from question_explanation table
         const deleteResult = await this.explanationRepository.delete({});
         const deletedExplanations = deleteResult.affected || 0;
 
-        // Clear explanation field from all questions
         const updateResult = await this.questionRepository
             .createQueryBuilder()
             .update()
@@ -722,11 +674,6 @@ Please check back shortly! Our team is working to ensure you get the absolute be
             .execute();
         const clearedQuestions = updateResult.affected || 0;
 
-        this.logger.log(`✅ Cleared ${deletedExplanations} explanation records and ${clearedQuestions} question explanations`);
-
-        return {
-            deletedExplanations,
-            clearedQuestions
-        };
+        return { deletedExplanations, clearedQuestions };
     }
 }

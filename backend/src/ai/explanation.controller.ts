@@ -400,6 +400,24 @@ export class ExplanationController {
     }
 
     /**
+     * Backfill legacy explanations from Question table to QuestionExplanation table
+     * Admin only
+     */
+    @Post('admin/backfill')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async backfillExplanations() {
+        try {
+            return await this.explanationService.backfillLegacyExplanations();
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to backfill explanations',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
      * Get explanation statistics
      * Admin only
      */
