@@ -324,34 +324,32 @@ export class AIService {
     /**
      * Verify if an AI-generated explanation is consistent with the correct answer
      */
-    async verifyExplanation(question: Question, explanation: string): Promise<{ isValid: boolean; feedback: string }> {
-        const correctOption = question.options.find((opt: any) => opt.id === question.correctOptionId);
+    async verifyExplanation(question: Question, explanation: string, overrideCorrectOptionId?: string): Promise<{ isValid: boolean; feedback: string }> {
+        const targetCorrectId = overrideCorrectOptionId || question.correctOptionId;
+        const correctOption = question.options.find((opt: any) => opt.id === targetCorrectId);
 
         const prompt = `You are a quality control AI. Verify if the provided explanation for a multiple-choice question is accurate and consistent with the correct answer.
 
-Question: ${question.content}
-Correct Option: ${question.correctOptionId} (${correctOption?.text || 'N/A'})
+    Question: ${question.content}
+    Correct Option: ${targetCorrectId} (${correctOption?.text || 'N/A'})
 
-Proposed Explanation:
----
-${explanation}
----
+    Proposed Explanation:
+    ---
+    ${explanation}
+    ---
 
-Rules for verification:
-1. The explanation MUST state or imply that ${question.correctOptionId} is the correct answer.
-2. The logic provided must not contradict the question content.
-3. If the explanation is accurate, return ONLY the word "VALID".
-4. If it is inaccurate, contradictory, or mentions the wrong option as correct, return "INVALID: [Detailed Reason]".
+    Rules for verification:
+    1. The explanation MUST state or imply that ${targetCorrectId} is the correct answer.
+    2. The logic provided must not contradict the question content.
+    3. If the explanation is accurate, return ONLY the word "VALID".
+    4. If it is inaccurate, contradictory, or mentions the wrong option as correct, return "INVALID: [Detailed Reason]".
 
-Verification Result:`;
+    Verification Result:`;
 
         try {
             const result = await this.generateText(prompt);
 
-            // Robust parsing: Check for "VALID" at start, ignoring markdown (**VALID**) or case
             const cleanResult = result.trim();
-            // Robust parsing: Check for "VALID" at start or within common markdown patterns
-            // Now matches: VALID, **VALID**, ### VALID, Logic is: VALID, etc.
             const isValid = /\bVALID\b/i.test(cleanResult) && !/\bINVALID\b/i.test(cleanResult);
 
             if (!isValid) {
@@ -366,8 +364,6 @@ Verification Result:`;
             };
         } catch (error) {
             console.error('[AIService] Verification failed:', error);
-            // Default to consistent behavior - if verification fails technically, we might want to flag it or allow it
-            // Current simple logic: Allow it but log warning (Fail Open)
             return { isValid: true, feedback: 'Verification skipped due to error.' };
         }
     }

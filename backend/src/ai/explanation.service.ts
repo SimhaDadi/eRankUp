@@ -112,10 +112,17 @@ export class ExplanationService {
             // 2. Blind Solve Pass
             this.logger.log(`[generateExplanation] Step 1: Blind Solve phase for ${question.id}`);
             solveResult = await this.aiService.solveQuestion(question);
-            isLogicalMismatch = solveResult.solvedOptionId !== question.correctOptionId && solveResult.solvedOptionId !== 'ERROR';
+            isLogicalMismatch = solveResult.solvedOptionId !== question.correctOptionId &&
+                solveResult.solvedOptionId !== 'ERROR' &&
+                solveResult.solvedOptionId !== 'UNKNOWN';
 
             if (isLogicalMismatch) {
                 this.logger.warn(`[generateExplanation] LOGICAL MISMATCH: (Stored: ${question.correctOptionId}, Solved: ${solveResult.solvedOptionId})`);
+
+                // --- PROACTIVE HEALING ---
+                if (solveResult.solvedOptionId !== 'UNKNOWN' && solveResult.solvedOptionId !== 'ERROR') {
+                    this.logger.log(`[generateExplanation] Proactive Truth Sync: Prioritizing ${solveResult.solvedOptionId} over ${question.correctOptionId}`);
+                }
             }
         } catch (solveError) {
             this.logger.error(`[generateExplanation] Blind solve failed phase: ${solveError.message}`);
@@ -145,7 +152,9 @@ export class ExplanationService {
                 await this.aiUsageService.trackUsage(userId, prompt, explanation);
 
                 try {
-                    const verification = await this.aiService.verifyExplanation(question, explanation);
+                    // Pass the Truth ID if there was a mismatch, so verification pass is accurate
+                    const targetTruthId = isLogicalMismatch ? solveResult.solvedOptionId : question.correctOptionId;
+                    const verification = await this.aiService.verifyExplanation(question, explanation, targetTruthId);
                     isValid = verification.isValid;
                     if (!isValid) this.logger.warn(`[generateExplanation] Blocked by verification: ${verification.feedback}`);
                 } catch (vError) {

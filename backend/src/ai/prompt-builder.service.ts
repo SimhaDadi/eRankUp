@@ -44,7 +44,15 @@ export class PromptBuilderService {
 
         const examContext = contextExamTitle || question.exam?.title || question.exams?.[0]?.title || 'Indian competitive exams (SSC CGL, RRB NTPC, Banking)';
         const subjectTitle = subject || question.subject?.title || 'General Aptitude';
-        const correctOption = question.options.find(opt => opt.id === question.correctOptionId);
+
+        // --- CONFLICT DETECTION & TRUTH SYNC ---
+        const isMismatch = options.verifiedSolve &&
+            options.verifiedSolve.solvedOptionId !== 'UNKNOWN' &&
+            options.verifiedSolve.solvedOptionId !== 'ERROR' &&
+            options.verifiedSolve.solvedOptionId !== question.correctOptionId;
+
+        const correctOptionId = isMismatch ? options.verifiedSolve.solvedOptionId : question.correctOptionId;
+        const correctOption = question.options.find(opt => opt.id === correctOptionId);
         const userOption = userAnswer ? question.options.find(opt => opt.id === userAnswer) : null;
 
         // --- Subject-Specific Logic ---
@@ -86,17 +94,28 @@ export class PromptBuilderService {
 
         // --- Secondary Verification Context (SILENT) ---
         let verificationContext = '';
+        let conflictAlert = '';
         if (options.verifiedSolve) {
-            const isMatch = options.verifiedSolve.solvedOptionId === question.correctOptionId;
             verificationContext = `
   ### VERIFIED LOGIC HINT:
-  - Logic: ${options.verifiedSolve.logic}
-  - Recommendation: Follow this mathematical logic strictly. ${isMatch ? '' : 'The stored answer key might have a conflict; prioritize mathematical truth silently.'}
+  - Calculated Logic: ${options.verifiedSolve.logic}
+  - Calculated Answer: ${options.verifiedSolve.solvedOptionId}
   `;
+
+            if (isMismatch) {
+                conflictAlert = `
+  !!! CRITICAL: LOGICAL CONFLICT DETECTED !!!
+  The database claims [${question.correctOptionId}] is correct, but the verified logic shows [${options.verifiedSolve.solvedOptionId}].
+  YOU MUST solve for [${options.verifiedSolve.solvedOptionId}] as the TRUTH. 
+  DO NOT hallucinate to match the database error [${question.correctOptionId}].
+  Explain the correct logic for [${options.verifiedSolve.solvedOptionId}] clearly.
+  `;
+            }
         }
 
         let prompt = `${personaInstructions}
   ${verificationContext}
+  ${conflictAlert}
   
   ### SYLLABUS GUARDRAILS (STRICT):
   Your scope is STRICTLY limited to the syllabus of ${PROMPTS_CONFIG.syllabusGuardrails.scope}.
@@ -120,7 +139,8 @@ export class PromptBuilderService {
   
   - **Options**:
   ${(question.options || []).map(opt => `${opt.id}) ${this.sanitizeInput(opt.text || '')}`).join('\n')}
-  - **Correct Answer**: ${question.correctOptionId || 'N/A'}) ${correctOption?.text || 'Correct option data missing'}
+  - **${isMismatch ? 'FLAGGED ANSWER (DB)' : 'Correct Answer'}**: ${isMismatch ? question.correctOptionId : correctOptionId}) ${correctOption?.text || 'Correct option data missing'}
+  ${isMismatch ? `- **ALIGNED TRUTH**: ${correctOptionId}) ${correctOption?.text}` : ''}
   
   ### Relevant Shortcut Hint
   ${this.getShortcutHint(subjectTitle || 'General', question.topic || '')}
