@@ -588,13 +588,48 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         };
     }
 
-    async approveExplanation(id: string, editedText?: string) {
-        const explanation = await this.explanationRepository.findOne({
-            where: { id },
+    private async resolveExplanation(id: string): Promise<QuestionExplanation> {
+        if (!id.startsWith('missing-')) {
+            const explanation = await this.explanationRepository.findOne({
+                where: { id },
+                relations: ['question', 'question.subject', 'question.chapter']
+            });
+            if (!explanation) throw new Error('Explanation not found');
+            return explanation;
+        }
+
+        const questionId = id.replace('missing-', '');
+        this.logger.log(`[resolveExplanation] Resolving legacy placeholder for question: ${questionId}`);
+
+        // Double check if a record was created by someone else/background in the meantime
+        let explanation = await this.explanationRepository.findOne({
+            where: { questionId, contextExamId: IsNull() },
             relations: ['question', 'question.subject', 'question.chapter']
         });
 
-        if (!explanation) throw new Error('Explanation not found');
+        if (!explanation) {
+            const question = await this.questionRepository.findOne({
+                where: { id: questionId },
+                relations: ['subject', 'chapter']
+            });
+            if (!question) throw new Error('Question not found');
+
+            this.logger.log(`[resolveExplanation] Creating new QuestionExplanation record from legacy content for q=${questionId}`);
+            explanation = this.explanationRepository.create({
+                questionId,
+                aiExplanation: question.explanation || 'Legacy explanation content missing.',
+                isVerified: false,
+                createdAt: new Date()
+            });
+            explanation.question = question;
+            await this.explanationRepository.save(explanation);
+        }
+
+        return explanation;
+    }
+
+    async approveExplanation(id: string, editedText?: string) {
+        const explanation = await this.resolveExplanation(id);
 
         explanation.isVerified = true;
         explanation.adminApprovedExplanation = editedText || explanation.aiExplanation;
@@ -627,8 +662,7 @@ Please check back shortly! Our team is working to ensure you get the absolute be
     }
 
     async rejectExplanation(id: string, reason: string) {
-        const explanation = await this.explanationRepository.findOne({ where: { id } });
-        if (!explanation) throw new Error('Explanation not found');
+        const explanation = await this.resolveExplanation(id);
 
         await this.questionRepository.update(explanation.questionId, { explanation: null });
         await this.explanationRepository.remove(explanation);
@@ -637,12 +671,7 @@ Please check back shortly! Our team is working to ensure you get the absolute be
     }
 
     async updateExplanation(id: string, text: string) {
-        const explanation = await this.explanationRepository.findOne({
-            where: { id },
-            relations: ['question', 'question.subject', 'question.chapter']
-        });
-
-        if (!explanation) throw new Error('Explanation not found');
+        const explanation = await this.resolveExplanation(id);
 
         explanation.adminApprovedExplanation = text;
         explanation.isVerified = true;

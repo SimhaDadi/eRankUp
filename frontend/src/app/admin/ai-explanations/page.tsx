@@ -96,6 +96,8 @@ export default function AIExplanationsPage() {
     const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
     const [verifyingIds, setVerifyingIds] = useState<Set<string>>(new Set());
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
+    const [rejectingIds, setRejectingIds] = useState<Set<string>>(new Set());
 
     const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
@@ -197,17 +199,24 @@ export default function AIExplanationsPage() {
 
     const handleApprove = async (id: string, editedText?: string) => {
         try {
+            setApprovingIds(prev => new Set(prev).add(id));
             const res = await api.post(`/explanations/${id}/approve`, {
                 editedText: editedText || undefined
             });
             const updatedItem = res.data.item;
             setItems(prev => prev.map(item => item.id === id ? { ...item, ...updatedItem } : item));
             setEditingId(null);
+            showNotification('success', 'Explanation approved and live!');
             setTimeout(() => fetchData(), 300);
-        } catch (error) {
-            // If manual approval of a "pending" item (create new explanation) logic is needed, handle it here.
-            // Usually dashboard handles "Verify" on existing. For pending, we might need "Generate" first.
+        } catch (error: any) {
             console.error('Failed to approve:', error);
+            showNotification('error', `Approval failed: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setApprovingIds(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
         }
     };
 
@@ -279,13 +288,22 @@ export default function AIExplanationsPage() {
     const handleReject = async (id: string) => {
         if (!confirm('Are you sure you want to reject and delete this explanation?')) return;
         try {
+            setRejectingIds(prev => new Set(prev).add(id));
             await api.delete(`/explanations/${id}/reject`, {
                 data: { reason: 'Quality control' }
             });
             setItems(prev => prev.filter(item => item.id !== id));
+            showNotification('info', 'Explanation rejected and removed.');
             setTimeout(() => fetchData(), 300);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to reject:', error);
+            showNotification('error', `Rejection failed: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setRejectingIds(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
         }
     };
 
@@ -692,11 +710,22 @@ export default function AIExplanationsPage() {
                                                 <>
                                                     {!item.isVerified && (
                                                         <div className="flex gap-2">
-                                                            <button onClick={() => handleApprove(item.id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center gap-2">
-                                                                <CheckCircle className="w-3 h-3" /> Approve
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleApprove(item.id);
+                                                                }}
+                                                                disabled={approvingIds.has(item.id)}
+                                                                className={`px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center gap-2 ${approvingIds.has(item.id) ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                                            >
+                                                                <CheckCircle className={`w-3 h-3 ${approvingIds.has(item.id) ? 'animate-spin' : ''}`} />
+                                                                {approvingIds.has(item.id) ? 'Approving...' : 'Approve'}
                                                             </button>
                                                             <button
-                                                                onClick={() => handleVerifyAI(item.id, item.questionId)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleVerifyAI(item.id, item.questionId);
+                                                                }}
                                                                 disabled={verifyingIds.has(item.id)}
                                                                 className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs flex items-center gap-2 ${verifyingIds.has(item.id) ? 'opacity-75 cursor-not-allowed' : ''}`}
                                                             >
@@ -705,11 +734,25 @@ export default function AIExplanationsPage() {
                                                             </button>
                                                         </div>
                                                     )}
-                                                    <button onClick={() => startEditing(item)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold text-xs flex items-center gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            startEditing(item);
+                                                        }}
+                                                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold text-xs flex items-center gap-2"
+                                                    >
                                                         <Edit3 className="w-3 h-3" /> Edit
                                                     </button>
-                                                    <button onClick={() => handleReject(item.id)} className="px-4 py-2 bg-red-900/50 hover:bg-red-900 text-red-200 rounded-lg font-bold text-xs">
-                                                        Reject
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleReject(item.id);
+                                                        }}
+                                                        disabled={rejectingIds.has(item.id)}
+                                                        className={`px-4 py-2 bg-red-900/50 hover:bg-red-900 text-red-200 rounded-lg font-bold text-xs flex items-center gap-2 ${rejectingIds.has(item.id) ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        {rejectingIds.has(item.id) ? <RefreshCw className="w-3 h-3 animate-spin" /> : null}
+                                                        {rejectingIds.has(item.id) ? 'Rejecting...' : 'Reject'}
                                                     </button>
                                                 </>
                                             )}
