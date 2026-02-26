@@ -397,6 +397,47 @@ export class ScorerService implements OnModuleInit {
             }
         }
 
+        // [BACKWARD COMPATIBILITY] If metrics are missing from insights, calculate them on the fly
+        if (attempt.responses && attempt.responses.length > 0 && (!attempt.insights?.metrics)) {
+            let posEarned = 0;
+            let negIncurred = 0;
+            let skipped = 0;
+            let reviewed = 0;
+            let totalPossible = 0;
+
+            attempt.responses.forEach(resp => {
+                const q = resp.question;
+                // Fallback to standard marks if not set on question
+                const posMark = q.positiveMarks ?? 1.0;
+                const negMark = q.negativeMarks ?? 0.25;
+
+                totalPossible += posMark;
+
+                if (resp.isCorrect) {
+                    posEarned += posMark;
+                } else if (!resp.wasSkipped && resp.selectedOptionId) {
+                    negIncurred += negMark;
+                } else {
+                    skipped++;
+                }
+
+                if (resp.wasReviewed) reviewed++;
+            });
+
+            if (!attempt.insights) attempt.insights = {};
+            attempt.insights.metrics = {
+                positiveMarksEarned: Math.round(posEarned * 100) / 100,
+                negativeMarksIncurred: Math.round(negIncurred * 100) / 100,
+                netMarks: Math.round((posEarned - negIncurred) * 100) / 100,
+                totalPossibleMarks: Math.round(totalPossible * 100) / 100,
+                skippedAnswers: skipped,
+                markedForReview: reviewed
+            };
+
+            // Note: We don't necessarily need to save back here to avoid write-on-read overhead, 
+            // but it ensures the UI sees it.
+        }
+
         return attempt;
     }
 
