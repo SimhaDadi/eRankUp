@@ -307,6 +307,24 @@ export default function AIExplanationsPage() {
         }
     };
 
+    const handleFixCorrectOption = async (questionId: string, correctOptionId: string) => {
+        try {
+            setLoading(true);
+            await api.patch(`/questions/${questionId}`, {
+                correctAnswer: correctOptionId.charCodeAt(0) - 65 // Convert A to 0, B to 1...
+            });
+            showNotification('success', `Question answer key updated to ${correctOptionId}!`);
+
+            // Refresh verified status if it was a mismatch
+            await fetchData();
+        } catch (error: any) {
+            console.error('Failed to update answer key:', error);
+            showNotification('error', `Failed to update answer key: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleUpdate = async (id: string, questionId: string) => {
         try {
             // If it's a "missing-..." ID, we need to generate first or create.
@@ -615,7 +633,12 @@ export default function AIExplanationsPage() {
                                             return (
                                                 <div
                                                     key={opt.id}
-                                                    className={`text-[11px] p-2 rounded-lg border transition-all duration-200 ${isCorrect
+                                                    onClick={() => {
+                                                        if (confirm(`Set option ${opt.id} as the correct answer?`)) {
+                                                            handleFixCorrectOption(item.questionId, opt.id);
+                                                        }
+                                                    }}
+                                                    className={`text-[11px] p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:border-indigo-500/50 ${isCorrect
                                                         ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold shadow-[0_0_10px_rgba(16,185,129,0.05)]'
                                                         : isProposed
                                                             ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 font-bold'
@@ -732,6 +755,19 @@ export default function AIExplanationsPage() {
                                                                 <Bot className={`w-3 h-3 ${verifyingIds.has(item.id) ? 'animate-pulse' : ''}`} />
                                                                 {verifyingIds.has(item.id) ? 'Auditing...' : 'Audit'}
                                                             </button>
+                                                            {item.isLogicalMismatch && item.aiProposedAnswerId && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleFixCorrectOption(item.questionId, item.aiProposedAnswerId!);
+                                                                    }}
+                                                                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                                                                    title={`Set correct answer to ${item.aiProposedAnswerId} based on AI logic`}
+                                                                >
+                                                                    <AlertTriangle className="w-3 h-3" />
+                                                                    Quick Fix ({item.aiProposedAnswerId})
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     )}
                                                     <button
