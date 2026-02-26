@@ -4,6 +4,7 @@ import { Repository, MoreThanOrEqual, IsNull, In } from 'typeorm';
 import { Attempt } from './entities/attempt.entity';
 import { Question } from './entities/question.entity';
 import { Model } from './entities/model.entity';
+import { Chapter } from './entities/chapter.entity';
 import { Exam } from './entities/exam.entity';
 import { Response } from './entities/response.entity';
 import { User } from '../users/user.entity';
@@ -33,6 +34,8 @@ export class ScorerService implements OnModuleInit {
         private responseRepository: Repository<Response>,
         @InjectRepository(User)
         private userRepository: Repository<User>,
+        @InjectRepository(Chapter)
+        private chapterRepository: Repository<Chapter>,
         @InjectRepository(UserStats)
         private userStatsRepository: Repository<UserStats>,
         private difficultyService: DifficultyService,
@@ -113,10 +116,32 @@ export class ScorerService implements OnModuleInit {
                     this.logger.log(`[ScorerService] No Model/Exam found, but ${allQuestionIds.length} questions provided. Proceeding with default marks.`);
                     questions = await this.questionRepository.find({
                         where: { id: In(allQuestionIds) },
-                        relations: ['subject', 'chapter']
+                        relations: ['subject', 'chapter', 'subject.exam']
                     });
-                    examPos = 1.0;
-                    examNeg = 0.25;
+
+                    // Resolve parent Exam from questions if possible
+                    if (questions.length > 0) {
+                        const firstQuestion = questions[0];
+                        if (firstQuestion.subject?.exam) {
+                            exam = firstQuestion.subject.exam;
+                            examPos = exam.defaultPositiveMarks || 1.0;
+                            examNeg = exam.defaultNegativeMarks || 0.25;
+                            this.logger.log(`[ScorerService] Resolved parent Exam from questions: ${exam.title} (${exam.id})`);
+                        } else if (modelId.startsWith('chapter-')) {
+                            // Backup: Direct Chapter lookup
+                            const cleanChapterId = modelId.replace('chapter-', '');
+                            const chapter = await this.chapterRepository.findOne({
+                                where: { id: cleanChapterId },
+                                relations: ['subject', 'subject.exam']
+                            });
+                            if (chapter?.subject?.exam) {
+                                exam = chapter.subject.exam;
+                                examPos = exam.defaultPositiveMarks || 1.0;
+                                examNeg = exam.defaultNegativeMarks || 0.25;
+                                this.logger.log(`[ScorerService] Resolved parent Exam from Chapter: ${exam.title} (${exam.id})`);
+                            }
+                        }
+                    }
                 } else {
                     this.logger.error(`No Model or Exam found with ID ${modelId}`);
                     throw new Error('Test not found');

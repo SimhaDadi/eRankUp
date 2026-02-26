@@ -152,7 +152,7 @@ export default function ResultsPage() {
                 if (attemptRes.status === 'fulfilled') {
                     const data = attemptRes.value.data;
                     if (analysisRes.status === 'fulfilled') {
-                        data.insights = analysisRes.value.data;
+                        data.insights = { ...data.insights, ...analysisRes.value.data };
                     }
                     if (percentileRes.status === 'fulfilled') {
                         data.percentileData = percentileRes.value.data;
@@ -380,7 +380,7 @@ export default function ResultsPage() {
                         <div className="bg-white border border-gray-200 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-sm flex flex-col gap-1">
                             <span className="text-amber-500 font-bold uppercase tracking-widest text-[8px] md:text-[10px]">Skipped</span>
                             <div className="text-xl md:text-3xl font-black text-amber-600">{attempt.insights?.metrics?.skippedAnswers ?? 0}</div>
-                            <p className="hidden md:block text-[10px] text-slate-400 font-medium">Unattempted (0)</p>
+                            <p className="hidden md:block text-[10px] text-slate-400 font-medium">Unattempted ({attempt.insights?.metrics?.skippedAnswers || 0})</p>
                         </div>
                     </div>
 
@@ -492,7 +492,7 @@ export default function ResultsPage() {
                                 {attempt.insights.strengths.length > 0 && (
                                     <div className="mt-6 flex flex-wrap gap-2">
                                         <span className="text-xs uppercase font-black text-blue-400 tracking-widest py-1">Strengths:</span>
-                                        {attempt.insights.strengths.map(s => (
+                                        {attempt.insights.strengths.map((s: string) => (
                                             <span key={s} className="bg-white text-emerald-600 font-bold text-xs px-3 py-1 rounded-full border border-emerald-100 shadow-sm">
                                                 {s}
                                             </span>
