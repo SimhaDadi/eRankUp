@@ -74,7 +74,15 @@ export class AIUtilsService {
 
             // 1. Remove recursive "Re-checking" / "Incorrect" loops that leak outside tags
             // Pattern: [Something] -> [Something Else] -> [Another Thing] where it reflects internal struggle
-            .replace(/(\s*->\s*(Actually|Wait|Incorrect|Re-checking|Correction|Mistake|Oops|Evaluation|Re-evaluation):?\s*.*)+/gi, '')
+            .replace(/(\s*->\s*(Actually|Wait|Incorrect|Re-checking|Correction|Mistake|Oops|Evaluation|Re-evaluation|Simplify):?\s*.*)+/gi, '')
+
+            // 1.1 Remove recursive re-check phrases (seen in stuck loops)
+            .replace(/(is incorrect,? recheck calculation[:\s]*)+/gi, '')
+            .replace(/(is incorrect,? recheck[:\s]*)+/gi, '')
+            .replace(/(incorrect,? recheck calculation[:\s]*)+/gi, '')
+            .replace(/(recheck calculation[:\s]*)+/gi, '')
+            .replace(/(re-?checking calculation[:\s]*)+/gi, '')
+            .replace(/(is incorrect[:\s]*)+/gi, '')
 
             // 2. Remove meta-talk about the self-correction process
             .replace(/^(Actually|Wait|Incorrect|Re-checking|Correction|Mistake|Oops):?\s*/gi, '')
@@ -101,7 +109,31 @@ export class AIUtilsService {
             .replace(/\n{3,}/g, '\n\n')
             .trim();
 
-        return cleaned;
+        // 4. Line-level deduplication (catch looped AI behavior)
+        const lines = cleaned.split('\n');
+        const uniqueLines: string[] = [];
+        let lastLine = '';
+
+        for (const line of lines) {
+            let trimmed = line.trim();
+            if (!trimmed) {
+                uniqueLines.push('');
+                continue;
+            }
+
+            // 4.1 Internal line deduplication (e.g., "Result Result Result")
+            // Catch repeated fragments of 5+ chars
+            trimmed = trimmed.replace(/\b(.{5,})\s+\1\b/g, '$1');
+
+            // If line is >80% similar to previous or exactly the same, skip it
+            if (trimmed === lastLine || (lastLine && trimmed.includes(lastLine) && (trimmed.length < lastLine.length + 15))) {
+                continue;
+            }
+            uniqueLines.push(trimmed);
+            lastLine = trimmed;
+        }
+
+        return uniqueLines.join('\n').trim();
     }
 
     /**

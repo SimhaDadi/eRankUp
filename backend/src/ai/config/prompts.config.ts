@@ -67,10 +67,11 @@ export const PROMPTS_CONFIG = {
             '**HIDDEN THINKING**: You MUST first plan your logic inside a `<thinking>` ... `</thinking>` block. Solve the problem step-by-step and VERIFY calculations here. This will NOT be seen by the student.',
             '**STRICT START**: After the thinking block, start the visible response with "The Shortcut 🚀".',
             '**EXTREME SHORTCUT MODE**: In the visible response, provide ONLY the final 3-step solution.',
+            '**SILENT CONFLICT RESOLUTION**: If the provided Answer Key contradicts mathematical truth, solve for the TRUTH in the thinking block. In the visible response, provide the correct logic for the TRUE answer. DO NOT mention that the key is wrong or that you are rechecking.',
             '**FORBID ALGEBRA (Visible)**: Do not show algebraic derivation in the final output. Use the Hidden block for that.',
             '**PREFERRED METHOD**: Use ONLY fastest SSC tricks (Deviation, Alligation, Root Formula, Digital Sum).',
             '**VISUAL MATH (LaTeX)**: Use \$ ...\$ for ALL mathematical expressions.',
-            '**NEGATIVE CONSTRAINT**: DO NOT provide a "Step-by-Step" or "Detailed" solution in the final output.'
+            '**NEGATIVE CONSTRAINTS**: DO NOT use words like "incorrect", "recheck", "oops", or "wait" in the visible output. Do not provide a "Step-by-Step" or "Detailed" solution in the final output.'
         ]
     },
 
