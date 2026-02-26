@@ -714,6 +714,26 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         };
     }
 
+    /**
+     * Clears logical mismatch flag if the new answer key matches the AI's proposed answer
+     * or simply resets the flag if the answer key has been manually verified by admin.
+     */
+    async syncMismatchStatus(questionId: string, newCorrectOptionId: string) {
+        const explanation = await this.explanationRepository.findOne({ where: { questionId } });
+        if (!explanation || !explanation.isLogicalMismatch) return;
+
+        const aiProposedId = (explanation.logicalSolveOutcome?.match(/Solved:\s*([A-E])/i)?.[1] ||
+            explanation.logicalSolveOutcome?.match(/Answer:\s*([A-E])/i)?.[1])?.toUpperCase();
+
+        if (aiProposedId === newCorrectOptionId) {
+            this.logger.log(`[syncMismatchStatus] Answer key confirmed for Q:${questionId}. Clearing mismatch flag.`);
+            explanation.isLogicalMismatch = false;
+            // Mark as verified if it was a quick fix match
+            explanation.isVerified = true;
+            await this.explanationRepository.save(explanation);
+        }
+    }
+
     async getExplanationStats() {
         const total = await this.explanationRepository.count();
         const verified = await this.explanationRepository.count({ where: { isVerified: true } });

@@ -11,6 +11,7 @@ import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { AIService } from '../ai/ai.service';
+import { ExplanationService } from '../ai/explanation.service';
 import { ExamsService } from './exams.service';
 import { MediaService } from '../admin/media.service';
 import * as fs from 'fs';
@@ -30,6 +31,7 @@ export class QuestionsController {
         @InjectRepository(Exam)
         private examRepository: Repository<Exam>,
         private readonly aiService: AIService,
+        private readonly explanationService: ExplanationService,
         private readonly examsService: ExamsService,
         private readonly mediaService: MediaService,
     ) { }
@@ -297,6 +299,13 @@ export class QuestionsController {
             if (updateData.imageUrl !== undefined) question.imageUrl = updateData.imageUrl;
 
             const saved = await this.questionRepository.save(question);
+
+            // [Truth Sync] If correct answer was fixed, clear logic mismatch badges
+            if (updateData.correctAnswer !== undefined) {
+                const newCorrectId = String.fromCharCode(65 + updateData.correctAnswer);
+                await this.explanationService.syncMismatchStatus(id, newCorrectId);
+            }
+
             return { success: true, data: saved };
 
         } catch (error) {
