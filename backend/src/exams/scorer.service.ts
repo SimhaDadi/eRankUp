@@ -133,11 +133,13 @@ export class ScorerService implements OnModuleInit {
         let positiveMarksEarned = 0;
         let negativeMarksIncurred = 0;
         let skippedAnswers = 0;
+        let markedForReview = 0;
 
         questions.forEach((q) => {
             const selectedOptionId = userAnswers[q.id];
             const isCorrect = selectedOptionId === q.correctOptionId;
             const hasAnswered = !!selectedOptionId;
+            const isReviewed = flags.includes(q.id);
 
             // Use Question specific marks if set, otherwise fallback to Exam defaults
             const posMark = q.positiveMarks != null ? q.positiveMarks : examPos;
@@ -155,6 +157,9 @@ export class ScorerService implements OnModuleInit {
             } else {
                 skippedAnswers++;
             }
+
+            if (isReviewed) markedForReview++;
+
             questionResults.push({ questionId: q.id, isCorrect });
         });
 
@@ -203,7 +208,8 @@ export class ScorerService implements OnModuleInit {
                     negativeMarksIncurred: Math.round(negativeMarksIncurred * 100) / 100,
                     netMarks: Math.round(earnedPoints * 100) / 100,
                     totalPossibleMarks: Math.round(totalPossiblePoints * 100) / 100,
-                    skippedAnswers
+                    skippedAnswers,
+                    markedForReview
                 }
             }
         });

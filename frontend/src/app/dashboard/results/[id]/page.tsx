@@ -13,8 +13,12 @@ import {
     CheckCircle2,
     XCircle,
     Zap,
-    Eye
+    Eye,
+    TrendingUp,
+    BarChart2,
+    PieChart as PieChartIcon
 } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import api from '@/lib/api';
 import Link from 'next/link';
 import TopperComparison from '@/components/dashboard/TopperComparison';
@@ -74,6 +78,7 @@ interface Attempt {
             netMarks: number;
             totalPossibleMarks: number;
             skippedAnswers: number;
+            markedForReview: number;
         };
     };
     percentileData?: PercentileData;
@@ -376,6 +381,99 @@ export default function ResultsPage() {
                             <span className="text-amber-500 font-bold uppercase tracking-widest text-[8px] md:text-[10px]">Skipped</span>
                             <div className="text-xl md:text-3xl font-black text-amber-600">{attempt.insights?.metrics?.skippedAnswers ?? 0}</div>
                             <p className="hidden md:block text-[10px] text-slate-400 font-medium">Unattempted (0)</p>
+                        </div>
+                    </div>
+
+                    {/* Visual Analysis Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Performance Breakdown Pie Chart */}
+                        <div className="bg-white border border-gray-200 rounded-3xl p-6 md:p-8 shadow-sm">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <PieChartIcon className="w-5 h-5 text-blue-500" />
+                                    Performance Breakdown
+                                </h3>
+                                {attempt.insights?.metrics?.markedForReview !== undefined && attempt.insights.metrics.markedForReview > 0 && (
+                                    <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+                                        <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">{attempt.insights.metrics.markedForReview} Marked for Review</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="h-64 w-full relative">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={[
+                                                { name: 'Correct', value: attempt.correctAnswers, color: '#10b981' },
+                                                { name: 'Incorrect', value: attempt.totalQuestions - attempt.correctAnswers - (attempt.insights?.metrics?.skippedAnswers || 0), color: '#ef4444' },
+                                                { name: 'Unattempted', value: attempt.insights?.metrics?.skippedAnswers || 0, color: '#f59e0b' }
+                                            ]}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {[
+                                                { name: 'Correct', color: '#10b981' },
+                                                { name: 'Incorrect', color: '#ef4444' },
+                                                { name: 'Unattempted', color: '#f59e0b' }
+                                            ].map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <RechartsTooltip
+                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                            itemStyle={{ fontWeight: 'bold' }}
+                                        />
+                                        <Legend verticalAlign="bottom" height={36} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="text-center">
+                                        <div className="text-2xl font-black text-slate-900">{attempt.totalQuestions}</div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Questions</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Topic Mastery Radar Chart */}
+                        <div className="bg-white border border-gray-200 rounded-3xl p-6 md:p-8 shadow-sm">
+                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-emerald-500" />
+                                Topic Mastery
+                            </h3>
+
+                            <div className="h-64 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={
+                                        Object.keys(attempt.insights?.topicAnalysis || {}).map(topic => ({
+                                            topic: topic.length > 12 ? topic.substring(0, 10) + '..' : topic,
+                                            score: Math.round((attempt.insights!.topicAnalysis[topic].correct / attempt.insights!.topicAnalysis[topic].total) * 100)
+                                        }))
+                                    }>
+                                        <PolarGrid stroke="#e2e8f0" />
+                                        <PolarAngleAxis dataKey="topic" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }} />
+                                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                        <Radar
+                                            name="Your Score"
+                                            dataKey="score"
+                                            stroke="#3b82f6"
+                                            strokeWidth={3}
+                                            fill="#3b82f6"
+                                            fillOpacity={0.3}
+                                        />
+                                        <RechartsTooltip
+                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                        />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <p className="text-[10px] text-slate-400 text-center mt-2 font-medium">Performance mapped across subjects (%)</p>
                         </div>
                     </div>
 
