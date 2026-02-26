@@ -558,9 +558,12 @@ Please check back shortly! Our team is working to ensure you get the absolute be
         // 1. Blind Solve Pass
         this.logger.log(`🔍 Verifying logic for explanation ${id}...`);
         const solveResult = await this.aiService.solveQuestion(explanation.question);
+        const solvedId = solveResult.solvedOptionId;
 
-        explanation.logicalSolveOutcome = `Solved: ${solveResult.solvedOptionId} | Logic: ${solveResult.logic}`;
-        explanation.isLogicalMismatch = solveResult.solvedOptionId !== explanation.question.correctOptionId && solveResult.solvedOptionId !== 'ERROR';
+        explanation.logicalSolveOutcome = `Solved: ${solvedId} | Logic: ${solveResult.logic}`;
+        explanation.isLogicalMismatch = solvedId !== explanation.question.correctOptionId &&
+            solvedId !== 'ERROR' &&
+            solvedId !== 'UNKNOWN';
 
         // 2. Consistency Verification
         const verification = await this.aiService.verifyExplanation(
@@ -804,7 +807,8 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 options: q.options?.map(opt => ({ id: opt.id, text: this.aiUtils.cleanAIResponse(opt.text) })),
                 correctOptionId: q.correctOptionId,
                 isMissingAnswerKey: !q.correctOptionId || q.correctOptionId === 'UNKNOWN',
-                aiProposedAnswerId: explanationMatch?.logicalSolveOutcome?.match(/Solved:\s*([A-E])/i)?.[1].toUpperCase()
+                aiProposedAnswerId: (explanationMatch?.logicalSolveOutcome?.match(/Solved:\s*([A-E])/i)?.[1] ||
+                    explanationMatch?.logicalSolveOutcome?.match(/Answer:\s*([A-E])/i)?.[1])?.toUpperCase()
             };
         } catch (mapError) {
             this.logger.error(`[mapToItem] Error for question ${q?.id}: ${mapError.message}`);

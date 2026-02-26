@@ -628,7 +628,7 @@ export default function AIExplanationsPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 ml-1">
                                         {item.options.map(opt => {
                                             const isCorrect = opt.id === item.correctOptionId;
-                                            const isProposed = !item.correctOptionId && opt.id === item.aiProposedAnswerId;
+                                            const isProposed = opt.id === item.aiProposedAnswerId && opt.id !== item.correctOptionId;
 
                                             return (
                                                 <div
@@ -755,20 +755,34 @@ export default function AIExplanationsPage() {
                                                                 <Bot className={`w-3 h-3 ${verifyingIds.has(item.id) ? 'animate-pulse' : ''}`} />
                                                                 {verifyingIds.has(item.id) ? 'Auditing...' : 'Audit'}
                                                             </button>
-                                                            {item.isLogicalMismatch && item.aiProposedAnswerId && (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleFixCorrectOption(item.questionId, item.aiProposedAnswerId!);
-                                                                    }}
-                                                                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20"
-                                                                    title={`Set correct answer to ${item.aiProposedAnswerId} based on AI logic`}
-                                                                >
-                                                                    <AlertTriangle className="w-3 h-3" />
-                                                                    Quick Fix ({item.aiProposedAnswerId})
-                                                                </button>
-                                                            )}
                                                         </div>
+                                                    )}
+                                                    {item.isVerified && item.isLogicalMismatch && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleVerifyAI(item.id, item.questionId);
+                                                            }}
+                                                            disabled={verifyingIds.has(item.id)}
+                                                            className={`px-4 py-2 bg-slate-800 hover:bg-indigo-900/40 text-indigo-300 rounded-lg font-bold text-xs flex items-center gap-2 border border-indigo-500/30 ${verifyingIds.has(item.id) ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                                            title="Refresh logical audit to find the proposed answer"
+                                                        >
+                                                            <RefreshCw className={`w-3 h-3 ${verifyingIds.has(item.id) ? 'animate-spin' : ''}`} />
+                                                            {verifyingIds.has(item.id) ? 'Re-Auditing...' : 'Re-Audit'}
+                                                        </button>
+                                                    )}
+                                                    {item.isLogicalMismatch && item.aiProposedAnswerId && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleFixCorrectOption(item.questionId, item.aiProposedAnswerId!);
+                                                            }}
+                                                            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                                                            title={`Set correct answer to ${item.aiProposedAnswerId} based on AI logic`}
+                                                        >
+                                                            <AlertTriangle className="w-3 h-3" />
+                                                            Quick Fix ({item.aiProposedAnswerId})
+                                                        </button>
                                                     )}
                                                     <button
                                                         onClick={(e) => {
