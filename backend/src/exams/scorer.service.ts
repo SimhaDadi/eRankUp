@@ -130,10 +130,14 @@ export class ScorerService implements OnModuleInit {
         let earnedPoints = 0;
 
         const questionResults: { questionId: string; isCorrect: boolean }[] = [];
+        let positiveMarksEarned = 0;
+        let negativeMarksIncurred = 0;
+        let skippedAnswers = 0;
 
         questions.forEach((q) => {
-            const isCorrect = userAnswers[q.id] === q.correctOptionId;
-            const hasAnswered = !!userAnswers[q.id];
+            const selectedOptionId = userAnswers[q.id];
+            const isCorrect = selectedOptionId === q.correctOptionId;
+            const hasAnswered = !!selectedOptionId;
 
             // Use Question specific marks if set, otherwise fallback to Exam defaults
             const posMark = q.positiveMarks != null ? q.positiveMarks : examPos;
@@ -144,8 +148,12 @@ export class ScorerService implements OnModuleInit {
             if (isCorrect) {
                 correctAnswers++;
                 earnedPoints += posMark;
+                positiveMarksEarned += posMark;
             } else if (hasAnswered) {
                 earnedPoints -= negMark;
+                negativeMarksIncurred += negMark;
+            } else {
+                skippedAnswers++;
             }
             questionResults.push({ questionId: q.id, isCorrect });
         });
@@ -189,7 +197,14 @@ export class ScorerService implements OnModuleInit {
                 strengths: score > 70 ? ['Strong overall performance'] : ['Keep practicing!'],
                 weaknesses: score < 50 ? ['Improve speed and accuracy'] : [],
                 recommendation: score > 80 ? 'Great job! Try a harder test.' : 'Review the topics you missed.',
-                topicAnalysis: topicAnalysis
+                topicAnalysis: topicAnalysis,
+                metrics: {
+                    positiveMarksEarned: Math.round(positiveMarksEarned * 100) / 100,
+                    negativeMarksIncurred: Math.round(negativeMarksIncurred * 100) / 100,
+                    netMarks: Math.round(earnedPoints * 100) / 100,
+                    totalPossibleMarks: Math.round(totalPossiblePoints * 100) / 100,
+                    skippedAnswers
+                }
             }
         });
 

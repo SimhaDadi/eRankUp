@@ -64,10 +64,17 @@ interface Attempt {
     insights?: {
         rank: number;
         totalParticipants: number;
+        recommendation: string;
         topicAnalysis: Record<string, { correct: number; total: number; time: number }>;
         strengths: string[];
         weaknesses: string[];
-        recommendation: string;
+        metrics?: {
+            positiveMarksEarned: number;
+            negativeMarksIncurred: number;
+            netMarks: number;
+            totalPossibleMarks: number;
+            skippedAnswers: number;
+        };
     };
     percentileData?: PercentileData;
     patterns?: MistakePattern[];
@@ -287,7 +294,7 @@ export default function ResultsPage() {
                                     <div className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-[#00bfa5] mb-2 tracking-tighter">
                                         {Math.round(attempt.score)}%
                                     </div>
-                                    <div className="text-slate-400 font-bold uppercase tracking-widest text-xs bg-slate-50 px-3 py-1 rounded-full">Overall Score</div>
+                                    <div className="text-slate-400 font-bold uppercase tracking-widest text-[10px] bg-slate-50 px-3 py-1 rounded-full">Overall Score</div>
                                 </div>
 
                                 {attempt.insights?.rank && (
@@ -303,39 +310,72 @@ export default function ResultsPage() {
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-2 col-span-2 gap-4">
-                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <Target className="w-5 h-5 text-emerald-500" />
-                                        <span className="text-slate-500 text-sm font-bold">Accuracy</span>
+                            <div className="grid grid-cols-2 md:grid-cols-2 col-span-2 gap-3 md:gap-4">
+                                {/* Basic Stats */}
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100/50">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Target className="w-4 h-4 text-emerald-500" />
+                                        <span className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-wider">Accuracy</span>
                                     </div>
-                                    <div className="text-3xl font-bold text-slate-900">{accuracy}%</div>
+                                    <div className="text-xl md:text-2xl font-bold text-slate-900">{accuracy}%</div>
                                 </div>
 
-                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <Clock className="w-5 h-5 text-blue-500" />
-                                        <span className="text-slate-500 text-sm font-bold">Time Taken</span>
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100/50">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Clock className="w-4 h-4 text-blue-500" />
+                                        <span className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-wider">Time Taken</span>
                                     </div>
-                                    <div className="text-3xl font-bold text-slate-900">{formatTime(attempt.timeTaken)}</div>
+                                    <div className="text-xl md:text-2xl font-bold text-slate-900">{formatTime(attempt.timeTaken)}</div>
                                 </div>
 
-                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                        <span className="text-slate-500 text-sm font-bold">Correct</span>
+                                <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100/50">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                        <span className="text-emerald-600 text-[10px] md:text-xs font-bold uppercase tracking-wider">Correct</span>
                                     </div>
-                                    <div className="text-3xl font-bold text-slate-900">{attempt.correctAnswers} <span className="text-slate-400 text-lg">/ {attempt.totalQuestions}</span></div>
+                                    <div className="text-xl md:text-2xl font-bold text-emerald-700">{attempt.correctAnswers} <span className="text-emerald-400 text-sm">/ {attempt.totalQuestions}</span></div>
                                 </div>
 
-                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100/50 hover:border-gray-200 transition-colors">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <XCircle className="w-5 h-5 text-red-500" />
-                                        <span className="text-slate-500 text-sm font-bold">Incorrect</span>
+                                <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100/50">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <XCircle className="w-4 h-4 text-red-500" />
+                                        <span className="text-red-600 text-[10px] md:text-xs font-bold uppercase tracking-wider">Incorrect</span>
                                     </div>
-                                    <div className="text-3xl font-bold text-slate-900">{attempt.totalQuestions - attempt.correctAnswers}</div>
+                                    <div className="text-xl md:text-2xl font-bold text-red-700">
+                                        {attempt.totalQuestions - attempt.correctAnswers - (attempt.insights?.metrics?.skippedAnswers || 0)}
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Complete Profile: Marking Breakdown */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                        <div className="bg-white border border-gray-200 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-sm flex flex-col gap-1">
+                            <span className="text-slate-400 font-bold uppercase tracking-widest text-[8px] md:text-[10px]">Net Marks</span>
+                            <div className="text-xl md:text-3xl font-black text-slate-900">
+                                {attempt.insights?.metrics?.netMarks ?? 'N/A'}
+                                <span className="text-slate-300 text-[10px] md:text-sm font-bold ml-1">/ {attempt.insights?.metrics?.totalPossibleMarks}</span>
+                            </div>
+                            <p className="hidden md:block text-[10px] text-slate-400 font-medium">Final score after negative</p>
+                        </div>
+
+                        <div className="bg-white border border-gray-200 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-sm flex flex-col gap-1">
+                            <span className="text-emerald-500 font-bold uppercase tracking-widest text-[8px] md:text-[10px]">Positive</span>
+                            <div className="text-xl md:text-3xl font-black text-emerald-600">+{attempt.insights?.metrics?.positiveMarksEarned ?? 'N/A'}</div>
+                            <p className="hidden md:block text-[10px] text-slate-400 font-medium">Earned marks</p>
+                        </div>
+
+                        <div className="bg-white border border-gray-200 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-sm flex flex-col gap-1">
+                            <span className="text-red-500 font-bold uppercase tracking-widest text-[8px] md:text-[10px]">Negative</span>
+                            <div className="text-xl md:text-3xl font-black text-red-600">-{attempt.insights?.metrics?.negativeMarksIncurred ?? 'N/A'}</div>
+                            <p className="hidden md:block text-[10px] text-slate-400 font-medium">Deducted marks</p>
+                        </div>
+
+                        <div className="bg-white border border-gray-200 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-sm flex flex-col gap-1">
+                            <span className="text-amber-500 font-bold uppercase tracking-widest text-[8px] md:text-[10px]">Skipped</span>
+                            <div className="text-xl md:text-3xl font-black text-amber-600">{attempt.insights?.metrics?.skippedAnswers ?? 0}</div>
+                            <p className="hidden md:block text-[10px] text-slate-400 font-medium">Unattempted (0)</p>
                         </div>
                     </div>
 
