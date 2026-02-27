@@ -61,6 +61,29 @@ export class SystemHealthService {
         }
     }
 
+    private getOrResetCounter(service: string) {
+        let counter = this.apiCallCounts.get(service);
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+
+        if (!counter) {
+            counter = { daily: 0, monthly: 0, lastReset: now };
+            this.apiCallCounts.set(service, counter);
+        } else {
+            const lastResetDate = new Date(counter.lastReset);
+            const counterToday = lastResetDate.toISOString().split('T')[0];
+
+            // If the date has rolled over, reset the daily counter to 0
+            if (counterToday !== today) {
+                counter.daily = 0;
+                // Currently NOT resetting monthly as there's no year-month check,
+                // but we correctly reset the daily. We update lastReset to now.
+                counter.lastReset = now;
+            }
+        }
+        return counter;
+    }
+
     /**
      * Track API call (Persisted)
      */
@@ -69,11 +92,7 @@ export class SystemHealthService {
         const key = `usage_${service}_${today}`;
 
         // Optimistic update in memory first
-        let counter = this.apiCallCounts.get(service);
-        if (!counter) {
-            counter = { daily: 0, monthly: 0, lastReset: new Date() };
-            this.apiCallCounts.set(service, counter);
-        }
+        let counter = this.getOrResetCounter(service);
         counter.daily++;
         counter.monthly++; // NOTE: Monthly logic needs distinct keys or aggregation. Keeping simple for now.
 
@@ -129,8 +148,9 @@ export class SystemHealthService {
      * Get API usage statistics
      */
     getAPIUsage(): APIUsageMetric[] {
-        const geminiCounter = this.apiCallCounts.get('gemini');
-        const razorpayCounter = this.apiCallCounts.get('razorpay');
+        const geminiCounter = this.getOrResetCounter('gemini');
+        const razorpayCounter = this.getOrResetCounter('razorpay');
+        const groqCounter = this.getOrResetCounter('groq');
 
         return [
             {
@@ -148,8 +168,8 @@ export class SystemHealthService {
             },
             {
                 service: 'Groq Cloud',
-                callsToday: this.apiCallCounts.get('groq')?.daily || 0,
-                callsThisMonth: this.apiCallCounts.get('groq')?.monthly || 0,
+                callsToday: groqCounter?.daily || 0,
+                callsThisMonth: groqCounter?.monthly || 0,
                 estimatedCost: 0, // Free Tier
                 limit: 14400 // ~30 RPM * 60 * 8 (working hours?) or 14k/day
             }
@@ -244,7 +264,7 @@ export class SystemHealthService {
             lastChecked: new Date(),
             details: {
                 configured: hasKey,
-                callsToday: this.apiCallCounts.get('gemini')?.daily || 0
+                callsToday: this.getOrResetCounter('gemini')?.daily || 0
             }
         };
     }
@@ -259,7 +279,7 @@ export class SystemHealthService {
             lastChecked: new Date(),
             details: {
                 configured: hasKey,
-                callsToday: this.apiCallCounts.get('groq')?.daily || 0
+                callsToday: this.getOrResetCounter('groq')?.daily || 0
             }
         };
     }
