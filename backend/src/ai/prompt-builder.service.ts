@@ -532,12 +532,11 @@ Tutor:`;
             }
         }
 
-        // If no topic matched or provided, fallback to generic guidance but AVOID listing specific formulas to prevent hallucination
+        // If no topic matched or provided, fallback to generic guidance
         if (!shortcutsSection) {
             shortcutsSection = `     - **General**: Identify the pattern first (e.g., Symmetry, Unit Digit, Digital Sum).
      - **Arithmetic**: Look for Ratios or Percentage fractions.
-     - **Geometry**: Check for Triplets or Standard Theorems.
-     - **AVOID**: Long algebraic derivations.`;
+     - **Geometry**: Check for Triplets or Standard Theorems.`;
         }
 
         return `${PROMPTS_CONFIG.subjects.quantReasoning.persona}
@@ -546,24 +545,7 @@ Tutor:`;
   1. **ABSOLUTE BREVITY**: Avoid full sentences. Use arrows ($\\rightarrow$) for logical transitions. 
   2. **LEAD WITH FORMULA / TRICK**: 
 ${shortcutsSection}
-  3. **MANDATE LaTeX**: Wrap ALL math in $ ... $. Use LaTeX for visual beauty (\\frac, \\sqrt, etc.).
-  4. **MAX 3 STEPS**: Strictly limit the strategy to 3 concise bullet points.
-   5. **STRICTLY FORBIDDEN - NO ALGEBRA**:
-     ❌ NEVER write: "Let x be...", "Assume...", "$x = \\sqrt{(x+8)(x+18)}$", "$\\frac{1}{x} = \\frac{1}{a} + \\frac{1}{b}$"
-     ❌ NEVER use variables in formulas. Use DIRECT NUMBERS ONLY.
-     ✅ ALWAYS write: "$x = \\sqrt{8 \\times 18} = 12$ days" (direct calculation with numbers)
-     
-  ### EXAMPLE (Time & Work):
-  ❌ WRONG FORMAT (Algebraic):
-  * $x = \\sqrt{(x + 8)(x + 18)}$
-  * $\\frac{1}{x} = \\frac{1}{x + 8} + \\frac{1}{x + 18}$
-  * Solve for x
-  
-  ✅ CORRECT FORMAT (Direct Shortcut):
-  * Pattern: $x = \\sqrt{8 \\times 18} = \\sqrt{144} = 12$ days
-  * Task: $\\frac{5}{6}$ work $\\rightarrow \\frac{5}{6} \\times 12 = 10$ days
-  
-  YOU MUST FOLLOW THE ✅ CORRECT FORMAT. The ❌ WRONG FORMAT is ABSOLUTELY FORBIDDEN.`;
+  3. **MANDATE LaTeX**: Wrap ALL math in $ ... $. Use LaTeX for visual beauty (\\frac, \\sqrt, etc.).`;
     }
 
     /**
