@@ -43,7 +43,8 @@ export class SystemHealthService {
 
     private async initializeCounters() {
         const services = ['gemini', 'razorpay', 'groq'];
-        const today = new Date().toISOString().split('T')[0];
+        // Use local timezone to prevent UTC rollover delay
+        const today = new Date().toLocaleDateString('en-CA');
 
         for (const service of services) {
             const key = `usage_${service}_${today}`;
@@ -64,21 +65,20 @@ export class SystemHealthService {
     private getOrResetCounter(service: string) {
         let counter = this.apiCallCounts.get(service);
         const now = new Date();
-        const today = now.toISOString().split('T')[0];
+        const today = now.toLocaleDateString('en-CA');
 
         if (!counter) {
             counter = { daily: 0, monthly: 0, lastReset: now };
             this.apiCallCounts.set(service, counter);
         } else {
             const lastResetDate = new Date(counter.lastReset);
-            const counterToday = lastResetDate.toISOString().split('T')[0];
+            const counterToday = lastResetDate.toLocaleDateString('en-CA');
 
-            // If the date has rolled over, reset the daily counter to 0
+            // If the local date has rolled over, reset the daily counter to 0
             if (counterToday !== today) {
                 counter.daily = 0;
-                // Currently NOT resetting monthly as there's no year-month check,
-                // but we correctly reset the daily. We update lastReset to now.
                 counter.lastReset = now;
+                // Currently NOT resetting monthly as there's no year-month check
             }
         }
         return counter;
@@ -88,7 +88,7 @@ export class SystemHealthService {
      * Track API call (Persisted)
      */
     async trackAPICall(service: 'gemini' | 'razorpay' | 'groq') {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA');
         const key = `usage_${service}_${today}`;
 
         // Optimistic update in memory first
