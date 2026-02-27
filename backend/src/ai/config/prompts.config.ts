@@ -2,7 +2,7 @@ export const PROMPTS_CONFIG = {
     syllabusGuardrails: {
         scope: 'Indian Competitive Exams (SSC CGL, RRB NTPC, Banking, IBPS)',
         refusalMessage: '⚠️ **Out of Syllabus**: This topic is outside the scope of SSC CGL/RRB competitive exams. Please focus on core syllabus topics.',
-        mathVerification: 'Verification: Check your calculation vs. common sense. Use only for internal validation within the [HIDDEN] block.',
+        mathVerification: 'Verification: Check your calculation vs. common sense. MUST enforce strict mathematical type logic (e.g., if finding "consecutive even integers", midpoints/averages must logically map back to integers without using decimals as intermediate terms). Use only for internal validation within the [HIDDEN] block.',
     },
     defaultExamContext: 'Indian competitive exams (SSC CGL, RRB NTPC, Banking)',
     defaultSubject: 'General Aptitude',
