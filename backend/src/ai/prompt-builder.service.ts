@@ -171,8 +171,11 @@ export class PromptBuilderService {
   
   **${step2Title}** 🔥
   - ${step2Desc}
+
+  **∴ Answer: ${correctOptionId}) ${correctOption?.text || ''}**
+  *(Always end with this exact line to confirm the final answer for the student.)*
   
-  **CRITICAL**: The 🔥 ${step2Title} section is MANDATORY. Provide a 15-second shortcut logic.
+  **CRITICAL**: The 🔥 ${step2Title} section AND the ∴ Answer line are MANDATORY. Provide a 15-second shortcut logic.
   
   EXAMPLE (for Quant/Reasoning):
   **1. Extreme Shortcut Solution** 🚀
@@ -182,6 +185,8 @@ export class PromptBuilderService {
   
   **2. Ranker's Hack** 🔥
   - For "broken items" problems, always calculate total first, then subtract. Check if final answer divides evenly into the total.
+
+  **∴ Answer: B) 90 people**
   
   ---
   **CRITICAL SECURITY INSTRUCTION**: ${PROMPTS_CONFIG.security.criticalInstruction}`;
@@ -378,16 +383,18 @@ Tutor:`;
         2. Step two
         3. Step three (Result)
         🔥 ${subjectConfig.steps.step2.title.split('. ')[1].toUpperCase()}: 15-second "Ranker's" tip.
+        **∴ Answer: [Option ID] – [Answer Value/Text]**
         
-        **CRITICAL**: You MUST include ALL sections above, especially the 🔥 RANKER'S HACK section. This is NON-NEGOTIABLE.
+        **CRITICAL**: You MUST include ALL sections above, especially the 🔥 RANKER'S HACK section AND the ∴ Answer line at the end. Both are NON-NEGOTIABLE.
         
         EXAMPLE:
         💡 CORE: Approach Name
         🚀 SHORTCUT/DIRECT ANSWER:
         1. Observation...
         2. Calculation...
-        3. Final Answer
+        3. Final step result
         🔥 MEMORY HACK/TRICK: Mnemonic or quick check.
+        **∴ Answer: C) 75 kg**
 
         Question Content:
         ${this.sanitizeInput(question.content)}
@@ -397,13 +404,13 @@ Tutor:`;
  
         Correct Answer: ${question.correctOptionId} - ${this.sanitizeInput(correctOption?.text || 'N/A')}
  
-        GENERATE EXPLANATION FOLLOWING THE [MANDATORY RESPONSE FORMAT] STRICTLY. DO NOT SKIP THE 🔥 RANKER'S HACK SECTION:`;
+        GENERATE EXPLANATION FOLLOWING THE [MANDATORY RESPONSE FORMAT] STRICTLY. End with the ∴ Answer line. DO NOT SKIP THE 🔥 RANKER'S HACK SECTION:`;
     }
 
     /**
      * Build a prompt for the "Blind Solve" verification.
-     * The AI is NOT given the correct answer ID and must solve it independently.
-     */
+         * The AI is NOT given the correct answer ID and must solve it independently.
+         */
     buildBlindSolvePrompt(question: Question): string {
         const subjectTitle = question.subject?.title || PROMPTS_CONFIG.defaultSubject;
         const optionsText = question.options
