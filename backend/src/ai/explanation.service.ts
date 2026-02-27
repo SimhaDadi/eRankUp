@@ -186,7 +186,7 @@ export class ExplanationService {
             this.logger.error('[generateExplanation] FATAL pipeline failure', error.stack);
 
             // Generate fallback if everything else fails
-            const fallbackExplanation = this.getFallbackExplanation(question);
+            const fallbackExplanation = this.getFallbackExplanation(question, error);
             try {
                 const failRecord = this.explanationRepository.create({
                     questionId,
@@ -207,7 +207,7 @@ export class ExplanationService {
         }
     }
 
-    private getFallbackExplanation(question: Question): string {
+    private getFallbackExplanation(question: Question, error?: Error): string {
         try {
             const correctOptionId = question.correctOptionId || 'N/A';
             const options = question.options || [];
@@ -215,8 +215,9 @@ export class ExplanationService {
 
             const baseText = `The correct answer is ${correctOptionId}${correctOption ? `) ${correctOption.text}` : ''}.`;
             const existingExplanation = question.explanation ? `\n\nExisting Logic: ${question.explanation}` : '';
+            const errorReason = error ? `\n(Diagnostics: ${error.message})` : '';
 
-            return `${baseText}${existingExplanation}\n\n[Note: AI Generation is temporarily unavailable for this question format.]`;
+            return `${baseText}${existingExplanation}\n\n[Note: AI Generation is temporarily unavailable for this question format. ${errorReason}]`;
         } catch (e) {
             return 'The correct answer is indicated in the options. Please review your textbook for the detailed logic.';
         }
