@@ -715,23 +715,34 @@ Please check back shortly! Our team is working to ensure you get the absolute be
     }
 
     /**
-     * Clears logical mismatch flag if the new answer key matches the AI's proposed answer
-     * or simply resets the flag if the answer key has been manually verified by admin.
+     * Clears logical mismatch flag when admin explicitly updates the answer key.
+     * Called after PATCH /questions/:id to resolve the conflict.
      */
     async syncMismatchStatus(questionId: string, newCorrectOptionId: string) {
-        const explanation = await this.explanationRepository.findOne({ where: { questionId } });
-        if (!explanation || !explanation.isLogicalMismatch) return;
+        // BUG FIX 1: Must filter by contextExamId IS NULL to target the global record.
+        // Without this, findOne could return an exam-specific record that has no mismatch,
+        // causing an early return and leaving the global mismatch record untouched.
+        const explanation = await this.explanationRepository.findOne({
+            where: { questionId, contextExamId: IsNull() }
+        });
 
-        const aiProposedId = (explanation.logicalSolveOutcome?.match(/Solved:\s*([A-E])/i)?.[1] ||
-            explanation.logicalSolveOutcome?.match(/Answer:\s*([A-E])/i)?.[1])?.toUpperCase();
-
-        if (aiProposedId === newCorrectOptionId) {
-            this.logger.log(`[syncMismatchStatus] Answer key confirmed for Q:${questionId}. Clearing mismatch flag.`);
-            explanation.isLogicalMismatch = false;
-            // Mark as verified if it was a quick fix match
-            explanation.isVerified = true;
-            await this.explanationRepository.save(explanation);
+        if (!explanation) {
+            this.logger.warn(`[syncMismatchStatus] No global explanation record found for Q:${questionId}`);
+            return;
         }
+
+        if (!explanation.isLogicalMismatch) {
+            this.logger.debug(`[syncMismatchStatus] No mismatch flag set for Q:${questionId}, nothing to clear.`);
+            return;
+        }
+
+        // BUG FIX 2: Always clear the mismatch when the admin explicitly acts.
+        // The admin's Quick Fix action IS the resolution — we don't need to re-validate
+        // whether the new answer matches what the AI proposed. Admin reviewed it and decided.
+        this.logger.log(`[syncMismatchStatus] Admin resolved mismatch for Q:${questionId}. New answer: ${newCorrectOptionId}. Clearing flag.`);
+        explanation.isLogicalMismatch = false;
+        explanation.isVerified = true;
+        await this.explanationRepository.save(explanation);
     }
 
     async getExplanationStats() {
