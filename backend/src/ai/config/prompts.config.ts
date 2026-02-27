@@ -50,7 +50,7 @@ export const PROMPTS_CONFIG = {
                 }
             },
             shortcuts: {
-                'averages': 'For N consecutive even/odd numbers given their average: Largest = Average + (N - 1), Smallest = Average - (N - 1). NEVER use decimals for consecutive integers.',
+                'averages': 'For N consecutive even/odd numbers given their average: Largest = Average + (N - 1), Smallest = Average - (N - 1). NEVER use decimals for consecutive integers. \nFor overlapping arithmetic sequences (e.g. given average of first K terms of an N-term series with step D): Average of entire series = (Average of first K terms) + (N - K) * D / 2. Use this algebraic formula directly with no text explanation.',
                 'time & work': 'If A takes (x+a) days more and B takes (x+b) days more than together (x), then $x = \\sqrt{a \\times b}$.',
                 'percentages': 'Use Fraction Table (1/8 = 12.5%, 1/6 = 16.66%) or Alligation for mixtures.',
                 'profit & loss': 'Profit % on SP vs CP conversion or Successive $a+b+ab/100$.',
