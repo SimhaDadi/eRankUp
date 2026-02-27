@@ -165,8 +165,8 @@ export class PromptBuilderService {
 
   [STUDENT_VISIBLE]
   [FINAL FORMAT]
-  
   **${step1Title}** 🚀
+  - [MANDATORY] You MUST show the explicit calculation for every variable requested or implied by the question (e.g., if asked for A, do not skip straight to B, C, D).
   - ${step1Desc}
   
   **${step2Title}** 🔥
@@ -379,6 +379,7 @@ Tutor:`;
         [MANDATORY RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY]
         💡 CORE: Identify the main concept/rule in one line.
         🚀 ${subjectConfig.steps.step1.title.split('. ')[1].toUpperCase()}:
+        - [MANDATORY] explicitly show the calculation for every variable requested (e.g., if asked for A, do not skip straight to B, C, D).
         1. Step one
         2. Step two
         3. Step three (Result)
