@@ -602,23 +602,31 @@ ${shortcutsSection}
             throw new InvalidPromptInputException('question.correctOptionId', 'must be a valid string');
         }
 
-        // Validate that correctOptionId exists in options
-        const correctOption = question.options.find(opt => opt.id === question.correctOptionId);
+        // Validate that correctOptionId exists in options (with fuzzy matching for legacy DB entries)
+        const correctTarget = question.correctOptionId.toString().toLowerCase();
+        const correctOption = question.options.find(opt =>
+            opt.id?.toString().toLowerCase() === correctTarget ||
+            opt.text?.toString().toLowerCase().startsWith(correctTarget) ||
+            (correctTarget.length === 1 && opt.text && opt.text.toLowerCase().includes(`(${correctTarget})`))
+        );
+
         if (!correctOption) {
-            throw new InvalidPromptInputException(
-                'question.correctOptionId',
-                `'${question.correctOptionId}' does not match any option ID`
-            );
+            this.logger.warn(`[validateExplanationPromptOptions] Fuzzy match failed for correctOptionId: ${question.correctOptionId}. Passing it through to see if AI can infer it.`);
+            // Do not throw an exception here, allow the AI to attempt a "Blind Solve" or infer
         }
 
-        // Validate userAnswer if provided
+        // Validate userAnswer if provided (with fuzzy matching)
         if (options.userAnswer) {
-            const userOption = question.options.find(opt => opt.id === options.userAnswer);
+            const userTarget = options.userAnswer.toString().toLowerCase();
+            const userOption = question.options.find(opt =>
+                opt.id?.toString().toLowerCase() === userTarget ||
+                opt.text?.toString().toLowerCase().startsWith(userTarget) ||
+                (userTarget.length === 1 && opt.text && opt.text.toLowerCase().includes(`(${userTarget})`))
+            );
+
             if (!userOption) {
-                throw new InvalidPromptInputException(
-                    'userAnswer',
-                    `'${options.userAnswer}' does not match any option ID`
-                );
+                this.logger.warn(`[validateExplanationPromptOptions] Fuzzy match failed for userAnswer: ${options.userAnswer}. Ignoring user choice.`);
+                options.userAnswer = undefined; // Drop invalid answer rather than crashing pipeline
             }
         }
     }
