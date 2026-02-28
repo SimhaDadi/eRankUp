@@ -169,16 +169,29 @@ export class ExplanationService {
             }
 
             this.logger.log(`[generateExplanation] Saving final resulting explanation (verified=${isValid})`);
-            const newExplanation = this.explanationRepository.create({
-                questionId,
-                contextExamId: contextExamId || null,
-                aiExplanation: explanation || 'Generation failed to produce text.',
-                isVerified: isValid,
-                isLogicalMismatch,
-                logicalSolveOutcome: `Solved: ${solveResult.solvedOptionId} | Logic: ${solveResult.logic}`,
-                viewCount: 1,
-                createdAt: new Date()
+
+            let newExplanation = await this.explanationRepository.findOne({
+                where: { questionId, contextExamId: contextExamId || IsNull() }
             });
+
+            if (newExplanation) {
+                newExplanation.aiExplanation = explanation || 'Generation failed to produce text.';
+                newExplanation.isVerified = isValid;
+                newExplanation.isLogicalMismatch = isLogicalMismatch;
+                newExplanation.logicalSolveOutcome = `Solved: ${solveResult.solvedOptionId} | Logic: ${solveResult.logic}`;
+                newExplanation.adminApprovedExplanation = null; // Reset approval if regenerated
+            } else {
+                newExplanation = this.explanationRepository.create({
+                    questionId,
+                    contextExamId: contextExamId || null,
+                    aiExplanation: explanation || 'Generation failed to produce text.',
+                    isVerified: isValid,
+                    isLogicalMismatch,
+                    logicalSolveOutcome: `Solved: ${solveResult.solvedOptionId} | Logic: ${solveResult.logic}`,
+                    viewCount: 1,
+                    createdAt: new Date()
+                });
+            }
             await this.explanationRepository.save(newExplanation);
 
             question.explanation = explanation;
