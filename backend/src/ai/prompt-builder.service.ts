@@ -89,8 +89,8 @@ export class PromptBuilderService {
         }
         // CASE 3: Quant / Reasoning (Default)
         else {
-            // Pass the topic to get specific constraints
-            personaInstructions = this.getQuantPersonaInstructions(question.topic);
+            // Pass the topic and content to get specific constraints
+            personaInstructions = this.getQuantPersonaInstructions(question.topic, question.content);
         }
 
         let verificationContext = '';
@@ -143,7 +143,7 @@ ${options.verifiedSolve.fullReasoning ? `  - Detailed Reasoning from Blind Solve
   ${isMismatch ? `- **ALIGNED TRUTH (MUST USE)**: ${correctOptionId}) ${correctOption?.text || 'Missing'}` : ''}
   
   ### Relevant Shortcut Hint
-  ${this.getShortcutHint(subjectTitle || 'General', question.topic || '')}
+  ${this.getShortcutHint(subjectTitle || 'General', question.topic || '', question.content || '')}
   `;
 
         if (userAnswer && userAnswer !== question.correctOptionId) {
@@ -232,16 +232,19 @@ ${performanceHint}
 
         // Inject topic-specific hint if available
         let shortcutHint = '';
-        if (context.questionContext && context.questionContext.topic) {
-            // Look for relevant shortcut in PROMPTS_CONFIG
-            // We can reuse getShortcutHint logic or duplicate it slightly for simplicity
-            const topicLower = context.questionContext.topic.toLowerCase();
+        if (context.questionContext) {
+            const topicLower = (context.questionContext.topic || '').toLowerCase();
+            const contentLower = (context.questionContext.content || '').toLowerCase();
             const sc = PROMPTS_CONFIG.subjects.quantReasoning.shortcuts;
+
+            const appliedHints: string[] = [];
             for (const [key, val] of Object.entries(sc)) {
-                if (topicLower.includes(key)) {
-                    shortcutHint = `\nRELEVANT PATTERN FOR ${context.questionContext.topic.toUpperCase()}: ${val}\n`;
-                    break;
+                if (topicLower.includes(key) || (key === 'ages' && (contentLower.includes('age') || contentLower.includes('years old')))) {
+                    appliedHints.push(`- ${val}`);
                 }
+            }
+            if (appliedHints.length > 0) {
+                shortcutHint = `\nRELEVANT PATTERNS FOR THIS QUESTION:\n${appliedHints.join('\n')}\n`;
             }
         }
 
@@ -445,6 +448,9 @@ Tutor:`;
         3. If the answer is not among the options, identify the closest logical error.
         4. Return your final conclusion strictly in the format below.
         
+        ### HINTS:
+        ${this.getShortcutHint(subjectTitle, question.topic || '', question.content || '')}
+        
         [HIDDEN]
         [Detailed step-by-step mathematical reasoning here]
         [/HIDDEN]
@@ -516,18 +522,24 @@ Tutor:`;
      * Get comprehensive Quant/Reasoning persona instructions
      * Private helper method
      */
-    private getQuantPersonaInstructions(topic?: string): string {
+    private getQuantPersonaInstructions(topic?: string, content?: string): string {
         let shortcutsSection = '';
 
-        // Filter shortcuts based on topic if provided
-        if (topic) {
-            const topicLower = topic.toLowerCase();
+        // Filter shortcuts based on topic and content
+        if (topic || content) {
+            const topicLower = (topic || '').toLowerCase();
+            const contentLower = (content || '').toLowerCase();
             const shortcuts = PROMPTS_CONFIG.subjects.quantReasoning.shortcuts;
-            const relevantEntries = Object.entries(shortcuts).filter(([key]) => topicLower.includes(key));
+
+            const relevantEntries = Object.entries(shortcuts).filter(([key]) => {
+                if (topicLower.includes(key)) return true;
+                if (key === 'ages' && (contentLower.includes('age') || contentLower.includes('years old'))) return true;
+                return false;
+            });
 
             if (relevantEntries.length > 0) {
                 shortcutsSection = relevantEntries.map(([key, val]) =>
-                    `     - **${topic}**: Lead with **${val}**`
+                    `     - **${key.toUpperCase()}**: Lead with **${val}**`
                 ).join('\n');
             }
         }
@@ -687,17 +699,24 @@ ${shortcutsSection}
      * Get relevant shortcut hint based on subject and topic
      * @private
      */
-    private getShortcutHint(subject: string, topic: string): string {
+    private getShortcutHint(subject: string, topic: string, content: string = ''): string {
         const subLower = subject.toLowerCase();
         const topLower = topic.toLowerCase();
+        const contentLower = content.toLowerCase();
         const shortcuts = PROMPTS_CONFIG.subjects.quantReasoning.shortcuts;
+
+        let appliedHints: string[] = [];
 
         if (subLower.includes('quant') || subLower.includes('math') || subLower.includes('reasoning') || subLower.includes('aptitude')) {
             for (const [key, value] of Object.entries(shortcuts)) {
-                if (topLower.includes(key)) {
-                    return `HINT: Use the following pattern if applicable: ${value}`;
+                if (topLower.includes(key) || (key === 'ages' && (contentLower.includes('age') || contentLower.includes('years old')))) {
+                    appliedHints.push(`- ${value}`);
                 }
             }
+        }
+
+        if (appliedHints.length > 0) {
+            return `HINT: Use the following patterns if applicable:\n${appliedHints.join('\n')}`;
         }
         return 'HINT: Focus on pattern recognition and extreme shortcuts. NO algebraic steps.';
     }
