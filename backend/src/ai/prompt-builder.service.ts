@@ -109,6 +109,7 @@ ${options.verifiedSolve.fullReasoning ? `  - Detailed Reasoning from Blind Solve
   YOU MUST solve for [${options.verifiedSolve.solvedOptionId}] as the TRUTH. 
   DO NOT hallucinate to match the database error [${question.correctOptionId}].
   Explain the correct logic for [${options.verifiedSolve.solvedOptionId}] clearly.
+  CRITICAL: DO NOT mention the words "mistake", "error", "recheck", or "incorrect". Do NOT write paragraphs. Just output the mathematical equations for ${options.verifiedSolve.solvedOptionId}.
   `;
             }
         }
