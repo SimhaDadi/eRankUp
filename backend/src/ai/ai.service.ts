@@ -60,16 +60,31 @@ export class AIService {
     ) { }
 
     /**
-     * Generate text using Gemini AI API (Multimodal support)
+     * Generate text using configured AI provider with automatic fallback
      */
     async generateText(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority = AIPriority.HIGH, complexity: 'FAST' | 'REASONING' = 'REASONING'): Promise<string> {
         const provider = this.configService.get('AI_PROVIDER', 'gemini');
         this.logger.log(`🤖 AI Request: Using Provider [${provider}]`);
 
         if (provider === 'groq') {
-            return this.generateTextWithGroq(prompt, images, priority, complexity);
+            try {
+                return await this.generateTextWithGroq(prompt, images, priority, complexity);
+            } catch (error) {
+                const isRateLimit = error.status === 429;
+                const isServerError = error.status >= 500;
+
+                if (isRateLimit || isServerError) {
+                    this.logger.warn(`⚠️ Groq failed (Status: ${error.status}). Triggering AUTO-FALLBACK to Gemini...`);
+                    return this.generateTextWithGemini(prompt, images, priority);
+                }
+                throw error;
+            }
         }
 
+        return this.generateTextWithGemini(prompt, images, priority);
+    }
+
+    private async generateTextWithGemini(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority): Promise<string> {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
@@ -78,7 +93,7 @@ export class AIService {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
-                this.logger.log(`🤖 AI Request: Using Model [${modelName}]`);
+                this.logger.log(`🤖 AI Request: Using Model [${modelName}] (Gemini)`);
                 const model = genAI.getGenerativeModel({ model: modelName });
 
                 const parts: any[] = [prompt];
