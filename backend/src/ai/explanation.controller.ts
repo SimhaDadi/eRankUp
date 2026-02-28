@@ -40,7 +40,8 @@ export class ExplanationController {
         @Request() req: any,
         @Param('questionId') questionId: string,
         @Body('userAnswer') userAnswer?: string,
-        @Body('examId') examId?: string
+        @Body('examId') examId?: string,
+        @Body('forceRegenerate') forceRegenerate?: boolean
     ) {
         try {
             const result = await this.explanationService.generateExplanation(
@@ -49,7 +50,8 @@ export class ExplanationController {
                 questionId,
                 userAnswer,
                 examId,
-                AIPriority.HIGH // Force High Priority for manual requests
+                AIPriority.HIGH, // Force High Priority for manual requests
+                forceRegenerate
             ) as any;
 
             // [FIX] Normalize response: Always return the text string for the 'explanation' field

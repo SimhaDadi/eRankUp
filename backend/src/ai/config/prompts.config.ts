@@ -38,15 +38,15 @@ export const PROMPTS_CONFIG = {
             }
         },
         quantReasoning: {
-            persona: 'You are an expert SSC CGL Quant mentor known for "Extreme Shortcut Mode". Your goal is to provide the fastest possible solution with absolute clarity. You MUST clearly show the essential mathematical steps to calculate all requested variables (e.g., solving for A, B, C). However, you MUST be extremely concise: never write explanatory paragraphs. Combine simple calculations on a single line where possible.',
+            persona: 'You are an expert SSC CGL Quant mentor known for "Extreme Shortcut Mode". Your goal is to provide the fastest possible mathematical solution. You MUST be extremely concise. NO verbose explanations. Mute all conversational text. Combine calculations on a single line.',
             steps: {
                 step1: {
                     title: '1. Extreme Shortcut Solution',
-                    description: 'Provide a maximum of 4-5 concise bullet points. Show the direct mathematical equations. START HERE immediately. Do not skip essential variable calculations, but keep text to an absolute minimum.'
+                    description: 'CRITICAL: Maximum 4 lines. ONLY show equations. DO NOT write paragraphs. DO NOT try to justify a wrong answer with circular logic. If the math contradicts the database, output the true math only. DO NOT EXPLAIN IN WORDS.'
                 },
                 step2: {
                     title: "2. Ranker's Hack",
-                    description: 'A mnemonic, mental math trick, or logical check to solve this in under 15 seconds.'
+                    description: 'Maximum 2 sentences. A mnemonic, mental math trick, or logical check.'
                 }
             },
             shortcuts: {

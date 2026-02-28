@@ -42,14 +42,15 @@ export class ExplanationService {
         questionId: string,
         userAnswer?: string,
         contextExamId?: string,
-        priority: AIPriority = AIPriority.MEDIUM
+        priority: AIPriority = AIPriority.MEDIUM,
+        forceRegenerate: boolean = false
     ): Promise<ExplanationItem | string> {
         // --- Curated-Only Enforcement for Students ---
         if (role === UserRole.STUDENT) {
             return this.getUnifiedExplanation(questionId, contextExamId);
         }
 
-        this.logger.log(`[generateExplanation] ADMIN/FACULTY trigger for question=${questionId}, user=${userId}`);
+        this.logger.log(`[generateExplanation] ADMIN/FACULTY trigger for question=${questionId}, user=${userId}, force=${forceRegenerate}`);
 
         // Concurrency Guard: Check if already processing this specific question/context
         const lockKey = `${questionId}:${contextExamId || 'global'}`;
@@ -59,30 +60,32 @@ export class ExplanationService {
         }
 
         // 1. Check cache first
-        try {
-            const cached = await this.explanationRepository.findOne({
-                where: { questionId, contextExamId: contextExamId || IsNull() }
-            });
+        if (!forceRegenerate) {
+            try {
+                const cached = await this.explanationRepository.findOne({
+                    where: { questionId, contextExamId: contextExamId || IsNull() }
+                });
 
-            if (cached) {
-                this.logger.debug(`[generateExplanation] Cache hit for question=${questionId}`);
+                if (cached) {
+                    this.logger.debug(`[generateExplanation] Cache hit for question=${questionId}`);
 
-                // Healing Sync: Ensure Question table has the explanation for Attempt Review
-                const questionExplan = cached.adminApprovedExplanation || cached.aiExplanation;
-                const question = await this.questionRepository.findOne({ where: { id: questionId } });
-                if (question && (!question.explanation || question.explanation.length < 5)) {
-                    this.logger.log(`[generateExplanation] Healing Question Sync for q=${questionId}`);
-                    question.explanation = questionExplan;
-                    await this.questionRepository.save(question);
+                    // Healing Sync: Ensure Question table has the explanation for Attempt Review
+                    const questionExplan = cached.adminApprovedExplanation || cached.aiExplanation;
+                    const question = await this.questionRepository.findOne({ where: { id: questionId } });
+                    if (question && (!question.explanation || question.explanation.length < 5)) {
+                        this.logger.log(`[generateExplanation] Healing Question Sync for q=${questionId}`);
+                        question.explanation = questionExplan;
+                        await this.questionRepository.save(question);
+                    }
+
+                    cached.viewCount++;
+                    await this.explanationRepository.save(cached);
+
+                    return this.mapToItem(question, cached);
                 }
-
-                cached.viewCount++;
-                await this.explanationRepository.save(cached);
-
-                return this.mapToItem(question, cached);
+            } catch (cacheError) {
+                this.logger.warn(`[generateExplanation] Cache lookup error: ${cacheError.message}`);
             }
-        } catch (cacheError) {
-            this.logger.warn(`[generateExplanation] Cache lookup error: ${cacheError.message}`);
         }
 
         const question = await this.questionRepository.findOne({

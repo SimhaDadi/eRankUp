@@ -221,11 +221,11 @@ export default function AIExplanationsPage() {
     };
 
     // Special handler for generating explanation for a pending question
-    const handleGenerate = async (questionId: string) => {
+    const handleGenerate = async (questionId: string, forceRegenerate = false) => {
         try {
-            console.log(`[Dashboard] Starting generation for ${questionId}`);
+            console.log(`[Dashboard] Starting generation for ${questionId} (force: ${forceRegenerate})`);
             setGeneratingIds(prev => new Set(prev).add(questionId));
-            const res = await api.post(`/explanations/generate/${questionId}`);
+            const res = await api.post(`/explanations/generate/${questionId}`, { forceRegenerate });
             const newItem = res.data.fullItem || { explanation: res.data.explanation };
 
             // 1. Optimistic/Immediate State Update
@@ -784,6 +784,18 @@ export default function AIExplanationsPage() {
                                                             Quick Fix ({item.aiProposedAnswerId})
                                                         </button>
                                                     )}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleGenerate(item.questionId, true);
+                                                        }}
+                                                        disabled={generatingIds.has(item.questionId)}
+                                                        className={`px-4 py-2 bg-cyan-900/50 hover:bg-cyan-900 text-cyan-200 rounded-lg font-bold text-xs flex items-center gap-2 border border-cyan-500/30 ${generatingIds.has(item.questionId) ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                                        title="Force AI to regenerate explanation"
+                                                    >
+                                                        <RefreshCw className={`w-3 h-3 ${generatingIds.has(item.questionId) ? 'animate-spin' : ''}`} />
+                                                        {generatingIds.has(item.questionId) ? 'Regenerating...' : 'Regenerate'}
+                                                    </button>
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
