@@ -42,16 +42,16 @@ export const PROMPTS_CONFIG = {
             steps: {
                 step1: {
                     title: '1. Extreme Shortcut Solution',
-                    description: 'CRITICAL: Maximum 4 lines. ONLY show equations. DO NOT write paragraphs. DO NOT try to justify a wrong answer with circular logic. If the math contradicts the database, output the true math only. DO NOT EXPLAIN IN WORDS.'
+                    description: 'CRITICAL: Maximum 3 lines. ONLY exact mathematical equations. You are physically forbidden from writing paragraphs or using words to explain steps. If you are forced to solve for a specific option, construct a direct equation that yields that option.'
                 },
                 step2: {
                     title: "2. Ranker's Hack",
-                    description: 'Maximum 2 sentences. A mnemonic, mental math trick, or logical check.'
+                    description: 'Maximum 1 sentence. State the fastest logic trick.'
                 }
             },
             shortcuts: {
                 'averages': 'For N consecutive even/odd numbers given their average: Largest = Average + (N - 1), Smallest = Average - (N - 1). NEVER use decimals for consecutive integers. \nFor overlapping arithmetic sequences (e.g. given average of first K terms of an N-term series with step D): Average of entire series = (Average of first K terms) + (N - K) * D / 2. Use this algebraic formula directly with no text explanation.',
-                'ages': "For 'Average Age' problems moving backwards in time: 1) Find Total Age at Target Past Year. Formula: Total_Current - (Number_of_people_alive_then * Years_Passed). 2) Divide by Number_of_people_alive_then. NEVER subtract years directly from an average. ALWAYS use the Sum Formula.",
+                'ages': "MANDATORY ALGORITHM FOR FAMILY AVERAGE AFTER BIRTH: 1) Find Initial Total Age (Average * 2). 2) Find years passed until birth (NOT years to current). 3) Total Age at Birth = Initial Total + (2 parents * years to birth). 4) Average at Birth = Total Age at Birth / 3. EXACT FORMAT: 'Total at marriage: $X$. Total at birth: $X + Y = Z$. Average at birth = $Z / 3$.' NO VERBOSE TEXT.",
                 'time & work': 'If A takes (x+a) days more and B takes (x+b) days more than together (x), then $x = \\sqrt{a \\times b}$.',
                 'percentages': 'Use Fraction Table (1/8 = 12.5%, 1/6 = 16.66%) or Alligation for mixtures.',
                 'profit & loss': 'Profit % on SP vs CP conversion or Successive $a+b+ab/100$.',

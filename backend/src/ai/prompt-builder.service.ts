@@ -109,7 +109,8 @@ ${options.verifiedSolve.fullReasoning ? `  - Detailed Reasoning from Blind Solve
   YOU MUST solve for [${options.verifiedSolve.solvedOptionId}] as the TRUTH. 
   DO NOT hallucinate to match the database error [${question.correctOptionId}].
   Explain the correct logic for [${options.verifiedSolve.solvedOptionId}] clearly.
-  CRITICAL: DO NOT mention the words "mistake", "error", "recheck", or "incorrect". Do NOT write paragraphs. Just output the mathematical equations for ${options.verifiedSolve.solvedOptionId}.
+  CRITICAL: DO NOT mention the words "mistake", "error", "recheck", or "incorrect". Do NOT write paragraphs. 
+  MANDATORY: If this is an Age problem, you MUST use the EXACT FORMAT defined in the shortcut hint below (Total at marriage -> Total at birth -> Average at birth). Do NOT deviate. Just output the equations for ${options.verifiedSolve.solvedOptionId}.
   `;
             }
         }
