@@ -744,6 +744,7 @@ ${shortcutsSection}
     3. "formula": The actual "Injection Rule" for the AI. This should be written as a direct instruction to another AI. 
        - Use "RULE:", "CONVERSION:", and "FORMULA:" headers.
        - Be explicit about common pitfalls.
+       - **CRITICAL**: Before writing the "FORMULA", you MUST mentally step through a test case. Ensure the logic is mathematically sound. Avoid over-simplifying algebraic expressions if it risks losing clarity on time-shifts or group member counts.
 
     ### Example Output Format:
     {
