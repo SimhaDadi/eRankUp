@@ -4,6 +4,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
+import { UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('ai/shortcuts')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -24,8 +26,18 @@ export class PromptShortcutController {
 
     @Post('generate-rule')
     @Roles(UserRole.ADMIN)
-    distill(@Body('rawText') rawText: string) {
-        return this.shortcutService.distillShortcut(rawText);
+    @UseInterceptors(FilesInterceptor('images', 5))
+    async distill(
+        @Body('rawText') rawText: string,
+        @UploadedFiles() files: Express.Multer.File[] = [],
+    ) {
+        // Convert files to AI-compatible format
+        const images = files ? files.map(file => ({
+            data: file.buffer.toString('base64'),
+            mimeType: file.mimetype,
+        })) : [];
+
+        return this.shortcutService.distillShortcut(rawText, images);
     }
 
     @Get('test-rag')

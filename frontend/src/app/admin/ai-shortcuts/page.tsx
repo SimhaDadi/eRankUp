@@ -27,6 +27,8 @@ export default function AIShortcutsPage() {
     // Distillation State
     const [distillText, setDistillText] = useState('');
     const [isDistilling, setIsDistilling] = useState(false);
+    const [selectedImages, setSelectedImages] = useState<File[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
     // Testing State
     const [testQuery, setTestQuery] = useState('');
@@ -111,18 +113,59 @@ export default function AIShortcutsPage() {
         setKeywords('');
         setFormula('');
         setDistillText('');
+        setSelectedImages([]);
+        setImagePreviews([]);
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length + selectedImages.length > 5) {
+            alert('Max 5 images allowed');
+            return;
+        }
+
+        setSelectedImages(prev => [...prev, ...files]);
+
+        // Generate previews
+        const newPreviews = files.map(file => URL.createObjectURL(file));
+        setImagePreviews(prev => [...prev, ...newPreviews]);
+    };
+
+    const removeImage = (index: number) => {
+        const newImages = [...selectedImages];
+        newImages.splice(index, 1);
+        setSelectedImages(newImages);
+
+        const newPreviews = [...imagePreviews];
+        URL.revokeObjectURL(newPreviews[index]);
+        newPreviews.splice(index, 1);
+        setImagePreviews(newPreviews);
     };
 
     const handleDistill = async () => {
-        if (!distillText) return;
+        if (!distillText && selectedImages.length === 0) return;
         setIsDistilling(true);
         try {
-            const res = await api.post('/ai/shortcuts/generate-rule', { rawText: distillText });
+            const formData = new FormData();
+            formData.append('rawText', distillText);
+            selectedImages.forEach(img => {
+                formData.append('images', img);
+            });
+
+            const res = await api.post('/ai/shortcuts/generate-rule', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
             const { topic, keywords, formula } = res.data;
             setTopic(topic);
             setKeywords(keywords);
             setFormula(formula);
             showToast('AI successfully distilled the shortcut!');
+
+            // Clear distillation inputs after success
+            setDistillText('');
+            setSelectedImages([]);
+            setImagePreviews([]);
         } catch (error) {
             showToast('Failed to distill text', 'error');
         } finally {
@@ -186,15 +229,49 @@ export default function AIShortcutsPage() {
                                 placeholder="Paste textbook text or raw explanation here to auto-generate the shortcut..."
                                 className="w-full h-24 bg-[#0c111d] border border-blue-900/30 text-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-600 mb-3"
                             />
+
+                            {/* Image Preview / Upload Section */}
+                            <div className="space-y-3 mb-4">
+                                {imagePreviews.length > 0 && (
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {imagePreviews.map((url, idx) => (
+                                            <div key={idx} className="relative group aspect-square rounded bg-[#0c111d] border border-slate-800 overflow-hidden">
+                                                <img src={url} alt="preview" className="w-full h-full object-cover" />
+                                                <button
+                                                    onClick={() => removeImage(idx)}
+                                                    className="absolute top-1 right-1 p-1 bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <Trash2 className="w-3 h-3 text-white" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="flex items-center gap-2">
+                                    <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#0c111d] border border-slate-700 hover:border-blue-500 rounded-lg cursor-pointer transition-all text-blue-400 text-xs font-semibold">
+                                        <Plus className="w-3 h-3" />
+                                        <span>Add Image</span>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*"
+                                            multiple
+                                            onChange={handleImageChange}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+
                             <button
                                 onClick={handleDistill}
-                                disabled={isDistilling || !distillText}
-                                className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 text-xs font-bold py-2 rounded border border-blue-800/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                disabled={isDistilling || (!distillText && selectedImages.length === 0)}
+                                className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 rounded shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                                 {isDistilling ? (
-                                    <><div className="w-3 h-3 border-2 border-blue-400 border-t-transparent animate-spin rounded-full"></div> Distilling...</>
+                                    <><div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> Distilling...</>
                                 ) : (
-                                    <><Plus className="w-3 h-3" /> Distill from Raw Text</>
+                                    <><Play className="w-3 h-3 fill-current" /> Distill from Content</>
                                 )}
                             </button>
                         </div>
