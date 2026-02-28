@@ -687,9 +687,12 @@ Please check back shortly! Our team is working to ensure you get the absolute be
 
     async rejectExplanation(id: string, reason: string) {
         const explanation = await this.resolveExplanation(id);
+        const questionId = explanation.questionId;
 
-        await this.questionRepository.update(explanation.questionId, { explanation: null });
-        await this.explanationRepository.remove(explanation);
+        await this.questionRepository.update(questionId, { explanation: null });
+
+        // Wipe all explanation records for this question to ensure a clean slate
+        await this.explanationRepository.delete({ questionId });
 
         return { success: true, message: 'Explanation rejected and removed', reason };
     }
