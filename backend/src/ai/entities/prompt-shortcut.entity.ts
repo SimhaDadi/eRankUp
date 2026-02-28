@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Exclude } from 'class-transformer';
 
-@Entity()
+@Entity('prompt_shortcut')
 export class PromptShortcut {
     @PrimaryGeneratedColumn('uuid')
     id: string;
