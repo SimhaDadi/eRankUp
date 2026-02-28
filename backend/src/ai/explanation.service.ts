@@ -63,7 +63,8 @@ export class ExplanationService {
         if (!forceRegenerate) {
             try {
                 const cached = await this.explanationRepository.findOne({
-                    where: { questionId, contextExamId: contextExamId || IsNull() }
+                    where: { questionId, contextExamId: contextExamId || IsNull() },
+                    order: { createdAt: 'DESC' }
                 });
 
                 if (cached) {
@@ -171,7 +172,8 @@ export class ExplanationService {
             this.logger.log(`[generateExplanation] Saving final resulting explanation (verified=${isValid})`);
 
             let newExplanation = await this.explanationRepository.findOne({
-                where: { questionId, contextExamId: contextExamId || IsNull() }
+                where: { questionId, contextExamId: contextExamId || IsNull() },
+                order: { createdAt: 'DESC' }
             });
 
             if (newExplanation) {
@@ -259,7 +261,8 @@ export class ExplanationService {
             where: {
                 questionId: In(questionIds),
                 contextExamId: contextExamId || IsNull()
-            }
+            },
+            order: { createdAt: 'DESC' }
         });
 
         const questions = await this.questionRepository.find({
@@ -449,6 +452,7 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 .leftJoinAndSelect('qe.question', 'question')
                 .where('qe.questionId IN (:...ids)', { ids: questionIds })
                 .andWhere('qe.contextExamId IS NULL')
+                .orderBy('qe.createdAt', 'DESC')
                 .getMany();
 
             this.logger.debug(`[listExplanations] Found ${explanations.length} matching explanation records`);
