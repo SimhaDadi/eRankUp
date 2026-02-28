@@ -4,6 +4,7 @@ import { Repository, Brackets } from 'typeorm';
 import { PromptShortcut } from './entities/prompt-shortcut.entity';
 import { AIService } from './ai.service';
 import { PromptBuilderService } from './prompt-builder.service';
+import { CreateShortcutDto, UpdateShortcutDto } from './dto/prompt-shortcut.dto';
 
 @Injectable()
 export class PromptShortcutService {
@@ -16,7 +17,7 @@ export class PromptShortcutService {
         private promptBuilder: PromptBuilderService,
     ) { }
 
-    async create(createDto: { topic: string; formula: string; keywords?: string }) {
+    async create(createDto: CreateShortcutDto) {
         // Automatically generate semantic embedding for keyword search
         let embedding = null;
         try {
@@ -41,7 +42,7 @@ export class PromptShortcutService {
         });
     }
 
-    async update(id: string, updateDto: { topic?: string; formula?: string; keywords?: string; isActive?: boolean }) {
+    async update(id: string, updateDto: UpdateShortcutDto) {
         const shortcut = await this.shortcutRepository.findOne({ where: { id } });
         if (!shortcut) throw new NotFoundException('Shortcut not found');
 

@@ -6,6 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 import { UseInterceptors, UploadedFiles } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { CreateShortcutDto, UpdateShortcutDto } from './dto/prompt-shortcut.dto';
 
 @Controller('ai/shortcuts')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -14,7 +15,7 @@ export class PromptShortcutController {
 
     @Post()
     @Roles(UserRole.ADMIN)
-    create(@Body() createDto: { topic: string; formula: string; keywords?: string }) {
+    create(@Body() createDto: CreateShortcutDto) {
         return this.shortcutService.create(createDto);
     }
 
@@ -50,7 +51,7 @@ export class PromptShortcutController {
     @Roles(UserRole.ADMIN)
     update(
         @Param('id') id: string,
-        @Body() updateDto: { topic?: string; formula?: string; keywords?: string; isActive?: boolean }
+        @Body() updateDto: UpdateShortcutDto
     ) {
         return this.shortcutService.update(id, updateDto);
     }
