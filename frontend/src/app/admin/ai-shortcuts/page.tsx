@@ -24,6 +24,10 @@ export default function AIShortcutsPage() {
     const [keywords, setKeywords] = useState('');
     const [formula, setFormula] = useState('');
 
+    // Distillation State
+    const [distillText, setDistillText] = useState('');
+    const [isDistilling, setIsDistilling] = useState(false);
+
     // Testing State
     const [testQuery, setTestQuery] = useState('');
     const [testResult, setTestResult] = useState<any>(null);
@@ -106,6 +110,24 @@ export default function AIShortcutsPage() {
         setTopic('');
         setKeywords('');
         setFormula('');
+        setDistillText('');
+    };
+
+    const handleDistill = async () => {
+        if (!distillText) return;
+        setIsDistilling(true);
+        try {
+            const res = await api.post('/ai/shortcuts/generate-rule', { rawText: distillText });
+            const { topic, keywords, formula } = res.data;
+            setTopic(topic);
+            setKeywords(keywords);
+            setFormula(formula);
+            showToast('AI successfully distilled the shortcut!');
+        } catch (error) {
+            showToast('Failed to distill text', 'error');
+        } finally {
+            setIsDistilling(false);
+        }
     };
 
     const runTest = async () => {
@@ -153,6 +175,31 @@ export default function AIShortcutsPage() {
                         <h2 className="text-lg font-bold text-slate-100">{isEditing ? 'Edit Shortcut' : 'New Math Shortcut'}</h2>
                         <p className="text-sm text-slate-400 mt-1">Saves immediately to Vector DB.</p>
                     </div>
+
+                    {/* AI Distiller Block */}
+                    {!isEditing && (
+                        <div className="p-5 bg-blue-900/10 border-b border-slate-800">
+                            <label className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2 block">AI Shortcut Generator</label>
+                            <textarea
+                                value={distillText}
+                                onChange={(e) => setDistillText(e.target.value)}
+                                placeholder="Paste textbook text or raw explanation here to auto-generate the shortcut..."
+                                className="w-full h-24 bg-[#0c111d] border border-blue-900/30 text-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-600 mb-3"
+                            />
+                            <button
+                                onClick={handleDistill}
+                                disabled={isDistilling || !distillText}
+                                className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 text-xs font-bold py-2 rounded border border-blue-800/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {isDistilling ? (
+                                    <><div className="w-3 h-3 border-2 border-blue-400 border-t-transparent animate-spin rounded-full"></div> Distilling...</>
+                                ) : (
+                                    <><Plus className="w-3 h-3" /> Distill from Raw Text</>
+                                )}
+                            </button>
+                        </div>
+                    )}
+
                     <div className="p-5">
                         <form onSubmit={handleSave} className="space-y-5">
                             <div className="space-y-2">

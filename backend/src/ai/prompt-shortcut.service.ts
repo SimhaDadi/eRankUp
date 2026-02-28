@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Brackets } from 'typeorm';
 import { PromptShortcut } from './entities/prompt-shortcut.entity';
 import { AIService } from './ai.service';
+import { PromptBuilderService } from './prompt-builder.service';
 
 @Injectable()
 export class PromptShortcutService {
@@ -12,6 +13,7 @@ export class PromptShortcutService {
         @InjectRepository(PromptShortcut)
         private shortcutRepository: Repository<PromptShortcut>,
         private aiService: AIService,
+        private promptBuilder: PromptBuilderService,
     ) { }
 
     async create(createDto: { topic: string; formula: string; keywords?: string }) {
@@ -100,6 +102,23 @@ export class PromptShortcutService {
         } catch (error) {
             this.logger.error('RAG Retrieval failed', error);
             return null;
+        }
+    }
+
+    /**
+     * Uses AI to distill a raw explanation into a shortcut structure
+     */
+    async distillShortcut(rawText: string) {
+        try {
+            const prompt = this.promptBuilder.buildShortcutDistillerPrompt(rawText);
+            const response = await this.aiService.generateText(prompt);
+
+            // Clean the response to extract JSON
+            const cleanJson = response.replace(/```json|```/g, '').trim();
+            return JSON.parse(cleanJson);
+        } catch (error) {
+            this.logger.error('Failed to distill shortcut from text', error);
+            throw new Error('AI could not parse this shortcut. Please try a simpler description.');
         }
     }
 }

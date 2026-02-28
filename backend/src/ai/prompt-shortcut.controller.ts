@@ -22,6 +22,12 @@ export class PromptShortcutController {
         return this.shortcutService.findAll();
     }
 
+    @Post('generate-rule')
+    @Roles(UserRole.ADMIN)
+    distill(@Body('rawText') rawText: string) {
+        return this.shortcutService.distillShortcut(rawText);
+    }
+
     @Get('test-rag')
     @Roles(UserRole.ADMIN)
     testRetrieval(@Query('topic') topic: string, @Query('content') content: string) {

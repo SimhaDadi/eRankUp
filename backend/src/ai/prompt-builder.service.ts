@@ -720,7 +720,40 @@ ${shortcutsSection}
         if (appliedHints.length > 0) {
             return `HINT: Use the following patterns if applicable:\n${appliedHints.join('\n')}`;
         }
+
         return 'HINT: Focus on pattern recognition and extreme shortcuts. NO algebraic steps.';
+    }
+
+    /**
+     * Build a prompt for distilling a raw mathematical explanation/formula into a RAG shortcut.
+     */
+    buildShortcutDistillerPrompt(rawText: string): string {
+        return `
+    You are a Math Content Architect for an SSC/Railways competitive exam platform.
+    Your task is to take a raw mathematical explanation, formula, or textbook snippet and DISTILL it into a structured RAG Shortcut.
+
+    ### Input Content:
+    [RAW_START]
+    ${rawText}
+    [RAW_END]
+
+    ### Output Requirements:
+    You MUST output a valid JSON object with the following fields:
+    1. "topic": A concise title for this shortcut (e.g. "Problems on Trains - Crossing Platforms").
+    2. "keywords": A comma-separated list of search terms (e.g. "speed, length, conversion, relative speed").
+    3. "formula": The actual "Injection Rule" for the AI. This should be written as a direct instruction to another AI. 
+       - Use "RULE:", "CONVERSION:", and "FORMULA:" headers.
+       - Be explicit about common pitfalls.
+
+    ### Example Output Format:
+    {
+      "topic": "Age Ratios",
+      "keywords": "ages, ratio, years ago, future, father son",
+      "formula": "RULE: If ratios are given for different time periods, set up a common multiple 'x'. \\nCONVERSION: Always add or subtract the year gap to move between past and present. \\nFORMULA: (A*x + gap1) / (B*x + gap1) = Ratio2."
+    }
+
+    ONLY output the JSON. No conversational text.
+    `;
     }
 }
 
