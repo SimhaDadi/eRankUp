@@ -372,7 +372,7 @@ export class AIService {
      * Independently solve a question without knowing the correct answer.
      * Used for "Blind Solve" verification to ensure answer key accuracy.
      */
-    async solveQuestion(question: Question): Promise<{ solvedOptionId: string; logic: string }> {
+    async solveQuestion(question: Question): Promise<{ solvedOptionId: string; logic: string; fullReasoning?: string }> {
         const prompt = this.promptBuilder.buildBlindSolvePrompt(question);
 
         try {
@@ -391,18 +391,20 @@ export class AIService {
             const rawResponse = await this.generateText(prompt, images, AIPriority.HIGH, 'REASONING');
             const cleanResponse = this.aiUtils.cleanAIResponse(rawResponse);
 
-            // Extract FINAL_ANSWER: [ID] - Improved regex to handle (A), A., or just A
             const answerMatch = cleanResponse.match(/FINAL_ANSWER:\s*\(?([A-E])\)?\.?/i);
             const logicMatch = cleanResponse.match(/LOGIC:\s*(.*)/i);
+            const hiddenMatch = cleanResponse.match(/\[HIDDEN\]([\s\S]*?)\[\/HIDDEN\]/i);
 
             const solvedOptionId = answerMatch ? answerMatch[1].toUpperCase() : 'UNKNOWN';
             const logic = logicMatch ? logicMatch[1].trim() : 'No logic summary provided.';
+            const fullReasoning = hiddenMatch ? hiddenMatch[1].trim() : '';
 
             console.log(`[AIService] Blind Solve: Question ${question.id} -> Solved as ${solvedOptionId}`);
 
             return {
                 solvedOptionId,
-                logic
+                logic,
+                fullReasoning
             };
         } catch (error) {
             console.error('[AIService] solveQuestion failed:', error);

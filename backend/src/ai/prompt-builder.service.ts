@@ -53,6 +53,7 @@ export class PromptBuilderService {
 
         const correctOptionId = isMismatch ? options.verifiedSolve.solvedOptionId : question.correctOptionId;
         const correctOption = question.options.find(opt => opt.id === correctOptionId);
+        const dbOption = question.options.find(opt => opt.id === question.correctOptionId);
         const userOption = userAnswer ? question.options.find(opt => opt.id === userAnswer) : null;
 
         // --- Subject-Specific Logic ---
@@ -92,15 +93,14 @@ export class PromptBuilderService {
             personaInstructions = this.getQuantPersonaInstructions(question.topic);
         }
 
-        // --- Secondary Verification Context (SILENT) ---
         let verificationContext = '';
         let conflictAlert = '';
         if (options.verifiedSolve) {
             verificationContext = `
   ### VERIFIED LOGIC HINT:
-  - Calculated Logic: ${options.verifiedSolve.logic}
-  - Calculated Answer: ${options.verifiedSolve.solvedOptionId}
-  `;
+  - Calculated Solution: ${options.verifiedSolve.solvedOptionId}
+  - Core Logic: ${options.verifiedSolve.logic}
+${options.verifiedSolve.fullReasoning ? `  - Detailed Reasoning from Blind Solve:\n  ${options.verifiedSolve.fullReasoning}\n` : ''}  `;
 
             if (isMismatch) {
                 conflictAlert = `
@@ -139,8 +139,8 @@ export class PromptBuilderService {
   
   - **Options**:
   ${(question.options || []).map(opt => `${opt.id}) ${this.sanitizeInput(opt.text || '')}`).join('\n')}
-  - **${isMismatch ? 'FLAGGED ANSWER (DB)' : 'Correct Answer'}**: ${isMismatch ? question.correctOptionId : correctOptionId}) ${correctOption?.text || 'Correct option data missing'}
-  ${isMismatch ? `- **ALIGNED TRUTH**: ${correctOptionId}) ${correctOption?.text}` : ''}
+  - **${isMismatch ? 'FLAGGED ANSWER (DB)' : 'Correct Answer'}**: ${isMismatch ? `${question.correctOptionId}) ${dbOption?.text || 'Missing'}` : `${correctOptionId}) ${correctOption?.text || 'Missing'}`}
+  ${isMismatch ? `- **ALIGNED TRUTH (MUST USE)**: ${correctOptionId}) ${correctOption?.text || 'Missing'}` : ''}
   
   ### Relevant Shortcut Hint
   ${this.getShortcutHint(subjectTitle || 'General', question.topic || '')}

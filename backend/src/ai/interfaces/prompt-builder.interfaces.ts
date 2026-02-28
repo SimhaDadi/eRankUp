@@ -73,6 +73,7 @@ export interface ExplanationPromptOptions {
     verifiedSolve?: {
         solvedOptionId: string;
         logic: string;
+        fullReasoning?: string;
     };
 }
 
