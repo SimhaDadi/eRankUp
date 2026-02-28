@@ -14,21 +14,24 @@ import { Subject } from '../exams/entities/subject.entity';
 import { Chapter } from '../exams/entities/chapter.entity';
 import { Model } from '../exams/entities/model.entity';
 import { QuestionExplanation } from './entities/question-explanation.entity';
+import { PromptShortcut } from './entities/prompt-shortcut.entity';
 import { AIUsage } from './entities/ai-usage.entity';
 import { AIUsageService } from './ai-usage.service';
 import { Exam } from '../exams/entities/exam.entity';
 import { AdminModule } from '../admin/admin.module';
 import { PromptBuilderService } from './prompt-builder.service';
 import { AIUtilsService } from './ai-utils.service';
+import { PromptShortcutService } from './prompt-shortcut.service';
+import { PromptShortcutController } from './prompt-shortcut.controller';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, Model, QuestionExplanation, Exam, AIUsage]),
+        TypeOrmModule.forFeature([Question, Attempt, Response, Subject, Chapter, Model, QuestionExplanation, Exam, AIUsage, PromptShortcut]),
         forwardRef(() => AdminModule),
         ConfigModule
     ],
-    controllers: [AIController, ExplanationController],
-    providers: [AIService, MigrationService, ExplanationService, AIQueueService, AIUsageService, PromptBuilderService, AIUtilsService],
-    exports: [AIService, MigrationService, ExplanationService, AIQueueService, AIUsageService, PromptBuilderService, AIUtilsService]
+    controllers: [AIController, ExplanationController, PromptShortcutController],
+    providers: [AIService, MigrationService, ExplanationService, AIQueueService, AIUsageService, PromptBuilderService, AIUtilsService, PromptShortcutService],
+    exports: [AIService, MigrationService, ExplanationService, AIQueueService, AIUsageService, PromptBuilderService, AIUtilsService, PromptShortcutService]
 })
 export class AIModule { }

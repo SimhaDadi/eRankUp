@@ -13,6 +13,7 @@ import { UserRole } from '../users/user.entity';
 import { PromptBuilderService } from './prompt-builder.service';
 import { ExplanationItem, PaginatedExplanations } from './interfaces/explanation.interfaces';
 import { AIUtilsService } from './ai-utils.service';
+import { PromptShortcutService } from './prompt-shortcut.service';
 
 @Injectable()
 export class ExplanationService {
@@ -33,6 +34,7 @@ export class ExplanationService {
         private aiService: AIService,
         private promptBuilder: PromptBuilderService,
         private aiUtils: AIUtilsService,
+        private promptShortcutService: PromptShortcutService,
     ) {
     }
 
@@ -141,26 +143,37 @@ export class ExplanationService {
 
             // 3. Generate Explanation using AI
             this.logger.log('[generateExplanation] Step 2: Generation phase');
-            const prompt = this.buildPrompt(question, userAnswer, contextExamTitle, solveResult);
+            const prompt = await this.buildPrompt(question, userAnswer, contextExamTitle, solveResult);
 
             let explanation = '';
             let isValid = false;
             let attempts = 0;
+            let lastFeedback = '';
 
             while (!isValid && attempts < 2) {
                 this.logger.log(`[generateExplanation] AI call attempt ${attempts + 1}`);
-                const rawExplanation = await this.aiService.generateText(prompt, [], priority);
+
+                let currentPrompt = prompt;
+                if (attempts > 0 && lastFeedback) {
+                    currentPrompt += `\n\n[CRITICAL FEEDBACK FROM LAST ATTEMPT]\nYour previous explanation was REJECTED for the following reason:\n"${lastFeedback}"\n\nYou MUST fix this specific mathematical or logical error in this new attempt.`;
+                    this.logger.log(`[generateExplanation] Injecting feedback into retry prompt`);
+                }
+
+                const rawExplanation = await this.aiService.generateText(currentPrompt, [], priority);
                 explanation = this.aiUtils.cleanAIResponse(rawExplanation);
 
                 this.logger.log(`[generateExplanation] Received response (len=${explanation.length})`);
-                await this.aiUsageService.trackUsage(userId, prompt, explanation);
+                await this.aiUsageService.trackUsage(userId, currentPrompt, explanation);
 
                 try {
                     // Pass the Truth ID if there was a mismatch, so verification pass is accurate
                     const targetTruthId = isLogicalMismatch ? solveResult.solvedOptionId : question.correctOptionId;
                     const verification = await this.aiService.verifyExplanation(question, explanation, targetTruthId);
                     isValid = verification.isValid;
-                    if (!isValid) this.logger.warn(`[generateExplanation] Blocked by verification: ${verification.feedback}`);
+                    if (!isValid) {
+                        lastFeedback = verification.feedback;
+                        this.logger.warn(`[generateExplanation] Blocked by verification: ${lastFeedback}`);
+                    }
                 } catch (vError) {
                     this.logger.warn(`[generateExplanation] Verification skipped: ${vError.message}`);
                     isValid = true; // Fail open
@@ -241,12 +254,22 @@ export class ExplanationService {
         }
     }
 
-    private buildPrompt(question: Question, userAnswer?: string, contextExamTitle?: string, solveResult?: any): string {
+    private async buildPrompt(question: Question, userAnswer?: string, contextExamTitle?: string, solveResult?: any): Promise<string> {
+        // RAG: Fetch relevant shortcut from Vector DB if available (fallback to hardcoded handled in prompt builder)
+        const shortcutEntity = await this.promptShortcutService.findRelevantShortcut(question.topic || 'General', question.content || '');
+        let shortcutHint: string | undefined = undefined;
+
+        if (shortcutEntity) {
+            shortcutHint = `[RAG MATH INJECTION]\nShortcut for ${shortcutEntity.topic}:\n${shortcutEntity.formula}\n`;
+            this.logger.log(`[generateExplanation] RAG: Injected shortcut for ${shortcutEntity.topic}`);
+        }
+
         return this.promptBuilder.buildExplanationPrompt({
             question,
             userAnswer,
             contextExamTitle,
             subject: question.subject?.title,
+            shortcutHint,
             verifiedSolve: solveResult
         });
     }

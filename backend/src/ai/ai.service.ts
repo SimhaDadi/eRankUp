@@ -340,9 +340,11 @@ export class AIService {
 
     Rules for verification:
     1. The explanation MUST state or imply that ${targetCorrectId} is the correct answer.
-    2. The logic provided must not contradict the question content.
-    3. If the explanation is accurate, return ONLY the word "VALID".
-    4. If it is inaccurate, contradictory, or mentions the wrong option as correct, return "INVALID: [Detailed Reason]".
+    2. STRICT MATH AUDIT: You MUST independently recalculate every single equation and step presented in the Proposed Explanation.
+    3. If there is ANY arithmetic error (e.g., stating 10 + 5 = 20), you MUST catch it and return INVALID.
+    4. The logic provided must not contradict the question content.
+    5. If all math is correct and it points to the right answer, return ONLY the word "VALID".
+    6. If it is inaccurate, contradictory, or math is wrong, return "INVALID: [Specific mathematical or logical reason]".
 
     Verification Result:`;
 

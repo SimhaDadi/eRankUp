@@ -70,6 +70,7 @@ export interface ExplanationPromptOptions {
     userAnswer?: string;
     contextExamTitle?: string;
     subject?: string;
+    shortcutHint?: string; // Injected from RAG Vector DB
     verifiedSolve?: {
         solvedOptionId: string;
         logic: string;

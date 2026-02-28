@@ -61,6 +61,7 @@ const adminNavSections = [
         title: 'AI & ANALYTICS',
         items: [
             { icon: Sparkles, label: 'AI Explanations', href: '/admin/ai-explanations' },
+            { icon: Sparkles, label: 'AI Math Shortcuts (RAG)', href: '/admin/ai-shortcuts' },
             { icon: TrendingUp, label: 'Analytics Dashboard', href: '/admin/analytics' },
             { icon: Users, label: 'Student Monitoring', href: '/admin/students' },
             { icon: Banknote, label: 'Finance & Payments', href: '/admin/finance' },

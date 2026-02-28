@@ -145,7 +145,7 @@ ${options.verifiedSolve.fullReasoning ? `  - Detailed Reasoning from Blind Solve
   ${isMismatch ? `- **ALIGNED TRUTH (MUST USE)**: ${correctOptionId}) ${correctOption?.text || 'Missing'}` : ''}
   
   ### Relevant Shortcut Hint
-  ${this.getShortcutHint(subjectTitle || 'General', question.topic || '', question.content || '')}
+  ${options.shortcutHint || this.getShortcutHint(subjectTitle || 'General', question.topic || '', question.content || '')}
   `;
 
         if (userAnswer && userAnswer !== question.correctOptionId) {
