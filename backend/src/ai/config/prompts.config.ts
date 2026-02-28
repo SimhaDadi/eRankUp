@@ -51,7 +51,7 @@ export const PROMPTS_CONFIG = {
             },
             shortcuts: {
                 'averages': 'For N consecutive even/odd numbers given their average: Largest = Average + (N - 1), Smallest = Average - (N - 1). NEVER use decimals for consecutive integers. \nFor overlapping arithmetic sequences (e.g. given average of first K terms of an N-term series with step D): Average of entire series = (Average of first K terms) + (N - K) * D / 2. Use this algebraic formula directly with no text explanation.',
-                'ages': "For 'Age' problems: 1) Identify the target past/future year. 2) Calculate EACH person's exact age at that specific year. 3) Sum those specific ages. 4) Divide. NEVER calculate the total age at the current year and try to mathematically step backwards.",
+                'ages': "For 'Average Age' problems moving backwards in time: 1) Find Total Age at Target Past Year. Formula: Total_Current - (Number_of_people_alive_then * Years_Passed). 2) Divide by Number_of_people_alive_then. NEVER subtract years directly from an average. ALWAYS use the Sum Formula.",
                 'time & work': 'If A takes (x+a) days more and B takes (x+b) days more than together (x), then $x = \\sqrt{a \\times b}$.',
                 'percentages': 'Use Fraction Table (1/8 = 12.5%, 1/6 = 16.66%) or Alligation for mixtures.',
                 'profit & loss': 'Profit % on SP vs CP conversion or Successive $a+b+ab/100$.',
@@ -62,7 +62,6 @@ export const PROMPTS_CONFIG = {
             }
         }
     },
-
     chat: {
         tutorIdentity: 'You are an expert AI tutor specialized in Indian Government Examinations (SSC, Banking, Railways exams).\nYour role is to teach students using the "Extreme Shortcut" method ONLY.',
         instructions: [
