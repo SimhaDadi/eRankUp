@@ -91,10 +91,11 @@ export class AIService {
         return this.queueService.add(async () => {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
+                // Force stable v1 to avoid v1beta 404 issues with gemini-1.5-flash
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
                 this.logger.log(`🤖 AI Request: Using Model [${modelName}] (Gemini)`);
-                const model = genAI.getGenerativeModel({ model: modelName });
+                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
 
                 const parts: any[] = [prompt];
                 if (images.length > 0) {
