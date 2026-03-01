@@ -75,7 +75,12 @@ export class AIService {
 
                 if (isRateLimit || isServerError) {
                     this.logger.warn(`⚠️ Groq failed (Status: ${error.status}). Triggering AUTO-FALLBACK to Gemini...`);
-                    return this.generateTextWithGemini(prompt, images, priority);
+                    try {
+                        return await this.generateTextWithGemini(prompt, images, priority);
+                    } catch (geminiError) {
+                        this.logger.error(`❌ BOTH PROVIDERS FAILED | Groq Status: ${error.status} | Gemini Error: ${geminiError.message}`);
+                        throw new Error(`AI System Unavailable. (Groq Error: ${error.status}, Gemini Error: ${geminiError.message})`);
+                    }
                 }
                 throw error;
             }
@@ -91,11 +96,11 @@ export class AIService {
         return this.queueService.add(async () => {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
-                // Force stable v1 to avoid v1beta 404 issues with gemini-1.5-flash
+                // Force stable v1beta to avoid v1 404 or access issues for gemini-1.5-flash
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
                 this.logger.log(`🤖 AI Request: Using Model [${modelName}] (Gemini)`);
-                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
+                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
 
                 const parts: any[] = [prompt];
                 if (images.length > 0) {
@@ -261,9 +266,8 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                // Explicitly use v1 if possible or just use the model name that works.
-                // In this library version, we might need to use the model name with prefix.
-                const model = genAI.getGenerativeModel({ model: "text-embedding-004" }, { apiVersion: 'v1' });
+                // Use v1beta for embedding generation with text-embedding-004
+                const model = genAI.getGenerativeModel({ model: "text-embedding-004" }, { apiVersion: 'v1beta' });
 
                 const result = await model.embedContent(text);
                 this.systemHealthService.trackAPICall('gemini'); // TRACK USAGE
