@@ -107,20 +107,26 @@ export class PromptShortcutService {
     }
 
     /**
-     * Uses AI to distill a raw explanation into a shortcut structure
-     * Supports optional multi-modal images
+     * Uses AI to distill raw content (text/images) into a list of shortcut structures.
+     * Updated to support BATCH detection.
      */
     async distillShortcut(rawText: string, images: { data: string; mimeType: string }[] = []) {
         try {
-            const prompt = this.promptBuilder.buildShortcutDistillerPrompt(rawText || 'Distill the mathematical shortcut from the attached images.');
+            const prompt = this.promptBuilder.buildShortcutDistillerPrompt(rawText || 'Distill all mathematical shortcuts from the attached images.');
             const response = await this.aiService.generateText(prompt, images);
 
             // Clean the response to extract JSON
             const cleanJson = response.replace(/```json|```/g, '').trim();
-            return JSON.parse(cleanJson);
+            const parsed = JSON.parse(cleanJson);
+
+            // Normalize to array
+            const results = Array.isArray(parsed) ? parsed : [parsed];
+
+            // Basic validation
+            return results.filter(item => item.topic && item.formula);
         } catch (error) {
-            this.logger.error('Failed to distill shortcut from content', error);
-            throw new Error('AI could not parse this shortcut. Please try a clearer description or better images.');
+            this.logger.error('Failed to distill shortcuts from content', error);
+            throw new Error('AI could not parse shortcuts. Please try a clearer description or better images.');
         }
     }
 }

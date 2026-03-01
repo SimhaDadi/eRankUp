@@ -725,12 +725,13 @@ ${shortcutsSection}
     }
 
     /**
-     * Build a prompt for distilling a raw mathematical explanation/formula into a RAG shortcut.
+     * Build a prompt for distilling raw mathematical explanations/formulas into structured RAG Shortcuts.
+     * Updated to support BATCH detection of multiple shortcuts from a single image/text block.
      */
     buildShortcutDistillerPrompt(rawText: string): string {
         return `
     You are a Math Content Architect for an SSC/Railways competitive exam platform.
-    Your task is to take a raw mathematical explanation, formula, or textbook snippet and DISTILL it into a structured RAG Shortcut.
+    Your task is to scan the provided input (text and/or images) and DISTILL all mathematical shortcuts, formulas, or models found into a structured list.
 
     ### Input Content:
     [RAW_START]
@@ -738,22 +739,32 @@ ${shortcutsSection}
     [RAW_END]
 
     ### Output Requirements:
-    You MUST output a valid JSON object with the following fields:
-    1. "topic": A concise title for this shortcut (e.g. "Problems on Trains - Crossing Platforms").
-    2. "keywords": A comma-separated list of search terms (e.g. "speed, length, conversion, relative speed").
-    3. "formula": The actual "Injection Rule" for the AI. This should be written as a direct instruction to another AI. 
+    You MUST output a valid JSON ARRAY of objects. Each object represents one distinct shortcut/model found.
+    Even if only ONE shortcut is found, still return it inside an array: [ {...} ].
+
+    Each object MUST have these fields:
+    1. "topic": A concise title (e.g. "Trains - Crossing Platforms", "Age Ratio Logic").
+    2. "keywords": A comma-separated list of search terms (e.g. "speed, length, relative speed").
+    3. "formula": The actual "Injection Rule" for the AI. 
        - Use "RULE:", "CONVERSION:", and "FORMULA:" headers.
        - Be explicit about common pitfalls.
-       - **CRITICAL**: Before writing the "FORMULA", you MUST mentally step through a test case. Ensure the logic is mathematically sound. Avoid over-simplifying algebraic expressions if it risks losing clarity on time-shifts or group member counts.
+       - **CRITICAL**: Mentally step through a test case. Ensure the logic is mathematically sound.
 
     ### Example Output Format:
-    {
-      "topic": "Age Ratios",
-      "keywords": "ages, ratio, years ago, future, father son",
-      "formula": "RULE: If ratios are given for different time periods, set up a common multiple 'x'. \\nCONVERSION: Always add or subtract the year gap to move between past and present. \\nFORMULA: (A*x + gap1) / (B*x + gap1) = Ratio2."
-    }
+    [
+      {
+        "topic": "Age Ratios",
+        "keywords": "ages, ratio, years ago, future",
+        "formula": "RULE: Set up common multiple 'x'. \\nCONVERSION: Add/sub year gap. \\nFORMULA: (A*x + gap) / (B*x + gap) = NewRatio."
+      },
+      {
+        "topic": "Trains - Same Direction",
+        "keywords": "trains, relative speed, same direction",
+        "formula": "RULE: Subtract speeds. \\nFORMULA: Relative Speed = |S1 - S2|."
+      }
+    ]
 
-    ONLY output the JSON. No conversational text.
+    ONLY output the JSON array. No conversational text.
     `;
     }
 }

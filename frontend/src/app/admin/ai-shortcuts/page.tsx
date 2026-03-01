@@ -29,6 +29,7 @@ export default function AIShortcutsPage() {
     const [isDistilling, setIsDistilling] = useState(false);
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [pendingShortcuts, setPendingShortcuts] = useState<Partial<Shortcut>[]>([]);
 
     // Testing State
     const [testQuery, setTestQuery] = useState('');
@@ -156,11 +157,17 @@ export default function AIShortcutsPage() {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            const { topic, keywords, formula } = res.data;
-            setTopic(topic);
-            setKeywords(keywords);
-            setFormula(formula);
-            showToast('AI successfully distilled the shortcut!');
+            const results = Array.isArray(res.data) ? res.data : [res.data];
+            setPendingShortcuts(results);
+
+            if (results.length === 1) {
+                const { topic, keywords, formula } = results[0];
+                setTopic(topic);
+                setKeywords(keywords);
+                setFormula(formula);
+            }
+
+            showToast(`AI successfully distilled ${results.length} shortcut(s)!`);
 
             // Clear distillation inputs after success
             setDistillText('');
@@ -171,6 +178,40 @@ export default function AIShortcutsPage() {
         } finally {
             setIsDistilling(false);
         }
+    };
+
+    const saveShortcutFromPending = async (index: number) => {
+        const item = pendingShortcuts[index];
+        setSaving(true);
+        try {
+            await api.post('/ai/shortcuts', item);
+            showToast(`Saved: ${item.topic}`);
+            const newPending = [...pendingShortcuts];
+            newPending.splice(index, 1);
+            setPendingShortcuts(newPending);
+            fetchShortcuts();
+        } catch (error) {
+            showToast('Failed to save shortcut', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const saveAllPending = async () => {
+        setSaving(true);
+        let successCount = 0;
+        for (const item of pendingShortcuts) {
+            try {
+                await api.post('/ai/shortcuts', item);
+                successCount++;
+            } catch (error) {
+                console.error('Failed to save', item.topic);
+            }
+        }
+        showToast(`Successfully saved ${successCount} shortcuts!`);
+        setPendingShortcuts([]);
+        fetchShortcuts();
+        setSaving(false);
     };
 
     const runTest = async () => {
@@ -274,6 +315,68 @@ export default function AIShortcutsPage() {
                                     <><Play className="w-3 h-3 fill-current" /> Distill from Content</>
                                 )}
                             </button>
+                        </div>
+                    )}
+
+                    {/* Pending Review List */}
+                    {pendingShortcuts.length > 0 && (
+                        <div className="p-5 bg-emerald-900/10 border-b border-slate-800">
+                            <div className="flex items-center justify-between mb-4">
+                                <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">Pending Review ({pendingShortcuts.length})</label>
+                                <button
+                                    onClick={saveAllPending}
+                                    disabled={saving}
+                                    className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded font-bold transition-all disabled:opacity-50"
+                                >
+                                    Save All
+                                </button>
+                            </div>
+                            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                                {pendingShortcuts.map((item, idx) => (
+                                    <div key={idx} className="p-3 bg-[#0c111d] border border-emerald-900/30 rounded-lg group">
+                                        <div className="flex items-center justify-between gap-2 mb-2">
+                                            <h4 className="text-sm font-bold text-slate-200 truncate">{item.topic}</h4>
+                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => {
+                                                        setTopic(item.topic || '');
+                                                        setKeywords(item.keywords || '');
+                                                        setFormula(item.formula || '');
+                                                        const newPending = [...pendingShortcuts];
+                                                        newPending.splice(idx, 1);
+                                                        setPendingShortcuts(newPending);
+                                                    }}
+                                                    className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-blue-400 transition-colors"
+                                                    title="Edit individually"
+                                                >
+                                                    <Edit2 className="w-3 h-3" />
+                                                </button>
+                                                <button
+                                                    onClick={() => saveShortcutFromPending(idx)}
+                                                    className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-emerald-400 transition-colors"
+                                                    title="Confirm and Save"
+                                                >
+                                                    <CheckCircle2 className="w-3 h-3" />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        const newPending = [...pendingShortcuts];
+                                                        newPending.splice(idx, 1);
+                                                        setPendingShortcuts(newPending);
+                                                    }}
+                                                    className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-rose-400 transition-colors"
+                                                    title="Discard"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-slate-500 line-clamp-2 font-mono bg-[#161c28] p-2 rounded">
+                                            {item.formula}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 
