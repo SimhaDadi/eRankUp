@@ -255,13 +255,18 @@ export class ExplanationService {
     }
 
     private async buildPrompt(question: Question, userAnswer?: string, contextExamTitle?: string, solveResult?: any): Promise<string> {
-        // RAG: Fetch relevant shortcut from Vector DB if available (fallback to hardcoded handled in prompt builder)
-        const shortcutEntity = await this.promptShortcutService.findRelevantShortcut(question.topic || 'General', question.content || '');
+        // RAG: Fetch relevant shortcuts from Vector DB if available
+        const shortcuts = await this.promptShortcutService.findRelevantShortcuts(question.topic || 'General', question.content || '');
         let shortcutHint: string | undefined = undefined;
 
-        if (shortcutEntity) {
-            shortcutHint = `[RAG MATH INJECTION]\nShortcut for ${shortcutEntity.topic}:\n${shortcutEntity.formula}\n`;
-            this.logger.log(`[generateExplanation] RAG: Injected shortcut for ${shortcutEntity.topic}`);
+        if (shortcuts.length > 0) {
+            shortcutHint = `[RAG MATH INJECTION]\n`;
+            shortcuts.forEach((sc, idx) => {
+                shortcutHint += `PATTERN ${idx + 1}: ${sc.topic}\nFORMULA: ${sc.formula}\n\n`;
+            });
+            shortcutHint += `MANDATORY ORDERING: Analyze the problem requirements and apply the PATTERNS in the correct logical sequence. (e.g., Use Pattern B to find a variables value before applying Pattern A). No skipping intermediate logical steps.`;
+
+            this.logger.log(`[generateExplanation] RAG: Injected ${shortcuts.length} shortcuts for prompt.`);
         }
 
         return this.promptBuilder.buildExplanationPrompt({

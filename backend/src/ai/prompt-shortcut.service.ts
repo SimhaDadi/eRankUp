@@ -69,40 +69,45 @@ export class PromptShortcutService {
     }
 
     /**
-     * RAG Retrieval: Finds the most relevant shortcut for a given question text/topic
+     * RAG Retrieval: Finds the most relevant shortcuts for a given question text/topic
+     * Updated to return multiple results for complex problems.
      */
-    async findRelevantShortcut(topic: string, content: string): Promise<PromptShortcut | null> {
+    async findRelevantShortcuts(topic: string, content: string): Promise<PromptShortcut[]> {
         try {
             // [Perf Audit Fix] 
-            // Avoid loading the entire Vector DB into Node.js memory. 
-            // Use SQL ILIKE for literal matching before falling back to vectors.
-            const exactMatch = await this.shortcutRepository.createQueryBuilder('s')
+            // Use SQL ILIKE for literal matching. Return up to 2 exact matches if possible.
+            const exactMatches = await this.shortcutRepository.createQueryBuilder('s')
                 .where('s.isActive = :isActive', { isActive: true })
                 .andWhere(new Brackets(qb => {
                     qb.where('LOWER(s.topic) = LOWER(:topic)', { topic })
                         .orWhere('LENGTH(s.topic) > 5 AND LOWER(:content) LIKE \'%\' || LOWER(s.topic) || \'%\'', { content });
                 }))
-                .getOne();
+                .limit(2)
+                .getMany();
 
-            if (exactMatch) return exactMatch;
+            if (exactMatches.length > 1) return exactMatches;
 
-            // Fallback to Vector Semantic Search
+            // Fallback to Vector Semantic Search for more variety
             const embeddingArray = await this.aiService.generateEmbedding(`${topic} ${content}`);
             const embeddingStr = `[${embeddingArray.join(',')}]`;
 
-            const similarShortcut = await this.shortcutRepository
+            const similarShortcuts = await this.shortcutRepository
                 .createQueryBuilder('s')
                 .where('s.isActive = true')
                 .andWhere('s.embedding IS NOT NULL')
                 .orderBy(`s.embedding <=> CAST(:embedding AS vector)`) // PGVector Cosine Distance
                 .setParameters({ embedding: embeddingStr })
-                .limit(1)
-                .getOne();
+                .limit(3) // Return top 3 matches
+                .getMany();
 
-            return similarShortcut;
+            // Merge exact matches and similar shortcuts, avoiding duplicates
+            const allMatchIds = new Set(exactMatches.map(m => m.id));
+            const distinctSimilar = similarShortcuts.filter(s => !allMatchIds.has(s.id));
+
+            return [...exactMatches, ...distinctSimilar].slice(0, 3);
         } catch (error) {
             this.logger.error('RAG Retrieval failed', error);
-            return null;
+            return [];
         }
     }
 

@@ -44,7 +44,7 @@ export class PromptShortcutController {
     @Get('test-rag')
     @Roles(UserRole.ADMIN)
     testRetrieval(@Query('topic') topic: string, @Query('content') content: string) {
-        return this.shortcutService.findRelevantShortcut(topic || 'General', content || '');
+        return this.shortcutService.findRelevantShortcuts(topic || 'General', content || '');
     }
 
     @Put(':id')
