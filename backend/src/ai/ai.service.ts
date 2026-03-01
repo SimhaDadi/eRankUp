@@ -35,7 +35,7 @@ export class AIService {
     private readonly logger = new Logger(AIService.name);
     private getGroqModel(complexity: 'FAST' | 'REASONING', hasImages: boolean): string {
         if (hasImages) {
-            return this.configService.get<string>('GROQ_MODEL_VISION', 'meta-llama/llama-4-scout-17b-16e-instruct');
+            return this.configService.get<string>('GROQ_MODEL_VISION', 'llama-3.2-11b-vision-preview');
         }
         if (complexity === 'FAST') {
             return this.configService.get<string>('GROQ_MODEL_FAST', 'llama-3.1-8b-instant');
