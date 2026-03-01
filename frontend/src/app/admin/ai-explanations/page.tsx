@@ -47,6 +47,7 @@ interface ExplanationItem {
     correctOptionId?: string;
     isMissingAnswerKey?: boolean;
     aiProposedAnswerId?: string;
+    isFallback?: boolean;
 }
 
 interface Stats {
@@ -233,7 +234,11 @@ export default function AIExplanationsPage() {
                 item.questionId === questionId ? { ...item, ...newItem } : item
             ));
 
-            showNotification('success', 'Explanation generated successfully!');
+            if (res.data.isFallback) {
+                showNotification('error', 'AI Generation failed. Showing diagnostic info.');
+            } else {
+                showNotification('success', 'Explanation generated successfully!');
+            }
 
             // 2. Delayed Global Refresh removed to prevent race conditions with optimistic update
         } catch (error: any) {

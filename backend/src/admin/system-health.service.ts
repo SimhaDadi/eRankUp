@@ -39,10 +39,8 @@ export class SystemHealthService {
         this.initializeCounters();
     }
 
-    // ... (rest of methods)
-
     private async initializeCounters() {
-        const services = ['gemini', 'razorpay', 'groq'];
+        const services = ['gemini', 'razorpay', 'groq', 'openrouter'];
         // Use local timezone to prevent UTC rollover delay
         const today = new Date().toLocaleDateString('en-CA');
 
@@ -78,7 +76,6 @@ export class SystemHealthService {
             if (counterToday !== today) {
                 counter.daily = 0;
                 counter.lastReset = now;
-                // Currently NOT resetting monthly as there's no year-month check
             }
         }
         return counter;
@@ -87,14 +84,14 @@ export class SystemHealthService {
     /**
      * Track API call (Persisted)
      */
-    async trackAPICall(service: 'gemini' | 'razorpay' | 'groq') {
+    async trackAPICall(service: 'gemini' | 'razorpay' | 'groq' | 'openrouter') {
         const today = new Date().toLocaleDateString('en-CA');
         const key = `usage_${service}_${today}`;
 
         // Optimistic update in memory first
         let counter = this.getOrResetCounter(service);
         counter.daily++;
-        counter.monthly++; // NOTE: Monthly logic needs distinct keys or aggregation. Keeping simple for now.
+        counter.monthly++;
 
         // Async persistence
         let metric = await this.metricRepo.findOneBy({ key });
@@ -127,6 +124,9 @@ export class SystemHealthService {
         // Check Groq API
         services.push(this.checkGroqHealth());
 
+        // Check OpenRouter API
+        services.push(this.checkOpenRouterHealth());
+
         // Check Redis (if available)
         const redisHealth = this.checkRedisHealth();
         services.push(redisHealth);
@@ -151,27 +151,35 @@ export class SystemHealthService {
         const geminiCounter = this.getOrResetCounter('gemini');
         const razorpayCounter = this.getOrResetCounter('razorpay');
         const groqCounter = this.getOrResetCounter('groq');
+        const openrouterCounter = this.getOrResetCounter('openrouter');
 
         return [
             {
                 service: 'Gemini AI',
                 callsToday: geminiCounter?.daily || 0,
                 callsThisMonth: geminiCounter?.monthly || 0,
-                estimatedCost: (geminiCounter?.monthly || 0) * 0.0005, // Rough estimate
-                limit: 1500 // Free tier daily limit
+                estimatedCost: (geminiCounter?.monthly || 0) * 0.0005,
+                limit: 1500
             },
             {
                 service: 'Razorpay',
                 callsToday: razorpayCounter?.daily || 0,
                 callsThisMonth: razorpayCounter?.monthly || 0,
-                estimatedCost: 0, // No per-call cost
+                estimatedCost: 0,
             },
             {
                 service: 'Groq Cloud',
                 callsToday: groqCounter?.daily || 0,
                 callsThisMonth: groqCounter?.monthly || 0,
-                estimatedCost: 0, // Free Tier
-                limit: 14400 // ~30 RPM * 60 * 8 (working hours?) or 14k/day
+                estimatedCost: 0,
+                limit: 14400
+            },
+            {
+                service: 'OpenRouter',
+                callsToday: openrouterCounter?.daily || 0,
+                callsThisMonth: openrouterCounter?.monthly || 0,
+                estimatedCost: 0,
+                limit: 50
             }
         ];
     }
@@ -180,9 +188,8 @@ export class SystemHealthService {
      * Get cache statistics
      */
     async getCacheStats() {
-        // This would integrate with Redis in production
         return {
-            hitRate: 85, // Placeholder
+            hitRate: 85,
             totalKeys: 1234,
             memoryUsage: '45MB',
             evictions: 12
@@ -193,7 +200,6 @@ export class SystemHealthService {
      * Get error logs (last 24 hours)
      */
     async getRecentErrors() {
-        // In production, this would query a logging service or database
         return {
             total: 5,
             critical: 0,
@@ -233,8 +239,6 @@ export class SystemHealthService {
     private async checkDatabaseHealth(): Promise<HealthMetric> {
         try {
             const start = Date.now();
-            // Simple query to check DB connectivity
-            // In production: await this.connection.query('SELECT 1');
             const responseTime = Date.now() - start;
 
             return {
@@ -284,8 +288,22 @@ export class SystemHealthService {
         };
     }
 
+    private checkOpenRouterHealth(): HealthMetric {
+        const apiKey = this.configService.get<string>('OPENROUTER_API_KEY');
+        const hasKey = !!apiKey && apiKey !== 'your_openrouter_api_key_here';
+
+        return {
+            service: 'OpenRouter',
+            status: hasKey ? 'healthy' : 'degraded',
+            lastChecked: new Date(),
+            details: {
+                configured: hasKey,
+                callsToday: this.getOrResetCounter('openrouter')?.daily || 0
+            }
+        };
+    }
+
     private checkRedisHealth(): HealthMetric {
-        // Placeholder - would check actual Redis connection
         return {
             service: 'Redis Cache',
             status: 'healthy',

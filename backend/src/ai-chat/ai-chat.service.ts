@@ -15,6 +15,7 @@ import { UserRole } from '../users/user.entity';
 import { AIQueueService, AIPriority } from '../ai/ai-queue.service';
 import { PromptBuilderService } from '../ai/prompt-builder.service';
 import { AIUtilsService } from '../ai/ai-utils.service';
+import { PromptShortcutService } from '../ai/prompt-shortcut.service';
 
 export interface SendMessageResponse {
     response: string;
@@ -46,6 +47,7 @@ export class AIChatService {
         private queueService: AIQueueService,
         private promptBuilder: PromptBuilderService,
         private aiUtils: AIUtilsService,
+        private promptShortcutService: PromptShortcutService,
     ) { }
 
     async sendMessageStream(
@@ -147,8 +149,25 @@ export class AIChatService {
             questionContext,
             preferredLanguage: user?.defaultLanguage || 'English',
             historicalInsights: fallbackMemory.map(i => `${i.topic}: ${i.coreStruggle}`),
-            currentTopicMastery
+            currentTopicMastery,
+            shortcutHint: '' as string | undefined
         };
+
+        // RAG: Fetch relevant shortcuts from Database
+        const shortcuts = await this.promptShortcutService.findRelevantShortcuts(
+            questionContext?.topic || 'General',
+            message || ''
+        );
+
+        if (shortcuts.length > 0) {
+            let hint = `[RAG MATH INJECTION]\n`;
+            shortcuts.forEach((sc, idx) => {
+                hint += `PATTERN ${idx + 1}: ${sc.topic}\nFORMULA: ${sc.formula}\n\n`;
+            });
+            hint += `MANDATORY ORDERING: Analyze the problem requirements and apply the PATTERNS in the correct logical sequence.`;
+            context.shortcutHint = hint;
+            this.logger.log(`[AIChatService] RAG: Injected ${shortcuts.length} shortcuts into chat context.`);
+        }
 
         // Save user message
         await this.messageRepo.save(
@@ -319,8 +338,25 @@ export class AIChatService {
             questionContext,
             preferredLanguage: user?.defaultLanguage || 'English',
             historicalInsights: fallbackMemory.map(i => `${i.topic}: ${i.coreStruggle}`),
-            currentTopicMastery
+            currentTopicMastery,
+            shortcutHint: '' as string | undefined
         };
+
+        // RAG: Fetch relevant shortcuts from Database
+        const shortcuts = await this.promptShortcutService.findRelevantShortcuts(
+            questionContext?.topic || 'General',
+            message || ''
+        );
+
+        if (shortcuts.length > 0) {
+            let hint = `[RAG MATH INJECTION]\n`;
+            shortcuts.forEach((sc, idx) => {
+                hint += `PATTERN ${idx + 1}: ${sc.topic}\nFORMULA: ${sc.formula}\n\n`;
+            });
+            hint += `MANDATORY ORDERING: Analyze the problem requirements and apply the PATTERNS in the correct logical sequence.`;
+            context.shortcutHint = hint;
+            this.logger.log(`[AIChatService] RAG: Injected ${shortcuts.length} shortcuts into chat context (sync).`);
+        }
 
         const userMessage = await this.messageRepo.save(
             this.messageRepo.create({

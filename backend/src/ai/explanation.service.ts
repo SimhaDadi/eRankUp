@@ -228,6 +228,8 @@ export class ExplanationService {
                     createdAt: new Date()
                 });
                 await this.explanationRepository.save(failRecord);
+                const item = this.mapToItem(question, failRecord);
+                return { ...item, isFallback: true };
             } catch (saveError) {
                 this.logger.error(`[generateExplanation] Could not even save fallback: ${saveError.message}`);
             }
@@ -891,7 +893,8 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 correctOptionId: q.correctOptionId,
                 isMissingAnswerKey: !q.correctOptionId || q.correctOptionId === 'UNKNOWN',
                 aiProposedAnswerId: (explanationMatch?.logicalSolveOutcome?.match(/Solved:\s*([A-E])/i)?.[1] ||
-                    explanationMatch?.logicalSolveOutcome?.match(/Answer:\s*([A-E])/i)?.[1])?.toUpperCase()
+                    explanationMatch?.logicalSolveOutcome?.match(/Answer:\s*([A-E])/i)?.[1])?.toUpperCase(),
+                isFallback: explanationMatch?.aiExplanation?.includes('AI Generation is temporarily unavailable') || false
             };
         } catch (mapError) {
             this.logger.error(`[mapToItem] Error for question ${q?.id}: ${mapError.message}`);

@@ -51,6 +51,7 @@ export interface ChatContext {
     historicalInsights: string[];
     currentTopicMastery: number;
     temperament: TemperamentContext;
+    shortcutHint?: string;
 }
 
 /**

@@ -74,12 +74,17 @@ export class AIService {
                 const isServerError = error.status >= 500;
 
                 if (isRateLimit || isServerError) {
-                    this.logger.warn(`⚠️ Groq failed (Status: ${error.status}). Triggering AUTO-FALLBACK to Gemini...`);
+                    this.logger.warn(`⚠️ Groq failed (Status: ${error.status}). Triggering 2nd Fallback to OpenRouter...`);
                     try {
-                        return await this.generateTextWithGemini(prompt, images, priority);
-                    } catch (geminiError) {
-                        this.logger.error(`❌ BOTH PROVIDERS FAILED | Groq Status: ${error.status} | Gemini Error: ${geminiError.message}`);
-                        throw new Error(`AI System Unavailable. (Groq Error: ${error.status}, Gemini Error: ${geminiError.message})`);
+                        return await this.generateTextWithOpenRouter(prompt, images, priority);
+                    } catch (openRouterError) {
+                        this.logger.warn(`⚠️ OpenRouter failed. Triggering 3rd Fallback to Gemini...`);
+                        try {
+                            return await this.generateTextWithGemini(prompt, images, priority);
+                        } catch (geminiError) {
+                            this.logger.error(`❌ ALL PROVIDERS FAILED | Groq Status: ${error.status} | OpenRouter: ${openRouterError.message} | Gemini Error: ${geminiError.message}`);
+                            throw new Error(`AI System Unavailable. (Providers: Groq, OpenRouter, Gemini failed)`);
+                        }
                     }
                 }
                 throw error;
@@ -96,11 +101,11 @@ export class AIService {
         return this.queueService.add(async () => {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
-                // Force stable v1beta to avoid v1 404 or access issues for gemini-1.5-flash
+                // Force stable v1 to avoid v1beta 404 or access issues for gemini-1.5-flash
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
                 this.logger.log(`🤖 AI Request: Using Model [${modelName}] (Gemini)`);
-                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
+                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
 
                 const parts: any[] = [prompt];
                 if (images.length > 0) {
@@ -119,6 +124,58 @@ export class AIService {
                 return (await result.response).text();
             } catch (error) {
                 this.logger.error('[AIService] Gemini API error:', error);
+                throw error;
+            }
+        }, priority);
+    }
+
+    private async generateTextWithOpenRouter(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority): Promise<string> {
+        const apiKey = this.configService.get<string>('OPENROUTER_API_KEY');
+        const modelName = this.configService.get<string>('OPENROUTER_MODEL', 'openrouter/auto');
+
+        if (!apiKey || apiKey === 'your_openrouter_api_key_here') {
+            throw new Error('OPENROUTER_API_KEY not configured or using placeholder');
+        }
+
+        return this.queueService.add(async () => {
+            try {
+                // OpenRouter uses OpenAI-compatible SDK
+                const OpenAI = require('openai');
+                const client = new OpenAI({
+                    apiKey,
+                    baseURL: 'https://openrouter.ai/api/v1',
+                    defaultHeaders: {
+                        'HTTP-Referer': 'https://erankup.com', // Optional
+                        'X-Title': 'eRankUp', // Optional
+                    }
+                });
+
+                const messages: any[] = [];
+                const content: any[] = [{ type: 'text', text: prompt }];
+
+                if (images.length > 0) {
+                    images.forEach(img => {
+                        content.push({
+                            type: 'image_url',
+                            image_url: {
+                                url: `data:${img.mimeType};base64,${img.data}`
+                            }
+                        });
+                    });
+                }
+
+                messages.push({ role: 'user', content });
+
+                const completion = await client.chat.completions.create({
+                    messages,
+                    model: modelName,
+                    temperature: 0.1,
+                });
+
+                this.systemHealthService.trackAPICall('openrouter');
+                return completion.choices[0]?.message?.content || '';
+            } catch (error) {
+                this.logger.error('[AIService] OpenRouter API error:', error);
                 throw error;
             }
         }, priority);
@@ -177,8 +234,19 @@ export class AIService {
             const provider = this.configService.get('AI_PROVIDER', 'gemini');
 
             if (provider === 'groq') {
-                yield* this.generateStreamWithGroq(prompt, images, complexity);
-                return;
+                try {
+                    yield* this.generateStreamWithGroq(prompt, images, complexity);
+                    return;
+                } catch (error) {
+                    this.logger.warn(`⚠️ Groq Stream failed. Triggering 2nd Fallback to OpenRouter Streaming...`);
+                    try {
+                        yield* this.generateStreamWithOpenRouter(prompt, images, complexity);
+                        return;
+                    } catch (openRouterError) {
+                        this.logger.warn(`⚠️ OpenRouter Stream failed. Triggering 3rd Fallback to Gemini Streaming...`);
+                        // Fall through to Gemini below
+                    }
+                }
             }
 
             const apiKey = this.configService.get<string>('GEMINI_API_KEY');
@@ -212,6 +280,59 @@ export class AIService {
             yield " [Communication interrupted. Please try again.]";
         } finally {
             release();
+        }
+    }
+
+    private async *generateStreamWithOpenRouter(prompt: string, images: { data: string; mimeType: string }[] = [], complexity: 'FAST' | 'REASONING'): AsyncIterableIterator<string> {
+        const apiKey = this.configService.get<string>('OPENROUTER_API_KEY');
+        const modelName = this.configService.get<string>('OPENROUTER_MODEL', 'openrouter/auto');
+
+        if (!apiKey || apiKey === 'your_openrouter_api_key_here') {
+            throw new Error('OPENROUTER_API_KEY not configured or using placeholder');
+        }
+
+        try {
+            const OpenAI = require('openai');
+            const client = new OpenAI({
+                apiKey,
+                baseURL: 'https://openrouter.ai/api/v1',
+                defaultHeaders: {
+                    'HTTP-Referer': 'https://erankup.com',
+                    'X-Title': 'eRankUp',
+                }
+            });
+
+            const messages: any[] = [];
+            const content: any[] = [{ type: 'text', text: prompt }];
+
+            if (images.length > 0) {
+                images.forEach(img => {
+                    content.push({
+                        type: 'image_url',
+                        image_url: {
+                            url: `data:${img.mimeType};base64,${img.data}`
+                        }
+                    });
+                });
+            }
+
+            messages.push({ role: 'user', content });
+
+            const stream = await client.chat.completions.create({
+                messages,
+                model: modelName,
+                temperature: 0.1,
+                stream: true,
+            });
+
+            this.systemHealthService.trackAPICall('openrouter');
+            for await (const chunk of stream) {
+                const text = chunk.choices[0]?.delta?.content || '';
+                if (text) yield text;
+            }
+        } catch (error) {
+            this.logger.error('[AIService] OpenRouter Streaming error:', error);
+            throw error;
         }
     }
 
@@ -266,8 +387,8 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                // Use v1beta for embedding generation with text-embedding-004
-                const model = genAI.getGenerativeModel({ model: "text-embedding-004" }, { apiVersion: 'v1beta' });
+                // Use v1 for embedding generation with text-embedding-004
+                const model = genAI.getGenerativeModel({ model: "text-embedding-004" }, { apiVersion: 'v1' });
 
                 const result = await model.embedContent(text);
                 this.systemHealthService.trackAPICall('gemini'); // TRACK USAGE

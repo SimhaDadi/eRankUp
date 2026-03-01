@@ -234,7 +234,9 @@ ${performanceHint}
 
         // Inject topic-specific hint if available
         let shortcutHint = '';
-        if (context.questionContext) {
+        if (options.context.shortcutHint) {
+            shortcutHint = `\n${options.context.shortcutHint}\n`;
+        } else if (context.questionContext) {
             const topicLower = (context.questionContext.topic || '').toLowerCase();
             const contentLower = (context.questionContext.content || '').toLowerCase();
             const sc = PROMPTS_CONFIG.subjects.quantReasoning.shortcuts;

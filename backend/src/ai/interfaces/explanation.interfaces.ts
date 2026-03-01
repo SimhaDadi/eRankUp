@@ -19,6 +19,7 @@ export interface ExplanationItem {
     correctOptionId?: string;
     isMissingAnswerKey?: boolean;
     aiProposedAnswerId?: string;
+    isFallback?: boolean;
 }
 
 export interface PaginatedExplanations {

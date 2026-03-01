@@ -64,6 +64,7 @@ export class ExplanationController {
                 success: true,
                 questionId,
                 explanation: explanationText,
+                isFallback: !!result.isFallback,
                 fullItem: typeof result === 'object' ? result : null
             };
         } catch (error) {
@@ -197,7 +198,8 @@ export class ExplanationController {
             return {
                 questionId,
                 explanation: explanationText,
-                isLogicalMismatch
+                isLogicalMismatch,
+                isFallback: !!result.isFallback
             };
         } catch (error) {
             throw new HttpException(
