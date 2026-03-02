@@ -116,22 +116,51 @@ export class PromptShortcutService {
      * Updated to support BATCH detection.
      */
     async distillShortcut(rawText: string, images: { data: string; mimeType: string }[] = []) {
+        let rawResponse = '';
         try {
             const prompt = this.promptBuilder.buildShortcutDistillerPrompt(rawText || 'Distill all mathematical shortcuts from the attached images.');
-            const response = await this.aiService.generateText(prompt, images);
+            rawResponse = await this.aiService.generateText(prompt, images);
 
-            // Clean the response to extract JSON
-            const cleanJson = response.replace(/```json|```/g, '').trim();
-            const parsed = JSON.parse(cleanJson);
+            // 1. Robust JSON Extraction (handles conversational prefixes/suffixes)
+            const firstBracket = rawResponse.indexOf('[');
+            const lastBracket = rawResponse.lastIndexOf(']');
+
+            if (firstBracket === -1 || lastBracket === -1 || lastBracket <= firstBracket) {
+                this.logger.error('AI response does not contain a valid JSON array', { rawResponse });
+                throw new Error('AI response was not in a recognizable format.');
+            }
+
+            let jsonString = rawResponse.substring(firstBracket, lastBracket + 1);
+
+            // 2. Handle unescaped LaTeX backslashes (common failure point)
+            // If parse fails, we try to escape backslashes that aren't already escaped
+            let parsed;
+            try {
+                parsed = JSON.parse(jsonString);
+            } catch (parseError) {
+                this.logger.warn('Initial JSON parse failed, attempting backslash escaping fix...');
+                // Regex: match \ only if not preceded by \ and not followed by ["/bfnrtu]
+                const fixedJson = jsonString.replace(/(?<!\\)\\(?![\\"/bfnrtu])/g, '\\\\');
+                parsed = JSON.parse(fixedJson);
+            }
 
             // Normalize to array
             const results = Array.isArray(parsed) ? parsed : [parsed];
 
             // Basic validation
-            return results.filter(item => item.topic && item.formula);
+            const validResults = results.filter(item => item.topic && item.formula);
+
+            if (validResults.length === 0) {
+                throw new Error('No valid shortcuts could be identified in the content.');
+            }
+
+            return validResults;
         } catch (error) {
-            this.logger.error('Failed to distill shortcuts from content', error);
-            throw new Error('AI could not parse shortcuts. Please try a clearer description or better images.');
+            this.logger.error('Failed to distill shortcuts from content', {
+                error: error.message,
+                rawResponse: rawResponse.substring(0, 500) // Log snippet for debugging
+            });
+            throw new Error(`AI distillation failed: ${error.message}`);
         }
     }
 }
