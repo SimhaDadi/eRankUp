@@ -730,7 +730,7 @@ ${shortcutsSection}
      * Build a prompt for distilling raw mathematical explanations/formulas into structured RAG Shortcuts.
      * Updated to support BATCH detection of multiple shortcuts from a single image/text block.
      */
-    buildShortcutDistillerPrompt(rawText: string): string {
+    async buildShortcutDistillerPrompt(rawText: string): Promise<string> {
         return `
     You are a Math Content Architect for an SSC/Railways competitive exam platform.
     Your task is to scan the provided input (text and/or images) and DISTILL all mathematical shortcuts, formulas, or models found into a structured list.
@@ -754,7 +754,7 @@ ${shortcutsSection}
     ### CRITICAL FORMATTING RULES:
     - ONLY output the JSON. No conversational text.
     - DO NOT include prefixes like "Here is the JSON:".
-    - DO NOT use markdown code blocks (\`\`\`json). Just the raw JSON array.
+    - Output MUST be a valid JSON array of objects.
     - If no shortcuts are found, return an empty array: [].
 
     ### Example Output Format:
