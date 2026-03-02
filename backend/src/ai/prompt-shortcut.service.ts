@@ -1,10 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Brackets } from 'typeorm';
 import { PromptShortcut } from './entities/prompt-shortcut.entity';
 import { AIService } from './ai.service';
-import { AIPriority } from './ai-queue.service';
 import { PromptBuilderService } from './prompt-builder.service';
 import { CreateShortcutDto, UpdateShortcutDto } from './dto/prompt-shortcut.dto';
 
@@ -17,7 +15,6 @@ export class PromptShortcutService {
         private shortcutRepository: Repository<PromptShortcut>,
         private aiService: AIService,
         private promptBuilder: PromptBuilderService,
-        private configService: ConfigService,
     ) { }
 
     async create(createDto: CreateShortcutDto) {
@@ -116,165 +113,129 @@ export class PromptShortcutService {
 
     /**
      * Uses AI to distill raw content (text/images) into a list of shortcut structures.
-     * Updated to support BATCH detection.
+     * SIMPLIFIED: No smart routing, no sharp, identical pattern to ExplanationService.
      */
     async distillShortcut(rawText: string, images: { data: string; mimeType: string }[] = []) {
+        this.logger.log(`[distillShortcut] START — text length: ${(rawText || '').length}, images: ${images.length}`);
+
+        // Step 1: Build prompt
+        const prompt = this.promptBuilder.buildShortcutDistillerPrompt(
+            rawText || 'Distill all mathematical shortcuts from the attached images.'
+        );
+        this.logger.log(`[distillShortcut] Prompt built (length: ${prompt.length})`);
+
+        // Step 2: Call AI — same as ExplanationService, no overrides
         let rawResponse = '';
         try {
-            // 1. Optimize Images: Resize and compress for better reliability
-            // sharp is optional — if unavailable, raw images are used directly
-            const optimizedImages = await Promise.all(images.map(async img => {
-                try {
-                    const sharp = require('sharp'); // Lazy-require: safe to fail per-image
-                    const buffer = Buffer.from(img.data, 'base64');
-                    const optimizedBuffer = await sharp(buffer)
-                        .resize({ width: 2000, withoutEnlargement: true })
-                        .jpeg({ quality: 85 })
-                        .toBuffer();
-                    return {
-                        data: optimizedBuffer.toString('base64'),
-                        mimeType: 'image/jpeg'
-                    };
-                } catch (e) {
-                    this.logger.warn(`Image optimization skipped (sharp unavailable/failed): ${e.message}`);
-                    return img; // Send raw original — AI can still process it
-                }
-            }));
+            rawResponse = await this.aiService.generateText(prompt, images);
+            this.logger.log(`[distillShortcut] AI responded (length: ${rawResponse.length}). Sample: ${rawResponse.substring(0, 200)}`);
+        } catch (aiError) {
+            this.logger.error(`[distillShortcut] AI call FAILED: ${aiError.message}`);
+            throw new Error(`AI call failed: ${aiError.message}`);
+        }
 
-            const prompt = this.promptBuilder.buildShortcutDistillerPrompt(rawText || 'Distill all mathematical shortcuts from the attached images.');
+        if (!rawResponse || rawResponse.trim().length === 0) {
+            this.logger.error('[distillShortcut] AI returned empty response');
+            throw new Error('AI returned an empty response. Please try again.');
+        }
 
-            // Log provider details for diagnostics
-            const providerInfo = (this.aiService as any).getProviderInfo ? (this.aiService as any).getProviderInfo() : { provider: 'auto' };
-            this.logger.log(`🤖 Distillation Start | Provider: ${providerInfo.provider} | Model: ${providerInfo.model}`);
+        // Step 3: Extract JSON from response
+        // AI sometimes wraps in ```json blocks or conversational text
+        let jsonString = '';
+        const codeBlockMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (codeBlockMatch) {
+            jsonString = codeBlockMatch[1];
+            this.logger.log('[distillShortcut] JSON extracted from code block');
+        } else {
+            const arrayStart = rawResponse.indexOf('[');
+            const objectStart = rawResponse.indexOf('{');
+            let firstIdx = -1;
+            let lastIdx = -1;
 
-            // Intelligence Routing: Prefer Gemini for Vision tasks if images are present 
-            // and no explicit provider is forced in env.
-            const configuredProvider = this.configService.get('AI_PROVIDER');
-            const hasImages = optimizedImages.length > 0;
-            const preferredProvider = (hasImages && !configuredProvider) ? 'gemini' : undefined;
-
-            rawResponse = await this.aiService.generateText(prompt, optimizedImages, AIPriority.HIGH, 'REASONING', preferredProvider as any);
-
-            // 2. Tech-Lead Level Robust JSON Extraction
-            // AI often wraps JSON in code blocks or conversational text.
-            let jsonString = '';
-
-            // Try to extract from markdown code blocks first
-            const codeBlockMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (codeBlockMatch) {
-                jsonString = codeBlockMatch[1];
-            } else {
-                // Fallback to finding structural markers
-                const arrayStart = rawResponse.indexOf('[');
-                const objectStart = rawResponse.indexOf('{');
-
-                let firstIdx = -1;
-                let lastIdx = -1;
-
-                if (arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart)) {
-                    firstIdx = arrayStart;
-                    lastIdx = rawResponse.lastIndexOf(']');
-                } else if (objectStart !== -1) {
-                    firstIdx = objectStart;
-                    lastIdx = rawResponse.lastIndexOf('}');
-                }
-
-                if (firstIdx !== -1 && lastIdx !== -1 && lastIdx > firstIdx) {
-                    jsonString = rawResponse.substring(firstIdx, lastIdx + 1);
-                }
+            if (arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart)) {
+                firstIdx = arrayStart;
+                lastIdx = rawResponse.lastIndexOf(']');
+            } else if (objectStart !== -1) {
+                firstIdx = objectStart;
+                lastIdx = rawResponse.lastIndexOf('}');
             }
 
-            if (!jsonString) {
-                this.logger.error('AI response does not contain recognizable JSON', { rawResponse });
-                throw new Error('AI response was not in a recognizable JSON/Array format.');
+            if (firstIdx !== -1 && lastIdx > firstIdx) {
+                jsonString = rawResponse.substring(firstIdx, lastIdx + 1);
+                this.logger.log('[distillShortcut] JSON extracted via structural search');
             }
+        }
 
-            // 3. Handle unescaped LaTeX backslashes & Parse
-            let parsed;
+        if (!jsonString) {
+            this.logger.error(`[distillShortcut] No JSON found in response. Full response: ${rawResponse}`);
+            throw new Error('AI did not return JSON. Raw response logged for debugging.');
+        }
+
+        // Step 4: Parse JSON (with LaTeX backslash repair)
+        let parsed: any;
+        try {
+            parsed = JSON.parse(jsonString.replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
+        } catch (firstErr) {
+            this.logger.warn(`[distillShortcut] First parse attempt failed: ${firstErr.message}. Trying cleanup...`);
             try {
-                // Clean up any stray control characters or zero-width spaces
-                const cleanJson = jsonString.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
-                parsed = JSON.parse(cleanJson);
-            } catch (parseError) {
-                this.logger.warn('Initial JSON parse failed, attempting backslash escapes and structural fixes...');
-                // Fix unescaped backslashes (common in LaTeX) and trailing commas
-                let fixedJson = jsonString
+                const fixed = jsonString
                     .replace(/(?<!\\)\\(?![\\"/bfnrtu])/g, '\\\\')
                     .replace(/,\s*([\]}])/g, '$1');
-
-                try {
-                    parsed = JSON.parse(fixedJson);
-                } catch (e) {
-                    this.logger.error('Fatal JSON parse failure after all attempts', { fixedJson });
-                    throw new Error(`JSON structural error: ${e.message}`);
-                }
+                parsed = JSON.parse(fixed);
+            } catch (e) {
+                this.logger.error(`[distillShortcut] JSON parse failed after cleanup. JSON string: ${jsonString.substring(0, 500)}`);
+                throw new Error(`JSON parse failed: ${e.message}`);
             }
-
-            // 4. Normalize results (handles single object, aliases, and casing)
-            const rawResults = Array.isArray(parsed) ? parsed : [parsed];
-
-            // Normalize Keys: AI sometimes capitalizes or uses slightly different terms
-            const validResults = rawResults.map(item => {
-                const normalized: any = {};
-
-                // Key search logic
-                for (const key of Object.keys(item)) {
-                    const lowKey = key.toLowerCase();
-                    const val = item[key];
-
-                    if (['topic', 'title', 'subject'].includes(lowKey)) normalized.topic = val;
-                    else if (['formula', 'rule', 'shortcut', 'explanation', 'logic'].includes(lowKey)) normalized.formula = val;
-                    else if (['keywords', 'tags', 'terms'].includes(lowKey)) normalized.keywords = Array.isArray(val) ? val.join(', ') : val;
-                }
-
-                return normalized;
-            }).filter(item => item.topic && item.formula);
-
-            if (validResults.length === 0) {
-                this.logger.warn('AI returned data but no valid shortcuts matched the schema', { parsed });
-                throw new Error('No valid shortcuts found. Please ensure the content contains a clear mathematical rule.');
-            }
-
-            this.logger.log(`✅ Distilled ${validResults.length} shortcuts - auto-saving to DB...`);
-
-            // 5. Auto-save: Persist all shortcuts to DB, generate embeddings in parallel
-            const savedShortcuts = await Promise.all(validResults.map(async (item) => {
-                try {
-                    // Generate semantic embedding for RAG retrieval
-                    const searchText = `${item.topic} ${item.keywords || ''} ${item.formula}`;
-                    let embedding = null;
-                    try {
-                        const embeddingArray = await this.aiService.generateEmbedding(searchText);
-                        embedding = `[${embeddingArray.join(',')}]`;
-                    } catch (embErr) {
-                        this.logger.warn(`Embedding generation failed for "${item.topic}": ${embErr.message}`);
-                    }
-
-                    const shortcut = this.shortcutRepository.create({
-                        topic: item.topic,
-                        formula: item.formula,
-                        keywords: item.keywords || '',
-                        embedding,
-                        isActive: true,
-                    });
-
-                    return await this.shortcutRepository.save(shortcut);
-                } catch (saveErr) {
-                    this.logger.error(`Failed to save shortcut "${item.topic}": ${saveErr.message}`);
-                    return null;
-                }
-            }));
-
-            const successfullySaved = savedShortcuts.filter(s => s !== null);
-            this.logger.log(`✅ Saved ${successfullySaved.length}/${validResults.length} shortcuts to DB`);
-
-            return successfullySaved;
-        } catch (error) {
-            this.logger.error('Distillation Pipeline Failure', {
-                message: error.message,
-                responseSample: rawResponse.substring(0, 500)
-            });
-            throw new Error(`Distillation failed: ${error.message}`);
         }
+
+        // Step 5: Normalise keys (handle Topic/topic/title/subject etc.)
+        const rawResults = Array.isArray(parsed) ? parsed : [parsed];
+        const validResults = rawResults.map(item => {
+            const normalized: any = {};
+            for (const key of Object.keys(item)) {
+                const k = key.toLowerCase();
+                const v = item[key];
+                if (['topic', 'title', 'subject', 'name'].includes(k)) normalized.topic = v;
+                else if (['formula', 'rule', 'shortcut', 'explanation', 'logic', 'content'].includes(k)) normalized.formula = v;
+                else if (['keywords', 'tags', 'terms'].includes(k)) normalized.keywords = Array.isArray(v) ? v.join(', ') : v;
+            }
+            return normalized;
+        }).filter(item => item.topic && item.formula);
+
+        this.logger.log(`[distillShortcut] Valid shortcuts after normalisation: ${validResults.length}`);
+
+        if (validResults.length === 0) {
+            this.logger.error(`[distillShortcut] Parsed JSON had no matching fields. Parsed data: ${JSON.stringify(parsed).substring(0, 500)}`);
+            throw new Error('AI returned data but no valid shortcuts matched the required schema (topic + formula).');
+        }
+
+        // Step 6: Auto-save to DB with embeddings
+        const savedShortcuts = await Promise.all(validResults.map(async (item) => {
+            try {
+                let embedding = null;
+                try {
+                    const arr = await this.aiService.generateEmbedding(`${item.topic} ${item.keywords || ''} ${item.formula}`);
+                    embedding = `[${arr.join(',')}]`;
+                } catch (e) {
+                    this.logger.warn(`[distillShortcut] Embedding failed for "${item.topic}": ${e.message}`);
+                }
+
+                const shortcut = this.shortcutRepository.create({
+                    topic: item.topic,
+                    formula: item.formula,
+                    keywords: item.keywords || '',
+                    embedding,
+                    isActive: true,
+                });
+                return await this.shortcutRepository.save(shortcut);
+            } catch (e) {
+                this.logger.error(`[distillShortcut] DB save failed for "${item.topic}": ${e.message}`);
+                return null;
+            }
+        }));
+
+        const saved = savedShortcuts.filter(s => s !== null);
+        this.logger.log(`[distillShortcut] DONE — saved ${saved.length}/${validResults.length} shortcuts to DB`);
+        return saved;
     }
 }
