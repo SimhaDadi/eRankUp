@@ -63,27 +63,39 @@ export class AIService {
      * Generate text using configured AI provider with automatic fallback
      */
     async generateText(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority = AIPriority.HIGH, complexity: 'FAST' | 'REASONING' = 'REASONING'): Promise<string> {
-        const provider = this.configService.get('AI_PROVIDER', 'gemini');
-        this.logger.log(`🤖 AI Request: Using Provider [${provider}]`);
+        // Resolve provider - Default to gemini if not explicitly set
+        const providerStr = this.configService.get('AI_PROVIDER', 'gemini');
+        const provider = providerStr.toLowerCase();
+
+        const hasImages = images.length > 0;
+        this.logger.log(`🤖 AI Request: [${provider}] | Complexity: ${complexity} | Images: ${hasImages}`);
 
         if (provider === 'groq') {
             try {
                 return await this.generateTextWithGroq(prompt, images, priority, complexity);
             } catch (error) {
+                this.logger.error(`❌ Groq Primary Failed: ${error.message}${error.status ? ` (Status: ${error.status})` : ''}`);
+
+                const isAuthError = error.status === 401 || error.status === 403;
                 const isRateLimit = error.status === 429;
                 const isServerError = error.status >= 500;
 
+                if (isAuthError) {
+                    this.logger.error('CRITICAL: Groq Authentication Failed. Check GROQ_API_KEY.');
+                }
+
+                // Only fallback on rate limits or server errors. Auth errors need manual fix.
                 if (isRateLimit || isServerError) {
-                    this.logger.warn(`⚠️ Groq failed (Status: ${error.status}). Triggering 2nd Fallback to OpenRouter...`);
+                    this.logger.warn(`⚠️ Triggering fallback chain because of [${error.status}] error...`);
                     try {
                         return await this.generateTextWithOpenRouter(prompt, images, priority);
                     } catch (openRouterError) {
-                        this.logger.warn(`⚠️ OpenRouter failed. Triggering 3rd Fallback to Gemini...`);
+                        this.logger.warn(`⚠️ OpenRouter failed: ${openRouterError.message}. Switching to Gemini...`);
                         try {
                             return await this.generateTextWithGemini(prompt, images, priority);
                         } catch (geminiError) {
-                            this.logger.error(`❌ ALL PROVIDERS FAILED | Groq Status: ${error.status} | OpenRouter: ${openRouterError.message} | Gemini Error: ${geminiError.message}`);
-                            throw new Error(`AI System Unavailable. (Providers: Groq, OpenRouter, Gemini failed)`);
+                            this.logger.error(`❌ ALL PROVIDERS FAILED | Groq: ${error.message} | OpenRouter: ${openRouterError.message} | Gemini: ${geminiError.message}`);
+                            throw new Error(`AI System Unavailable. (All providers failed)`);
                         }
                     }
                 }
@@ -91,20 +103,29 @@ export class AIService {
             }
         }
 
+        // Default to Gemini (or used as 1st provider if specified)
         return this.generateTextWithGemini(prompt, images, priority);
     }
 
     private async generateTextWithGemini(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority): Promise<string> {
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-        if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+        // Alias Check: Support both common naming conventions
+        const apiKey = this.configService.get<string>('GEMINI_API_KEY') ||
+            this.configService.get<string>('GOOGLE_AI_API_KEY');
+
+        if (!apiKey) {
+            this.logger.error('GEMINI_API_KEY or GOOGLE_AI_API_KEY not configured in .env');
+            throw new Error('Gemini API key is missing. Check your environment variables.');
+        }
+
+        const keyHint = `...${apiKey.slice(-4)}`;
 
         return this.queueService.add(async () => {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
-                // Force stable v1 to avoid v1beta 404 or access issues for gemini-1.5-flash
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
-                this.logger.log(`🤖 AI Request: Using Model [${modelName}] (Gemini)`);
+
+                this.logger.log(`🤖 Gemini Call | Model: ${modelName} | Key: ${keyHint}`);
                 const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
 
                 const parts: any[] = [prompt];
@@ -120,9 +141,15 @@ export class AIService {
                 }
 
                 const result = await model.generateContent(parts);
-                this.systemHealthService.trackAPICall('gemini'); // TRACK USAGE
+                this.systemHealthService.trackAPICall('gemini');
                 return (await result.response).text();
             } catch (error) {
+                const msg = error.message || '';
+                if (msg.includes('API_KEY_INVALID') || msg.includes('401')) {
+                    this.logger.error(`❌ Gemini AUTH ERROR: The API key ${keyHint} is invalid.`);
+                } else if (msg.includes('quota')) {
+                    this.logger.error(`❌ Gemini QUOTA ERROR: Billable limit reached or free tier exhausted.`);
+                }
                 this.logger.error('[AIService] Gemini API error:', error);
                 throw error;
             }
@@ -182,14 +209,23 @@ export class AIService {
     }
 
     private async generateTextWithGroq(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority, complexity: 'FAST' | 'REASONING'): Promise<string> {
-        const apiKey = this.configService.get<string>('GROQ_API_KEY');
+        // Alias Check: support common variations
+        const apiKey = this.configService.get<string>('GROQ_API_KEY') ||
+            this.configService.get<string>('GROQ_CLOUD_API_KEY');
+
         const modelName = this.getGroqModel(complexity, images.length > 0);
 
-        if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+        if (!apiKey) {
+            this.logger.error('GROQ_API_KEY not configured in .env');
+            throw new Error('Groq API key is missing.');
+        }
+
+        const keyHint = `...${apiKey.slice(-4)}`;
 
         return this.queueService.add(async () => {
             try {
                 const groq = new Groq({ apiKey });
+                this.logger.log(`🤖 Groq Call | Model: ${modelName} | Key: ${keyHint}`);
 
                 const messages: any[] = [];
                 const content: any[] = [{ type: 'text', text: prompt }];

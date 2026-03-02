@@ -159,7 +159,13 @@ export class ExplanationService {
                     this.logger.log(`[generateExplanation] Injecting feedback into retry prompt`);
                 }
 
-                const rawExplanation = await this.aiService.generateText(currentPrompt, [], priority);
+                const images = [];
+                if (question.imageUrl) {
+                    const imgData = await this.promptBuilder.loadQuestionImage(question.imageUrl);
+                    if (imgData) images.push(imgData);
+                }
+
+                const rawExplanation = await this.aiService.generateText(currentPrompt, images, priority);
                 explanation = this.aiUtils.cleanAIResponse(rawExplanation);
 
                 this.logger.log(`[generateExplanation] Received response (len=${explanation.length})`);
