@@ -124,8 +124,8 @@ export class PromptShortcutService {
                 try {
                     const buffer = Buffer.from(img.data, 'base64');
                     const optimizedBuffer = await sharp(buffer)
-                        .resize({ width: 1200, withoutEnlargement: true }) // Standard desktop width for OCR
-                        .jpeg({ quality: 80 })
+                        .resize({ width: 2000, withoutEnlargement: true }) // Increased resolution for math OCR
+                        .jpeg({ quality: 85 })
                         .toBuffer();
                     return {
                         data: optimizedBuffer.toString('base64'),
@@ -138,6 +138,11 @@ export class PromptShortcutService {
             }));
 
             const prompt = this.promptBuilder.buildShortcutDistillerPrompt(rawText || 'Distill all mathematical shortcuts from the attached images.');
+
+            // Log provider details for diagnostics
+            const providerInfo = (this.aiService as any).getProviderInfo ? (this.aiService as any).getProviderInfo() : { provider: 'auto' };
+            this.logger.log(`🤖 Distillation Start | Provider: ${providerInfo.provider} | Model: ${providerInfo.model}`);
+
             rawResponse = await this.aiService.generateText(prompt, optimizedImages);
 
             // 2. Tech-Lead Level Robust JSON Extraction

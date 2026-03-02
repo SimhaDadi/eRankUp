@@ -60,6 +60,21 @@ export class AIService {
     ) { }
 
     /**
+     * Get diagnostic info about the currently active provider/model
+     */
+    getProviderInfo(): any {
+        const providerStr = this.configService.get('AI_PROVIDER');
+        const hasGroqKey = !!this.getApiKey('groq');
+        const activeProvider = providerStr || (hasGroqKey ? 'groq' : 'gemini');
+
+        let model = 'auto';
+        if (activeProvider === 'gemini') model = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
+        if (activeProvider === 'groq') model = this.getGroqModel('REASONING', false);
+
+        return { provider: activeProvider, model, isExplicitlyConfigured: !!providerStr };
+    }
+
+    /**
      * Helper to resolve API keys with alias support
      */
     private getApiKey(provider: 'gemini' | 'groq' | 'openrouter'): string {
@@ -81,9 +96,12 @@ export class AIService {
      * Generate text using configured AI provider with automatic fallback
      */
     async generateText(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority = AIPriority.HIGH, complexity: 'FAST' | 'REASONING' = 'REASONING'): Promise<string> {
-        // Resolve provider - Default to gemini if not explicitly set
-        const providerStr = this.configService.get('AI_PROVIDER', 'gemini');
-        const provider = providerStr.toLowerCase();
+        // Resolve provider - RESTORE OPPORTUNISTIC GROQ DEFAULT
+        // If AI_PROVIDER is unset, check for GROQ_API_KEY presence
+        const configuredProvider = this.configService.get('AI_PROVIDER');
+        const hasGroqKey = !!this.getApiKey('groq');
+
+        const provider = (configuredProvider || (hasGroqKey ? 'groq' : 'gemini')).toLowerCase();
 
         const hasImages = images.length > 0;
         this.logger.log(`🤖 AI Request: [${provider}] | Complexity: ${complexity} | Images: ${hasImages}`);
