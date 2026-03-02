@@ -95,13 +95,19 @@ export class AIService {
     /**
      * Generate text using configured AI provider with automatic fallback
      */
-    async generateText(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority = AIPriority.HIGH, complexity: 'FAST' | 'REASONING' = 'REASONING'): Promise<string> {
-        // Resolve provider - RESTORE OPPORTUNISTIC GROQ DEFAULT
-        // If AI_PROVIDER is unset, check for GROQ_API_KEY presence
-        const configuredProvider = this.configService.get('AI_PROVIDER');
+    async generateText(
+        prompt: string,
+        images: { data: string; mimeType: string }[] = [],
+        priority: AIPriority = AIPriority.HIGH,
+        complexity: 'FAST' | 'REASONING' = 'REASONING',
+        providerOverride?: 'gemini' | 'groq' | 'openrouter'
+    ): Promise<string> {
+        // Resolve provider
+        const configuredProvider = this.configService.get<string>('AI_PROVIDER');
         const hasGroqKey = !!this.getApiKey('groq');
 
-        const provider = (configuredProvider || (hasGroqKey ? 'groq' : 'gemini')).toLowerCase();
+        let provider = providerOverride || configuredProvider || (hasGroqKey ? 'groq' : 'gemini');
+        provider = provider.toLowerCase();
 
         const hasImages = images.length > 0;
         this.logger.log(`🤖 AI Request: [${provider}] | Complexity: ${complexity} | Images: ${hasImages}`);
