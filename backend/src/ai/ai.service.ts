@@ -145,8 +145,22 @@ export class AIService {
             }
         }
 
-        // Default to Gemini (or used as 1st provider if specified)
-        return this.generateTextWithGemini(prompt, images, priority);
+        // Default to Gemini (or used as 1st provider if specified via override)
+        try {
+            return await this.generateTextWithGemini(prompt, images, priority);
+        } catch (geminiError) {
+            const isAuthError = (geminiError.message || '').includes('API_KEY_INVALID') || (geminiError.status === 401) || (geminiError.status === 403);
+            // If this was a deliberate provider override AND gemini failed, fall back to groq text model
+            if (providerOverride === 'gemini' && !isAuthError) {
+                this.logger.warn(`⚠️ Intelligence-routed Gemini call failed (${geminiError.message}). Falling back to Groq text model...`);
+                try {
+                    return await this.generateTextWithGroq(prompt, images, priority, complexity);
+                } catch (groqFallbackError) {
+                    this.logger.error(`❌ Groq fallback also failed: ${groqFallbackError.message}`);
+                }
+            }
+            throw geminiError;
+        }
     }
 
     private async generateTextWithGemini(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority): Promise<string> {

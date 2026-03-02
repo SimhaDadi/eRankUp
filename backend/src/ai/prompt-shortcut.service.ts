@@ -234,8 +234,40 @@ export class PromptShortcutService {
                 throw new Error('No valid shortcuts found. Please ensure the content contains a clear mathematical rule.');
             }
 
-            this.logger.log(`Successfully distilled ${validResults.length} shortcuts`);
-            return validResults;
+            this.logger.log(`✅ Distilled ${validResults.length} shortcuts - auto-saving to DB...`);
+
+            // 5. Auto-save: Persist all shortcuts to DB, generate embeddings in parallel
+            const savedShortcuts = await Promise.all(validResults.map(async (item) => {
+                try {
+                    // Generate semantic embedding for RAG retrieval
+                    const searchText = `${item.topic} ${item.keywords || ''} ${item.formula}`;
+                    let embedding = null;
+                    try {
+                        const embeddingArray = await this.aiService.generateEmbedding(searchText);
+                        embedding = `[${embeddingArray.join(',')}]`;
+                    } catch (embErr) {
+                        this.logger.warn(`Embedding generation failed for "${item.topic}": ${embErr.message}`);
+                    }
+
+                    const shortcut = this.shortcutRepository.create({
+                        topic: item.topic,
+                        formula: item.formula,
+                        keywords: item.keywords || '',
+                        embedding,
+                        isActive: true,
+                    });
+
+                    return await this.shortcutRepository.save(shortcut);
+                } catch (saveErr) {
+                    this.logger.error(`Failed to save shortcut "${item.topic}": ${saveErr.message}`);
+                    return null;
+                }
+            }));
+
+            const successfullySaved = savedShortcuts.filter(s => s !== null);
+            this.logger.log(`✅ Saved ${successfullySaved.length}/${validResults.length} shortcuts to DB`);
+
+            return successfullySaved;
         } catch (error) {
             this.logger.error('Distillation Pipeline Failure', {
                 message: error.message,
