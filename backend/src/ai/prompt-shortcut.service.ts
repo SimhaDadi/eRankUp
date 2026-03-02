@@ -1,8 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Brackets } from 'typeorm';
 import { PromptShortcut } from './entities/prompt-shortcut.entity';
 import { AIService } from './ai.service';
+import { AIPriority } from './ai-queue.service';
 import { PromptBuilderService } from './prompt-builder.service';
 import { CreateShortcutDto, UpdateShortcutDto } from './dto/prompt-shortcut.dto';
 
@@ -15,6 +17,7 @@ export class PromptShortcutService {
         private shortcutRepository: Repository<PromptShortcut>,
         private aiService: AIService,
         private promptBuilder: PromptBuilderService,
+        private configService: ConfigService,
     ) { }
 
     async create(createDto: CreateShortcutDto) {
