@@ -121,13 +121,14 @@ export class PromptShortcutService {
     async distillShortcut(rawText: string, images: { data: string; mimeType: string }[] = []) {
         let rawResponse = '';
         try {
-            const sharp = require('sharp');
-            // 1. Optimize Images: Resize and compress to improve reliability and reduce payload size
+            // 1. Optimize Images: Resize and compress for better reliability
+            // sharp is optional — if unavailable, raw images are used directly
             const optimizedImages = await Promise.all(images.map(async img => {
                 try {
+                    const sharp = require('sharp'); // Lazy-require: safe to fail per-image
                     const buffer = Buffer.from(img.data, 'base64');
                     const optimizedBuffer = await sharp(buffer)
-                        .resize({ width: 2000, withoutEnlargement: true }) // Increased resolution for math OCR
+                        .resize({ width: 2000, withoutEnlargement: true })
                         .jpeg({ quality: 85 })
                         .toBuffer();
                     return {
@@ -135,8 +136,8 @@ export class PromptShortcutService {
                         mimeType: 'image/jpeg'
                     };
                 } catch (e) {
-                    this.logger.warn('Image optimization failed, sending raw original', e.message);
-                    return img;
+                    this.logger.warn(`Image optimization skipped (sharp unavailable/failed): ${e.message}`);
+                    return img; // Send raw original — AI can still process it
                 }
             }));
 

@@ -12,9 +12,6 @@ COPY packages ./packages
 # Copy backend package files
 COPY backend/package*.json ./backend/
 
-# Install system dependencies needed for sharp (libvips) and build tools
-RUN apk add --no-cache python3 make g++ vips-dev
-
 # Install dependencies from root
 RUN npm ci --legacy-peer-deps
 
@@ -49,12 +46,9 @@ COPY --from=builder /app/packages ./packages
 # Copy backend package files
 COPY backend/package*.json ./backend/
 
-# Install system dependencies for sharp native bindings (runtime)
-RUN apk add --no-cache vips
-
-# Install only production dependencies (scripts allowed so sharp can load native binary)
+# Install only production dependencies
 WORKDIR /app
-RUN npm ci --only=production --legacy-peer-deps
+RUN npm ci --only=production --legacy-peer-deps --ignore-scripts
 
 # Copy built backend application
 COPY --from=builder /app/backend/dist ./backend/dist
