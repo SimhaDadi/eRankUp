@@ -60,6 +60,24 @@ export class AIService {
     ) { }
 
     /**
+     * Helper to resolve API keys with alias support
+     */
+    private getApiKey(provider: 'gemini' | 'groq' | 'openrouter'): string {
+        if (provider === 'gemini') {
+            return this.configService.get<string>('GEMINI_API_KEY') ||
+                this.configService.get<string>('GOOGLE_AI_API_KEY');
+        }
+        if (provider === 'groq') {
+            return this.configService.get<string>('GROQ_API_KEY') ||
+                this.configService.get<string>('GROQ_CLOUD_API_KEY');
+        }
+        if (provider === 'openrouter') {
+            return this.configService.get<string>('OPENROUTER_API_KEY');
+        }
+        return null;
+    }
+
+    /**
      * Generate text using configured AI provider with automatic fallback
      */
     async generateText(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority = AIPriority.HIGH, complexity: 'FAST' | 'REASONING' = 'REASONING'): Promise<string> {
@@ -108,9 +126,7 @@ export class AIService {
     }
 
     private async generateTextWithGemini(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority): Promise<string> {
-        // Alias Check: Support both common naming conventions
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY') ||
-            this.configService.get<string>('GOOGLE_AI_API_KEY');
+        const apiKey = this.getApiKey('gemini');
 
         if (!apiKey) {
             this.logger.error('GEMINI_API_KEY or GOOGLE_AI_API_KEY not configured in .env');
@@ -157,7 +173,7 @@ export class AIService {
     }
 
     private async generateTextWithOpenRouter(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority): Promise<string> {
-        const apiKey = this.configService.get<string>('OPENROUTER_API_KEY');
+        const apiKey = this.getApiKey('openrouter');
         const modelName = this.configService.get<string>('OPENROUTER_MODEL', 'openrouter/auto');
 
         if (!apiKey || apiKey === 'your_openrouter_api_key_here') {
@@ -209,10 +225,7 @@ export class AIService {
     }
 
     private async generateTextWithGroq(prompt: string, images: { data: string; mimeType: string }[] = [], priority: AIPriority, complexity: 'FAST' | 'REASONING'): Promise<string> {
-        // Alias Check: support common variations
-        const apiKey = this.configService.get<string>('GROQ_API_KEY') ||
-            this.configService.get<string>('GROQ_CLOUD_API_KEY');
-
+        const apiKey = this.getApiKey('groq');
         const modelName = this.getGroqModel(complexity, images.length > 0);
 
         if (!apiKey) {
@@ -989,10 +1002,9 @@ Return JSON ONLY:
      * AI Document Parser - Extracts questions from PDF/Image using Computer Vision
      */
     async parseDocument(file: any): Promise<any[]> {
-        const provider = this.configService.get('AI_PROVIDER', 'gemini');
-        const apiKey = provider === 'groq'
-            ? this.configService.get<string>('GROQ_API_KEY')
-            : this.configService.get<string>('GEMINI_API_KEY');
+        const providerStr = this.configService.get('AI_PROVIDER', 'gemini');
+        const provider = providerStr === 'groq' ? 'groq' : 'gemini';
+        const apiKey = this.getApiKey(provider);
 
         if (this.configService.get<string>('MOCK_AI') === 'true') {
             console.log('[AIService] MOCK_AI enabled. Returning dummy data.');
@@ -1312,14 +1324,23 @@ Extract all questions and format them as a JSON array with this structure:
             const response = await this.generateText(prompt);
             console.log('[DEBUG] AI Response Text:', response);
 
-            // Clean the response to extract JSON
-            let jsonText = response.trim();
-            if (!jsonText.startsWith('[')) {
-                jsonText = '[' + jsonText;
-            }
+            // 2. Tech-Lead Level Robust JSON Extraction
+            let jsonText = '';
 
-            // Remove markdown code blocks if present
-            jsonText = jsonText.replace(/```json\n ? /g, '').replace(/```\n?/g, '');
+            // Try markdown code blocks first
+            const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (codeBlockMatch) {
+                jsonText = codeBlockMatch[1];
+            } else {
+                // Heuristic-based extraction
+                const arrayStart = response.indexOf('[');
+                const arrayEnd = response.lastIndexOf(']');
+                if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
+                    jsonText = response.substring(arrayStart, arrayEnd + 1);
+                } else {
+                    jsonText = response.trim();
+                }
+            }
 
             // Parse JSON
             const questions = this.safeJsonParse(jsonText, []);
@@ -1570,13 +1591,10 @@ Extract all questions and format them as a JSON array with this structure:
         }
 
         // Process candidates in priority order (Blocks first, then specific bracket ranges)
-        // We reverse candidates from blocks to prioritize the LAST block (often the correction)
-        const prioritizedCandidates = [
-            ...candidates.filter(c => c !== jsonStr && c !== candidates[2] && c !== candidates[3]).reverse(),
-            candidates[2], // Object bracket
-            candidates[3], // Array bracket
-            jsonStr
-        ].filter(Boolean);
+        // Heuristic: Prefer the largest structures that look like JSON.
+        const prioritizedCandidates = candidates
+            .filter(Boolean)
+            .sort((a, b) => b.length - a.length); // Try longer candidates first as they likely contain more data
 
         for (const candidate of prioritizedCandidates) {
             try {

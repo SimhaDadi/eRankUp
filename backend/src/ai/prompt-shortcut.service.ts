@@ -140,57 +140,94 @@ export class PromptShortcutService {
             const prompt = this.promptBuilder.buildShortcutDistillerPrompt(rawText || 'Distill all mathematical shortcuts from the attached images.');
             rawResponse = await this.aiService.generateText(prompt, optimizedImages);
 
-            // 2. Flexible JSON Extraction (handles {}, [] and conversational prefixes/suffixes)
-            const arrayStart = rawResponse.indexOf('[');
-            const objectStart = rawResponse.indexOf('{');
+            // 2. Tech-Lead Level Robust JSON Extraction
+            // AI often wraps JSON in code blocks or conversational text.
+            let jsonString = '';
 
-            // Find the first occurring structural character
-            let firstIdx = -1;
-            let lastIdx = -1;
+            // Try to extract from markdown code blocks first
+            const codeBlockMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (codeBlockMatch) {
+                jsonString = codeBlockMatch[1];
+            } else {
+                // Fallback to finding structural markers
+                const arrayStart = rawResponse.indexOf('[');
+                const objectStart = rawResponse.indexOf('{');
 
-            if (arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart)) {
-                firstIdx = arrayStart;
-                lastIdx = rawResponse.lastIndexOf(']');
-            } else if (objectStart !== -1) {
-                firstIdx = objectStart;
-                lastIdx = rawResponse.lastIndexOf('}');
+                let firstIdx = -1;
+                let lastIdx = -1;
+
+                if (arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart)) {
+                    firstIdx = arrayStart;
+                    lastIdx = rawResponse.lastIndexOf(']');
+                } else if (objectStart !== -1) {
+                    firstIdx = objectStart;
+                    lastIdx = rawResponse.lastIndexOf('}');
+                }
+
+                if (firstIdx !== -1 && lastIdx !== -1 && lastIdx > firstIdx) {
+                    jsonString = rawResponse.substring(firstIdx, lastIdx + 1);
+                }
             }
 
-            if (firstIdx === -1 || lastIdx === -1 || lastIdx <= firstIdx) {
-                this.logger.error('AI response does not contain valid JSON structure', { rawResponse });
-                throw new Error('AI response was not in a recognizable JSON format.');
+            if (!jsonString) {
+                this.logger.error('AI response does not contain recognizable JSON', { rawResponse });
+                throw new Error('AI response was not in a recognizable JSON/Array format.');
             }
 
-            let jsonString = rawResponse.substring(firstIdx, lastIdx + 1);
-
-            // 3. Handle unescaped LaTeX backslashes
+            // 3. Handle unescaped LaTeX backslashes & Parse
             let parsed;
             try {
-                parsed = JSON.parse(jsonString);
+                // Clean up any stray control characters or zero-width spaces
+                const cleanJson = jsonString.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+                parsed = JSON.parse(cleanJson);
             } catch (parseError) {
-                this.logger.warn('Initial JSON parse failed, attempting backslash escaping fix...');
-                const fixedJson = jsonString.replace(/(?<!\\)\\(?![\\"/bfnrtu])/g, '\\\\');
-                parsed = JSON.parse(fixedJson);
+                this.logger.warn('Initial JSON parse failed, attempting backslash escapes and structural fixes...');
+                // Fix unescaped backslashes (common in LaTeX) and trailing commas
+                let fixedJson = jsonString
+                    .replace(/(?<!\\)\\(?![\\"/bfnrtu])/g, '\\\\')
+                    .replace(/,\s*([\]}])/g, '$1');
+
+                try {
+                    parsed = JSON.parse(fixedJson);
+                } catch (e) {
+                    this.logger.error('Fatal JSON parse failure after all attempts', { fixedJson });
+                    throw new Error(`JSON structural error: ${e.message}`);
+                }
             }
 
-            // 4. Normalize to array (handles single object return)
-            const results = Array.isArray(parsed) ? parsed : [parsed];
+            // 4. Normalize results (handles single object, aliases, and casing)
+            const rawResults = Array.isArray(parsed) ? parsed : [parsed];
 
-            // 5. Basic validation
-            const validResults = results.filter(item => item.topic && item.formula);
+            // Normalize Keys: AI sometimes capitalizes or uses slightly different terms
+            const validResults = rawResults.map(item => {
+                const normalized: any = {};
+
+                // Key search logic
+                for (const key of Object.keys(item)) {
+                    const lowKey = key.toLowerCase();
+                    const val = item[key];
+
+                    if (['topic', 'title', 'subject'].includes(lowKey)) normalized.topic = val;
+                    else if (['formula', 'rule', 'shortcut', 'explanation', 'logic'].includes(lowKey)) normalized.formula = val;
+                    else if (['keywords', 'tags', 'terms'].includes(lowKey)) normalized.keywords = Array.isArray(val) ? val.join(', ') : val;
+                }
+
+                return normalized;
+            }).filter(item => item.topic && item.formula);
 
             if (validResults.length === 0) {
-                this.logger.warn('AI returned JSON but no valid shortcuts were found', { parsed });
-                throw new Error('No valid shortcuts could be identified in the content.');
+                this.logger.warn('AI returned data but no valid shortcuts matched the schema', { parsed });
+                throw new Error('No valid shortcuts found. Please ensure the content contains a clear mathematical rule.');
             }
 
+            this.logger.log(`Successfully distilled ${validResults.length} shortcuts`);
             return validResults;
         } catch (error) {
-            this.logger.error('Failed to distill shortcuts from content', {
-                error: error.message,
-                rawResponse: rawResponse.substring(0, 1000)
+            this.logger.error('Distillation Pipeline Failure', {
+                message: error.message,
+                responseSample: rawResponse.substring(0, 500)
             });
-            throw new Error(`AI distillation failed: ${error.message}`);
+            throw new Error(`Distillation failed: ${error.message}`);
         }
     }
 }
