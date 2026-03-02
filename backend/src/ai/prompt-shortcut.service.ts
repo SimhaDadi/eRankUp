@@ -143,7 +143,13 @@ export class PromptShortcutService {
             const providerInfo = (this.aiService as any).getProviderInfo ? (this.aiService as any).getProviderInfo() : { provider: 'auto' };
             this.logger.log(`🤖 Distillation Start | Provider: ${providerInfo.provider} | Model: ${providerInfo.model}`);
 
-            rawResponse = await this.aiService.generateText(prompt, optimizedImages);
+            // Intelligence Routing: Prefer Gemini for Vision tasks if images are present 
+            // and no explicit provider is forced in env.
+            const configuredProvider = this.configService.get('AI_PROVIDER');
+            const hasImages = optimizedImages.length > 0;
+            const preferredProvider = (hasImages && !configuredProvider) ? 'gemini' : undefined;
+
+            rawResponse = await this.aiService.generateText(prompt, optimizedImages, AIPriority.HIGH, 'REASONING', preferredProvider as any);
 
             // 2. Tech-Lead Level Robust JSON Extraction
             // AI often wraps JSON in code blocks or conversational text.
