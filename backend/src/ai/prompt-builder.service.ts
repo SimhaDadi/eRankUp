@@ -742,15 +742,20 @@ ${shortcutsSection}
 
     ### Output Requirements:
     You MUST output a valid JSON ARRAY of objects. Each object represents one distinct shortcut/model found.
-    Even if only ONE shortcut is found, still return it inside an array: [ {...} ].
-
+    
     Each object MUST have these fields:
     1. "topic": A concise title (e.g. "Trains - Crossing Platforms", "Age Ratio Logic").
     2. "keywords": A comma-separated list of search terms (e.g. "speed, length, relative speed").
     3. "formula": The actual "Injection Rule" for the AI. 
        - Use "RULE:", "CONVERSION:", and "FORMULA:" headers.
-       - Be explicit about common pitfalls.
-       - **CRITICAL**: Mentally step through a test case. Ensure the logic is mathematically sound.
+       - Use LaTeX for symbols (e.g., \\frac{a}{b}, \\sqrt{x}).
+       - **CRITICAL**: Ensure the logic is mathematically sound.
+
+    ### CRITICAL FORMATTING RULES:
+    - ONLY output the JSON. No conversational text.
+    - DO NOT include prefixes like "Here is the JSON:".
+    - DO NOT use markdown code blocks (\`\`\`json). Just the raw JSON array.
+    - If no shortcuts are found, return an empty array: [].
 
     ### Example Output Format:
     [
@@ -758,15 +763,8 @@ ${shortcutsSection}
         "topic": "Age Ratios",
         "keywords": "ages, ratio, years ago, future",
         "formula": "RULE: Set up common multiple 'x'. \\nCONVERSION: Add/sub year gap. \\nFORMULA: (A*x + gap) / (B*x + gap) = NewRatio."
-      },
-      {
-        "topic": "Trains - Same Direction",
-        "keywords": "trains, relative speed, same direction",
-        "formula": "RULE: Subtract speeds. \\nFORMULA: Relative Speed = |S1 - S2|."
       }
     ]
-
-    ONLY output the JSON array. No conversational text.
     `;
     }
 }

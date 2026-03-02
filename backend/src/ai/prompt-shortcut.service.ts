@@ -118,39 +118,69 @@ export class PromptShortcutService {
     async distillShortcut(rawText: string, images: { data: string; mimeType: string }[] = []) {
         let rawResponse = '';
         try {
+            const sharp = require('sharp');
+            // 1. Optimize Images: Resize and compress to improve reliability and reduce payload size
+            const optimizedImages = await Promise.all(images.map(async img => {
+                try {
+                    const buffer = Buffer.from(img.data, 'base64');
+                    const optimizedBuffer = await sharp(buffer)
+                        .resize({ width: 1200, withoutEnlargement: true }) // Standard desktop width for OCR
+                        .jpeg({ quality: 80 })
+                        .toBuffer();
+                    return {
+                        data: optimizedBuffer.toString('base64'),
+                        mimeType: 'image/jpeg'
+                    };
+                } catch (e) {
+                    this.logger.warn('Image optimization failed, sending raw original', e.message);
+                    return img;
+                }
+            }));
+
             const prompt = this.promptBuilder.buildShortcutDistillerPrompt(rawText || 'Distill all mathematical shortcuts from the attached images.');
-            rawResponse = await this.aiService.generateText(prompt, images);
+            rawResponse = await this.aiService.generateText(prompt, optimizedImages);
 
-            // 1. Robust JSON Extraction (handles conversational prefixes/suffixes)
-            const firstBracket = rawResponse.indexOf('[');
-            const lastBracket = rawResponse.lastIndexOf(']');
+            // 2. Flexible JSON Extraction (handles {}, [] and conversational prefixes/suffixes)
+            const arrayStart = rawResponse.indexOf('[');
+            const objectStart = rawResponse.indexOf('{');
 
-            if (firstBracket === -1 || lastBracket === -1 || lastBracket <= firstBracket) {
-                this.logger.error('AI response does not contain a valid JSON array', { rawResponse });
-                throw new Error('AI response was not in a recognizable format.');
+            // Find the first occurring structural character
+            let firstIdx = -1;
+            let lastIdx = -1;
+
+            if (arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart)) {
+                firstIdx = arrayStart;
+                lastIdx = rawResponse.lastIndexOf(']');
+            } else if (objectStart !== -1) {
+                firstIdx = objectStart;
+                lastIdx = rawResponse.lastIndexOf('}');
             }
 
-            let jsonString = rawResponse.substring(firstBracket, lastBracket + 1);
+            if (firstIdx === -1 || lastIdx === -1 || lastIdx <= firstIdx) {
+                this.logger.error('AI response does not contain valid JSON structure', { rawResponse });
+                throw new Error('AI response was not in a recognizable JSON format.');
+            }
 
-            // 2. Handle unescaped LaTeX backslashes (common failure point)
-            // If parse fails, we try to escape backslashes that aren't already escaped
+            let jsonString = rawResponse.substring(firstIdx, lastIdx + 1);
+
+            // 3. Handle unescaped LaTeX backslashes
             let parsed;
             try {
                 parsed = JSON.parse(jsonString);
             } catch (parseError) {
                 this.logger.warn('Initial JSON parse failed, attempting backslash escaping fix...');
-                // Regex: match \ only if not preceded by \ and not followed by ["/bfnrtu]
                 const fixedJson = jsonString.replace(/(?<!\\)\\(?![\\"/bfnrtu])/g, '\\\\');
                 parsed = JSON.parse(fixedJson);
             }
 
-            // Normalize to array
+            // 4. Normalize to array (handles single object return)
             const results = Array.isArray(parsed) ? parsed : [parsed];
 
-            // Basic validation
+            // 5. Basic validation
             const validResults = results.filter(item => item.topic && item.formula);
 
             if (validResults.length === 0) {
+                this.logger.warn('AI returned JSON but no valid shortcuts were found', { parsed });
                 throw new Error('No valid shortcuts could be identified in the content.');
             }
 
@@ -158,7 +188,7 @@ export class PromptShortcutService {
         } catch (error) {
             this.logger.error('Failed to distill shortcuts from content', {
                 error: error.message,
-                rawResponse: rawResponse.substring(0, 500) // Log snippet for debugging
+                rawResponse: rawResponse.substring(0, 1000)
             });
             throw new Error(`AI distillation failed: ${error.message}`);
         }
