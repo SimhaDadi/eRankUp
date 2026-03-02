@@ -58,6 +58,7 @@ export const PROMPTS_CONFIG = {
                 'mensuration': 'Check divisibility by 11 for any formula involving $\\pi$.',
                 'algebra': 'Use Value Substitution (x=1, y=0) or Symmetry properties.',
                 'geometry': 'Lead with Pythagorean Triplets (3,4,5; 5,12,13) or standard theorems.',
+                'trigonometry': 'Use standard values for angles ($0^\circ, 30^\circ, 45^\circ, 60^\circ, 90^\circ$). For "Height and Distance," use the ratio method ($30^\circ:60^\circ:90^\circ \rightarrow 1:\sqrt{3}:2$) or ($45^\circ:45^\circ:90^\circ \rightarrow 1:1:\sqrt{2}$). Check for Complementary angles ($A+B=90^\circ$).',
                 'direction': 'MANDATORY: Use **N-E-S-W Cancellation Trick**. Write values under N, E, S, W. Subtract opposites (N-S, E-W). Result is hypotenuse. NO DIAGRAMS.',
             }
         }
