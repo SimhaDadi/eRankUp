@@ -180,7 +180,7 @@ export class AIService {
                 const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
 
                 this.logger.log(`🤖 Gemini Call | Model: ${modelName} | Key: ${keyHint}`);
-                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
+                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
 
                 const parts: any[] = [prompt];
                 if (images.length > 0) {
