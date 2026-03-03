@@ -68,7 +68,7 @@ export class AIService {
         const activeProvider = providerStr || (hasGroqKey ? 'groq' : 'gemini');
 
         let model = 'auto';
-        if (activeProvider === 'gemini') model = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
+        if (activeProvider === 'gemini') model = this.configService.get('GEMINI_MODEL', 'gemini-2.5-flash');
         if (activeProvider === 'groq') model = this.getGroqModel('REASONING', false);
 
         return { provider: activeProvider, model, isExplicitlyConfigured: !!providerStr };
@@ -177,7 +177,7 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
+                const modelName = this.configService.get('GEMINI_MODEL', 'gemini-2.5-flash');
 
                 this.logger.log(`🤖 Gemini Call | Model: ${modelName} | Key: ${keyHint}`);
                 const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
@@ -341,7 +341,7 @@ export class AIService {
 
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(apiKey);
-            const modelName = this.configService.get('GEMINI_MODEL', 'gemini-1.5-flash');
+            const modelName = this.configService.get('GEMINI_MODEL', 'gemini-2.5-flash');
             const model = genAI.getGenerativeModel({ model: modelName });
 
             const parts: any[] = [prompt];
