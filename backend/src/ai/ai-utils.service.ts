@@ -53,6 +53,7 @@ export class AIUtilsService {
     stripHidden(text: string): string {
         if (!text) return text;
         return text
+            .replace(/\[INTERNAL_ONLY\][\s\S]*?\[\/INTERNAL_ONLY\]/gi, '')
             .replace(/\[HIDDEN\][\s\S]*?\[\/HIDDEN\]/gi, '')
             .replace(/\[THOUGHTS?\][\s\S]*?\[\/THOUGHTS?\]/gi, '')
             .replace(/\[REASONING\][\s\S]*?\[\/REASONING\]/gi, '')
