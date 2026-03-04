@@ -404,6 +404,30 @@ export class ExplanationController {
     }
 
     /**
+     * One-time migration: promote all exam-specific explanation records to global.
+     * Safe to run multiple times — idempotent.
+     * Admin only
+     */
+    @Post('admin/migrate-to-global')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    async migrateExamSpecificToGlobal() {
+        try {
+            const result = await this.explanationService.migrateExamSpecificToGlobal();
+            return {
+                success: true,
+                message: `Migration complete. Promoted ${result.promoted} records to global, deleted ${result.deletedDuplicates} duplicates.`,
+                ...result
+            };
+        } catch (error) {
+            throw new HttpException(
+                error.message || 'Failed to migrate explanations',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
      * Backfill legacy explanations from Question table to QuestionExplanation table
      * Admin only
      */

@@ -54,18 +54,18 @@ export class ExplanationService {
 
         this.logger.log(`[generateExplanation] ADMIN/FACULTY trigger for question=${questionId}, user=${userId}, force=${forceRegenerate}`);
 
-        // Concurrency Guard: Check if already processing this specific question/context
-        const lockKey = `${questionId}:${contextExamId || 'global'}`;
+        // Concurrency Guard: always keyed on question only — we store globally
+        const lockKey = `${questionId}:global`;
         if (this.processingQuestions.has(lockKey)) {
             this.logger.warn(`[generateExplanation] Already generating for ${lockKey}. Skipping duplicate request.`);
             return 'Generation in progress. Please wait...';
         }
 
-        // 1. Check cache first
+        // 1. Check global cache first (contextExamId is ALWAYS null for storage)
         if (!forceRegenerate) {
             try {
                 const cached = await this.explanationRepository.findOne({
-                    where: { questionId, contextExamId: contextExamId || IsNull() },
+                    where: { questionId, contextExamId: IsNull() },
                     order: { createdAt: 'DESC' }
                 });
 
@@ -190,8 +190,9 @@ export class ExplanationService {
 
             this.logger.log(`[generateExplanation] Saving final resulting explanation (verified=${isValid})`);
 
+            // Always save globally (contextExamId = NULL). contextExamId was only used for prompt context.
             let newExplanation = await this.explanationRepository.findOne({
-                where: { questionId, contextExamId: contextExamId || IsNull() },
+                where: { questionId, contextExamId: IsNull() },
                 order: { createdAt: 'DESC' }
             });
 
@@ -204,7 +205,7 @@ export class ExplanationService {
             } else {
                 newExplanation = this.explanationRepository.create({
                     questionId,
-                    contextExamId: contextExamId || null,
+                    contextExamId: null, // Always global — one solution per question
                     aiExplanation: explanation || 'Generation failed to produce text.',
                     isVerified: isValid,
                     isLogicalMismatch,
@@ -227,7 +228,7 @@ export class ExplanationService {
             try {
                 const failRecord = this.explanationRepository.create({
                     questionId,
-                    contextExamId: contextExamId || null,
+                    contextExamId: null, // Always global
                     aiExplanation: fallbackExplanation,
                     isVerified: false,
                     viewCount: 1,
@@ -293,11 +294,12 @@ export class ExplanationService {
     async getUnifiedExplanationsBulk(questionIds: string[], contextExamId?: string, isAdmin: boolean = false): Promise<Record<string, string>> {
         if (questionIds.length === 0) return {};
 
-        const explanations = await this.explanationRepository.find({
-            where: {
-                questionId: In(questionIds),
-                contextExamId: contextExamId || IsNull()
-            },
+        // Global-first: fetch both exam-specific overrides AND global records in one query
+        const allExplanations = await this.explanationRepository.find({
+            where: [
+                { questionId: In(questionIds), contextExamId: contextExamId || IsNull() },
+                { questionId: In(questionIds), contextExamId: IsNull() }
+            ],
             order: { createdAt: 'DESC' }
         });
 
@@ -308,7 +310,12 @@ export class ExplanationService {
         const result: Record<string, string> = {};
 
         for (const qId of questionIds) {
-            const cached = explanations.find(e => e.questionId === qId);
+            // Cascade: exam-specific override first, then global
+            const examSpecific = contextExamId
+                ? allExplanations.find(e => e.questionId === qId && e.contextExamId === contextExamId)
+                : null;
+            const global = allExplanations.find(e => e.questionId === qId && e.contextExamId === null);
+            const cached = examSpecific || global;
             const q = questions.find(question => question.id === qId);
 
             if (isAdmin) {
@@ -328,9 +335,9 @@ This solution is currently being reviewed by our expert faculty for accuracy and
 
 Please check back shortly! Our team is working to ensure you get the absolute best explanation for this problem.`;
 
-                // [Audit Fix] If student hits a missing explanation, trigger background generation
-                if (!cached) {
-                    this.triggerBackgroundGeneration(qId, contextExamId);
+                // Trigger global background generation (not exam-scoped)
+                if (!global) {
+                    this.triggerBackgroundGeneration(qId);
                 }
             }
         }
@@ -341,14 +348,15 @@ Please check back shortly! Our team is working to ensure you get the absolute be
     /**
      * Non-blocking background generation trigger
      */
-    private async triggerBackgroundGeneration(questionId: string, contextExamId?: string) {
+    private async triggerBackgroundGeneration(questionId: string) {
         const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
+        // Always generate globally — no contextExamId so it's shared across all exams
         this.generateExplanation(
             SYSTEM_USER_ID,
             UserRole.ADMIN,
             questionId,
             undefined,
-            contextExamId,
+            undefined, // Always global
             AIPriority.LOW
         ).catch(err => this.logger.error(`[BackgroundTrigger] Failed for ${questionId}: ${err.message}`));
     }
@@ -358,9 +366,20 @@ Please check back shortly! Our team is working to ensure you get the absolute be
      */
     async getUnifiedExplanation(questionId: string, contextExamId?: string, isAdmin: boolean = false): Promise<string> {
         try {
-            const cached = await this.explanationRepository.findOne({
-                where: { questionId, contextExamId: contextExamId || IsNull() }
-            });
+            // Global-first cascade: exam-specific override → global record
+            let cached: QuestionExplanation | null = null;
+
+            if (contextExamId) {
+                cached = await this.explanationRepository.findOne({
+                    where: { questionId, contextExamId }
+                });
+            }
+
+            if (!cached) {
+                cached = await this.explanationRepository.findOne({
+                    where: { questionId, contextExamId: IsNull() }
+                });
+            }
 
             if (isAdmin) {
                 const raw = cached?.adminApprovedExplanation || cached?.aiExplanation;
@@ -381,7 +400,8 @@ Please check back shortly! Our team is working to ensure you get the absolute be
                 return this.aiUtils.cleanAIResponse(question.explanation);
             }
 
-            this.triggerBackgroundGeneration(questionId, contextExamId);
+            // Trigger global generation only
+            this.triggerBackgroundGeneration(questionId);
 
             return `### Content Under Review ⏳
 This solution is currently being reviewed by our expert faculty for accuracy and formatting. 
@@ -840,6 +860,84 @@ Please check back shortly! Our team is working to ensure you get the absolute be
             }
         }
         return { updated };
+    }
+
+    /**
+     * One-time migration: promote all exam-specific explanation records to global.
+     *
+     * Strategy per question:
+     *   1. If a global record (contextExamId IS NULL) already exists → delete all exam-specific duplicates.
+     *   2. If no global record exists → pick the best exam-specific record (approved > verified > most recent)
+     *      and promote it to global by setting contextExamId = NULL, then delete the rest.
+     */
+    async migrateExamSpecificToGlobal(): Promise<{
+        scanned: number;
+        promoted: number;
+        deletedDuplicates: number;
+        alreadyGlobal: number;
+    }> {
+        this.logger.log('[migrateExamSpecificToGlobal] Starting migration...');
+
+        // Fetch all exam-specific records (contextExamId IS NOT NULL)
+        const examSpecific = await this.explanationRepository
+            .createQueryBuilder('qe')
+            .where('qe.contextExamId IS NOT NULL')
+            .orderBy('qe.createdAt', 'DESC')
+            .getMany();
+
+        if (examSpecific.length === 0) {
+            this.logger.log('[migrateExamSpecificToGlobal] No exam-specific records found. Nothing to migrate.');
+            return { scanned: 0, promoted: 0, deletedDuplicates: 0, alreadyGlobal: 0 };
+        }
+
+        // Group by questionId
+        const byQuestion = new Map<string, QuestionExplanation[]>();
+        for (const rec of examSpecific) {
+            const group = byQuestion.get(rec.questionId) || [];
+            group.push(rec);
+            byQuestion.set(rec.questionId, group);
+        }
+
+        let promoted = 0;
+        let deletedDuplicates = 0;
+        let alreadyGlobal = 0;
+
+        for (const [questionId, records] of byQuestion) {
+            // Check if a global record already exists
+            const existingGlobal = await this.explanationRepository.findOne({
+                where: { questionId, contextExamId: IsNull() }
+            });
+
+            if (existingGlobal) {
+                // Global already exists — just clean up the exam-specific duplicates
+                const ids = records.map(r => r.id);
+                await this.explanationRepository.delete(ids);
+                deletedDuplicates += ids.length;
+                alreadyGlobal++;
+                this.logger.debug(`[migrateExamSpecificToGlobal] Q=${questionId}: global exists, deleted ${ids.length} exam-specific duplicates.`);
+            } else {
+                // No global record — promote the best one
+                const best = records.find(r => r.adminApprovedExplanation)
+                    || records.find(r => r.isVerified)
+                    || records[0]; // most recent (ordered DESC)
+
+                best.contextExamId = null;
+                await this.explanationRepository.save(best);
+                promoted++;
+
+                // Delete the remaining exam-specific records for this question
+                const toDelete = records.filter(r => r.id !== best.id).map(r => r.id);
+                if (toDelete.length > 0) {
+                    await this.explanationRepository.delete(toDelete);
+                    deletedDuplicates += toDelete.length;
+                }
+
+                this.logger.log(`[migrateExamSpecificToGlobal] Q=${questionId}: promoted record ${best.id} to global, deleted ${toDelete.length} duplicates.`);
+            }
+        }
+
+        this.logger.log(`[migrateExamSpecificToGlobal] Done. promoted=${promoted}, deletedDuplicates=${deletedDuplicates}, alreadyGlobal=${alreadyGlobal}`);
+        return { scanned: byQuestion.size, promoted, deletedDuplicates, alreadyGlobal };
     }
 
     async backfillLegacyExplanations(): Promise<{ total: number; synced: number }> {
