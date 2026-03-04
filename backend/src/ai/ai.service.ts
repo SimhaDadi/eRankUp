@@ -336,8 +336,8 @@ export class AIService {
                 }
             }
 
-            const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-            if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+            const apiKey = this.getApiKey('gemini');
+            if (!apiKey) throw new Error('GEMINI_API_KEY or GOOGLE_AI_API_KEY not configured');
 
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(apiKey);
@@ -425,10 +425,10 @@ export class AIService {
 
     private async *generateStreamWithGroq(prompt: string, images: { data: string; mimeType: string }[] = [], complexity: 'FAST' | 'REASONING'): AsyncIterableIterator<string> {
         // Note: Slot is acquired by the caller (generateStream)
-        const apiKey = this.configService.get<string>('GROQ_API_KEY');
+        const apiKey = this.getApiKey('groq');
         const modelName = this.getGroqModel(complexity, images.length > 0);
 
-        if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+        if (!apiKey) throw new Error('GROQ_API_KEY or GROQ_CLOUD_API_KEY not configured');
 
         try {
             const groq = new Groq({ apiKey });
@@ -467,8 +467,8 @@ export class AIService {
     }
 
     async generateEmbedding(text: string): Promise<number[]> {
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-        if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+        const apiKey = this.getApiKey('gemini');
+        if (!apiKey) throw new Error('GEMINI_API_KEY or GOOGLE_AI_API_KEY not configured');
 
         return this.queueService.add(async () => {
             try {
@@ -493,8 +493,8 @@ export class AIService {
     async generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
         if (!texts || texts.length === 0) return [];
 
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-        if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+        const apiKey = this.getApiKey('gemini');
+        if (!apiKey) throw new Error('GEMINI_API_KEY or GOOGLE_AI_API_KEY not configured');
 
         // Split into chunks of 100 (Gemini limit)
         const chunks = [];

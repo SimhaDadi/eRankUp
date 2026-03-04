@@ -259,7 +259,8 @@ export class SystemHealthService {
     }
 
     private checkGeminiHealth(): HealthMetric {
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        const apiKey = this.configService.get<string>('GEMINI_API_KEY') ||
+            this.configService.get<string>('GOOGLE_AI_API_KEY');
         const hasKey = !!apiKey;
 
         return {
@@ -274,7 +275,8 @@ export class SystemHealthService {
     }
 
     private checkGroqHealth(): HealthMetric {
-        const apiKey = this.configService.get<string>('GROQ_API_KEY');
+        const apiKey = this.configService.get<string>('GROQ_API_KEY') ||
+            this.configService.get<string>('GROQ_CLOUD_API_KEY');
         const hasKey = !!apiKey;
 
         return {
