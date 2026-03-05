@@ -93,12 +93,15 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.bgSecondary,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Activity Log'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        foregroundColor: isDark ? Colors.white : AppColors.textPrimary,
         elevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
@@ -109,7 +112,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
         children: [
           // Search bar
           Container(
-            color: Colors.white,
+            color: theme.cardTheme.color ?? Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: TextField(
               controller: _searchController,
@@ -159,9 +162,12 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
 
   Widget _buildCard(Map<String, dynamic> item) {
     final score = item['score'] as double;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color ?? Colors.white,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(color: AppColors.divider),
         boxShadow: AppShadows.small,
@@ -216,7 +222,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: AppColors.bgSecondary,
+                              color: isDark ? const Color(0xFF1E293B) : AppColors.bgSecondary,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -272,10 +278,10 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                     )),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      side: const BorderSide(color: AppColors.divider),
+                      side: BorderSide(color: isDark ? const Color(0xFF334155) : AppColors.divider),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
                     ),
-                    child: Text('View Analysis', style: AppTextStyles.buttonSmall.copyWith(color: AppColors.textPrimary)),
+                    child: Text('View Analysis', style: AppTextStyles.buttonSmall.copyWith(color: isDark ? Colors.white : AppColors.textPrimary)),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -287,7 +293,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                     padding: const EdgeInsets.all(10),
                     side: const BorderSide(color: AppColors.primaryBlue),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
-                    backgroundColor: const Color(0xFFEFF6FF),
+                    backgroundColor: isDark ? AppColors.primaryBlue.withOpacity(0.2) : const Color(0xFFEFF6FF),
                   ),
                   child: const Icon(Icons.arrow_forward_rounded, color: AppColors.primaryBlue, size: 20),
                 ),
@@ -300,6 +306,8 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
   }
 
   Widget _buildEmpty() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -307,7 +315,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
           Container(
             width: 80,
             height: 80,
-            decoration: BoxDecoration(color: AppColors.bgSecondary, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: isDark ? const Color(0xFF1E293B) : AppColors.bgSecondary, shape: BoxShape.circle),
             child: const Icon(Icons.history_rounded, size: 40, color: AppColors.textDisabled),
           ),
           const SizedBox(height: 20),

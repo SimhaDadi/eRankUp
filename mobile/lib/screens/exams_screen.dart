@@ -284,7 +284,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
                   ),
                 ),
                 style: AppTextStyles.body.copyWith(
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),

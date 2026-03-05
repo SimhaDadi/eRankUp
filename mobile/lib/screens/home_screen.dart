@@ -840,12 +840,12 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'RESEARCH INSIGHTS',
                 style: AppTextStyles.overline.copyWith(
-                  color: AppColors.textPrimary,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
                   fontWeight: FontWeight.w900,
-                  fontSize: 12,
+                  fontSize: 16,
+                  height: 1.2,
                 ),
-              ),
-              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.primaryBlue),
+              ),const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.primaryBlue),
             ],
           ),
         ),
@@ -951,7 +951,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             'SERVICES', 
             style: AppTextStyles.overline.copyWith(
-              color: AppColors.textPrimary, 
+              color: isDark ? Colors.white60 : AppColors.textPrimary, 
               fontWeight: FontWeight.w900,
               fontSize: 12,
               letterSpacing: 1.2,
@@ -1015,16 +1015,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildModernAction(String label, IconData icon, Color color, VoidCallback onTap) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.cardTheme.color ?? Colors.white,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+          border: Border.all(color: isDark ? const Color(0xFF334155) : AppColors.divider.withOpacity(0.5)),
           boxShadow: [
             BoxShadow(
               color: color.withOpacity(0.02),
@@ -1049,7 +1051,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 label,
                 style: AppTextStyles.captionSmall.copyWith(
                   fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
                   fontSize: 10,
                   letterSpacing: 0.2,
                 ),
@@ -1284,14 +1286,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color: isSelected ? AppColors.primaryBlue : AppColors.cardBackground,
+                                color: isSelected 
+                                  ? AppColors.primaryBlue 
+                                  : (isDark ? const Color(0xFF1E293B) : AppColors.cardBackground),
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
                                 child: Text(
                                   t.toString(),
                                   style: AppTextStyles.buttonSmall.copyWith(
-                                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                                    color: isSelected 
+                                      ? Colors.white 
+                                      : (isDark ? Colors.white : AppColors.textPrimary),
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -1306,7 +1312,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     label,
                                     style: AppTextStyles.bodyLarge.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
+                                      color: isSelected 
+                                        ? AppColors.primaryLight 
+                                        : (isDark ? Colors.white : AppColors.textPrimary),
                                     ),
                                   ),
                                   Text(
