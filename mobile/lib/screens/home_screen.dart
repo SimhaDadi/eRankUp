@@ -14,6 +14,7 @@ import 'current_affairs_screen.dart';
 import 'doubts_screen.dart';
 import 'exam_detail_screen.dart';
 import 'live_tests_screen.dart';
+import 'leaderboard_screen.dart';
 import 'performance_screen.dart';
 import 'saved_questions_screen.dart';
 import 'study_plan_screen.dart';
@@ -1000,6 +1001,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.auto_graph_rounded,
                 const Color(0xFF7C3AED),
                 () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AIInsightsScreen())),
+              ),
+              _buildModernAction(
+                'LEADERBOARD',
+                Icons.leaderboard_rounded,
+                const Color(0xFFEAB308),
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen())),
               ),
             ],
           ),

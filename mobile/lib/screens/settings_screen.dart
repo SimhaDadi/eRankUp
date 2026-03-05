@@ -6,6 +6,7 @@ import '../services/theme_provider.dart';
 import '../theme/app_theme.dart';
 import 'subscription_screen.dart';
 import 'edit_profile_screen.dart';
+import 'reported_questions_screen.dart';
 import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -152,6 +153,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Help & FAQ',
             subtitle: 'Get answers to common questions',
             onTap: () {},
+          ),
+          _buildSettingsTile(
+            icon: Icons.report_problem_outlined,
+            title: 'Reported Questions',
+            subtitle: 'Track your flagged items',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReportedQuestionsScreen()),
+              );
+            },
           ),
           _buildSettingsTile(
             icon: Icons.feedback,
