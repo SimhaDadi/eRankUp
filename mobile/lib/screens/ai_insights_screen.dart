@@ -33,12 +33,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
   Future<void> _fetchReport() async {
     try {
       final api = Provider.of<ApiService>(context, listen: false);
-      final userId = await api.getUserId();
-      if (userId == null) {
-        setState(() => _isLoading = false);
-        return;
-      }
-      final res = await api.get('/ai/mastery-report/$userId');
+      // GET /analytics/mastery — authenticated, no userId param needed
+      final res = await api.get('/analytics/mastery');
       if (res.statusCode == 200) {
         setState(() {
           _report = jsonDecode(res.body);

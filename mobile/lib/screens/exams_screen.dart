@@ -98,7 +98,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
     }
 
     try {
-      final api = ApiService();
+      final api = Provider.of<ApiService>(context, listen: false);
       // Construct URL with pagination and type
       String url = '/exams?page=$_page&limit=$_limit';
       if (_currentType != 'all') {

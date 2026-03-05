@@ -10,6 +10,6 @@ export class AIStudyController {
 
     @Get('revision')
     getRevisionStatus(@Request() req) {
-        return this.revisionService.generateRevisionPayload(req.user.id);
+        return this.revisionService.generateRevisionPayload(req.user.userId);
     }
 }
