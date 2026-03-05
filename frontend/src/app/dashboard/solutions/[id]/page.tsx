@@ -439,7 +439,7 @@ export default function SolutionPage() {
                                             >
                                                 <MathRenderer content={opt.text} />
                                                 {/* Original answer badge in re-attempt mode */}
-                                                {reAttemptMode && isOriginalSelected && !currentResp.wasSkipped && (
+                                                {reAttemptMode && hasReAttempted && isOriginalSelected && !currentResp.wasSkipped && (
                                                     <span className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
                                                         <History className="w-2.5 h-2.5" /> Your original answer
                                                     </span>
