@@ -24,6 +24,9 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
   Set<String> _savedQuestionIds = {};
   final Set<String> _generatingIds = {};
   final Set<String> _failedIds = {};
+  // Re-attempt mode
+  bool _reAttemptMode = false;
+  final Map<String, String> _reAttemptSelections = {}; // questionId → picked optionId
 
   @override
   void initState() {
@@ -115,6 +118,72 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                 ),
               ],
             ),
+      // ── Re-attempt mode bottom bar ──
+      bottomNavigationBar: _isLoading ? null : SafeArea(
+        child: Container(
+          height: 58,
+          decoration: BoxDecoration(
+            color: _reAttemptMode ? const Color(0xFF0D9488) : Colors.white,
+            border: const Border(top: BorderSide(color: AppColors.divider)),
+            boxShadow: const [
+              BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, -4)),
+            ],
+          ),
+          child: GestureDetector(
+            onTap: () {
+              HapticService.light();
+              setState(() {
+                _reAttemptMode = !_reAttemptMode;
+                if (!_reAttemptMode) _reAttemptSelections.clear();
+              });
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Re-attempt Questions',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: _reAttemptMode ? Colors.white : AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Toggle pill
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 44,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: _reAttemptMode ? Colors.white.withOpacity(0.3) : AppColors.bgTertiary,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _reAttemptMode ? Colors.white.withOpacity(0.5) : AppColors.divider,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 200),
+                        top: 3,
+                        left: _reAttemptMode ? 22 : 3,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: _reAttemptMode ? Colors.white : AppColors.textSecondary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -229,45 +298,174 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
           
           // Options
           ...options.map((opt) {
-            final isSelected = opt['id'] == selectedId;
-            final isCorrectOpt = opt['id'] == correctId;
-            
+            final optId = opt['id'] as String;
+            final isSelected = optId == selectedId;
+            final isCorrectOpt = optId == correctId;
+
+            // Re-attempt mode state
+            final reAttemptPicked = _reAttemptSelections[question['id'] as String];
+            final hasReAttempted = reAttemptPicked != null;
+            final isReAttemptPick = optId == reAttemptPicked;
+
             Color bgColor = Colors.transparent;
             Color borderColor = isDark ? const Color(0xFF334155) : Colors.grey.shade100;
             Widget? icon;
 
-            if (isCorrectOpt) {
-              bgColor = isDark ? const Color(0xFF064E3B).withOpacity(0.3) : Colors.green.shade50;
-              borderColor = isDark ? const Color(0xFF059669) : Colors.green.shade200;
-              icon = Icon(Icons.check_circle, color: isDark ? Colors.greenAccent : Colors.green, size: 20);
-            } else if (isSelected && !isCorrect) {
-              bgColor = isDark ? const Color(0xFF7F1D1D).withOpacity(0.2) : Colors.red.shade50;
-              borderColor = isDark ? const Color(0xFFDC2626) : Colors.red.shade200;
-              icon = Icon(Icons.cancel, color: isDark ? Colors.redAccent : Colors.red, size: 20);
+            if (!_reAttemptMode) {
+              // Normal read-only mode
+              if (isCorrectOpt) {
+                bgColor = isDark ? const Color(0xFF064E3B).withOpacity(0.3) : Colors.green.shade50;
+                borderColor = isDark ? const Color(0xFF059669) : Colors.green.shade200;
+                icon = Icon(Icons.check_circle, color: isDark ? Colors.greenAccent : Colors.green, size: 20);
+              } else if (isSelected && !isCorrect) {
+                bgColor = isDark ? const Color(0xFF7F1D1D).withOpacity(0.2) : Colors.red.shade50;
+                borderColor = isDark ? const Color(0xFFDC2626) : Colors.red.shade200;
+                icon = Icon(Icons.cancel, color: isDark ? Colors.redAccent : Colors.red, size: 20);
+              }
+            } else {
+              // Re-attempt mode
+              if (hasReAttempted) {
+                if (isCorrectOpt) {
+                  bgColor = isDark ? const Color(0xFF064E3B).withOpacity(0.3) : Colors.green.shade50;
+                  borderColor = isDark ? const Color(0xFF059669) : Colors.green.shade200;
+                  icon = Icon(Icons.check_circle, color: isDark ? Colors.greenAccent : Colors.green, size: 20);
+                } else if (isReAttemptPick && !isCorrectOpt) {
+                  bgColor = isDark ? const Color(0xFF7F1D1D).withOpacity(0.2) : Colors.red.shade50;
+                  borderColor = isDark ? const Color(0xFFDC2626) : Colors.red.shade200;
+                  icon = Icon(Icons.cancel, color: isDark ? Colors.redAccent : Colors.red, size: 20);
+                }
+              } else {
+                // Interactive — not picked yet
+                bgColor = const Color(0xFF0D9488).withOpacity(0.05);
+                borderColor = const Color(0xFF0D9488).withOpacity(0.3);
+              }
             }
 
+            return GestureDetector(
+              onTap: _reAttemptMode && !hasReAttempted
+                  ? () {
+                      HapticService.light();
+                      setState(() => _reAttemptSelections[question['id'] as String] = optId);
+                    }
+                  : null,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  border: Border.all(color: borderColor),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          MathRichText(
+                            text: opt['text'] ?? '',
+                            style: TextStyle(
+                              color: isCorrectOpt
+                                  ? (isDark ? Colors.greenAccent : Colors.green.shade900)
+                                  : ((!_reAttemptMode && isSelected) || (_reAttemptMode && isReAttemptPick && !isCorrectOpt))
+                                      ? (isDark ? Colors.redAccent : Colors.red.shade900)
+                                      : theme.textTheme.bodyMedium?.color,
+                              fontWeight: ((!_reAttemptMode && (isSelected || isCorrectOpt)) ||
+                                          (_reAttemptMode && hasReAttempted && (isCorrectOpt || isReAttemptPick)))
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          // Original answer badge in re-attempt mode
+                          if (_reAttemptMode && isSelected && selectedId != null) ...[  
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.amber.shade300),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.history_rounded, size: 10, color: Colors.amber.shade800),
+                                  const SizedBox(width: 4),
+                                  Text('Your original answer',
+                                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.amber.shade800)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (icon != null) icon,
+                    // In re-attempt mode, show teal radio circle before pick
+                    if (_reAttemptMode && !hasReAttempted)
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFF0D9488), width: 2),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }),
+
+          // ── Re-attempt status banner ──
+          if (_reAttemptMode) Builder(builder: (_) {
+            final qId = question['id'] as String;
+            final picked = _reAttemptSelections[qId];
+            Color bannerColor;
+            Color borderC;
+            IconData bannerIcon;
+            String title;
+            String subtitle;
+            if (picked == null) {
+              bannerColor = const Color(0xFFE6FFFA);
+              borderC = const Color(0xFF0D9488);
+              bannerIcon = Icons.bolt_rounded;
+              title = 'Re-attempt mode: ON';
+              subtitle = 'Tap an option to attempt the question';
+            } else if (picked == correctId) {
+              bannerColor = Colors.green.shade50;
+              borderC = Colors.green.shade300;
+              bannerIcon = Icons.check_circle_rounded;
+              title = 'Correct! Well done.';
+              subtitle = 'Check the explanation below.';
+            } else {
+              bannerColor = Colors.red.shade50;
+              borderC = Colors.red.shade200;
+              bannerIcon = Icons.cancel_rounded;
+              title = 'Incorrect — see the correct answer above.';
+              subtitle = 'Review the explanation below.';
+            }
             return Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: bgColor,
-                border: Border.all(color: borderColor),
+                color: bannerColor,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: borderC),
               ),
               child: Row(
                 children: [
-                   Expanded(
-                     child: MathRichText(
-                       text: opt['text'] ?? '',
-                       style: TextStyle(
-                         color: isCorrectOpt 
-                            ? (isDark ? Colors.greenAccent : Colors.green.shade900) 
-                            : (isSelected ? (isDark ? Colors.redAccent : Colors.red.shade900) : theme.textTheme.bodyMedium?.color),
-                         fontWeight: (isSelected || isCorrectOpt) ? FontWeight.bold : FontWeight.normal,
-                       ),
-                     ),
-                   ),
-                   if (icon != null) icon,
+                  Icon(bannerIcon, color: borderC, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: borderC)),
+                        Text(subtitle, style: TextStyle(fontSize: 11, color: borderC.withOpacity(0.8))),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             );

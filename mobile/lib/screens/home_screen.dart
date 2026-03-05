@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
+import 'activity_log_screen.dart';
+import 'ai_insights_screen.dart';
 import 'analytics_screen.dart';
 import 'current_affairs_screen.dart';
 import 'doubts_screen.dart';
@@ -986,6 +988,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.newspaper_rounded,
                 const Color(0xFF10B981),
                 () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CurrentAffairsScreen())),
+              ),
+              _buildModernAction(
+                'ACTIVITY LOG',
+                Icons.history_rounded,
+                const Color(0xFF0369A1),
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActivityLogScreen())),
+              ),
+              _buildModernAction(
+                'AI INSIGHTS',
+                Icons.auto_graph_rounded,
+                const Color(0xFF7C3AED),
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AIInsightsScreen())),
               ),
             ],
           ),
