@@ -178,9 +178,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       
                       return _buildLeaderboardCard(
                         rank: rank,
-                        name: entry['fullName'] ?? 'Anonymous',
-                        score: (entry['averageScore'] as num?)?.round() ?? 0,
-                        testsCompleted: entry['totalTests'] ?? 0,
+                        name: entry['user_name'] ?? 'Anonymous',
+                        score: (entry['max_score'] as num?)?.round() ?? 0,
+                        accuracy: (entry['avg_accuracy'] as num?)?.round() ?? 0,
                         isCurrentUser: isCurrentUser,
                       );
                     },
@@ -195,7 +195,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     required int rank,
     required String name,
     required int score,
-    required int testsCompleted,
+    required int accuracy,
     required bool isCurrentUser,
   }) {
     Color? medalColor;
@@ -308,7 +308,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$testsCompleted tests completed',
+                  '$accuracy% Accuracy',
                   style: TextStyle(
                     fontSize: 11,
                     color: isDark ? Colors.white60 : Colors.grey.shade600,
@@ -328,7 +328,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '$score%',
+              '$score PTS',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
