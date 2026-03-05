@@ -299,7 +299,7 @@ export default function SolutionPage() {
                 {/* Main Content Area */}
                 <main className={`flex-1 bg-white lg:rounded-[2rem] shadow-xl shadow-slate-200/60 ring-1 ring-slate-900/5 relative group/main transition-all duration-300 flex flex-col overflow-hidden ${isDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
                     <div className="flex-1 overflow-y-auto p-4 md:p-10">
-                        <div className="max-w-5xl mx-auto space-y-8 relative z-10 pb-8">
+                        <div className="max-w-5xl mx-auto space-y-5 md:space-y-6 relative z-10 pb-4 md:pb-6">
                             {/* Question Header */}
                             <div className="flex flex-col gap-4 pb-6 border-b border-slate-200">
                                 <div className="flex items-center justify-between w-full">
@@ -500,7 +500,7 @@ export default function SolutionPage() {
                             )}
 
                             {/* Solution Section */}
-                            <div className="mt-8 pt-8 border-t border-slate-200 transition-all duration-500 ease-in-out">
+                            <div className="pt-5 md:pt-6 border-t border-slate-200 transition-all duration-500 ease-in-out">
                                 {!showSolution ? (
                                     <button
                                         onClick={handleToggleSolution}
@@ -580,7 +580,7 @@ export default function SolutionPage() {
                             </div>
 
                             {/* Question counter */}
-                            <div className="flex items-center justify-center pt-6 border-t border-slate-200 mt-8">
+                            <div className="flex items-center justify-center pt-4 md:pt-5 border-t border-slate-200 opacity-80">
                                 <span className="text-slate-500 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
                                     {currentIdx + 1} / {attempt.responses.length}
                                 </span>
