@@ -15,6 +15,7 @@ import {
     Clock,
     BarChart3
 } from 'lucide-react';
+import { MathRichText } from '@/components/MathRichText';
 
 interface Question {
     id: string;
@@ -149,7 +150,7 @@ export default function StudyPlanPage() {
                                         <Clock className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <div className="text-2xl font-black text-slate-900">~{Math.ceil(plan.totalQuestions * 1.5)}m</div>
+                                        <div className="text-2xl font-black text-slate-900">~{Math.ceil((plan.totalQuestions || 0) * 1.5)}m</div>
                                         <div className="text-xs font-bold text-slate-500 uppercase">Est. Time</div>
                                     </div>
                                 </div>
@@ -204,9 +205,9 @@ export default function StudyPlanPage() {
                                                 ))}
                                             </div>
                                         </div>
-                                        <p className="text-slate-800 font-medium line-clamp-2 mb-3">
-                                            {question.content}
-                                        </p>
+                                        <div className="text-slate-800 font-medium line-clamp-3 mb-3">
+                                            <MathRichText content={question.content || ''} />
+                                        </div>
                                     </div>
                                 </div>
                             </motion.div>

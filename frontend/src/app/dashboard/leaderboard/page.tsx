@@ -87,10 +87,10 @@ export default function LeaderboardPage() {
                         </div>
                         <h3 className="text-xl font-bold mb-1 text-slate-900">{entry.user_name}</h3>
                         <div className="text-4xl font-black mb-2 flex items-center justify-center gap-2 text-slate-900">
-                            {Math.round(entry.max_score)} <span className="text-sm font-bold text-slate-400">PTS</span>
+                            {Math.round(Number(entry.max_score) || 0)} <span className="text-sm font-bold text-slate-400">PTS</span>
                         </div>
                         <div className="flex items-center justify-center gap-2 text-emerald-600 font-bold text-sm">
-                            <TrendingUp className="w-4 h-4" /> {Math.round(entry.avg_accuracy)}% Accuracy
+                            <TrendingUp className="w-4 h-4" /> {Math.round(Number(entry.avg_accuracy) || 0)}% Accuracy
                         </div>
                     </motion.div>
                 ))}
@@ -129,11 +129,11 @@ export default function LeaderboardPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-5">
-                                        <div className="text-2xl font-black text-slate-900">{Math.round(entry.max_score)}</div>
+                                        <div className="text-2xl font-black text-slate-900">{Math.round(Number(entry.max_score) || 0)}</div>
                                     </td>
                                     <td className="px-6 py-5 text-right">
                                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 font-bold text-sm border border-emerald-100">
-                                            {Math.round(entry.avg_accuracy)}%
+                                            {Math.round(Number(entry.avg_accuracy) || 0)}%
                                         </div>
                                     </td>
                                 </tr>
