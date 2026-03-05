@@ -297,292 +297,336 @@ export default function SolutionPage() {
             <div className="flex flex-1 overflow-hidden relative z-10 lg:p-4 lg:gap-6 lg:max-w-[1900px] mx-auto w-full">
 
                 {/* Main Content Area */}
-                <main className={`flex-1 overflow-y-auto bg-white lg:rounded-[2rem] shadow-xl shadow-slate-200/60 ring-1 ring-slate-900/5 p-4 md:p-10 relative group/main transition-all duration-300 ${isDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
-                    <div className="max-w-5xl mx-auto space-y-8 relative z-10">
-                        {/* Question Header */}
-                        <div className="flex flex-col gap-4 pb-6 border-b border-slate-200">
-                            <div className="flex items-center justify-between w-full">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-200 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-900 font-black text-lg md:text-xl shadow-sm ring-1 ring-slate-900/5 shrink-0">
-                                        {currentIdx + 1}
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        {currentResp.isCorrect ? (
-                                            <span className="px-2 md:px-3 py-0.5 md:py-1 bg-emerald-50 text-emerald-900 border border-emerald-200 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-emerald-900/5">Correct</span>
-                                        ) : currentResp.wasSkipped ? (
-                                            <span className="px-2 md:px-3 py-0.5 md:py-1 bg-slate-50 text-slate-600 border border-slate-200 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-slate-900/5">Skipped</span>
-                                        ) : (
-                                            <span className="px-2 md:px-3 py-0.5 md:py-1 bg-red-50 text-red-900 border border-red-200 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-red-900/5">Incorrect</span>
-                                        )}
-                                        {reAttemptMode && (
-                                            <span className="px-2 md:px-3 py-0.5 md:py-1 bg-teal-50 text-teal-800 border border-teal-200 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-teal-900/5 flex items-center gap-1">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse inline-block" />
-                                                Re-attempt
-                                            </span>
-                                        )}
-                                        <span className="text-slate-600 text-[8px] md:text-[10px] font-bold uppercase tracking-widest px-2 border-l border-slate-300 truncate max-w-[120px] md:max-w-none">
-                                            {(question.topic && question.topic.toLowerCase() !== 'general')
-                                                ? question.topic
-                                                : (question.chapter?.title || 'General')}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-1.5 md:gap-3">
-                                    <button
-                                        onClick={handleToggleSave}
-                                        disabled={isSaving}
-                                        className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg md:rounded-xl transition-all border shadow-sm group
-                                            ${isSaved
-                                                ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
-                                                : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600'}`}
-                                        title={isSaved ? "Saved" : "Save Question"}
-                                    >
-                                        <Bookmark
-                                            className="w-4 h-4 md:w-5 md:h-5 transition-all group-active:scale-90"
-                                            fill={isSaved ? "currentColor" : "none"}
-                                        />
-                                    </button>
-                                    <button
-                                        onClick={handleShare}
-                                        className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg md:rounded-xl transition-all border border-slate-200 text-slate-400 hover:text-indigo-600 shadow-sm group"
-                                        title="Share Question"
-                                    >
-                                        <Share2 className="w-4 h-4 md:w-5 md:h-5 group-active:translate-x-1 transition-transform" />
-                                    </button>
-                                    <button
-                                        onClick={() => setIsReportModalOpen(true)}
-                                        className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg md:rounded-xl transition-all border border-slate-200 text-slate-400 hover:text-rose-600 shadow-sm group"
-                                        title="Report Question"
-                                    >
-                                        <Flag className="w-4 h-4 md:w-5 md:h-5 group-active:scale-90 transition-all" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 w-full sm:w-auto">
-                                <div className="flex-1 sm:flex-initial text-right flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
-                                    <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-500" />
-                                    <div className="text-slate-900 font-black text-[10px] md:text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
-                                        <span className="text-[6px] md:text-[7px] text-slate-400">YOU</span>
-                                        {currentResp.timeSpent}s
-                                    </div>
-                                </div>
-                                {question.avgTopperTime !== undefined && question.avgTopperTime > 0 && (
-                                    <div className="flex-1 sm:flex-initial text-right flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 ring-1 ring-slate-900/5">
-                                        <Trophy className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600" />
-                                        <div className="text-emerald-900 font-black text-[10px] md:text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
-                                            <span className="text-[6px] md:text-[7px] text-emerald-400">TOPPER AVG</span>
-                                            {Math.round(question.avgTopperTime)}s
+                <main className={`flex-1 bg-white lg:rounded-[2rem] shadow-xl shadow-slate-200/60 ring-1 ring-slate-900/5 relative group/main transition-all duration-300 flex flex-col overflow-hidden ${isDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
+                    <div className="flex-1 overflow-y-auto p-4 md:p-10">
+                        <div className="max-w-5xl mx-auto space-y-8 relative z-10 pb-8">
+                            {/* Question Header */}
+                            <div className="flex flex-col gap-4 pb-6 border-b border-slate-200">
+                                <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-200 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-900 font-black text-lg md:text-xl shadow-sm ring-1 ring-slate-900/5 shrink-0">
+                                            {currentIdx + 1}
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Question Text */}
-                        <div className="text-lg lg:text-xl text-slate-900 font-bold leading-relaxed tracking-tight py-2">
-                            <MathRenderer content={question.content} />
-                        </div>
-
-                        {/* Options Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {question.options.map((opt) => {
-                                const isCorrectOpt = opt.id === question.correctOptionId;
-                                const isOriginalSelected = opt.id === currentResp.selectedOptionId;
-                                const reAttemptSelected = reAttemptSelections[question.id];
-                                const hasReAttempted = !!reAttemptSelected;
-
-                                // Normal (read-only) mode coloring
-                                let status = 'default';
-                                if (!reAttemptMode) {
-                                    if (isCorrectOpt) status = 'correct';
-                                    else if (isOriginalSelected && !isCorrectOpt) status = 'incorrect';
-                                } else {
-                                    // Re-attempt mode: only show colors after user has picked
-                                    if (hasReAttempted) {
-                                        if (isCorrectOpt) status = 'correct';
-                                        else if (opt.id === reAttemptSelected && !isCorrectOpt) status = 'incorrect';
-                                    }
-                                }
-
-                                const isReAttemptPicked = reAttemptMode && opt.id === reAttemptSelected;
-
-                                return (
-                                    <div
-                                        key={opt.id}
-                                        onClick={() => reAttemptMode && !hasReAttempted ? handleReAttemptSelect(question.id, opt.id) : undefined}
-                                        className={`p-5 rounded-2xl border flex items-start gap-4 transition-all duration-300 ring-1 relative
-                                            ${status === 'correct'
-                                                ? 'bg-emerald-50/60 border-emerald-500 ring-emerald-500/20 shadow-md'
-                                                : status === 'incorrect'
-                                                    ? 'bg-red-50/60 border-red-500 ring-red-500/20 shadow-md'
-                                                    : reAttemptMode && !hasReAttempted
-                                                        ? 'bg-white border-slate-300 ring-slate-900/5 hover:border-teal-400 hover:bg-teal-50/30 shadow-sm cursor-pointer active:scale-[0.98]'
-                                                        : 'bg-white border-slate-200 ring-slate-900/5 hover:border-slate-300 hover:bg-slate-50/80 shadow-sm'}`}
-                                    >
-                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 mt-0.5 border transition-all
-                                            ${status === 'correct'
-                                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                                                : status === 'incorrect'
-                                                    ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                                                    : reAttemptMode && !hasReAttempted
-                                                        ? 'bg-teal-50 text-teal-700 border-teal-200'
-                                                        : 'bg-slate-100 text-slate-600 border-slate-200'}`}
-                                        >
-                                            {opt.id.toUpperCase()}
-                                        </div>
-                                        <div className={`font-bold text-sm leading-relaxed flex-1 ${status === 'correct' ? 'text-emerald-950'
-                                                : status === 'incorrect' ? 'text-red-950'
-                                                    : 'text-slate-900'}`}
-                                        >
-                                            <MathRenderer content={opt.text} />
-                                            {/* Original answer badge in re-attempt mode */}
-                                            {reAttemptMode && isOriginalSelected && !currentResp.wasSkipped && (
-                                                <span className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
-                                                    <History className="w-2.5 h-2.5" /> Your original answer
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {currentResp.isCorrect ? (
+                                                <span className="px-2 md:px-3 py-0.5 md:py-1 bg-emerald-50 text-emerald-900 border border-emerald-200 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-emerald-900/5">Correct</span>
+                                            ) : currentResp.wasSkipped ? (
+                                                <span className="px-2 md:px-3 py-0.5 md:py-1 bg-slate-50 text-slate-600 border border-slate-200 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-slate-900/5">Skipped</span>
+                                            ) : (
+                                                <span className="px-2 md:px-3 py-0.5 md:py-1 bg-red-50 text-red-900 border border-red-200 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-red-900/5">Incorrect</span>
+                                            )}
+                                            {reAttemptMode && (
+                                                <span className="px-2 md:px-3 py-0.5 md:py-1 bg-teal-50 text-teal-800 border border-teal-200 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-lg ring-1 ring-teal-900/5 flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse inline-block" />
+                                                    Re-attempt
                                                 </span>
                                             )}
+                                            <span className="text-slate-600 text-[8px] md:text-[10px] font-bold uppercase tracking-widest px-2 border-l border-slate-300 truncate max-w-[120px] md:max-w-none">
+                                                {(question.topic && question.topic.toLowerCase() !== 'general')
+                                                    ? question.topic
+                                                    : (question.chapter?.title || 'General')}
+                                            </span>
                                         </div>
-                                        {/* Checkmark or cross overlay after re-attempt pick */}
-                                        {reAttemptMode && hasReAttempted && isReAttemptPicked && (
-                                            <div className="absolute top-2 right-2">
-                                                {status === 'correct'
-                                                    ? <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                                                    : <XCircle className="w-5 h-5 text-red-500" />}
-                                            </div>
-                                        )}
-                                        {reAttemptMode && hasReAttempted && isCorrectOpt && !isReAttemptPicked && (
-                                            <div className="absolute top-2 right-2">
-                                                <CheckCircle2 className="w-5 h-5 text-emerald-500 opacity-70" />
-                                            </div>
-                                        )}
                                     </div>
-                                );
-                            })}
-                        </div>
 
-                        {/* Re-attempt mode ON banner */}
-                        {reAttemptMode && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={`flex items-start gap-3 rounded-xl p-4 border ${reAttemptSelections[question.id]
+                                    <div className="flex items-center gap-1.5 md:gap-3">
+                                        <button
+                                            onClick={handleToggleSave}
+                                            disabled={isSaving}
+                                            className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg md:rounded-xl transition-all border shadow-sm group
+                                            ${isSaved
+                                                    ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+                                                    : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600'}`}
+                                            title={isSaved ? "Saved" : "Save Question"}
+                                        >
+                                            <Bookmark
+                                                className="w-4 h-4 md:w-5 md:h-5 transition-all group-active:scale-90"
+                                                fill={isSaved ? "currentColor" : "none"}
+                                            />
+                                        </button>
+                                        <button
+                                            onClick={handleShare}
+                                            className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg md:rounded-xl transition-all border border-slate-200 text-slate-400 hover:text-indigo-600 shadow-sm group"
+                                            title="Share Question"
+                                        >
+                                            <Share2 className="w-4 h-4 md:w-5 md:h-5 group-active:translate-x-1 transition-transform" />
+                                        </button>
+                                        <button
+                                            onClick={() => setIsReportModalOpen(true)}
+                                            className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg md:rounded-xl transition-all border border-slate-200 text-slate-400 hover:text-rose-600 shadow-sm group"
+                                            title="Report Question"
+                                        >
+                                            <Flag className="w-4 h-4 md:w-5 md:h-5 group-active:scale-90 transition-all" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    <div className="flex-1 sm:flex-initial text-right flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
+                                        <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-500" />
+                                        <div className="text-slate-900 font-black text-[10px] md:text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
+                                            <span className="text-[6px] md:text-[7px] text-slate-400">YOU</span>
+                                            {currentResp.timeSpent}s
+                                        </div>
+                                    </div>
+                                    {question.avgTopperTime !== undefined && question.avgTopperTime > 0 && (
+                                        <div className="flex-1 sm:flex-initial text-right flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 ring-1 ring-slate-900/5">
+                                            <Trophy className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600" />
+                                            <div className="text-emerald-900 font-black text-[10px] md:text-xs uppercase tracking-tight flex flex-col items-start leading-none gap-0.5">
+                                                <span className="text-[6px] md:text-[7px] text-emerald-400">TOPPER AVG</span>
+                                                {Math.round(question.avgTopperTime)}s
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Question Text */}
+                            <div className="text-lg lg:text-xl text-slate-900 font-bold leading-relaxed tracking-tight py-2">
+                                <MathRenderer content={question.content} />
+                            </div>
+
+                            {/* Options Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {question.options.map((opt) => {
+                                    const isCorrectOpt = opt.id === question.correctOptionId;
+                                    const isOriginalSelected = opt.id === currentResp.selectedOptionId;
+                                    const reAttemptSelected = reAttemptSelections[question.id];
+                                    const hasReAttempted = !!reAttemptSelected;
+
+                                    // Normal (read-only) mode coloring
+                                    let status = 'default';
+                                    if (!reAttemptMode) {
+                                        if (isCorrectOpt) status = 'correct';
+                                        else if (isOriginalSelected && !isCorrectOpt) status = 'incorrect';
+                                    } else {
+                                        // Re-attempt mode: only show colors after user has picked
+                                        if (hasReAttempted) {
+                                            if (isCorrectOpt) status = 'correct';
+                                            else if (opt.id === reAttemptSelected && !isCorrectOpt) status = 'incorrect';
+                                        }
+                                    }
+
+                                    const isReAttemptPicked = reAttemptMode && opt.id === reAttemptSelected;
+
+                                    return (
+                                        <div
+                                            key={opt.id}
+                                            onClick={() => reAttemptMode && !hasReAttempted ? handleReAttemptSelect(question.id, opt.id) : undefined}
+                                            className={`p-5 rounded-2xl border flex items-start gap-4 transition-all duration-300 ring-1 relative
+                                            ${status === 'correct'
+                                                    ? 'bg-emerald-50/60 border-emerald-500 ring-emerald-500/20 shadow-md'
+                                                    : status === 'incorrect'
+                                                        ? 'bg-red-50/60 border-red-500 ring-red-500/20 shadow-md'
+                                                        : reAttemptMode && !hasReAttempted
+                                                            ? 'bg-white border-slate-300 ring-slate-900/5 hover:border-teal-400 hover:bg-teal-50/30 shadow-sm cursor-pointer active:scale-[0.98]'
+                                                            : 'bg-white border-slate-200 ring-slate-900/5 hover:border-slate-300 hover:bg-slate-50/80 shadow-sm'}`}
+                                        >
+                                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 mt-0.5 border transition-all
+                                            ${status === 'correct'
+                                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                                    : status === 'incorrect'
+                                                        ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                                                        : reAttemptMode && !hasReAttempted
+                                                            ? 'bg-teal-50 text-teal-700 border-teal-200'
+                                                            : 'bg-slate-100 text-slate-600 border-slate-200'}`}
+                                            >
+                                                {opt.id.toUpperCase()}
+                                            </div>
+                                            <div className={`font-bold text-sm leading-relaxed flex-1 ${status === 'correct' ? 'text-emerald-950'
+                                                : status === 'incorrect' ? 'text-red-950'
+                                                    : 'text-slate-900'}`}
+                                            >
+                                                <MathRenderer content={opt.text} />
+                                                {/* Original answer badge in re-attempt mode */}
+                                                {reAttemptMode && isOriginalSelected && !currentResp.wasSkipped && (
+                                                    <span className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
+                                                        <History className="w-2.5 h-2.5" /> Your original answer
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {/* Checkmark or cross overlay after re-attempt pick */}
+                                            {reAttemptMode && hasReAttempted && isReAttemptPicked && (
+                                                <div className="absolute top-2 right-2">
+                                                    {status === 'correct'
+                                                        ? <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                                                        : <XCircle className="w-5 h-5 text-red-500" />}
+                                                </div>
+                                            )}
+                                            {reAttemptMode && hasReAttempted && isCorrectOpt && !isReAttemptPicked && (
+                                                <div className="absolute top-2 right-2">
+                                                    <CheckCircle2 className="w-5 h-5 text-emerald-500 opacity-70" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Re-attempt mode ON banner */}
+                            {reAttemptMode && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className={`flex items-start gap-3 rounded-xl p-4 border ${reAttemptSelections[question.id]
                                         ? reAttemptSelections[question.id] === question.correctOptionId
                                             ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                                             : 'bg-red-50 border-red-200 text-red-800'
                                         : 'bg-teal-50/70 border-teal-200 text-teal-900'
-                                    }`}
-                            >
-                                <div className="shrink-0 mt-0.5">
-                                    {reAttemptSelections[question.id]
-                                        ? reAttemptSelections[question.id] === question.correctOptionId
-                                            ? <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                                            : <XCircle className="w-4 h-4 text-red-500" />
-                                        : <Zap className="w-4 h-4 text-teal-600" />}
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black uppercase tracking-wider mb-0.5">
+                                        }`}
+                                >
+                                    <div className="shrink-0 mt-0.5">
                                         {reAttemptSelections[question.id]
                                             ? reAttemptSelections[question.id] === question.correctOptionId
-                                                ? 'Correct! Well done.'
-                                                : 'Incorrect — check the highlighted answer.'
-                                            : 'Re-attempt mode: ON'}
-                                    </p>
-                                    <p className="text-xs font-medium opacity-80">
-                                        {reAttemptSelections[question.id]
-                                            ? 'Click "View Solution" to see the full explanation.'
-                                            : 'Now you can re-attempt the question'}
-                                    </p>
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {/* Solution Section */}
-                        <div className="mt-8 pt-8 border-t border-slate-200 transition-all duration-500 ease-in-out">
-                            {!showSolution ? (
-                                <button
-                                    onClick={handleToggleSolution}
-                                    className="w-full py-4 bg-white border border-indigo-100 text-indigo-700 font-black text-sm uppercase tracking-widest rounded-xl hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center justify-center gap-2 group shadow-sm hover:shadow-md ring-1 ring-indigo-900/5"
-                                >
-                                    <Lightbulb className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                    {showSolution ? 'Hide Solution' : 'View Solution'}
-                                </button>
-                            ) : (
-                                <div className="bg-indigo-50/50 border border-indigo-200 rounded-2xl p-6 relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 ring-1 ring-indigo-900/5 shadow-sm">
-                                    <div className="flex items-center justify-between mb-4 border-b border-indigo-200/60 pb-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center border border-indigo-200 text-indigo-700">
-                                                <Lightbulb className="w-4 h-4" />
-                                            </div>
-                                            <span className="font-black text-indigo-950 text-sm uppercase tracking-wider">Explanation</span>
-                                        </div>
-                                        <button
-                                            onClick={handleToggleSolution}
-                                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-indigo-100 text-indigo-400 hover:text-indigo-700 transition-all"
-                                        >
-                                            <ChevronUp className="w-4 h-4" />
-                                        </button>
+                                                ? <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                                : <XCircle className="w-4 h-4 text-red-500" />
+                                            : <Zap className="w-4 h-4 text-teal-600" />}
                                     </div>
-                                    <div className="text-slate-900 text-sm leading-relaxed font-medium">
-                                        {(!question.explanation?.trim() ||
-                                            question.explanation.trim() === 'No explanation provided.' ||
-                                            question.explanation.trim() === 'No explanation provided' ||
-                                            question.explanation.trim().includes("It seems like you didn't type anything") ||
-                                            question.explanation.trim().length < 5) ? (
-                                            <div className="flex flex-col items-center justify-center py-6 gap-4">
-                                                <div className="bg-indigo-100/50 p-4 rounded-full">
-                                                    {isGenerating ? (
-                                                        <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-                                                    ) : (
-                                                        <Sparkles className="w-8 h-8 text-indigo-600 animate-pulse" />
-                                                    )}
+                                    <div>
+                                        <p className="text-xs font-black uppercase tracking-wider mb-0.5">
+                                            {reAttemptSelections[question.id]
+                                                ? reAttemptSelections[question.id] === question.correctOptionId
+                                                    ? 'Correct! Well done.'
+                                                    : 'Incorrect — check the highlighted answer.'
+                                                : 'Re-attempt mode: ON'}
+                                        </p>
+                                        <p className="text-xs font-medium opacity-80">
+                                            {reAttemptSelections[question.id]
+                                                ? 'Click "View Solution" to see the full explanation.'
+                                                : 'Now you can re-attempt the question'}
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {/* Solution Section */}
+                            <div className="mt-8 pt-8 border-t border-slate-200 transition-all duration-500 ease-in-out">
+                                {!showSolution ? (
+                                    <button
+                                        onClick={handleToggleSolution}
+                                        className="w-full py-4 bg-white border border-indigo-100 text-indigo-700 font-black text-sm uppercase tracking-widest rounded-xl hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center justify-center gap-2 group shadow-sm hover:shadow-md ring-1 ring-indigo-900/5"
+                                    >
+                                        <Lightbulb className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                        {showSolution ? 'Hide Solution' : 'View Solution'}
+                                    </button>
+                                ) : (
+                                    <div className="bg-indigo-50/50 border border-indigo-200 rounded-2xl p-6 relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 ring-1 ring-indigo-900/5 shadow-sm">
+                                        <div className="flex items-center justify-between mb-4 border-b border-indigo-200/60 pb-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center border border-indigo-200 text-indigo-700">
+                                                    <Lightbulb className="w-4 h-4" />
                                                 </div>
-                                                <p className="text-slate-500 text-center text-sm font-semibold">
-                                                    {isGenerating ? "Analyzing question & generating step-by-step solution..." : "AI magic is happening..."}
-                                                </p>
-                                                {isGenerating && (
-                                                    <div className="w-48 h-1.5 bg-indigo-100 rounded-full overflow-hidden">
-                                                        <motion.div
-                                                            className="h-full bg-indigo-600"
-                                                            initial={{ width: "0%" }}
-                                                            animate={{ width: "100%" }}
-                                                            transition={{ duration: 15, ease: "linear" }}
-                                                        />
-                                                    </div>
-                                                )}
+                                                <span className="font-black text-indigo-950 text-sm uppercase tracking-wider">Explanation</span>
                                             </div>
-                                        ) : (
-                                            isLogicMismatch && user?.role === 'student' ? (
-                                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 md:p-6 text-amber-800 text-xs md:text-sm">
-                                                    <div className="flex items-center gap-2 mb-2 font-bold">
-                                                        <AlertTriangle className="w-4 h-4" />
-                                                        AI Logic Warning
+                                            <button
+                                                onClick={handleToggleSolution}
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-indigo-100 text-indigo-400 hover:text-indigo-700 transition-all"
+                                            >
+                                                <ChevronUp className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <div className="text-slate-900 text-sm leading-relaxed font-medium">
+                                            {(!question.explanation?.trim() ||
+                                                question.explanation.trim() === 'No explanation provided.' ||
+                                                question.explanation.trim() === 'No explanation provided' ||
+                                                question.explanation.trim().includes("It seems like you didn't type anything") ||
+                                                question.explanation.trim().length < 5) ? (
+                                                <div className="flex flex-col items-center justify-center py-6 gap-4">
+                                                    <div className="bg-indigo-100/50 p-4 rounded-full">
+                                                        {isGenerating ? (
+                                                            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                                                        ) : (
+                                                            <Sparkles className="w-8 h-8 text-indigo-600 animate-pulse" />
+                                                        )}
                                                     </div>
-                                                    <p>This explanation is currently being reviewed as the AI solved the question differently than the provided answer key.</p>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col gap-4">
-                                                    {isLogicMismatch && (
-                                                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800 text-xs font-bold flex items-center gap-2">
-                                                            <AlertTriangle className="w-4 h-4" />
-                                                            Admin Note: Logic Mismatch Detected
+                                                    <p className="text-slate-500 text-center text-sm font-semibold">
+                                                        {isGenerating ? "Analyzing question & generating step-by-step solution..." : "AI magic is happening..."}
+                                                    </p>
+                                                    {isGenerating && (
+                                                        <div className="w-48 h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                                                            <motion.div
+                                                                className="h-full bg-indigo-600"
+                                                                initial={{ width: "0%" }}
+                                                                animate={{ width: "100%" }}
+                                                                transition={{ duration: 15, ease: "linear" }}
+                                                            />
                                                         </div>
                                                     )}
-                                                    <MathRenderer content={prettifyMathText(question.explanation)} />
                                                 </div>
-                                            )
-                                        )}
+                                            ) : (
+                                                isLogicMismatch && user?.role === 'student' ? (
+                                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 md:p-6 text-amber-800 text-xs md:text-sm">
+                                                        <div className="flex items-center gap-2 mb-2 font-bold">
+                                                            <AlertTriangle className="w-4 h-4" />
+                                                            AI Logic Warning
+                                                        </div>
+                                                        <p>This explanation is currently being reviewed as the AI solved the question differently than the provided answer key.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col gap-4">
+                                                        {isLogicMismatch && (
+                                                            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800 text-xs font-bold flex items-center gap-2">
+                                                                <AlertTriangle className="w-4 h-4" />
+                                                                Admin Note: Logic Mismatch Detected
+                                                            </div>
+                                                        )}
+                                                        <MathRenderer content={prettifyMathText(question.explanation)} />
+                                                    </div>
+                                                )
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
 
-                        {/* Question counter */}
-                        <div className="flex items-center justify-center pt-6 border-t border-slate-200 mt-8">
-                            <span className="text-slate-500 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
-                                {currentIdx + 1} / {attempt.responses.length}
-                            </span>
+                            {/* Question counter */}
+                            <div className="flex items-center justify-center pt-6 border-t border-slate-200 mt-8">
+                                <span className="text-slate-500 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
+                                    {currentIdx + 1} / {attempt.responses.length}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Bottom Footer pinned to bottom of Main card */}
+                    <div className="bg-slate-50/80 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-4px_24px_-6px_rgb(0,0,0,0.05)] z-20">
+                        <div className="max-w-5xl mx-auto w-full flex items-center justify-between gap-3 px-4 md:px-0 py-3 md:py-4">
+                            {/* Previous */}
+                            <button
+                                disabled={currentIdx === 0}
+                                onClick={() => navigateTo(currentIdx - 1)}
+                                className="flex items-center gap-2 px-4 md:px-6 py-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-40 text-xs md:text-sm font-bold text-slate-900 transition-all shadow-sm active:scale-95 ring-1 ring-slate-900/5"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                                <span className="hidden sm:inline">Previous</span>
+                            </button>
+
+                            {/* Re-attempt Toggle */}
+                            <button
+                                onClick={() => {
+                                    setReAttemptMode(prev => !prev);
+                                    if (reAttemptMode) setReAttemptSelections({});
+                                }}
+                                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border font-bold text-xs md:text-sm transition-all duration-200 shadow-sm active:scale-95 select-none ${reAttemptMode
+                                    ? 'bg-teal-600 text-white border-teal-600 shadow-teal-200 shadow-md'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300 hover:text-teal-700 hover:bg-teal-50'
+                                    }`}
+                            >
+                                <span>Re-attempt Questions</span>
+                                <div className={`relative w-9 h-5 rounded-full border transition-colors duration-200 ${reAttemptMode ? 'bg-white/30 border-white/50' : 'bg-slate-200 border-slate-300'}`}>
+                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full shadow-sm transition-all duration-200 ${reAttemptMode ? 'left-[calc(100%-18px)] bg-white' : 'left-0.5 bg-slate-500'}`} />
+                                </div>
+                            </button>
+
+                            {/* Next */}
+                            <button
+                                disabled={currentIdx === attempt.responses.length - 1}
+                                onClick={() => navigateTo(currentIdx + 1)}
+                                className="flex items-center gap-2 px-4 md:px-6 py-2.5 bg-[#0f172a] text-white border border-[#0f172a] rounded-xl hover:bg-slate-800 disabled:opacity-40 text-xs md:text-sm font-bold transition-all shadow-lg active:scale-95 ring-1 ring-slate-900/20"
+                            >
+                                <span className="hidden sm:inline">Next</span>
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
                         </div>
                     </div>
                 </main>
@@ -644,54 +688,6 @@ export default function SolutionPage() {
                         </div>
                     </div>
                 </aside>
-            </div>
-
-            {/* Sticky Bottom Footer — Navigation + Re-attempt Toggle */}
-            <div className="sticky bottom-0 z-30 bg-white/80 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-4px_24px_-6px_rgb(0,0,0,0.08)]">
-                <div className="max-w-5xl mx-auto w-full flex items-center justify-between gap-3 px-4 md:px-6 py-3">
-                    {/* Previous */}
-                    <button
-                        disabled={currentIdx === 0}
-                        onClick={() => navigateTo(currentIdx - 1)}
-                        className="flex items-center gap-2 px-4 md:px-6 py-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-40 text-xs md:text-sm font-bold text-slate-900 transition-all shadow-sm active:scale-95 ring-1 ring-slate-900/5"
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span className="hidden sm:inline">Previous</span>
-                    </button>
-
-                    {/* Re-attempt Toggle */}
-                    <button
-                        onClick={() => {
-                            setReAttemptMode(prev => !prev);
-                            // Clear selections only if turning off
-                            if (reAttemptMode) setReAttemptSelections({});
-                        }}
-                        className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border font-bold text-xs md:text-sm transition-all duration-200 shadow-sm active:scale-95 select-none ${reAttemptMode
-                                ? 'bg-teal-600 text-white border-teal-600 shadow-teal-200 shadow-md'
-                                : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300 hover:text-teal-700 hover:bg-teal-50'
-                            }`}
-                    >
-                        <span>Re-attempt Questions</span>
-                        {/* Toggle pill */}
-                        <div className={`relative w-9 h-5 rounded-full border transition-colors duration-200 ${reAttemptMode ? 'bg-white/30 border-white/50' : 'bg-slate-200 border-slate-300'
-                            }`}>
-                            <div className={`absolute top-0.5 w-4 h-4 rounded-full shadow-sm transition-all duration-200 ${reAttemptMode
-                                    ? 'left-[calc(100%-18px)] bg-white'
-                                    : 'left-0.5 bg-slate-500'
-                                }`} />
-                        </div>
-                    </button>
-
-                    {/* Next */}
-                    <button
-                        disabled={currentIdx === attempt.responses.length - 1}
-                        onClick={() => navigateTo(currentIdx + 1)}
-                        className="flex items-center gap-2 px-4 md:px-6 py-2.5 bg-[#0f172a] text-white border border-[#0f172a] rounded-xl hover:bg-slate-800 disabled:opacity-40 text-xs md:text-sm font-bold transition-all shadow-lg active:scale-95 ring-1 ring-slate-900/20"
-                    >
-                        <span className="hidden sm:inline">Next</span>
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
-                </div>
             </div>
 
             {/* Report Question Modal */}
