@@ -298,10 +298,10 @@ export default function SolutionPage() {
 
                 {/* Main Content Area */}
                 <main className={`flex-1 bg-white lg:rounded-[2rem] shadow-xl shadow-slate-200/60 ring-1 ring-slate-900/5 relative group/main transition-all duration-300 flex flex-col overflow-hidden ${isDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
-                    <div className="flex-1 overflow-y-auto p-4 md:p-10">
-                        <div className="max-w-5xl mx-auto space-y-5 md:space-y-6 relative z-10 pb-4 md:pb-6">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-0 md:pb-0">
+                        <div className="max-w-5xl mx-auto space-y-4 md:space-y-5 relative z-10 pb-4 md:pb-5">
                             {/* Question Header */}
-                            <div className="flex flex-col gap-4 pb-6 border-b border-slate-200">
+                            <div className="flex flex-col gap-4 pb-4 border-b border-slate-200">
                                 <div className="flex items-center justify-between w-full">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-200 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-900 font-black text-lg md:text-xl shadow-sm ring-1 ring-slate-900/5 shrink-0">
@@ -382,7 +382,7 @@ export default function SolutionPage() {
                             </div>
 
                             {/* Question Text */}
-                            <div className="text-lg lg:text-xl text-slate-900 font-bold leading-relaxed tracking-tight py-2">
+                            <div className="text-lg lg:text-xl text-slate-900 font-bold leading-relaxed tracking-tight py-1">
                                 <MathRenderer content={question.content} />
                             </div>
 
@@ -413,7 +413,7 @@ export default function SolutionPage() {
                                         <div
                                             key={opt.id}
                                             onClick={() => reAttemptMode && !hasReAttempted ? handleReAttemptSelect(question.id, opt.id) : undefined}
-                                            className={`p-5 rounded-2xl border flex items-start gap-4 transition-all duration-300 ring-1 relative
+                                            className={`p-4 md:p-5 rounded-2xl border flex items-start gap-4 transition-all duration-300 ring-1 relative
                                             ${status === 'correct'
                                                     ? 'bg-emerald-50/60 border-emerald-500 ring-emerald-500/20 shadow-md'
                                                     : status === 'incorrect'
@@ -504,14 +504,14 @@ export default function SolutionPage() {
                                 {!showSolution ? (
                                     <button
                                         onClick={handleToggleSolution}
-                                        className="w-full py-4 bg-white border border-indigo-100 text-indigo-700 font-black text-sm uppercase tracking-widest rounded-xl hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center justify-center gap-2 group shadow-sm hover:shadow-md ring-1 ring-indigo-900/5"
+                                        className="w-full py-3 bg-white border border-indigo-100 text-indigo-700 font-black text-sm uppercase tracking-widest rounded-xl hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center justify-center gap-2 group shadow-sm hover:shadow-md ring-1 ring-indigo-900/5"
                                     >
                                         <Lightbulb className="w-4 h-4 group-hover:scale-110 transition-transform" />
                                         {showSolution ? 'Hide Solution' : 'View Solution'}
                                     </button>
                                 ) : (
-                                    <div className="bg-indigo-50/50 border border-indigo-200 rounded-2xl p-6 relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 ring-1 ring-indigo-900/5 shadow-sm">
-                                        <div className="flex items-center justify-between mb-4 border-b border-indigo-200/60 pb-4">
+                                    <div className="bg-indigo-50/50 border border-indigo-200 rounded-2xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 ring-1 ring-indigo-900/5 shadow-sm">
+                                        <div className="flex items-center justify-between mb-3 border-b border-indigo-200/60 pb-3">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center border border-indigo-200 text-indigo-700">
                                                     <Lightbulb className="w-4 h-4" />
@@ -580,7 +580,7 @@ export default function SolutionPage() {
                             </div>
 
                             {/* Question counter */}
-                            <div className="flex items-center justify-center pt-4 md:pt-5 border-t border-slate-200 opacity-80">
+                            <div className="flex items-center justify-center pt-3 md:pt-4 border-t border-slate-200 opacity-80 mt-1 md:mt-2">
                                 <span className="text-slate-500 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 ring-1 ring-slate-900/5">
                                     {currentIdx + 1} / {attempt.responses.length}
                                 </span>
@@ -590,7 +590,7 @@ export default function SolutionPage() {
 
                     {/* Bottom Footer pinned to bottom of Main card */}
                     <div className="bg-slate-50/80 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-4px_24px_-6px_rgb(0,0,0,0.05)] z-20">
-                        <div className="max-w-5xl mx-auto w-full flex items-center justify-between gap-3 px-4 md:px-0 py-3 md:py-4">
+                        <div className="max-w-5xl mx-auto w-full flex items-center justify-between gap-3 px-4 md:px-0 py-2 md:py-3 animate-in slide-in-from-bottom-2 duration-300">
                             {/* Previous */}
                             <button
                                 disabled={currentIdx === 0}
