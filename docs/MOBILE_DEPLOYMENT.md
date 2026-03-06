@@ -68,11 +68,22 @@ flutter pub get
 ```bash
 # Build release APK pointing to production server
 flutter build apk --release --dart-define=ENV=prod
-
-# Output file: build/app/outputs/flutter-apk/app-release.apk
 ```
 
-> **Note**: The `--dart-define=ENV=prod` flag tells the app to use `https://erankup.in/api` as the backend URL.
+> **Why `--dart-define=ENV=prod`?** Without this flag, the app defaults to `dev` mode and tries to connect to your local machine IP (`http://192.168.1.4:3001`) which won't work on testers' phones. This flag switches the API to `https://erankup.in/api`.
+
+### APK Output Location (Windows)
+
+Once the build finishes, your APK is at:
+
+```
+C:\Users\Public\eRankUp\mobile\build\app\outputs\flutter-apk\app-release.apk
+```
+
+You can open File Explorer directly to that folder:
+```bash
+start C:\Users\Public\eRankUp\mobile\build\app\outputs\flutter-apk
+```
 
 ---
 
