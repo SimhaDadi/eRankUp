@@ -14,9 +14,47 @@ class ExamStartScreen extends StatefulWidget {
 }
 
 class _ExamStartScreenState extends State<ExamStartScreen> {
-  // ... (unchanged state variables)
+  bool _showInstructions = true;
+  bool _agreedToInstructions = false;
 
-  // ... (unchanged build method)
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text('Exam Details'),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        foregroundColor: isDark ? Colors.white : Colors.black87,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildExamTitleCard(isDark),
+            const SizedBox(height: 16),
+            _buildMetadataCards(isDark),
+            const SizedBox(height: 16),
+            _buildSecureEnvironmentCard(isDark, theme),
+            const SizedBox(height: 16),
+            _buildInstructionsSection(isDark, theme),
+            const SizedBox(height: 16),
+            _buildAgreementCheckbox(isDark, theme),
+            const SizedBox(height: 24),
+            _buildStartButton(isDark),
+            const SizedBox(height: 16),
+            _buildHelpLink(isDark),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildExamTitleCard(bool isDark) {
     return Container(

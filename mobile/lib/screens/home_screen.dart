@@ -826,6 +826,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildResearchInsights() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final performance = _stats?['topicPerformance'] as Map<String, dynamic>?;
     if (performance == null || performance.isEmpty) return const SizedBox.shrink();
 
@@ -943,6 +944,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActions() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
       child: Column(
@@ -1015,6 +1017,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildModernAction(String label, IconData icon, Color color, VoidCallback onTap) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
@@ -1230,6 +1233,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
       ),
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Container(
           padding: const EdgeInsets.all(AppSpacing.xxl),
           child: SingleChildScrollView(

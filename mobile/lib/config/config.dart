@@ -8,8 +8,8 @@ class Config {
     'mdns': 'http://DADI.local:3001',    // Fallback: Works on some networks without IP changes
     // 'dev': 'http://127.0.0.1:3001',       // Use with 'adb reverse tcp:3001 tcp:3001'
     // 'dev': 'http://10.0.2.2:3001',        // Android Emulator
-    'staging': 'https://staging-api.erankup.com',
-    'prod': 'https://api.erankup.com',
+    'staging': 'https://erankup.in/api',  // Staging: same server, same nginx routing
+    'prod': 'https://erankup.in/api',     // Production: erankup.in -> nginx -> backend:3001
   };
 
   // Get current API base URL
