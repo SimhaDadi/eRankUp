@@ -95,6 +95,7 @@ export class PromptShortcutService {
                 .createQueryBuilder('s')
                 .where('s.isActive = true')
                 .andWhere('s.embedding IS NOT NULL')
+                .andWhere('s.embedding <=> CAST(:embedding AS vector) < 0.45') // Threshold: Ignore highly dissimilar queries
                 .orderBy(`s.embedding <=> CAST(:embedding AS vector)`) // PGVector Cosine Distance
                 .setParameters({ embedding: embeddingStr })
                 .limit(3) // Return top 3 matches

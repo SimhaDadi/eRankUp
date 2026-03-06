@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../models/pass.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
+import 'settings_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -281,10 +282,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/profile'); 
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
-            child: const Text('GO TO PROFILE'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryCyan,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('GO TO PROFILE', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

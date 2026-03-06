@@ -474,8 +474,8 @@ export class AIService {
             try {
                 const { GoogleGenerativeAI } = require("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(apiKey);
-                // Use v1 for embedding generation with text-embedding-004
-                const model = genAI.getGenerativeModel({ model: "text-embedding-004" }, { apiVersion: 'v1' });
+                // Use default api version for embedding generation with gemini-embedding-001
+                const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
                 const result = await model.embedContent(text);
                 this.systemHealthService.trackAPICall('gemini'); // TRACK USAGE
@@ -509,7 +509,7 @@ export class AIService {
                 try {
                     const { GoogleGenerativeAI } = require("@google/generative-ai");
                     const genAI = new GoogleGenerativeAI(apiKey);
-                    const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+                    const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
                     const result = await model.batchEmbedContents({
                         requests: chunk.map(text => ({

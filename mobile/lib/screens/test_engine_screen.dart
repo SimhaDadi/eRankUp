@@ -32,6 +32,8 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
   Map<String, int> _timings = {}; // questionId -> seconds spent
 
   int _currentIndex = 0;
+  bool _isSubmitting = false;
+  String _userName = 'Loading...';
   bool _isLoading = true;
   int _timeLeft = 0;
   Timer? _timer;
@@ -116,8 +118,8 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                  _currentIndex = _sections[_activeSection]!.first;
              });
         }
-
         _startTimer();
+        _fetchUser();
       }
     } catch (e) {
       debugPrint('Error: $e');
@@ -139,6 +141,16 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
         _submitTest();
       }
     });
+  }
+
+  Future<void> _fetchUser() async {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    final user = await apiService.getUserProfile();
+    if (mounted && user != null) {
+      setState(() {
+        _userName = user['fullName'] ?? 'Guest User';
+      });
+    }
   }
 
   Future<void> _toggleFlag(String questionId) async {
@@ -283,7 +295,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
                                        Column(
                                            crossAxisAlignment: CrossAxisAlignment.start,
                                            children: [
-                                               Text("Demo User", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                                               Text(_userName, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
                                                Text(widget.model.title, style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600)),
                                            ],
                                        )

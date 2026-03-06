@@ -27,6 +27,8 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
   // Re-attempt mode
   bool _reAttemptMode = false;
   final Map<String, String> _reAttemptSelections = {}; // questionId → picked optionId
+  final Set<String> _showSolutionIds = {}; // questionId → visible explanation
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -98,6 +100,16 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
       appBar: AppBar(
         title: const Text('Solution Explorer'),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.grid_view_rounded),
+            onPressed: () {
+              HapticService.light();
+              _showNavigatorGrid();
+            },
+            tooltip: 'Question Navigator',
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -109,6 +121,7 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                   child: _filteredResponses.isEmpty
                       ? _buildEmptyState()
                       : ListView.builder(
+                          controller: _scrollController,
                           padding: const EdgeInsets.all(AppSpacing.screenPadding),
                           itemCount: _filteredResponses.length,
                           itemBuilder: (context, index) {
@@ -134,7 +147,10 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
               HapticService.light();
               setState(() {
                 _reAttemptMode = !_reAttemptMode;
-                if (!_reAttemptMode) _reAttemptSelections.clear();
+                if (!_reAttemptMode) {
+                  _reAttemptSelections.clear();
+                  _showSolutionIds.clear();
+                }
               });
             },
             child: Row(
@@ -285,6 +301,41 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
+                
+                // ── TIME METRICS (NEW) ──
+                Builder(builder: (_) {
+                  final timeSpent = resp['timeSpent'] ?? 0;
+                  final avgTopperTime = question['avgTopperTime'] ?? 0;
+                  
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          _buildMetricLabel(
+                            icon: Icons.timer_outlined,
+                            label: 'YOU',
+                            value: '${timeSpent}s',
+                            color: AppColors.textPrimary,
+                            bgColor: isDark ? const Color(0xFF1E293B) : Colors.slate.shade50,
+                          ),
+                          if (avgTopperTime > 0) ...[
+                            const SizedBox(width: 8),
+                            _buildMetricLabel(
+                              icon: Icons.emoji_events_outlined,
+                              label: 'TOPPER AVG',
+                              value: '${avgTopperTime.round()}s',
+                              color: const Color(0xFF059669),
+                              bgColor: isDark ? const Color(0xFF064E3B).withOpacity(0.2) : const Color(0xFFECFDF5),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+
                   MathRichText(
                     text: question['content'] ?? '',
                     style: AppTextStyles.body.copyWith(
@@ -474,117 +525,139 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
           const SizedBox(height: 16),
 
           // Explanation
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A).withOpacity(0.5) : AppColors.bgTertiary,
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.lightbulb_outline, size: 16, color: AppColors.primaryCyan),
-                        SizedBox(width: 8),
-                        Text('EXPLANATION', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.primaryCyan, letterSpacing: 1)),
-                      ],
-                    ),
-                    TextButton.icon(
-                      onPressed: () {
-                        HapticService.light();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AIChatConversationScreen(
-                              questionId: question['id'],
-                              title: 'Question Doubt',
-                            ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.auto_awesome, size: 14),
-                      label: const Text('Ask AI Tutor', style: TextStyle(fontSize: 10)),
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        foregroundColor: AppColors.primaryBlue,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                (() {
-                  final String rawExplanation = explanation?.toString() ?? '';
-                  final isMissing = rawExplanation.trim().isEmpty || 
-                                   rawExplanation.trim() == 'No explanation provided.' ||
-                                   rawExplanation.trim() == 'No explanation provided' ||
-                                   rawExplanation.trim().contains("It seems like you didn't type anything") ||
-                                   rawExplanation.trim().length < 5;
-
-                  if (isMissing) {
-                    final isGenerating = _generatingIds.contains(question['id']);
-                    
-                    // Auto-trigger generation if not already doing so
-                    if (!isGenerating && !_failedIds.contains(question['id'])) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _generateAIExplanation(
-                          question['id'],
-                          userAnswer: selectedId?.toString(),
-                          examId: _data?['exam']?['id']?.toString() ?? _data?['model']?['id']?.toString(),
-                        );
-                      });
-                    }
-
-                    return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Column(
+          if (!_reAttemptMode || _showSolutionIds.contains(question['id']))
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A).withOpacity(0.5) : AppColors.bgTertiary,
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
                         children: [
-                          if (isGenerating) ...[
-                            const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Generating AI solution...',
-                              style: AppTextStyles.bodySmall.copyWith(color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
-                            ),
-                          ] else if (_failedIds.contains(question['id'])) ...[
-                            const Icon(Icons.error_outline, color: Colors.orange, size: 20),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Failed to generate explanation.',
-                              style: AppTextStyles.bodySmall.copyWith(color: Colors.orange),
-                            ),
-                            TextButton(
-                              onPressed: () => setState(() => _failedIds.remove(question['id'])),
-                              child: const Text('Try Again', style: TextStyle(fontSize: 12)),
-                            ),
-                          ] else ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              'AI is preparing your solution...',
-                              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary, fontStyle: FontStyle.italic),
-                            ),
-                          ],
+                          Icon(Icons.lightbulb_outline, size: 16, color: AppColors.primaryCyan),
+                          SizedBox(width: 8),
+                          Text('EXPLANATION', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.primaryCyan, letterSpacing: 1)),
                         ],
                       ),
-                    );
-                  }
+                      TextButton.icon(
+                        onPressed: () {
+                          HapticService.light();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AIChatConversationScreen(
+                                questionId: question['id'],
+                                title: 'Question Doubt',
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.auto_awesome, size: 14),
+                        label: const Text('Ask AI Tutor', style: TextStyle(fontSize: 10)),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          foregroundColor: AppColors.primaryBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  (() {
+                    final String rawExplanation = explanation?.toString() ?? '';
+                    final isMissing = rawExplanation.trim().isEmpty || 
+                                     rawExplanation.trim() == 'No explanation provided.' ||
+                                     rawExplanation.trim() == 'No explanation provided' ||
+                                     rawExplanation.trim().contains("It seems like you didn't type anything") ||
+                                     rawExplanation.trim().length < 5;
 
-                  return MathRichText(
-                    text: rawExplanation,
-                    style: AppTextStyles.bodySmall.copyWith(color: isDark ? Colors.white70 : AppColors.textPrimary),
-                  );
-                })(),
-              ],
+                    if (isMissing) {
+                      final isGenerating = _generatingIds.contains(question['id']);
+                      
+                      // Auto-trigger generation if not already doing so
+                      if (!isGenerating && !_failedIds.contains(question['id'])) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _generateAIExplanation(
+                            question['id'],
+                            userAnswer: selectedId?.toString(),
+                            examId: _data?['exam']?['id']?.toString() ?? _data?['model']?['id']?.toString(),
+                          );
+                        });
+                      }
+
+                      return Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Column(
+                          children: [
+                            if (isGenerating) ...[
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Generating AI solution...',
+                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                              ),
+                            ] else if (_failedIds.contains(question['id'])) ...[
+                              const Icon(Icons.error_outline, color: Colors.orange, size: 20),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Failed to generate explanation.',
+                                style: AppTextStyles.bodySmall.copyWith(color: Colors.orange),
+                              ),
+                              TextButton(
+                                onPressed: () => setState(() => _failedIds.remove(question['id'])),
+                                child: const Text('Try Again', style: TextStyle(fontSize: 12)),
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                'AI is preparing your solution...',
+                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary, fontStyle: FontStyle.italic),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }
+
+                    return MathRichText(
+                      text: rawExplanation,
+                      style: AppTextStyles.bodySmall.copyWith(color: isDark ? Colors.white70 : AppColors.textPrimary),
+                    );
+                  })(),
+                ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    HapticService.light();
+                    setState(() => _showSolutionIds.add(question['id']));
+                  },
+                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                  label: const Text('View Solution & Analysis'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryBlue,
+                    side: const BorderSide(color: AppColors.primaryBlue),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -902,6 +975,165 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ── HELPER METHODS FOR WEB PARITY ──
+
+  void _showNavigatorGrid() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.55,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.grid_view_rounded, color: AppColors.primaryBlue),
+                  const SizedBox(width: 12),
+                  Text('Question Navigator', style: AppTextStyles.h3),
+                  const Spacer(),
+                  Text(
+                    '${_filteredResponses.length} Questions',
+                    style: AppTextStyles.overline.copyWith(color: AppColors.textTertiary),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(24),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 5,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: _filteredResponses.length,
+                itemBuilder: (context, index) {
+                  final resp = _filteredResponses[index];
+                  final isCorrect = resp['isCorrect'] ?? false;
+                  final isAnswered = resp['selectedOptionId'] != null;
+                  
+                  Color bgColor;
+                  Color textColor;
+                  Color borderC;
+
+                  if (isCorrect) {
+                    bgColor = Colors.green.shade50;
+                    textColor = Colors.green.shade700;
+                    borderC = Colors.green.shade200;
+                  } else if (isAnswered) {
+                    bgColor = Colors.red.shade50;
+                    textColor = Colors.red.shade700;
+                    borderC = Colors.red.shade200;
+                  } else {
+                    bgColor = Colors.slate.shade50;
+                    textColor = Colors.slate.shade500;
+                    borderC = Colors.slate.shade200;
+                  }
+
+                  return InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      HapticService.light();
+                      // Simple implementation: scroll to the specific item
+                      // Card height is ~450-700 depending on content
+                      _scrollController.animateTo(
+                        index * 550.0, // Rough average height
+                        duration: const Duration(milliseconds: 600),
+                        curve: Curves.easeInOutExpo,
+                      );
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderC),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: textColor,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricLabel({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color.withOpacity(0.7)),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 7,
+                  fontWeight: FontWeight.w900,
+                  color: color.withOpacity(0.5),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

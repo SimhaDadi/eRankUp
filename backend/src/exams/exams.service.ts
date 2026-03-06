@@ -70,6 +70,12 @@ export class ExamsService implements OnApplicationBootstrap {
                             models: []
                         });
                     }
+
+                    // [FIX] Inherit duration from exam if model has default (60)
+                    if (model.duration === 60 && exam.duration !== 60) {
+                        (model as any).duration = exam.duration;
+                    }
+
                     chaptersMap.get(model.chapter.id).models.push(model);
                 }
             });
@@ -195,8 +201,10 @@ export class ExamsService implements OnApplicationBootstrap {
                 'models',
                 'models.chapter',
                 'models.chapter.subject',
-                'models.questions', // [FIX] Fetch nested questions
-                'questions' // Fetch direct questions
+                'models.questions',
+                'questions',
+                'subjects',
+                'subjects.chapters'
             ]
         }) : null;
 
@@ -220,41 +228,30 @@ export class ExamsService implements OnApplicationBootstrap {
             }
 
             // Transform structure to match frontend expectation (group models by chapter)
-            const chaptersMap = new Map();
+            const chapters = this.mapChaptersFromModels(exam);
 
-            if (exam.models) {
-                exam.models.forEach(model => {
-                    console.log(`[DEBUG] Exam ${exam.id} Model ${model.id} totalQuestions: ${model.totalQuestions}`);
+            // Enhance models in each chapter with calculated fields/defaults
+            chapters.forEach(chapter => {
+                if (chapter.models) {
+                    chapter.models.forEach((model: any) => {
+                        const positiveMarks = model.positiveMarks ?? exam.defaultPositiveMarks ?? 1;
+                        const negativeMarks = model.negativeMarks ?? exam.defaultNegativeMarks ?? 0;
+                        const totalMarks = (model.totalQuestions || 0) * positiveMarks;
+                        const duration = (model.duration === 60 && exam.duration !== 60) ? exam.duration : model.duration;
 
-                    // Enhance model with calculated fields and exam defaults
-                    const positiveMarks = model.positiveMarks ?? exam.defaultPositiveMarks ?? 1;
-                    const negativeMarks = model.negativeMarks ?? exam.defaultNegativeMarks ?? 0;
-                    const totalMarks = model.totalQuestions * positiveMarks;
+                        model.positiveMarks = positiveMarks;
+                        model.negativeMarks = negativeMarks;
+                        model.totalMarks = totalMarks;
+                        model.duration = duration;
+                    });
+                }
+            });
 
-                    // Add calculated fields to model
-                    (model as any).positiveMarks = positiveMarks;
-                    (model as any).negativeMarks = negativeMarks;
-                    (model as any).totalMarks = totalMarks;
-
-                    if (model.chapter) {
-                        if (!chaptersMap.has(model.chapter.id)) {
-                            chaptersMap.set(model.chapter.id, {
-                                ...model.chapter,
-                                models: []
-                            });
-                        }
-                        chaptersMap.get(model.chapter.id).models.push(model);
-                    } else {
-                        console.log('Model missing chapter:', model.id);
-                    }
-                });
-            }
-
-            console.log('Chapters found:', chaptersMap.size);
+            console.log('Chapters found:', chapters.length);
 
             const transformedExam = {
                 ...exam,
-                chapters: Array.from(chaptersMap.values())
+                chapters: chapters
             };
 
             // Hydrate questions with unified explanations
@@ -336,6 +333,15 @@ export class ExamsService implements OnApplicationBootstrap {
             }
         } else {
             console.log(`[DEBUG] findModel: Found direct Model: ${model.title}`);
+
+            // [FIX] If model has default duration (60) but belongs to an exam with specific duration, inherit it.
+            if (model.duration === 60 && model.exams && model.exams.length > 0) {
+                const parentExam = model.exams[0];
+                if (parentExam.duration && parentExam.duration !== 60) {
+                    console.log(`[DEBUG] findModel: Inheriting duration ${parentExam.duration} from Exam ${parentExam.title}`);
+                    model.duration = parentExam.duration;
+                }
+            }
         }
 
         if (!model) {

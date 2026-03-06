@@ -244,8 +244,7 @@ export default function SolutionPage() {
 
     const handleReAttemptSelect = (questionId: string, optionId: string) => {
         setReAttemptSelections(prev => ({ ...prev, [questionId]: optionId }));
-        // Auto-show solution once user makes a re-attempt selection
-        if (!showSolution) setShowSolution(false);
+        // [SYNC] Mobile app keeps solution hidden even after picking, user must click "View Solution"
     };
 
     const navigateTo = (idx: number) => {
@@ -604,7 +603,12 @@ export default function SolutionPage() {
                             {/* Re-attempt Toggle */}
                             <button
                                 onClick={() => {
-                                    setReAttemptMode(prev => !prev);
+                                    setReAttemptMode(prev => {
+                                        const next = !prev;
+                                        // [SYNC] When entering re-attempt mode, hide solution by default
+                                        if (next) setShowSolution(false);
+                                        return next;
+                                    });
                                     if (reAttemptMode) setReAttemptSelections({});
                                 }}
                                 className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border font-bold text-xs md:text-sm transition-all duration-200 shadow-sm active:scale-95 select-none ${reAttemptMode
