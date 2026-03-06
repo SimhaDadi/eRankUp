@@ -34,10 +34,8 @@ class _ChatScreenState extends State<ChatScreen> {
       _myUserId = userId;
     });
 
-    final socketUrl = ApiService.baseUrl.replaceFirst('/api', '');
-    debugPrint('[ChatScreen] Connecting to socket: $socketUrl');
-
-    socket = io.io(socketUrl, io.OptionBuilder()
+    debugPrint('[ChatScreen] Connecting to socket: ${Config.socketBaseUrl}');
+    socket = io.io(Config.socketBaseUrl, io.OptionBuilder()
       .setTransports(['websocket'])
       .setQuery({'token': token})
       .build());

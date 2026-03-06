@@ -206,7 +206,7 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
                                 style: AppTextStyles.h3.copyWith(
                                   fontWeight: FontWeight.w900,
                                   height: 1.0,
-                                  color: AppColors.textPrimary,
+                                  color: theme.colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -284,7 +284,7 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
                                       : config.motivationalMessage,
                                   style: AppTextStyles.h4.copyWith(
                                     fontSize: 14,
-                                    color: AppColors.textPrimary,
+                                    color: theme.colorScheme.onSurface,
                                     fontWeight: FontWeight.w900,
                                     height: 1.1,
                                   ),
@@ -338,7 +338,7 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
                                     'STUDENT ID: ${widget.userId?.substring(0, math.min(10, widget.userId?.length ?? 0)) ?? "ERANK-GUEST"}',
                                     style: AppTextStyles.captionSmall.copyWith(
                                       fontWeight: FontWeight.w900,
-                                      color: AppColors.textSecondary,
+                                      color: theme.colorScheme.onSurface.withOpacity(0.7),
                                       letterSpacing: 0.5,
                                       fontSize: 9,
                                     ),
@@ -351,7 +351,7 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
                                 style: AppTextStyles.captionSmall.copyWith(
                                   fontSize: 8,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary.withOpacity(0.5),
+                                  color: theme.colorScheme.onSurface.withOpacity(0.4),
                                 ),
                               ),
                             ],
@@ -359,9 +359,9 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> with SingleTickerProv
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDark ? theme.colorScheme.surface : Colors.white,
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: config.primaryColor.withOpacity(0.2)),
+                              border: Border.all(color: config.primaryColor.withOpacity(0.4)),
                               boxShadow: [
                                 BoxShadow(
                                   color: config.primaryColor.withOpacity(0.1),

@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -59,7 +59,7 @@ export class PaymentsService implements OnModuleInit {
                     where: { user: { id: user.id }, couponCode: couponCode.toUpperCase(), status: 'COMPLETED' }
                 });
                 if (couponUsed) {
-                    throw new Error('You have already used this coupon code.');
+                    throw new BadRequestException('You have already used this coupon code.');
                 }
 
                 // Determine discount
@@ -75,7 +75,8 @@ export class PaymentsService implements OnModuleInit {
                     finalPrice = finalPrice - discountAmount;
                 }
             } catch (error) {
-                throw new Error(`Invalid Coupon: ${error.message}`);
+                if (error instanceof BadRequestException) throw error;
+                throw new BadRequestException(`Invalid Coupon: ${error.message}`);
             }
         }
 
@@ -154,7 +155,7 @@ export class PaymentsService implements OnModuleInit {
                     }
                 });
                 if (couponUsed) {
-                    throw new Error('You have already used this coupon code.');
+                    throw new BadRequestException('You have already used this coupon code.');
                 }
 
                 const coupon = await this.marketingService.validateCoupon(couponCode, user.userId || user.id);
@@ -168,7 +169,8 @@ export class PaymentsService implements OnModuleInit {
                     finalPrice = finalPrice - discountAmount;
                 }
             } catch (error) {
-                throw new Error(`Invalid Coupon: ${error.message}`);
+                if (error instanceof BadRequestException) throw error;
+                throw new BadRequestException(`Invalid Coupon: ${error.message}`);
             }
         }
 

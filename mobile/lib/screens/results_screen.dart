@@ -352,45 +352,26 @@ class _ResultsScreenState extends State<ResultsScreen> {
             const SizedBox(height: 32),
             
             // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      // Navigate back to test (retake)
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Retake Test'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      side: BorderSide(color: Colors.grey.shade300),
-                    ),
-                  ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                   Navigator.push(
+                     context,
+                     MaterialPageRoute(
+                       builder: (_) => SolutionExplorerScreen(attemptId: widget.attemptId),
+                     ),
+                   );
+                },
+                icon: const Icon(Icons.reviews_outlined),
+                label: const Text('Review Questions'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                       Navigator.push(
-                         context,
-                         MaterialPageRoute(
-                           builder: (_) => SolutionExplorerScreen(attemptId: widget.attemptId),
-                         ),
-                       );
-                    },
-                    icon: const Icon(Icons.reviews_outlined),
-                    label: const Text('Review Questions'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
             const SizedBox(height: 12),
             if (videoUrl != null && videoUrl!.isNotEmpty) ...[

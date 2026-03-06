@@ -367,24 +367,19 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme.dark(
-      primary: AppColors.primaryBlue,
+      primary: AppColors.primaryLight, // Brighter blue for dark mode
+      onPrimary: Colors.white,
       secondary: AppColors.primaryLight,
-      surface: const Color(0xFF1E293B), // Slate 800
-      error: AppColors.errorDark,
+      surface: const Color(0xFF1E293B),
+      error: AppColors.errorBorder,
     ),
     scaffoldBackgroundColor: const Color(0xFF0F172A),
-    cardTheme: CardThemeData(
-      color: const Color(0xFF1E293B),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        side: const BorderSide(color: Color(0xFF334155), width: 1.5),
-      ),
-    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFF0F172A),
+      foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: false,
+      scrolledUnderElevation: 0,
       titleTextStyle: TextStyle(
         fontSize: 22,
         fontWeight: FontWeight.w900,
@@ -395,15 +390,69 @@ class AppTheme {
         bottom: BorderSide(color: Color(0xFF1E293B), width: 1),
       ),
     ),
+    cardTheme: CardThemeData(
+      color: const Color(0xFF1E293B),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        side: const BorderSide(color: Color(0xFF334155), width: 1.5),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF1E293B),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderSide: const BorderSide(color: Color(0xFF334155)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderSide: const BorderSide(color: Color(0xFF334155)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderSide: const BorderSide(color: AppColors.primaryLight, width: 2),
+      ),
+      hintStyle: const TextStyle(color: Colors.white38),
+    ),
+    dividerColor: const Color(0xFF334155),
+    tabBarTheme: TabBarThemeData(
+      labelColor: Colors.white,
+      unselectedLabelColor: Colors.white54,
+      indicatorSize: TabBarIndicatorSize.tab,
+      indicator: BoxDecoration(
+        color: AppColors.primaryBlue,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.2),
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+    ),
     navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: const Color(0xFF0F172A),
-        indicatorColor: AppColors.primaryBlue,
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-                return const IconThemeData(color: Colors.white, size: 28);
-            }
-            return const IconThemeData(color: Colors.white54, size: 24);
-        }),
+      backgroundColor: const Color(0xFF0F172A),
+      height: 70,
+      elevation: 0,
+      indicatorColor: AppColors.primaryBlue,
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return const IconThemeData(color: Colors.white, size: 28);
+        }
+        return const IconThemeData(color: Colors.white54, size: 24);
+      }),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return AppTextStyles.captionSmall.copyWith(
+            color: AppColors.primaryLight,
+            fontWeight: FontWeight.w900,
+            fontSize: 11,
+          );
+        }
+        return AppTextStyles.captionSmall.copyWith(
+          color: Colors.white54,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        );
+      }),
     ),
   );
 }

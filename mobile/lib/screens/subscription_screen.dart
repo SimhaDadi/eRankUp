@@ -134,7 +134,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       final response = await apiService.post('/passes/create-order', payload);
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         if (data['isFree'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Free trial activated successfully!')),
@@ -167,11 +166,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         };
 
         _razorpay.open(options);
+      } else {
+        final error = jsonDecode(response.body);
+        final errorMsg = error['message'] ?? 'Failed to initiate purchase';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+        );
       }
     } catch (e) {
       debugPrint('Error initiating purchase: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString().contains('Invalid Coupon') ? e.toString() : 'Failed to initiate purchase. Please try again.'}')),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }

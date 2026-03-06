@@ -497,7 +497,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(
                   'VIEW ALL',
                   style: AppTextStyles.captionSmall.copyWith(
-                    color: AppColors.primaryBlue,
+                    color: isDark ? theme.colorScheme.primary : AppColors.primaryBlue,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.8,
                   ),

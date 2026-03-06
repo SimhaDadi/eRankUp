@@ -134,8 +134,10 @@ export default function AIChatInterface() {
             await api.delete(`/ai-chat/conversation/${id}`);
             if (conversationId === id) startNewChat();
             fetchConversations();
+            alert('Conversation deleted');
         } catch (error) {
             console.error('Failed to delete conversation', error);
+            alert('Failed to delete conversation');
         }
     };
 

@@ -312,7 +312,17 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   Widget _buildAttemptCard(Map<String, dynamic> attempt) {
     final score = (attempt['score'] as num?)?.round() ?? 0;
     final model = attempt['model'] as Map<String, dynamic>?;
-    final modelTitle = model?['title'] ?? 'Unknown Test';
+    final exam = attempt['exam'] as Map<String, dynamic>?;
+    
+    String modelTitle = model?['title'] ?? exam?['title'] ?? 'Practice Session';
+    
+    // If it's a chapter-specific practice, try to get chapter name
+    if (modelTitle == 'Practice Session' && model?['chapter'] != null) {
+      modelTitle = 'Practice: ${model!['chapter']['title']}';
+    } else if (modelTitle == 'Practice Session' && exam == null && model == null) {
+       // Fallback for purely dynamic sessions
+       modelTitle = 'AI Practice Session';
+    }
     final createdAt = attempt['createdAt'] as String?;
     final correct = attempt['correctAnswers'] ?? 0;
     final total = attempt['totalQuestions'] ?? 0;
@@ -335,8 +345,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             height: 60,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: Theme.of(context).brightness == Brightness.dark 
-                  ? [const Color(0xFF1E40AF), const Color(0xFF1E3A8A)]
+                colors: isDark 
+                  ? [theme.colorScheme.primary, theme.colorScheme.primary.withOpacity(0.7)]
                   : [Colors.blue.shade400, Colors.blue.shade600],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -369,15 +379,23 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '$correct/$total Correct',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.white60 : Colors.grey.shade600,
-                  ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    _buildAttemptStat(
+                      Icons.check_circle_outline,
+                      '$correct/$total Correct',
+                      isDark ? Colors.white60 : Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 12),
+                    _buildAttemptStat(
+                      Icons.bolt,
+                      '${attempt['accuracy']?.round() ?? 0}% Acc.',
+                      Colors.orange,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   _formatDate(createdAt),
                   style: TextStyle(
@@ -391,6 +409,23 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           Icon(Icons.chevron_right, color: isDark ? Colors.white24 : Colors.grey.shade400),
         ],
       ),
+    );
+  }
+
+  Widget _buildAttemptStat(IconData icon, String label, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 12, color: color.withOpacity(0.8)),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }

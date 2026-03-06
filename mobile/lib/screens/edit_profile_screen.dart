@@ -90,6 +90,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  Future<void> _selectDate(BuildContext context) async {
+    DateTime initialDate = DateTime.now().subtract(const Duration(days: 365 * 18));
+    if (_dobController.text.isNotEmpty) {
+      try {
+        initialDate = DateTime.parse(_dobController.text);
+      } catch (_) {}
+    }
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primaryBlue,
+              onPrimary: Colors.white,
+              onSurface: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _dobController.text = picked.toIso8601String().split('T')[0];
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -99,6 +133,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       appBar: AppBar(
         title: const Text('Edit Profile'),
         elevation: 0,
+        actions: [
+          if (!_isLoading)
+            TextButton(
+              onPressed: _handleSave,
+              child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -138,11 +179,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              _buildFieldHeader('Date of Birth (YYYY-MM-DD)'),
-              TextFormField(
-                controller: _dobController,
-                decoration: _buildInputDecoration('YYYY-MM-DD', Icons.calendar_today_outlined),
-                keyboardType: TextInputType.datetime,
+              _buildFieldHeader('Date of Birth'),
+              GestureDetector(
+                onTap: () => _selectDate(context),
+                child: AbsorbPointer(
+                  child: TextFormField(
+                    controller: _dobController,
+                    decoration: _buildInputDecoration('Select your birth date', Icons.calendar_today_outlined),
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        try {
+                          DateTime.parse(value);
+                        } catch (e) {
+                          return 'Invalid date format (YYYY-MM-DD)';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -155,7 +210,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
               _buildFieldHeader('Category'),
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                value: _categories.contains(_selectedCategory) ? _selectedCategory : null,
+                isExpanded: true,
+                icon: const Icon(Icons.arrow_drop_down_circle_outlined, size: 20),
                 decoration: _buildInputDecoration('Select Category', Icons.tag_outlined),
                 items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                 onChanged: (val) => setState(() => _selectedCategory = val),
@@ -172,7 +229,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               _buildFieldHeader('Default Language'),
               DropdownButtonFormField<String>(
                 value: _selectedLanguage,
-                decoration: _buildInputDecoration('Select Language', Icons.language_outlined),
+                isExpanded: true,
+                icon: const Icon(Icons.language_outlined, size: 20),
+                decoration: _buildInputDecoration('Select Language', Icons.translate_outlined),
                 items: _languages.map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
                 onChanged: (val) => setState(() => _selectedLanguage = val),
               ),

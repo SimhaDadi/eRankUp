@@ -113,13 +113,13 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
         
         _razorpay.open(options);
       } else {
-        Fluttertoast.showToast(msg: "Failed to create order");
+        final error = jsonDecode(response.body);
+        final errorMsg = error['message'] ?? 'Failed to create order';
+        Fluttertoast.showToast(msg: errorMsg, backgroundColor: Colors.red);
       }
     } catch (e) {
-      final errorMsg = e.toString().contains('Invalid Coupon') 
-        ? e.toString() 
-        : "Error: $e";
-      Fluttertoast.showToast(msg: errorMsg, backgroundColor: Colors.red);
+      debugPrint('Error: $e');
+      Fluttertoast.showToast(msg: "Error: $e", backgroundColor: Colors.red);
     }
   }
 

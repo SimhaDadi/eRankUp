@@ -43,11 +43,23 @@ class _AIChatScreenState extends State<AIChatScreen> {
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
       final response = await apiService.deleteAIConversation(id);
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Conversation deleted')),
+        );
         _fetchConversations();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete conversation')),
+        );
       }
     } catch (e) {
       debugPrint('Error deleting conversation: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 

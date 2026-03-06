@@ -5,6 +5,7 @@ import '../config/config.dart';
 
 class ApiService {
   static String get baseUrl => Config.apiBaseUrl;
+  bool _isRefreshing = false;
 
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -18,6 +19,29 @@ class ApiService {
 
   Future<Map<String, dynamic>?> getUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
+    
+    try {
+      // Attempt to fetch fresh profile from server
+      final response = await get('/users/profile');
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        
+        // Update local cache
+        await prefs.setString('user_profile', jsonEncode(userData));
+        if (userData['fullName'] != null) {
+          await prefs.setString('user_name', userData['fullName']);
+        }
+        if (userData['email'] != null) {
+          await prefs.setString('user_email', userData['email']);
+        }
+        
+        return userData;
+      }
+    } catch (e) {
+      print('Error fetching remote profile: $e');
+    }
+
+    // Fallback to local cache if server is unreachable or fails
     final userJson = prefs.getString('user_profile');
     if (userJson != null) {
       return jsonDecode(userJson);
@@ -34,87 +58,113 @@ class ApiService {
   }
 
   Future<http.Response> get(String endpoint) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = await _getHeaders();
-    final response = await http.get(url, headers: headers);
-    
-    // Handle 401 Unauthorized
-    if (response.statusCode == 401) {
-      await logout();
-      throw Exception('Session expired. Please login again.');
-    }
-    
-    return response;
+    return _requestWithRefresh(() async {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      return await http.get(url, headers: headers);
+    });
   }
 
   Future<http.Response> post(String endpoint, dynamic body) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = await _getHeaders();
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: jsonEncode(body),
-    );
-    
-    // Handle 401 Unauthorized
-    if (response.statusCode == 401) {
-      await logout();
-      throw Exception('Session expired. Please login again.');
-    }
-    
-    return response;
+    return _requestWithRefresh(() async {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      return await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(body),
+      );
+    });
   }
 
   Future<http.Response> patch(String endpoint, dynamic body) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = await _getHeaders();
-    final response = await http.patch(
-      url,
-      headers: headers,
-      body: jsonEncode(body),
-    );
-    
-    if (response.statusCode == 401) {
-      await logout();
-      throw Exception('Session expired. Please login again.');
-    }
-    
-    return response;
+    return _requestWithRefresh(() async {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      return await http.patch(
+        url,
+        headers: headers,
+        body: jsonEncode(body),
+      );
+    });
   }
 
   Future<http.Response> delete(String endpoint) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = await _getHeaders();
-    final response = await http.delete(url, headers: headers);
+    return _requestWithRefresh(() async {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final headers = await _getHeaders();
+      return await http.delete(url, headers: headers);
+    });
+  }
+
+  Future<http.Response> uploadFile(String endpoint, String filePath, String fieldName) async {
+    return _requestWithRefresh(() async {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final token = await getToken();
+      
+      final request = http.MultipartRequest('POST', url);
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      
+      request.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+      
+      final streamedResponse = await request.send();
+      return await http.Response.fromStream(streamedResponse);
+    });
+  }
+
+  Future<http.Response> _requestWithRefresh(Future<http.Response> Function() request) async {
+    final response = await request();
     
     if (response.statusCode == 401) {
-      await logout();
-      throw Exception('Session expired. Please login again.');
+      final success = await _refreshToken();
+      if (success) {
+        return await request();
+      } else {
+        await logout();
+        throw Exception('Session expired. Please login again.');
+      }
     }
     
     return response;
   }
 
-  Future<http.Response> uploadFile(String endpoint, String filePath, String fieldName) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final token = await getToken();
+  Future<bool> _refreshToken() async {
+    if (_isRefreshing) return false;
+    _isRefreshing = true;
     
-    final request = http.MultipartRequest('POST', url);
-    if (token != null) {
-      request.headers['Authorization'] = 'Bearer $token';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final refreshToken = prefs.getString('refresh_token');
+      final userId = prefs.getString('user_id');
+      
+      if (refreshToken == null || userId == null) return false;
+      
+      final url = Uri.parse('$baseUrl/auth/refresh');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'refreshToken': refreshToken,
+        }),
+      );
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        await prefs.setString('jwt_token', data['access_token']);
+        if (data['refresh_token'] != null) {
+          await prefs.setString('refresh_token', data['refresh_token']);
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    } finally {
+      _isRefreshing = false;
     }
-    
-    request.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
-    
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-    
-    if (response.statusCode == 401) {
-      await logout();
-      throw Exception('Session expired. Please login again.');
-    }
-    
-    return response;
   }
 
   Future<bool> updateProfile(Map<String, dynamic> data) async {
@@ -186,10 +236,14 @@ class ApiService {
 
   Future<void> _saveSession(Map<String, dynamic> data) async {
     final token = data['access_token'];
+    final refreshToken = data['refresh_token'];
     final user = data['user'];
     
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('jwt_token', token);
+    if (refreshToken != null) {
+      await prefs.setString('refresh_token', refreshToken);
+    }
     await prefs.setString('user_id', user['id']);
     await prefs.setString('user_profile', jsonEncode(user));
     await prefs.setString('user_name', user['fullName'] ?? '');
@@ -200,6 +254,7 @@ class ApiService {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
+    await prefs.remove('refresh_token');
     await prefs.remove('user_id');
     await prefs.remove('user_profile');
     await prefs.remove('user_name');
@@ -226,8 +281,28 @@ class ApiService {
   }
 
   Future<http.Response> deleteAIConversation(String id) async {
-    final url = Uri.parse('$baseUrl/ai-chat/conversation/$id');
-    final headers = await _getHeaders();
-    return http.delete(url, headers: headers);
+    return delete('/ai-chat/conversation/$id');
+  }
+
+  // --- Community Methods ---
+
+  Future<http.Response> createCommunityPost(String content, {String? category, String? imageUrl}) async {
+    return post('/community/posts', {
+      'content': content,
+      if (category != null) 'category': category,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+    });
+  }
+
+  Future<http.Response> toggleLike(String postId) async {
+    return post('/community/posts/$postId/like', {});
+  }
+
+  Future<http.Response> getPostComments(String postId) async {
+    return get('/community/posts/$postId/comments');
+  }
+
+  Future<http.Response> addPostComment(String postId, String content) async {
+    return post('/community/posts/$postId/comments', {'content': content});
   }
 }

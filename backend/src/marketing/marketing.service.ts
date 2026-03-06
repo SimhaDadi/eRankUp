@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { Coupon } from './entities/coupon.entity';
@@ -43,10 +43,10 @@ export class MarketingService {
     async validateCoupon(code: string, _userId?: string) {
         const coupon = await this.couponRepository.findOne({ where: { code: code.toUpperCase() } });
 
-        if (!coupon) throw new Error('Invalid code');
-        if (!coupon.isActive) throw new Error('Coupon is inactive');
-        if (new Date() > coupon.expiresAt) throw new Error('Coupon expired');
-        if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) throw new Error('Usage limit reached');
+        if (!coupon) throw new BadRequestException('Invalid code');
+        if (!coupon.isActive) throw new BadRequestException('Coupon is inactive');
+        if (new Date() > coupon.expiresAt) throw new BadRequestException('Coupon expired');
+        if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) throw new BadRequestException('Usage limit reached');
 
         // Future: Check if this user already used this coupon (requires generic Usage entity or similar)
 

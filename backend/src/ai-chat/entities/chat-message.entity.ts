@@ -9,7 +9,7 @@ export class AIChatMessage {
     @Column({ type: 'uuid' })
     conversationId: string;
 
-    @ManyToOne(() => ChatConversation, conversation => conversation.messages)
+    @ManyToOne(() => ChatConversation, conversation => conversation.messages, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'conversationId' })
     conversation: ChatConversation;
 

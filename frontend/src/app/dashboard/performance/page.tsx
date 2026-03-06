@@ -52,7 +52,7 @@ export default function PerformancePage() {
                     const formatted = trendRes.data.map((item: any) => ({
                         id: item.id,
                         date: new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-                        title: item.exam?.title || item.model?.title || 'Practice Module',
+                        title: item.model?.title || item.exam?.title || (item.model?.chapter?.title ? `Practice: ${item.model.chapter.title}` : 'Dynamic Practice'),
                         score: item.score,
                         accuracy: item.accuracy,
                         time: Math.round(item.timeTaken / 60)
