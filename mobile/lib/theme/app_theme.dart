@@ -217,10 +217,11 @@ class AppSpacing {
   
   // Border radius - Sharper for "Institutional" look
   static const double radiusSm = 6.0;
-  static const double radiusMd = 12.0; // Sharp but premium
-  static const double radiusLg = 14.0; // The "Golden Ratio" for institutional cards
-  static const double radiusXl = 16.0; 
-  static const double radiusXxl = 24.0;
+  static const double radiusMd = 16.0; // Softer premium look
+  static const double radiusLg = 20.0; // The "Golden Ratio" for institutional cards
+  static const double radiusXl = 24.0; 
+  static const double radiusXxl = 32.0;
+  static const double radiusPill = 100.0;
   
   // Icon sizes
   static const double iconSm = 16.0;
@@ -246,9 +247,9 @@ class AppShadows {
   
   static const medium = [
     BoxShadow(
-      color: Color(0x141E40AF), // Tinted Blue for Institutional Feel
-      blurRadius: 12,
-      offset: Offset(0, 6),
+      color: Color(0x0F1E40AF), // Tinted Blue for Institutional Feel
+      blurRadius: 16,
+      offset: Offset(0, 8),
     ),
     BoxShadow(
       color: Color(0x0A000000),
