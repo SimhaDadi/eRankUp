@@ -1,7 +1,7 @@
 class Config {
   // Environment: 'dev', 'staging', 'prod'
   static const String environment = String.fromEnvironment('ENV', defaultValue: 'dev');
-  static const String googleClientId = '571146736016-lt5qjp0bo9spik10f586p7mqkv8760a5.apps.googleusercontent.com';
+  static const String googleClientId = '1094169812247-4nd4e2jisikk8ioau6scriv40ab5qgsk.apps.googleusercontent.com';
 
   // API Base URLs for different environments
   static const Map<String, String> _apiBaseUrls = {
