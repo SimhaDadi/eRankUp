@@ -262,12 +262,15 @@ class _HomeScreenState extends State<HomeScreen> {
     String greeting = 'Good Afternoon';
     String emoji = '☀️';
     
-    if (hour < 12) {
+    if (hour < 4 || hour > 21) {
+      greeting = 'Good Night';
+      emoji = '🌙';
+    } else if (hour < 12) {
       greeting = 'Good Morning';
       emoji = '🌅';
     } else if (hour >= 17) {
       greeting = 'Good Evening';
-      emoji = '🌙';
+      emoji = '🌃';
     }
 
     final userName = _user?['fullName']?.split(' ')[0] ?? 'dadi';
