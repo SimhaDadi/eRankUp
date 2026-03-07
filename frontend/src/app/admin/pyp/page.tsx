@@ -160,15 +160,10 @@ export default function PreviousYearPapersPage() {
                                 </button>
                             </div>
 
-                            <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-start mb-4">
                                 <div className="w-12 h-12 bg-amber-500/10 rounded-lg flex items-center justify-center border border-amber-500/20">
                                     <FileText className="w-6 h-6 text-amber-500" />
                                 </div>
-                                {paper.createdAt && (
-                                    <span className="px-3 py-1 bg-slate-800 text-slate-400 text-xs font-bold rounded-full border border-slate-700">
-                                        {new Date(paper.createdAt).getFullYear()}
-                                    </span>
-                                )}
                             </div>
 
                             <h3 className="text-lg font-bold text-white mb-1 line-clamp-2 min-h-[56px] pr-16">{paper.title}</h3>
@@ -177,8 +172,37 @@ export default function PreviousYearPapersPage() {
                             <div className="space-y-2 mb-6 border-t border-slate-800 pt-4">
                                 <div className="flex items-center gap-2 text-sm text-slate-400">
                                     <Calendar className="w-4 h-4 text-slate-500" />
-                                    <span>Added {new Date(paper.createdAt).toLocaleDateString()}</span>
+                                    <span>
+                                        {paper.startTime
+                                            ? new Date(paper.startTime).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                                            : `Added ${new Date(paper.createdAt).toLocaleDateString()}`}
+                                    </span>
+                                    {paper.createdAt && (
+                                        <span className="ml-auto px-2 py-0.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-full border border-slate-700">
+                                            {new Date(paper.startTime || paper.createdAt).getFullYear()}
+                                        </span>
+                                    )}
                                 </div>
+                                {(paper.metadata?.shiftLabel || (paper.startTime && paper.endTime)) && (
+                                    <div className="flex items-center gap-2 text-sm text-slate-400">
+                                        <span className="w-4 h-4 text-slate-500 text-center text-xs">⏰</span>
+                                        <span>
+                                            {paper.metadata?.shiftLabel && <span className="text-amber-400 font-semibold mr-1">{paper.metadata.shiftLabel}</span>}
+                                            {paper.startTime && paper.endTime && (
+                                                <span>
+                                                    {new Date(paper.startTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} –{' '}
+                                                    {new Date(paper.endTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
+                                {paper.metadata?.cenNumber && (
+                                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                                        <span className="w-4 h-4 text-center text-xs">📋</span>
+                                        <span className="font-mono text-xs">{paper.metadata.cenNumber}</span>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-2 text-sm text-slate-400">
                                     <BookOpen className="w-4 h-4 text-slate-500" />
                                     <span>{paper.questionCount || 0} Questions</span>
