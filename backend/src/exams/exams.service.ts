@@ -237,7 +237,14 @@ export class ExamsService implements OnApplicationBootstrap {
                         const positiveMarks = model.positiveMarks ?? exam.defaultPositiveMarks ?? 1;
                         const negativeMarks = model.negativeMarks ?? exam.defaultNegativeMarks ?? 0;
                         const totalMarks = (model.totalQuestions || 0) * positiveMarks;
-                        const duration = (model.duration === 60 && exam.duration !== 60) ? exam.duration : model.duration;
+                        let duration = (model.duration === 60 && exam.duration !== 60) ? exam.duration : model.duration;
+
+                        // [FIX] Dynamically calculate duration for Chapter Tests
+                        // If it's a chapter wise test and still on the default 60, scale based on questions
+                        if (exam.type === 'chapter_wise_test' && duration === 60) {
+                            const qCount = model.totalQuestions || (model.questions ? model.questions.length : 0);
+                            duration = qCount > 0 ? qCount * 1 : 60; // 1 minute per question
+                        }
 
                         model.positiveMarks = positiveMarks;
                         model.negativeMarks = negativeMarks;
@@ -340,6 +347,13 @@ export class ExamsService implements OnApplicationBootstrap {
                 if (parentExam.duration && parentExam.duration !== 60) {
                     console.log(`[DEBUG] findModel: Inheriting duration ${parentExam.duration} from Exam ${parentExam.title}`);
                     model.duration = parentExam.duration;
+                } else if (parentExam.type === 'chapter_wise_test') {
+                    // [FIX] Dynamically calculate duration for Chapter Tests (1 min per question)
+                    const qCount = model.questions?.length ?? 0;
+                    if (qCount > 0) {
+                        model.duration = qCount * 1;
+                        console.log(`[DEBUG] findModel: Dynamically calculated duration ${model.duration} for Chapter Wise Test`);
+                    }
                 }
             }
         }
