@@ -96,6 +96,8 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
           }
           if (data['flags'] != null) {
             _flaggedIds = Set<String>.from(data['flags']);
+          }
+          
           // Read duration from backend (check for both seconds and minutes format)
           if (data['durationSeconds'] != null) {
               _timeLeft = data['durationSeconds']; // Backend usually provides total seconds
