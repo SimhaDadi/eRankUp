@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, JoinTable } from 'typeorm';
+import { Expose } from 'class-transformer';
 import { Chapter } from './chapter.entity';
 import { Question } from './question.entity';
 import { Exam } from './exam.entity';
@@ -64,7 +65,9 @@ export class Model {
     questions: Question[];
 
     @ManyToMany(() => Exam, (exam) => exam.models)
+    @JoinTable({ name: 'exam_models' })
     exams: Exam[];
 
+    @Expose()
     totalMarks?: number;
 }

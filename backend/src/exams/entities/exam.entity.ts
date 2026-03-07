@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany, JoinTable, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Expose } from 'class-transformer';
 import { Model } from './model.entity';
 import { Subject } from './subject.entity';
 import { Question } from './question.entity';
@@ -91,7 +92,9 @@ export class Exam {
 
     directQuestionCount?: number;
 
+    @Expose()
     chapters?: any[];
 
+    @Expose()
     hasPurchased?: boolean;
 }
