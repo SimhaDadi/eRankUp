@@ -3,6 +3,7 @@ import 'package:confetti/confetti.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:ui';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -137,6 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ? _buildLoadingState() 
           : Stack(
               children: [
+
                 // Main Content
                 SafeArea(
                   child: RefreshIndicator(
@@ -151,19 +153,29 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Top Hero Layer
                           Stack(
                             children: [
-                              // 1. Hero Background Gradient (Now part of scroll)
-                              Container(
-                                height: 280,
-                                width: double.infinity,
-                                decoration: const BoxDecoration(
-                                  gradient: AppColors.heroGradient,
-                                  borderRadius: BorderRadius.only(
-                                    bottomLeft: Radius.circular(AppSpacing.radiusXxl),
-                                    bottomRight: Radius.circular(AppSpacing.radiusXxl),
+                              // 1. Hero Background — clean blue gradient for just the header
+                              ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(AppSpacing.radiusXxl),
+                                  bottomRight: Radius.circular(AppSpacing.radiusXxl),
+                                ),
+                                child: Container(
+                                  height: 290,
+                                  width: double.infinity,
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Color(0xFF1A3A8A), // Royal Blue top
+                                        Color(0xFF2456C8), // Mid bright blue
+                                        Color(0xFF3A7BD5), // Lighter blue at bottom
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
                                   ),
                                 ),
                               ),
-                              // 2. Header and Daily Goal (Layered over background)
+                              // 2. Header and Daily Goal (Layered over glass)
                               Column(
                                 children: [
                                   _buildHeader(),
@@ -395,17 +407,14 @@ class _HomeScreenState extends State<HomeScreen> {
       width: 320,
       margin: const EdgeInsets.only(right: AppSpacing.md),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color, color.withBlue(color.blue + 30).withRed(color.red + 10)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppColors.darkNavy, // Glassmorphic base
+        border: Border.all(color: color.withOpacity(0.5), width: 2), // Neon outline
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: color.withOpacity(0.2), // Subtle glow behind card
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -557,43 +566,44 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
-    // Rich Institutional Colors (Deep & Saturated)
+    // Vivid Gamified Gradients (Duolingo style)
     final List<Color> gradientColors;
-    if (color.value == 0xFF1E40AF) { // Deep Blue
-      gradientColors = [const Color(0xFF1E3A8A), const Color(0xFF1E40AF)];
-    } else if (color.value == 0xFF10B981) { // Emerald
-      gradientColors = [const Color(0xFF065F46), const Color(0xFF059669)];
-    } else if (color.value == 0xFFF59E0B) { // Amber
-      gradientColors = [const Color(0xFFB45309), const Color(0xFFD97706)];
-    } else if (color.value == 0xFF8B5CF6) { // Violet
-      gradientColors = [const Color(0xFF5B21B6), const Color(0xFF7C3AED)];
+    if (color == AppColors.primaryBlue) { 
+      gradientColors = [const Color(0xFF3366FF), const Color(0xFF00E5FF)]; // Blue to Cyan
+    } else if (color.value == 0xFF10B981) { 
+      gradientColors = [const Color(0xFF00C896), const Color(0xFF00FFC2)]; // Mint Neon
+    } else if (color.value == 0xFFF59E0B) { 
+      gradientColors = [const Color(0xFFFF6B00), const Color(0xFFFFB300)]; // Orange Sunset
+    } else if (color.value == 0xFF8B5CF6) { 
+      gradientColors = [const Color(0xFFA200FF), const Color(0xFFFF007F)]; // Purple Cyber
     } else {
-      gradientColors = [color.withOpacity(0.9), color];
+      gradientColors = [color.withBlue(color.blue + 40), color];
     }
 
     return PremiumCard(
       padding: EdgeInsets.zero,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd), // 24.0 now
       onTap: onTap ?? () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
       },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: gradientColors,
           ),
           border: Border.all(
-            color: Colors.white.withOpacity(0.12), // Subtle inner glow
-            width: 1.5,
+            color: Colors.white.withOpacity(0.2), // Brighter inner glow
+            width: 2, // Thicker gamified border
           ),
           boxShadow: [
             BoxShadow(
-              color: gradientColors[0].withOpacity(0.4),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
+              color: gradientColors[0].withOpacity(0.5), // Stronger neon drop shadow
+              blurRadius: 20,
+              spreadRadius: -2,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -681,7 +691,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                       ),
                       child: const Icon(
-                        Icons.play_circle_outline,
+                        Icons.play_circle_fill, // Solid icon for gamified look
                         color: Colors.white,
                         size: 28,
                       ),
@@ -695,6 +705,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        border: Border.all(color: Colors.white.withOpacity(0.5)),
                       ),
                       child: Text(
                         'Last Score: $score%',
@@ -894,14 +905,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 margin: const EdgeInsets.only(right: AppSpacing.md),
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF161F3D) : Colors.white,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+                  border: Border.all(color: color.withOpacity(0.5), width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primaryBlue.withOpacity(0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      color: color.withOpacity(0.15),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),

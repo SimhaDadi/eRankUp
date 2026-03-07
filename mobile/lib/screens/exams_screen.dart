@@ -207,38 +207,46 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0A0F1E) : const Color(0xFFF4F7FF),
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.screenPadding, AppSpacing.screenPadding, AppSpacing.screenPadding, 0),
-              child: Row(
-                children: [
-                  Text('Test Series', style: AppTextStyles.h1.copyWith(color: Theme.of(context).textTheme.displayLarge?.color)),
+            // Premium Hero Banner
+            _buildHeroBanner(isDark),
+
+            // Styled Pill TabBar
+            Container(
+              color: isDark ? const Color(0xFF0A0F1E) : const Color(0xFFF4F7FF),
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                dividerColor: Colors.transparent,
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicator: BoxDecoration(
+                  color: AppColors.primaryBlue,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                ),
+                labelColor: Colors.white,
+                unselectedLabelColor: isDark ? Colors.white54 : AppColors.textSecondary,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                tabs: const [
+                  Tab(text: 'All'),
+                  Tab(text: 'Mock Tests'),
+                  Tab(text: 'PYPs'),
+                  Tab(text: 'Banks'),
+                  Tab(text: 'Chapter Tests'),
+                  Tab(text: 'Daily Quizzes'),
                 ],
               ),
             ),
 
-            // Tab Bar
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              dividerColor: Colors.transparent, // Remove line under tabs
-              tabs: const [
-                Tab(text: 'All'),
-                Tab(text: 'Mock Tests'),
-                Tab(text: 'PYPs'),
-                Tab(text: 'Banks'),
-                Tab(text: 'Chapter Tests'),
-                Tab(text: 'Daily Quizzes'),
-              ],
-            ),
-            
-            const SizedBox(height: AppSpacing.lg),
-            
+            const SizedBox(height: AppSpacing.sm),
+
             // Search Bar
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -291,8 +299,8 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
               ),
             ),
             
-            const SizedBox(height: AppSpacing.lg),
-            
+            const SizedBox(height: AppSpacing.sm),
+
             // Results Count
             if (!_isLoading)
               Padding(
@@ -307,40 +315,27 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
                         color: AppColors.textSecondary,
                       ),
                     ),
+                    const Spacer(),
+                    // Swipe hint (shown briefly)
+                    Row(
+                      children: const [
+                        Icon(Icons.swipe, size: 14, color: AppColors.textSecondary),
+                        SizedBox(width: 4),
+                        Text('Swipe to switch tabs', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      ],
+                    ),
                   ],
                 ),
               ),
             
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
             
-            // Exam List
+            // Swipeable Exam List — TabBarView synced with TabController
             Expanded(
-              child: _isLoading
-                  ? _buildLoadingState()
-                  : _filteredExams.isEmpty && !_isLoadMoreRunning
-                      ? _buildEmptyState()
-                      : RefreshIndicator(
-                          onRefresh: () => _fetchExams(refresh: true),
-                          color: AppColors.primaryBlue,
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.screenPadding,
-                            ),
-                            itemCount: _filteredExams.length + (_isLoadMoreRunning ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (index == _filteredExams.length) {
-                                return const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 20),
-                                  child: Center(child: CircularProgressIndicator()),
-                                );
-                              }
-                              return _buildEnhancedExamCard(
-                                _filteredExams[index],
-                              );
-                            },
-                          ),
-                        ),
+              child: TabBarView(
+                controller: _tabController,
+                children: List.generate(6, (_) => _buildExamListContent()),
+              ),
             ),
           ],
         ),
@@ -348,16 +343,133 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
     );
   }
 
+  // Shared list content — data is updated by _onTabChanged via controller listener
+  Widget _buildExamListContent() {
+    if (_isLoading) return _buildLoadingState();
+    if (_filteredExams.isEmpty && !_isLoadMoreRunning) return _buildEmptyState();
+
+    return RefreshIndicator(
+      onRefresh: () => _fetchExams(refresh: true),
+      color: AppColors.primaryBlue,
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.screenPadding,
+        ),
+        itemCount: _filteredExams.length + (_isLoadMoreRunning ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _filteredExams.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return _buildEnhancedExamCard(_filteredExams[index]);
+        },
+      ),
+    );
+  }
+
+
+  Widget _buildHeroBanner(bool isDark) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1A3A8A), Color(0xFF2456C8), Color(0xFF3A7BD5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(AppSpacing.radiusXl),
+          bottomRight: Radius.circular(AppSpacing.radiusXl),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenPadding, AppSpacing.xl,
+        AppSpacing.screenPadding, AppSpacing.xl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.quiz_rounded, color: Colors.white, size: 12),
+                    SizedBox(width: 5),
+                    Text(
+                      'TEST SERIES',
+                      style: TextStyle(
+                        color: Colors.white, fontSize: 10,
+                        fontWeight: FontWeight.w900, letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              // Live count badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                ),
+                child: Text(
+                  '${_filteredExams.length} Exams',
+                  style: const TextStyle(
+                    color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const Text(
+            'Test Your Knowledge',
+            style: TextStyle(
+              color: Colors.white, fontSize: 24,
+              fontWeight: FontWeight.w900, letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Mock Tests • PYPs • Chapter-wise Practice',
+            style: TextStyle(
+              color: Colors.white70, fontSize: 13, height: 1.5, fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLoadingState() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding, vertical: AppSpacing.sm),
       itemCount: 5,
       itemBuilder: (context, index) {
         return Container(
-          height: 180,
+          height: 200,
           margin: const EdgeInsets.only(bottom: AppSpacing.lg),
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF1E293B), const Color(0xFF161F3D)]
+                  : [Colors.grey.shade200, Colors.grey.shade100],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
           ),
         );
@@ -366,38 +478,56 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
   }
 
   Widget _buildEmptyState() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.search_off,
-              size: 80,
-              color: Colors.grey.shade300,
+            Container(
+              width: 90, height: 90,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1A3A8A), Color(0xFF3A7BD5)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Center(child: Text('📋', style: TextStyle(fontSize: 44))),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.xl),
             Text(
-              'No exams found',
+              'No Exams Found',
               style: AppTextStyles.h3.copyWith(
-                color: AppColors.textSecondary,
+                color: isDark ? Colors.white : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Try adjusting your search or filters',
-              style: AppTextStyles.bodySmall,
+              'Try adjusting your search or switch tabs.',
+              style: TextStyle(
+                fontSize: 13, color: isDark ? Colors.white54 : AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xl),
-            OutlinedButton(
+            OutlinedButton.icon(
               onPressed: () {
                 _searchController.clear();
                 _tabController.index = 0;
                 _onSearchChanged('');
               },
-              child: const Text('Clear Filters'),
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: const Text('Clear Filters', style: TextStyle(fontWeight: FontWeight.w700)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primaryBlue,
+                side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusPill)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
             ),
           ],
         ),
@@ -604,9 +734,70 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
                 // Stats Row
                 Row(
                   children: [
-                    _buildStat(Icons.quiz, '${exam.totalQuestions ?? 0} Qs'),
-                    const SizedBox(width: AppSpacing.lg),
-                    _buildStat(Icons.timer, '${exam.duration ?? 0} min'),
+                    _buildStat(Icons.quiz_rounded, '${exam.totalQuestions ?? 0} Qs'),
+                    const SizedBox(width: AppSpacing.md),
+                    _buildStat(Icons.timer_rounded, '${exam.duration ?? 0} min'),
+                    const Spacer(),
+                    // CTA button
+                    GestureDetector(
+                      onTap: () {
+                        if (exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ResultsScreen(attemptId: exam.attempts!['latestAttemptId']),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder: (context, animation, secondaryAnimation) =>
+                                  ExamDetailScreen(exam: exam),
+                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                return SlideTransition(
+                                  position: Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+                                      .chain(CurveTween(curve: Curves.easeInOutCubic))
+                                      .animate(animation),
+                                  child: child,
+                                );
+                              },
+                              transitionDuration: const Duration(milliseconds: 300),
+                            ),
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0
+                                  ? 'View Result'
+                                  : 'Start Test',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                color: gradientColors[0],
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0
+                                  ? Icons.bar_chart_rounded
+                                  : Icons.play_arrow_rounded,
+                              size: 14,
+                              color: gradientColors[0],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
