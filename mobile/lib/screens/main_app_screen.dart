@@ -61,43 +61,56 @@ class _MainAppScreenState extends State<MainAppScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-            child: NavigationBar(
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                navigationBarTheme: NavigationBarThemeData(
+                  labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                    final isSelected = states.contains(WidgetState.selected);
+                    return TextStyle(
+                      fontSize: 10,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    );
+                  }),
+                ),
+              ),
+              child: NavigationBar(
               selectedIndex: _currentIndex,
               onDestinationSelected: _onTabTapped,
-              height: 65, // Slightly more compact
+              height: 60,
               backgroundColor: Colors.transparent,
               elevation: 0,
               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
               animationDuration: const Duration(milliseconds: 300),
               destinations: const [
                 NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home),
+                  icon: Icon(Icons.home_outlined, size: 22),
+                  selectedIcon: Icon(Icons.home, size: 22),
                   label: 'Home',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.quiz_outlined),
-                  selectedIcon: Icon(Icons.quiz),
+                  icon: Icon(Icons.quiz_outlined, size: 22),
+                  selectedIcon: Icon(Icons.quiz, size: 22),
                   label: 'Tests',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.auto_awesome_outlined),
-                  selectedIcon: Icon(Icons.auto_awesome),
+                  icon: Icon(Icons.auto_awesome_outlined, size: 22),
+                  selectedIcon: Icon(Icons.auto_awesome, size: 22),
                   label: 'Tutor',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.people_outline),
-                  selectedIcon: Icon(Icons.people),
+                  icon: Icon(Icons.people_outline, size: 22),
+                  selectedIcon: Icon(Icons.people, size: 22),
                   label: 'Community',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
+                  icon: Icon(Icons.person_outline, size: 22),
+                  selectedIcon: Icon(Icons.person, size: 22),
                   label: 'Profile',
                 ),
               ],
             ),
-          ),
+          ), // closes Theme
+          ), // closes ClipRRect
         ),
       ),
     );
