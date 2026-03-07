@@ -82,9 +82,26 @@ class _ResultsScreenState extends State<ResultsScreen> {
     }
 
     final model = _results?['model'] as Map<String, dynamic>?;
+    final exam = _results?['exam'] as Map<String, dynamic>?;
     final exams = model?['exams'] as List?;
-    final examTitle = exams?.isNotEmpty == true ? exams![0]['title'] : 'Test';
-    final modelTitle = model?['title'] ?? 'Unknown Test';
+    
+    String examTitle = 'Practice Test';
+    if (exam != null && exam['title'] != null) {
+      examTitle = exam['title'];
+    } else if (exams != null && exams.isNotEmpty && exams[0]['title'] != null) {
+      examTitle = exams[0]['title'];
+    }
+
+    String modelTitle = model?['title'] ?? 'Unknown Test';
+    
+    if (modelTitle == 'Unknown Test' && model?['chapter'] != null) {
+      modelTitle = 'Practice: ${model!['chapter']['title']}';
+    } else if (modelTitle == 'Unknown Test' && exam != null && exam['title'] != null) {
+       modelTitle = exam['title'];
+    } else if (modelTitle == 'Unknown Test' && exam == null && model == null) {
+       modelTitle = 'AI Practice Session';
+    }
+
     final createdAt = _results?['createdAt'] as String?;
     
     final insights = _results?['insights'];
