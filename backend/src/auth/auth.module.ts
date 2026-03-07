@@ -20,7 +20,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
                 if (!secret) throw new Error('JWT_SECRET environment variable is missing');
                 return {
                     secret,
-                    signOptions: { expiresIn: '1d' },
+                    signOptions: { expiresIn: '7d' },
                 };
             },
             inject: [ConfigService],
