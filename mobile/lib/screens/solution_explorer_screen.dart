@@ -318,7 +318,7 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                             label: 'YOU',
                             value: '${timeSpent}s',
                             color: AppColors.textPrimary,
-                            bgColor: isDark ? const Color(0xFF1E293B) : Colors.slate.shade50,
+                            bgColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC), // Slate 50
                           ),
                           if (avgTopperTime > 0) ...[
                             const SizedBox(width: 8),
@@ -1046,9 +1046,9 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                     textColor = Colors.red.shade700;
                     borderC = Colors.red.shade200;
                   } else {
-                    bgColor = Colors.slate.shade50;
-                    textColor = Colors.slate.shade500;
-                    borderC = Colors.slate.shade200;
+                    bgColor = const Color(0xFFF8FAFC); // Slate 50
+                    textColor = const Color(0xFF64748B); // Slate 500
+                    borderC = const Color(0xFFE2E8F0); // Slate 200
                   }
 
                   return InkWell(
