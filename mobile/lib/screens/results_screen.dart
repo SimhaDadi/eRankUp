@@ -433,7 +433,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
             const SizedBox(height: 32),
             
             // Topper Comparison
-            TopperComparisonWidget(userScore: score),
+            if (topicAnalysis != null && topicAnalysis.isNotEmpty)
+              TopperComparisonWidget(topicAnalysis: topicAnalysis),
             
             const SizedBox(height: 32),
             

@@ -14,6 +14,25 @@ interface TopperComparisonProps {
 }
 
 export default function TopperComparison({ stats }: TopperComparisonProps) {
+    let insightMessage: React.ReactNode = "Keep practicing to close the gap with the top scorers!";
+
+    if (stats && stats.length > 0) {
+        const closest = stats.reduce((prev, curr) => {
+            const prevGap = Math.abs(prev.topperScore - prev.yourScore);
+            const currGap = Math.abs(curr.topperScore - curr.yourScore);
+            return currGap < prevGap ? curr : prev;
+        });
+
+        const gap = closest.topperScore - closest.yourScore;
+        if (gap <= 0) {
+            insightMessage = <>You are leading the pack in <strong>{closest.topic}</strong>! Excellent work.</>;
+        } else if (gap <= 5) {
+            insightMessage = <>You're within {gap}% of the top scorers in <strong>{closest.topic}</strong>. Push a bit harder!</>;
+        } else if (gap <= 15) {
+            insightMessage = <>You're steadily catching up in <strong>{closest.topic}</strong>. Keep practicing!</>;
+        }
+    }
+
     return (
         <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-xl h-full flex flex-col">
             <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-transparent">
@@ -86,7 +105,7 @@ export default function TopperComparison({ stats }: TopperComparisonProps) {
                 <div className="flex items-center gap-3 text-amber-600">
                     <Target className="w-5 h-5 shrink-0" />
                     <p className="text-sm italic font-medium">
-                        "You're within 5% of the top scorers in <strong>Algebra</strong>. Push a bit harder!"
+                        "{insightMessage}"
                     </p>
                 </div>
             </div>

@@ -110,31 +110,7 @@ interface Attempt {
     };
 }
 
-// Generate simulated question-level benchmarking data
-// In a real scenario, this would come from the backend based on granular tracking
-// Generate aggregated topic-level benchmarking data for this specific test
-const generateTopperStats = (attempt: Attempt) => {
-    // In a real scenario, we would aggregate actual question tags.
-    // Here we simulate topic breakdown based on the attempt data.
-
-    // topics: Algebra, Geometry, Arithmetic, Reasoning
-    const topics = ['Algebra', 'Geometry', 'Arithmetic', 'Reasoning'];
-
-    return topics.map(topic => {
-        // Simulate user score for this topic based on overall score + random variance
-        const variance = Math.floor(Math.random() * 20) - 10; // -10 to +10
-        const yourScore = Math.min(100, Math.max(0, Math.round(attempt.score) + variance));
-
-        // Topper is usually 10-15% ahead, capped at 100
-        const topperScore = Math.min(100, yourScore + Math.floor(Math.random() * 15) + 5);
-
-        return {
-            topic,
-            yourScore,
-            topperScore
-        };
-    });
-};
+// Real benchmarking data is passed from attempt.insights.topicAnalysis
 
 export default function ResultsPage() {
     const params = useParams();
@@ -424,8 +400,8 @@ export default function ResultsPage() {
                                                         {sec.subjectTitle}
                                                         {sec.attempted > 0 && (
                                                             <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${secAccuracy >= 70 ? 'bg-emerald-50 text-emerald-600' :
-                                                                    secAccuracy >= 40 ? 'bg-amber-50 text-amber-600' :
-                                                                        'bg-red-50 text-red-600'
+                                                                secAccuracy >= 40 ? 'bg-amber-50 text-amber-600' :
+                                                                    'bg-red-50 text-red-600'
                                                                 }`}>{secAccuracy}%</span>
                                                         )}
                                                     </td>
@@ -637,7 +613,13 @@ export default function ResultsPage() {
                             />
                         )}
 
-                        {attempt && <TopperComparison stats={generateTopperStats(attempt)} />}
+                        {attempt?.insights?.topicAnalysis && Object.keys(attempt.insights.topicAnalysis).length > 0 && (
+                            <TopperComparison stats={Object.entries(attempt.insights.topicAnalysis).map(([topic, data]: [string, any]) => ({
+                                topic: topic.length > 15 ? topic.substring(0, 15) + '..' : topic,
+                                yourScore: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+                                topperScore: data.topperScore ?? (data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0)
+                            }))} />
+                        )}
                     </div>
 
                     {attempt?.percentileData && (
