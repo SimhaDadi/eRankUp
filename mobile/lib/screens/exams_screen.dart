@@ -58,7 +58,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
         case 1: newType = 'real_exam'; break;
         case 2: newType = 'previous_year_paper'; break;
         case 3: newType = 'question_bank'; break;
-        case 4: newType = 'chapter_test'; break;
+        case 4: newType = 'chapter_wise_test'; break;
         case 5: newType = 'all'; break; // Daily Quiz handled by filtering later
     }
     
