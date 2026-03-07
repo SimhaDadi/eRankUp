@@ -96,9 +96,13 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
           }
           if (data['flags'] != null) {
             _flaggedIds = Set<String>.from(data['flags']);
+          // Read duration from backend (check for both seconds and minutes format)
+          if (data['durationSeconds'] != null) {
+              _timeLeft = data['durationSeconds']; // Backend usually provides total seconds
+          } else {
+              _timeLeft = (data['duration'] ?? widget.model.duration) * 60; // Fallback to provided minutes
           }
-
-          _timeLeft = (data['duration'] ?? 60) * 60; // Default 60 mins
+          
           _isLoading = false;
         });
         
