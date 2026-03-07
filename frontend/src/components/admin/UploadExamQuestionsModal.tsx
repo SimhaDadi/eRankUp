@@ -1,7 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, FileJson, AlertCircle, Download, FileText, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, FileJson, AlertCircle, Download, FileText, Image as ImageIcon, Layers } from 'lucide-react';
 import api from '@/lib/api';
+
+interface Subject {
+    id: string;
+    title: string;
+}
 
 interface UploadExamQuestionsModalProps {
     isOpen: boolean;
@@ -16,7 +21,17 @@ export default function UploadExamQuestionsModal({ isOpen, onClose, onSuccess, e
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [uploadResult, setUploadResult] = useState<{ uploaded: number; message: string } | null>(null);
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [selectedSubjectId, setSelectedSubjectId] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isOpen && examId) {
+            api.get(`/exams/${examId}/subjects`)
+                .then(res => setSubjects(res.data || []))
+                .catch(() => setSubjects([]));
+        }
+    }, [isOpen, examId]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -41,7 +56,9 @@ export default function UploadExamQuestionsModal({ isOpen, onClose, onSuccess, e
             const formData = new FormData();
             formData.append('file', file);
             formData.append('examId', examId);
-            // We do not send modelId, backend now accepts optional modelId
+            if (selectedSubjectId) {
+                formData.append('subjectId', selectedSubjectId);
+            }
 
             const response = await api.post(`/exams/questions/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
@@ -61,15 +78,18 @@ export default function UploadExamQuestionsModal({ isOpen, onClose, onSuccess, e
     };
 
     const downloadTemplate = () => {
-        const headers = ['content', 'optionA', 'optionB', 'optionC', 'optionD', 'correctOptionId', 'explanation', 'topic', 'difficultyWeight', 'positiveMarks', 'negativeMarks'];
-        const row = ['What is the capital of France?', 'London', 'Berlin', 'Paris', 'Madrid', 'C', 'Paris is the capital.', 'Geography', '0.5', '2', '0.25'];
-        const csvContent = [headers.join(','), row.join(',')].join('\n');
+        const headers = ['content', 'optionA', 'optionB', 'optionC', 'optionD', 'correctOptionId', 'explanation', 'topic', 'section', 'difficultyWeight', 'positiveMarks', 'negativeMarks'];
+        const rows = [
+            ['What is 2+2?', '3', '4', '5', '6', 'B', 'Basic arithmetic.', 'Addition', 'Mathematics', '0.3', '2', '0.5'],
+            ['Find the odd one: Cat Dog Fish Car', 'Fish', 'Dog', 'Car', 'Cat', 'C', 'Car is not a living being.', 'Series', 'Reasoning', '0.5', '2', '0.5'],
+        ];
+        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
 
         const blob = new Blob([csvContent], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = "questions_template.csv";
+        a.download = "questions_template_with_sections.csv";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -97,7 +117,35 @@ export default function UploadExamQuestionsModal({ isOpen, onClose, onSuccess, e
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-6">
+                        <div className="p-6 space-y-5">
+                            {/* Section Dropdown */}
+                            {subjects.length > 0 && (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 mb-1.5 flex items-center gap-1.5">
+                                        <Layers className="w-3.5 h-3.5" />
+                                        Assign to Section (optional — overrides CSV column)
+                                    </label>
+                                    <select
+                                        value={selectedSubjectId}
+                                        onChange={e => setSelectedSubjectId(e.target.value)}
+                                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    >
+                                        <option value="">— Use section column from CSV —</option>
+                                        {subjects.map(s => (
+                                            <option key={s.id} value={s.id}>{s.title}</option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-slate-500 mt-1">Or add a <code className="text-slate-400">section</code> column to your CSV with names like &quot;Mathematics&quot;, &quot;Reasoning&quot;.</p>
+                                </div>
+                            )}
+
+                            {subjects.length === 0 && (
+                                <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300">
+                                    <Layers className="w-4 h-4 mt-0.5 shrink-0" />
+                                    <span>No sections found. Add sections to the exam first to enable section-wise scoring, or use a <code>section</code> column in your CSV.</span>
+                                </div>
+                            )}
+
                             {/* File Upload Area */}
                             <div
                                 className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-colors ${file ? 'border-green-500/50 bg-green-500/5' : 'border-slate-700 bg-slate-900/50 hover:border-slate-500 hover:bg-slate-800/50'}`}
@@ -164,7 +212,7 @@ export default function UploadExamQuestionsModal({ isOpen, onClose, onSuccess, e
 
                             <div className="flex justify-between items-center text-xs text-slate-500">
                                 <button onClick={downloadTemplate} className="flex items-center gap-2 hover:text-blue-400 transition-colors">
-                                    <Download className="w-4 h-4" /> CSV Template
+                                    <Download className="w-4 h-4" /> CSV Template (with section column)
                                 </button>
                                 <span>AI Processing for PDF/Images</span>
                             </div>

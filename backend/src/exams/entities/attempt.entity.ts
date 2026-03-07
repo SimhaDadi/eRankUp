@@ -56,6 +56,18 @@ export class Attempt {
     @Column('simple-json', { nullable: true })
     insights: any; // AI generated insights
 
+    @Column({ type: 'jsonb', nullable: true })
+    sectionResults: {
+        subjectId: string;
+        subjectTitle: string;
+        attempted: number;
+        correct: number;
+        wrong: number;
+        score: number;
+        maxScore: number;
+        timeSpent: number; // seconds
+    }[];
+
     @Column('simple-json', { nullable: true })
     questionTimings: Record<string, number>; // DEPRECATED: Use Response.timeSpent instead
 

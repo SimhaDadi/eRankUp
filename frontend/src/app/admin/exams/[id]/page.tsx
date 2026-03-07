@@ -16,7 +16,9 @@ import {
     MoreVertical,
     X,
     Loader2,
-    Upload
+    Upload,
+    Layers,
+    Tag
 } from 'lucide-react';
 import api from '@/lib/api';
 import { QuestionBankBrowser } from '@/components/admin/QuestionBankBrowser';
@@ -60,6 +62,45 @@ export default function ExamDetailPage() {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [removingQuestionId, setRemovingQuestionId] = useState<string | null>(null);
 
+    // Section Manager state (for real_exam type)
+    const [subjects, setSubjects] = useState<{ id: string; title: string }[]>([]);
+    const [newSectionTitle, setNewSectionTitle] = useState('');
+    const [isAddingSection, setIsAddingSection] = useState(false);
+    const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null);
+
+    const fetchSubjects = async () => {
+        try {
+            const res = await api.get(`/exams/${params.id}/subjects`);
+            setSubjects(res.data || []);
+        } catch { }
+    };
+
+    const handleAddSection = async () => {
+        if (!newSectionTitle.trim()) return;
+        setIsAddingSection(true);
+        try {
+            await api.post('/exams/subjects', { title: newSectionTitle.trim(), examId: params.id });
+            setNewSectionTitle('');
+            fetchSubjects();
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to create section');
+        } finally {
+            setIsAddingSection(false);
+        }
+    };
+
+    const handleDeleteSection = async (subjectId: string) => {
+        if (!confirm('Delete this section? Questions linked to it will remain but lose their section tag.')) return;
+        setDeletingSectionId(subjectId);
+        try {
+            await api.delete(`/exams/subjects/${subjectId}`);
+            fetchSubjects();
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to delete section');
+        } finally {
+            setDeletingSectionId(null);
+        }
+    };
     // Hierarchy state for question banks
     const [hierarchy, setHierarchy] = useState<any[]>([]);
     const [showCreateSubject, setShowCreateSubject] = useState(false);
@@ -76,6 +117,9 @@ export default function ExamDetailPage() {
             // If it's a question bank, fetch hierarchy
             if (response.data.type === 'question_bank') {
                 fetchHierarchy();
+            } else {
+                // For real exams, fetch sections
+                fetchSubjects();
             }
         } catch (error) {
             console.error("Failed to fetch exam details", error);
@@ -230,6 +274,55 @@ export default function ExamDetailPage() {
             ) : (
                 /* Questions Section for Regular Exams */
                 <div>
+                    {/* Section Manager */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <Layers className="w-5 h-5 text-purple-400" />
+                            <h2 className="text-lg font-bold text-white">Sections</h2>
+                            <span className="text-xs text-slate-500 font-medium">({subjects.length} section{subjects.length !== 1 ? 's' : ''})</span>
+                        </div>
+
+                        {subjects.length > 0 ? (
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {subjects.map(s => (
+                                    <div key={s.id} className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold px-3 py-1.5 rounded-full">
+                                        <Tag className="w-3 h-3 text-purple-400" />
+                                        {s.title}
+                                        <button
+                                            onClick={() => handleDeleteSection(s.id)}
+                                            disabled={deletingSectionId === s.id}
+                                            className="ml-1 text-slate-500 hover:text-rose-500 transition-colors"
+                                        >
+                                            {deletingSectionId === s.id
+                                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                                : <X className="w-3 h-3" />}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-slate-500 mb-4">No sections yet. Add sections to enable section-wise scoring.</p>
+                        )}
+
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newSectionTitle}
+                                onChange={e => setNewSectionTitle(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleAddSection()}
+                                placeholder="Section name (e.g. Mathematics)"
+                                className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            />
+                            <button
+                                onClick={handleAddSection}
+                                disabled={isAddingSection || !newSectionTitle.trim()}
+                                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {isAddingSection ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                Add
+                            </button>
+                        </div>
+                    </div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                             <Library className="w-6 h-6 text-blue-500" />

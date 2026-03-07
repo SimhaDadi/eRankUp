@@ -92,7 +92,12 @@ export class ScorerService implements OnModuleInit {
                     this.logger.error(`No questions found for model ${modelId}`);
                     throw new Error('No questions found for this model');
                 }
-                questions = model.questions;
+                // Re-fetch model questions with subject relation for section scoring
+                const modelQuestionIds = model.questions.map(q => q.id);
+                questions = await this.questionRepository.find({
+                    where: modelQuestionIds.map(id => ({ id })),
+                    relations: ['subject']
+                });
                 const targetExam = model.exams?.[0];
                 examPos = targetExam?.defaultPositiveMarks || 1.0;
                 examNeg = targetExam?.defaultNegativeMarks || 0.25;
@@ -108,7 +113,12 @@ export class ScorerService implements OnModuleInit {
                         this.logger.error(`No questions found for exam ${modelId}`);
                         throw new Error('No questions found for this exam');
                     }
-                    questions = exam.questions;
+                    // Re-fetch with subject relation for section scoring
+                    const examQuestionIds = exam.questions.map(q => q.id);
+                    questions = await this.questionRepository.find({
+                        where: examQuestionIds.map(id => ({ id })),
+                        relations: ['subject']
+                    });
                     examPos = exam.defaultPositiveMarks || 1.0;
                     examNeg = exam.defaultNegativeMarks || 0.25;
                 } else if (allQuestionIds && allQuestionIds.length > 0) {
@@ -210,6 +220,61 @@ export class ScorerService implements OnModuleInit {
             }
         });
 
+        // === SECTION RESULTS (per-subject breakdown) ===
+        const sectionMap: Record<string, {
+            subjectId: string;
+            subjectTitle: string;
+            attempted: number;
+            correct: number;
+            wrong: number;
+            score: number;
+            maxScore: number;
+            timeSpent: number;
+        }> = {};
+
+        questions.forEach(q => {
+            const sid = q.subjectId || q.subject?.id;
+            const stitle = q.subject?.title || 'General';
+            const key = sid || stitle;
+            if (!sectionMap[key]) {
+                sectionMap[key] = {
+                    subjectId: sid || '',
+                    subjectTitle: stitle,
+                    attempted: 0,
+                    correct: 0,
+                    wrong: 0,
+                    score: 0,
+                    maxScore: 0,
+                    timeSpent: 0,
+                };
+            }
+            const sec = sectionMap[key];
+            const selectedOptionId = userAnswers[q.id];
+            const isCorrect = selectedOptionId === q.correctOptionId;
+            const posMark = q.positiveMarks != null ? q.positiveMarks : examPos;
+            const negMark = q.negativeMarks != null ? q.negativeMarks : examNeg;
+
+            sec.maxScore += posMark;
+            sec.timeSpent += questionTimings[q.id] || 0;
+
+            if (selectedOptionId) {
+                sec.attempted++;
+                if (isCorrect) {
+                    sec.correct++;
+                    sec.score += posMark;
+                } else {
+                    sec.wrong++;
+                    sec.score -= negMark;
+                }
+            }
+        });
+
+        const sectionResults = Object.values(sectionMap).map(s => ({
+            ...s,
+            score: Math.max(0, Math.round(s.score * 100) / 100),
+            maxScore: Math.round(s.maxScore * 100) / 100,
+        }));
+
         // 3. Save Attempt
         const attempt = this.attemptRepository.create({
             user: { id: user.id } as User,
@@ -223,6 +288,7 @@ export class ScorerService implements OnModuleInit {
             userAnswers: userAnswers,
             questionTimings: questionTimings,
             responses: [],
+            sectionResults: sectionResults.length > 0 ? sectionResults : null,
             insights: {
                 strengths: score > 70 ? ['Strong overall performance'] : ['Keep practicing!'],
                 weaknesses: score < 50 ? ['Improve speed and accuracy'] : [],
@@ -395,7 +461,7 @@ export class ScorerService implements OnModuleInit {
         // 2. Fetch Responses with their nested details in a separate batch
         attempt.responses = await this.responseRepository.find({
             where: { attempt: { id: attempt.id } },
-            relations: ['question', 'question.chapter'],
+            relations: ['question', 'question.chapter', 'question.subject'],
             // Ensure consistent order matches attempt sequence
             order: { answeredAt: 'ASC' }
         });

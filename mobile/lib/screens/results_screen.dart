@@ -241,6 +241,92 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
             const SizedBox(height: 32),
             
+            // Section-wise Performance Table
+            if (_results?['sectionResults'] != null && (_results!['sectionResults'] as List).length > 1) ...[
+              Text('Section-wise Performance', style: AppTextStyles.h2),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
+                  boxShadow: isDark ? [] : [BoxShadow(color: Colors.grey.shade100, blurRadius: 8, offset: const Offset(0, 2))],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.all(
+                        isDark ? const Color(0xFF7C3AED).withOpacity(0.2) : const Color(0xFFF5F3FF),
+                      ),
+                      headingTextStyle: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.purple.shade300 : Colors.purple.shade700,
+                      ),
+                      dataTextStyle: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white70 : Colors.black87,
+                      ),
+                      horizontalMargin: 16,
+                      columnSpacing: 20,
+                      columns: const [
+                        DataColumn(label: Text('SECTION')),
+                        DataColumn(label: Text('ATTEMPTED'), numeric: true),
+                        DataColumn(label: Text('CORRECT'), numeric: true),
+                        DataColumn(label: Text('WRONG'), numeric: true),
+                        DataColumn(label: Text('SCORE'), numeric: true),
+                        DataColumn(label: Text('TIME'), numeric: true),
+                      ],
+                      rows: (_results!['sectionResults'] as List).map<DataRow>((sec) {
+                        final attempted = sec['attempted'] as int? ?? 0;
+                        final correct = sec['correct'] as int? ?? 0;
+                        final wrong = sec['wrong'] as int? ?? 0;
+                        final score = (sec['score'] as num?)?.toStringAsFixed(1) ?? '0';
+                        final maxScore = (sec['maxScore'] as num?)?.toStringAsFixed(1) ?? '0';
+                        final timeSpent = sec['timeSpent'] as int? ?? 0;
+                        final mins = timeSpent ~/ 60;
+                        final secs = timeSpent % 60;
+                        final timeStr = mins > 0 ? '${mins}m ${secs}s' : '${secs}s';
+                        final secAcc = attempted > 0 ? ((correct / attempted) * 100).round() : 0;
+                        
+                        return DataRow(cells: [
+                          DataCell(Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(sec['subjectTitle'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              if (attempted > 0) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: secAcc >= 70 ? Colors.green.withOpacity(0.1) : secAcc >= 40 ? Colors.orange.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text('$secAcc%', style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: secAcc >= 70 ? Colors.green.shade700 : secAcc >= 40 ? Colors.orange.shade700 : Colors.red.shade700,
+                                  )),
+                                ),
+                              ],
+                            ],
+                          )),
+                          DataCell(Text('$attempted')),
+                          DataCell(Text('$correct', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
+                          DataCell(Text('$wrong', style: TextStyle(color: Colors.red.shade400, fontWeight: FontWeight.bold))),
+                          DataCell(Text('$score/$maxScore', style: const TextStyle(fontWeight: FontWeight.bold))),
+                          DataCell(Text(timeStr)),
+                        ]);
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+            
             if (insights != null) ...[ 
               Text('Performance Insights', style: AppTextStyles.h2),
               const SizedBox(height: 16),
