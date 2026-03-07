@@ -212,9 +212,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               DropdownButtonFormField<String>(
                 value: _categories.contains(_selectedCategory) ? _selectedCategory : null,
                 isExpanded: true,
-                icon: const Icon(Icons.arrow_drop_down_circle_outlined, size: 20),
+                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
+                menuMaxHeight: 350,
+                alignment: AlignmentDirectional.centerStart,
+                icon: Icon(Icons.keyboard_arrow_down_rounded, color: isDark ? Colors.white54 : Colors.grey.shade400),
                 decoration: _buildInputDecoration('Select Category', Icons.tag_outlined),
-                items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                items: _categories.map((c) => DropdownMenuItem(
+                  value: c, 
+                  child: Text(c, style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 15)),
+                )).toList(),
                 onChanged: (val) => setState(() => _selectedCategory = val),
               ),
               const SizedBox(height: 20),
@@ -230,9 +237,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               DropdownButtonFormField<String>(
                 value: _selectedLanguage,
                 isExpanded: true,
-                icon: const Icon(Icons.language_outlined, size: 20),
+                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
+                menuMaxHeight: 350,
+                alignment: AlignmentDirectional.centerStart,
+                icon: Icon(Icons.keyboard_arrow_down_rounded, color: isDark ? Colors.white54 : Colors.grey.shade400),
                 decoration: _buildInputDecoration('Select Language', Icons.translate_outlined),
-                items: _languages.map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
+                items: _languages.map((l) => DropdownMenuItem(
+                  value: l, 
+                  child: Text(l, style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 15)),
+                )).toList(),
                 onChanged: (val) => setState(() => _selectedLanguage = val),
               ),
               

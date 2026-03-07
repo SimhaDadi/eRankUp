@@ -497,14 +497,14 @@ export class ScorerService implements OnModuleInit {
         const leaderboard = await this.attemptRepository.createQueryBuilder('attempt')
             .innerJoin('attempt.user', 'user')
             .select([
-                'user.id AS userId',
-                'user.fullName AS fullName',
-                'MAX(attempt.score) AS maxScore',
-                'AVG(attempt.accuracy) AS avgAccuracy'
+                'user.id AS "user_id"',
+                'user.fullName AS "user_name"',
+                'MAX(attempt.score) AS "max_score"',
+                'AVG(attempt.accuracy) AS "avg_accuracy"'
             ])
             .groupBy('user.id')
             .addGroupBy('user.fullName')
-            .orderBy('maxScore', 'DESC')
+            .orderBy('"max_score"', 'DESC')
             .limit(10)
             .getRawMany();
 

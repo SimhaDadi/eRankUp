@@ -154,10 +154,12 @@ export class AIChatService {
         };
 
         // RAG: Fetch relevant shortcuts from Database
-        const shortcuts = await this.promptShortcutService.findRelevantShortcuts(
+        // Skip RAG for short messages or general greetings if no question context
+        const isMathIntent = (questionContext || message.length > 20 || /solve|calculate|what is|how to|find|value|area|ratio|speed|time|work|age/i.test(message));
+        const shortcuts = isMathIntent ? await this.promptShortcutService.findRelevantShortcuts(
             questionContext?.topic || 'General',
             message || ''
-        );
+        ) : [];
 
         if (shortcuts.length > 0) {
             let hint = `[RAG MATH INJECTION]\n`;
@@ -343,10 +345,11 @@ export class AIChatService {
         };
 
         // RAG: Fetch relevant shortcuts from Database
-        const shortcuts = await this.promptShortcutService.findRelevantShortcuts(
+        const isMathIntentSync = (questionContext || message.length > 20 || /solve|calculate|what is|how to|find|value|area|ratio|speed|time|work|age/i.test(message));
+        const shortcuts = isMathIntentSync ? await this.promptShortcutService.findRelevantShortcuts(
             questionContext?.topic || 'General',
             message || ''
-        );
+        ) : [];
 
         if (shortcuts.length > 0) {
             let hint = `[RAG MATH INJECTION]\n`;

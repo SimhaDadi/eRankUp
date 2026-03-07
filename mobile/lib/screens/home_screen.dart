@@ -183,9 +183,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                           
-                          const SizedBox(height: AppSpacing.xxxl),
+                          const SizedBox(height: AppSpacing.xxxl + 8),
                           _buildQuickStats(),
-                          const SizedBox(height: AppSpacing.xxxl),
+                          const SizedBox(height: AppSpacing.xxxl + 12),
                           
                           _buildInSpotlight(),
                           const SizedBox(height: AppSpacing.xxl),
@@ -273,7 +273,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final userName = _user?['fullName']?.split(' ')[0] ?? 'dadi';
 
     return Padding(
-      padding: const EdgeInsets.all(AppSpacing.screenPadding),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenPadding, 
+        AppSpacing.screenPadding * 1.5, 
+        AppSpacing.screenPadding, 
+        AppSpacing.screenPadding
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -565,23 +570,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return PremiumCard(
       padding: EdgeInsets.zero,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
       onTap: onTap ?? () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
       },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: gradientColors,
           ),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.12), // Subtle inner glow
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
-              color: gradientColors[0].withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: gradientColors[0].withOpacity(0.4),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -597,11 +606,18 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(icon, color: Colors.white, size: 18),
+                   Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 14),
+                  ),
                   const Spacer(),
                   Text(
                     value,
@@ -609,18 +625,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.w900, 
                       height: 1.0,
                       color: Colors.white,
-                      letterSpacing: -0.8,
-                      fontSize: 24,
+                      letterSpacing: -1.0,
+                      fontSize: 26,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     label.toUpperCase(),
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withOpacity(0.8),
                       fontWeight: FontWeight.w900,
-                      fontSize: 8,
-                      letterSpacing: 0.6,
+                      fontSize: 8.5,
+                      letterSpacing: 0.8,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

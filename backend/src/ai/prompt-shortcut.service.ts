@@ -76,10 +76,14 @@ export class PromptShortcutService {
         try {
             // [Perf Audit Fix] 
             // Use SQL ILIKE for literal matching. Return up to 2 exact matches if possible.
+            // Optimization: If message is very short (e.g. "hi", "tiger"), don't fallback to "General" topic injection.
+            const isShortMessage = content.trim().split(/\s+/).length < 3;
+            const searchTopic = (isShortMessage && topic === 'General') ? 'SKIP_RAG' : topic;
+
             const exactMatches = await this.shortcutRepository.createQueryBuilder('s')
                 .where('s.isActive = :isActive', { isActive: true })
                 .andWhere(new Brackets(qb => {
-                    qb.where('LOWER(s.topic) = LOWER(:topic)', { topic })
+                    qb.where('LOWER(s.topic) = LOWER(:searchTopic)', { searchTopic })
                         .orWhere('LENGTH(s.topic) > 5 AND LOWER(:content) LIKE \'%\' || LOWER(s.topic) || \'%\'', { content });
                 }))
                 .limit(2)
@@ -88,6 +92,9 @@ export class PromptShortcutService {
             if (exactMatches.length > 1) return exactMatches;
 
             // Fallback to Vector Semantic Search for more variety
+            // Only if message doesn't look like a simple greeting/random word
+            if (isShortMessage && exactMatches.length === 0) return [];
+
             const embeddingArray = await this.aiService.generateEmbedding(`${topic} ${content}`);
             const embeddingStr = `[${embeddingArray.join(',')}]`;
 
@@ -95,6 +102,7 @@ export class PromptShortcutService {
                 .createQueryBuilder('s')
                 .where('s.isActive = true')
                 .andWhere('s.embedding IS NOT NULL')
+                .andWhere('s.embedding <=> CAST(:embedding AS vector) < 0.4') // Tightened threshold from 0.45 to 0.4
                 .orderBy(`s.embedding <=> CAST(:embedding AS vector)`) // PGVector Cosine Distance
                 .setParameters({ embedding: embeddingStr })
                 .limit(3) // Return top 3 matches

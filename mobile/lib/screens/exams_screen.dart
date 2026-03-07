@@ -33,7 +33,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.addListener(_onTabChanged);
     _scrollController.addListener(_onScroll);
     _fetchExams();
@@ -58,12 +58,12 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
         case 1: newType = 'real_exam'; break;
         case 2: newType = 'previous_year_paper'; break;
         case 3: newType = 'question_bank'; break;
-        case 4: newType = 'all'; break; // Daily Quiz handled by filtering later or add specific type if backend supports
+        case 4: newType = 'chapter_test'; break;
+        case 5: newType = 'all'; break; // Daily Quiz handled by filtering later
     }
     
-    // If Daily Quiz (index 4), we might still fetch 'all' and filter, OR we need a backend type.
-    // For now, let's reset and fetch.
-    if (_currentType != newType || _tabController.index == 4) {
+    // If Daily Quiz (index 5), we might still fetch 'all' and filter.
+    if (_currentType != newType || _tabController.index == 5) {
         setState(() {
             _currentType = newType;
             _searchController.clear();
@@ -183,7 +183,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
         // Tab specific filtering (Client Side refinement)
         // Since we now check type on server, we mostly just handle special cases here
         
-        if (_tabController.index == 4) {
+        if (_tabController.index == 5) {
            // Daily Quizzes
            return exam.category == 'Free Quiz' || exam.category == 'Quiz';
         }
@@ -232,6 +232,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
                 Tab(text: 'Mock Tests'),
                 Tab(text: 'PYPs'),
                 Tab(text: 'Banks'),
+                Tab(text: 'Chapter Tests'),
                 Tab(text: 'Daily Quizzes'),
               ],
             ),
