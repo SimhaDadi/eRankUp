@@ -552,12 +552,29 @@ export class ScorerService implements OnModuleInit {
             ? Math.round(stats.totalScore / stats.totalAttempts)
             : 0;
 
-        // Transform topic perf
-        const topicPerformance = Object.keys(stats.topicPerformance || {}).map(topic => ({
-            subject: topic,
-            A: Math.round((stats.topicPerformance[topic].correct / stats.topicPerformance[topic].total) * 100),
-            fullMark: 100
-        }));
+        // Make sure topicPerformance is a proper object
+        let parsedTopicPerformance = stats.topicPerformance || {};
+        if (typeof parsedTopicPerformance === 'string') {
+            try {
+                parsedTopicPerformance = JSON.parse(parsedTopicPerformance);
+            } catch (e) {
+                parsedTopicPerformance = {};
+            }
+        }
+
+        // Transform topic perf cautiously
+        const topicPerformance = Object.keys(parsedTopicPerformance).map(topic => {
+            const topicData = parsedTopicPerformance[topic];
+            const correct = typeof topicData?.correct === 'number' ? topicData.correct : 0;
+            const total = typeof topicData?.total === 'number' ? topicData.total : 0;
+            const A = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+            return {
+                subject: topic,
+                A: A,
+                fullMark: 100
+            };
+        });
 
         // Fill defaults
         if (topicPerformance.length < 3) {
@@ -575,7 +592,7 @@ export class ScorerService implements OnModuleInit {
             .select('MAX(attempt.score)', 'max')
             .where('attempt.userId = :userId', { userId })
             .getRawOne();
-        const bestScore = maxResult ? parseFloat(maxResult.max) || 0 : 0;
+        const bestScore = maxResult && maxResult.max ? parseFloat(maxResult.max) || 0 : 0;
 
         // Daily questions needs "today's" count. 
         // We can't easily get this from summary table without a "daily_stats" table.
