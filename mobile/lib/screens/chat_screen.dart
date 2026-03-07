@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../config/config.dart';
 import '../theme/app_theme.dart';
 import '../widgets/math_rich_text.dart';
 

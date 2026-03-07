@@ -56,9 +56,8 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
     final apiService = Provider.of<ApiService>(context, listen: false);
     final token = await apiService.getToken();
 
-    _socket = IO.io(Config.socketBaseUrl, IO.OptionBuilder()
+    _socket = IO.io('${Config.socketBaseUrl}/ai-chat', IO.OptionBuilder()
       .setTransports(['websocket'])
-      .setNamespace('/ai-chat')
       .setExtraHeaders({'Authorization': 'Bearer $token'})
       .build());
 

@@ -473,6 +473,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Fixing the typo from the previous step as well
   Widget _buildQuickStats() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final totalTests = _stats?['totalAttempts'] ?? 0;
     final avgScore = (_stats?['averageScore'] as num?)?.round() ?? 0;
     final bestScore = (_stats?['bestScore'] as num?)?.round() ?? 0;
