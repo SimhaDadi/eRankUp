@@ -356,13 +356,15 @@ export default function ExamDetailsPage() {
                                                 <Trophy className="w-4 h-4" />
                                             </Link>
                                         )}
-                                        <Link
-                                            href={`/dashboard/exam-start/${exam.id}`}
-                                            className={`px-8 py-4 ${attempts.length > 0 ? 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20'} font-black uppercase tracking-[0.2em] text-xs rounded-xl shadow-lg transition-all hover:shadow-xl hover:-translate-y-1 flex items-center gap-3`}
-                                        >
-                                            {attempts.length > 0 ? 'Retake Exam' : 'Start Practice'}
-                                            <ChevronRight className="w-4 h-4" />
-                                        </Link>
+                                        {attempts.length === 0 && (
+                                            <Link
+                                                href={`/dashboard/exam-start/${exam.id}`}
+                                                className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 font-black uppercase tracking-[0.2em] text-xs rounded-xl shadow-lg transition-all hover:shadow-xl hover:-translate-y-1 flex items-center gap-3"
+                                            >
+                                                Start Practice
+                                                <ChevronRight className="w-4 h-4" />
+                                            </Link>
+                                        )}
                                     </div>
                                 </div>
                             </motion.div>

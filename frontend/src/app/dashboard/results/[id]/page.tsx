@@ -240,12 +240,6 @@ export default function ResultsPage() {
                     >
                         <Eye className="w-4 h-4 md:w-5 md:h-5" /> Solutions
                     </button>
-                    <button
-                        onClick={() => router.push(`/dashboard/exam-start/${attempt.model?.id || attempt.exam?.id || params.id}`)}
-                        className="bg-white hover:bg-gray-50 text-slate-900 border border-gray-200 font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 text-xs md:text-base"
-                    >
-                        Retake
-                    </button>
                 </div>
             </div>
 
