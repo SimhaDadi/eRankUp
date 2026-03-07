@@ -148,11 +148,20 @@ export class ExamsService implements OnApplicationBootstrap {
             // Transform exams to include chapters
             const transformedExams = exams.map(exam => {
                 const chapters = this.mapChaptersFromModels(exam);
+
+                // [FIX] Dynamically calculate duration for Chapter Tests on overview
+                let duration = exam.duration;
+                if (exam.type === 'chapter_wise_test' && duration === 60) {
+                    const qCount = (exam as any).directQuestionCount || exam.questions?.length || 0;
+                    if (qCount > 0) duration = qCount * 1; // 1 min per question
+                }
+
                 // [DEBUG] Logs kept for verification
                 console.log(`[DEBUG] Exam "${exam.title}" (ID: ${exam.id}):`);
                 console.log(`   - Mapped Chapters: ${chapters.length}`);
                 return {
                     ...exam,
+                    duration, // Apply calculated duration
                     chapters
                 };
             });
@@ -174,10 +183,20 @@ export class ExamsService implements OnApplicationBootstrap {
             // Transform exams to include chapters
             const transformedExams = exams.map(exam => {
                 const chapters = this.mapChaptersFromModels(exam);
+
+                // [FIX] Dynamically calculate duration for Chapter Tests on overview
+                let duration = exam.duration;
+                if (exam.type === 'chapter_wise_test' && duration === 60) {
+                    // Get question count from direct relation or mapped query
+                    const qCount = (exam as any).directQuestionCount || exam.questions?.length || 0;
+                    if (qCount > 0) duration = qCount * 1;
+                }
+
                 console.log(`[DEBUG] Exam "${exam.title}" (ID: ${exam.id}):`);
                 console.log(`   - Mapped Chapters: ${chapters.length}`);
                 return {
                     ...exam,
+                    duration, // Apply calculated duration
                     chapters
                 };
             });
