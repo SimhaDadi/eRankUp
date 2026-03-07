@@ -319,6 +319,7 @@ class _DoubtsScreenState extends State<DoubtsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAskDoubtDialog,
+        heroTag: null,
         icon: const Icon(Icons.history),
         label: const Text('Expert Review'),
         backgroundColor: Colors.grey.shade700,

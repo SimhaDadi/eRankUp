@@ -78,6 +78,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreatePostSheet(context),
+        heroTag: null,
         backgroundColor: AppColors.primaryBlue,
         elevation: 6,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusPill)),
