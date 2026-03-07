@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Patch, Delete } from '@nestjs/common';
 import { NewsService } from './news.service';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -31,5 +31,19 @@ export class NewsController {
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.newsService.findOne(id);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Patch(':id')
+    update(@Param('id') id: string, @Body() updateNewsDto: Partial<CreateNewsDto>) {
+        return this.newsService.update(id, updateNewsDto);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @Delete(':id')
+    remove(@Param('id') id: string) {
+        return this.newsService.remove(id);
     }
 }
