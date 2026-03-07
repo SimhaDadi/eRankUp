@@ -90,4 +90,8 @@ export class Exam {
     updatedAt: Date;
 
     directQuestionCount?: number;
+
+    chapters?: any[];
+
+    hasPurchased?: boolean;
 }

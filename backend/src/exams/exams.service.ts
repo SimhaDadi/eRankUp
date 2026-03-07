@@ -220,8 +220,8 @@ export class ExamsService implements OnApplicationBootstrap {
                 'models',
                 'models.chapter',
                 'models.chapter.subject',
-                'models.questions',
-                'questions',
+                // 'models.questions', // [OPTIMIZATION] Don't load questions for detail view
+                // 'questions',        // [OPTIMIZATION] Don't load questions for detail view
                 'subjects',
                 'subjects.chapters'
             ]
@@ -230,23 +230,7 @@ export class ExamsService implements OnApplicationBootstrap {
         if (exam) {
             console.log('Exam found:', exam.id, 'Models:', exam.models?.length);
 
-            // [FIX] Aggregate questions from all models if direct questions are empty
-            if ((!exam.questions || exam.questions.length === 0) && exam.models) {
-                const aggregatedQuestions = new Map<string, Question>();
-
-                for (const model of exam.models) {
-                    if (model.questions) {
-                        model.questions.forEach(q => aggregatedQuestions.set(q.id, q));
-                    }
-                }
-
-                if (aggregatedQuestions.size > 0) {
-                    console.log(`[FIX] Aggregated ${aggregatedQuestions.size} questions from models for Exam ${exam.id}`);
-                    exam.questions = Array.from(aggregatedQuestions.values());
-                }
-            }
-
-            // Transform structure to match frontend expectation (group models by chapter)
+            // [FIX] Transform structure to match frontend expectation (group models by chapter)
             const chapters = this.mapChaptersFromModels(exam);
 
             // Enhance models in each chapter with calculated fields/defaults
@@ -275,18 +259,14 @@ export class ExamsService implements OnApplicationBootstrap {
 
             console.log('Chapters found:', chapters.length);
 
-            const transformedExam = {
-                ...exam,
-                chapters: chapters
-            };
+            // [FIX] Attach chapters directly to the entity instance so it's not stripped by ClassSerializerInterceptor
+            (exam as any).chapters = chapters;
 
-            // Hydrate questions with unified explanations
-            if (transformedExam.questions) {
-                await this.hydrateQuestions(transformedExam.questions, includeUnpublished, exam.id);
-            }
+            // [OPTIMIZATION] Question hydration removed from detail view.
+            // Questions are hydrated in `findModel` which is called when the test actually starts.
 
-            await this.cacheService.set(cacheKey, transformedExam, 3600);
-            return transformedExam;
+            await this.cacheService.set(cacheKey, exam, 3600);
+            return exam;
         }
         return exam;
     }

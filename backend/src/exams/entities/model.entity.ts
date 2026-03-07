@@ -65,4 +65,6 @@ export class Model {
 
     @ManyToMany(() => Exam, (exam) => exam.models)
     exams: Exam[];
+
+    totalMarks?: number;
 }
