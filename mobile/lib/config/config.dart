@@ -5,9 +5,9 @@ class Config {
 
   // API Base URLs for different environments
   static const Map<String, String> _apiBaseUrls = {
-    'dev': 'http://192.168.1.4:3001',     // Local Machine IP (Auto-updated)
+    'dev': 'http://192.168.1.5:3001',     // Uses 'adb reverse tcp:3001 tcp:3001' over USB
     'mdns': 'http://DADI.local:3001',    // Fallback: Works on some networks without IP changes
-    // 'dev': 'http://127.0.0.1:3001',       // Use with 'adb reverse tcp:3001 tcp:3001'
+    // 'dev': 'http://127.0.0.1:3001',       // Local Machine IP
     // 'dev': 'http://10.0.2.2:3001',        // Android Emulator
     'staging': 'https://erankup.in/api',  // Staging: same server, same nginx routing
     'prod': 'https://erankup.in/api',     // Production: erankup.in -> nginx -> backend:3001

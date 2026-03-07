@@ -41,6 +41,9 @@ class ERankUpApp extends StatelessWidget {
             ),
           ),
           themeMode: themeProvider.themeMode,
+          scrollBehavior: const MaterialScrollBehavior().copyWith(
+            physics: const BouncingScrollPhysics(),
+          ),
           home: const AuthWrapper(),
         );
       },

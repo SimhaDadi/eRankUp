@@ -4,21 +4,21 @@ import 'package:flutter/material.dart';
 /// Ensures consistency and accessibility across all screens
 
 class AppColors {
-  // Premium Palette (Deep "Thick" Institutional Colors)
-  static const primaryBlue = Color(0xFF1E40AF); // Deeper Royal Blue (Blue 800)
-  static const primaryLight = Color(0xFF3B82F6); // Vibrant Blue (Blue 500)
-  static const primaryDark = Color(0xFF1E3A8A); // Deep Navy (Blue 900)
+  // Premium Palette (High-Contrast Modern Colors)
+  static const primaryBlue = Color(0xFF2563EB); // Vibrant Blue-600 (High contrast)
+  static const primaryLight = Color(0xFF3B82F6); // Blue-500
+  static const primaryDark = Color(0xFF1D4ED8); // Blue-700
   
-  static const primaryCyan = Color(0xFF0369A1); // Saturated Cyan (Sky 700)
-  static const primaryGold = Color(0xFFD97706); // Rich Amber (Amber 600)
+  static const primaryCyan = Color(0xFF0284C7); // Sky-600
+  static const primaryGold = Color(0xFFD97706); // Rich Amber (Amber-600)
   
-  static const darkNavy = Color(0xFF0F172A); // Slate 900
+  static const darkNavy = Color(0xFF0F172A); // Slate-900
   
   // Neutrals 
-  static const textPrimary = Color(0xFF0F172A);    // Darker for higher contrast
-  static const textSecondary = Color(0xFF475569);  // Slate 600
-  static const textTertiary = Color(0xFF64748B);   // Slate 500
-  static const textDisabled = Color(0xFF94A3B8);   // Slate 400
+  static const textPrimary = Color(0xFF0F172A);    // Slate-900
+  static const textSecondary = Color(0xFF334155);  // Slate-700 (Darkened from 600 for contrast)
+  static const textTertiary = Color(0xFF475569);   // Slate-600 (Darkened from 500 for contrast)
+  static const textDisabled = Color(0xFF94A3B8);   // Slate-400
   
   // Backgrounds
   static const bgPrimary = Color(0xFFFFFFFF);      // Pure White
@@ -83,34 +83,33 @@ class AppColors {
 }
 
 class AppTextStyles {
-  // Headers
-  // Headers - Bolder and Darker
+  // Headers - Softened for modern readability
   static const h1 = TextStyle(
-    fontSize: 26, // Slightly larger
-    fontWeight: FontWeight.w900, // Black weight
-    height: 1.2,
-    color: AppColors.textPrimary,
-    letterSpacing: -0.8,
-  );
-  
-  static const h2 = TextStyle(
-    fontSize: 21,
-    fontWeight: FontWeight.w900,
+    fontSize: 26,
+    fontWeight: FontWeight.w700, // Reduced from w900
     height: 1.2,
     color: AppColors.textPrimary,
     letterSpacing: -0.5,
   );
   
+  static const h2 = TextStyle(
+    fontSize: 21,
+    fontWeight: FontWeight.w700, // Reduced from w900
+    height: 1.2,
+    color: AppColors.textPrimary,
+    letterSpacing: -0.3,
+  );
+  
   static const h3 = TextStyle(
     fontSize: 18,
-    fontWeight: FontWeight.w800,
+    fontWeight: FontWeight.w600, // Reduced from w800
     height: 1.3,
     color: AppColors.textPrimary,
   );
   
   static const h4 = TextStyle(
     fontSize: 16,
-    fontWeight: FontWeight.w800,
+    fontWeight: FontWeight.w600, // Reduced from w800
     height: 1.4,
     color: AppColors.textPrimary,
   );
@@ -168,7 +167,7 @@ class AppTextStyles {
   // Special
   static const overline = TextStyle(
     fontSize: 11,
-    fontWeight: FontWeight.bold,
+    fontWeight: FontWeight.w700, // Reduced from bold/w900
     height: 1.2,
     letterSpacing: 1.2,
     color: AppColors.textTertiary,
@@ -283,6 +282,12 @@ class AppTheme {
       error: AppColors.errorDark,
     ),
     scaffoldBackgroundColor: AppColors.bgSecondary,
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: AppColors.bgPrimary,
       foregroundColor: AppColors.textPrimary,
@@ -291,7 +296,7 @@ class AppTheme {
       scrolledUnderElevation: 0,
       titleTextStyle: TextStyle(
         fontSize: 22,
-        fontWeight: FontWeight.w900,
+        fontWeight: FontWeight.w700, // Reduced from w900
         color: AppColors.textPrimary,
         letterSpacing: -0.5,
       ),
@@ -333,8 +338,8 @@ class AppTheme {
         color: AppColors.primaryBlue,
         borderRadius: BorderRadius.circular(8), // Sharper tabs
       ),
-      labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.2),
-      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: 0.2), // Reduced from w900
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), // Reduced from w700
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
@@ -351,7 +356,7 @@ class AppTheme {
         if (states.contains(WidgetState.selected)) {
           return AppTextStyles.captionSmall.copyWith(
             color: AppColors.primaryBlue,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w700, // Reduced from w900
             fontSize: 11,
           );
         }
@@ -375,6 +380,12 @@ class AppTheme {
       error: AppColors.errorBorder,
     ),
     scaffoldBackgroundColor: const Color(0xFF0F172A),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFF0F172A),
       foregroundColor: Colors.white,
@@ -383,7 +394,7 @@ class AppTheme {
       scrolledUnderElevation: 0,
       titleTextStyle: TextStyle(
         fontSize: 22,
-        fontWeight: FontWeight.w900,
+        fontWeight: FontWeight.w700, // Reduced from w900
         color: Colors.white,
         letterSpacing: -0.5,
       ),
@@ -426,8 +437,8 @@ class AppTheme {
         color: AppColors.primaryBlue,
         borderRadius: BorderRadius.circular(8),
       ),
-      labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.2),
-      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: 0.2), // Reduced from w900
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), // Reduced from w700
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: const Color(0xFF0F172A),
@@ -444,7 +455,7 @@ class AppTheme {
         if (states.contains(WidgetState.selected)) {
           return AppTextStyles.captionSmall.copyWith(
             color: AppColors.primaryLight,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w700, // Reduced from w900
             fontSize: 11,
           );
         }
