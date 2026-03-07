@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { User } from '../../users/user.entity';
 import { Exam } from './exam.entity';
 
@@ -8,9 +9,11 @@ export class Purchase {
     id: string;
 
     @ManyToOne(() => User)
+    @Exclude()
     user: User;
 
     @ManyToOne(() => Exam)
+    @Exclude()
     exam: Exam;
 
     @Column({ nullable: true })

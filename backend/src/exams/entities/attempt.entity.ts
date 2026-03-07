@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn, Index } from 'typeorm';
-import { Type, Expose } from 'class-transformer';
+import { Type, Expose, Exclude } from 'class-transformer';
 import { User } from '../../users/user.entity';
 import { Model } from './model.entity';
 import { Exam } from './exam.entity';
@@ -14,6 +14,7 @@ export class Attempt {
     id: string;
 
     @ManyToOne(() => User)
+    @Exclude()
     user: User;
 
     @Index()

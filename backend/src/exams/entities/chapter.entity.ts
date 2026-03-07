@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { Subject } from './subject.entity';
 import { Model } from './model.entity';
 
@@ -14,6 +15,7 @@ export class Chapter {
     description: string;
 
     @ManyToOne(() => Subject, (subject) => subject.chapters)
+    @Exclude()
     subject: Subject;
 
     @OneToMany(() => Model, (model) => model.chapter)

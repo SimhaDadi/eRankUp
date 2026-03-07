@@ -51,6 +51,7 @@ export class ExamsService implements OnApplicationBootstrap {
 
     private mapChaptersFromModels(exam: Exam): any[] {
         const chaptersMap = new Map();
+        const OTHERS_CHAPTER_ID = 'others-chapter-id'; // Unique ID for the "Others" chapter
 
         // [DEBUG]
         if (exam.subjects && exam.subjects.length > 0) {
@@ -63,21 +64,22 @@ export class ExamsService implements OnApplicationBootstrap {
         // 1. Map from direct models via exam.models
         if (exam.models && exam.models.length > 0) {
             exam.models.forEach(model => {
-                if (model.chapter) {
-                    if (!chaptersMap.has(model.chapter.id)) {
-                        chaptersMap.set(model.chapter.id, {
-                            ...model.chapter,
-                            models: []
-                        });
-                    }
+                const targetChapterId = model.chapter ? model.chapter.id : OTHERS_CHAPTER_ID;
+                const targetChapter = model.chapter || { id: OTHERS_CHAPTER_ID, title: 'Others', description: 'Models not assigned to a specific chapter.' };
 
-                    // [FIX] Inherit duration from exam if model has default (60)
-                    if (model.duration === 60 && exam.duration !== 60) {
-                        (model as any).duration = exam.duration;
-                    }
-
-                    chaptersMap.get(model.chapter.id).models.push(model);
+                if (!chaptersMap.has(targetChapterId)) {
+                    chaptersMap.set(targetChapterId, {
+                        ...targetChapter,
+                        models: []
+                    });
                 }
+
+                // [FIX] Inherit duration from exam if model has default (60)
+                if (model.duration === 60 && exam.duration !== 60) {
+                    (model as any).duration = exam.duration;
+                }
+
+                chaptersMap.get(targetChapterId).models.push(model);
             });
         }
 

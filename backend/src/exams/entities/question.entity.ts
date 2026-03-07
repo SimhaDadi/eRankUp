@@ -34,10 +34,12 @@ export class Question {
     subjectId: string;
 
     @ManyToOne(() => Subject, { nullable: true })
+    @Exclude()
     subject: Subject;
 
     @Index()
     @ManyToOne(() => Chapter, { nullable: true })
+    @Exclude()
     chapter: Chapter;
 
     @Index()
@@ -46,6 +48,7 @@ export class Question {
 
     @Index()
     @ManyToOne(() => Exam, { nullable: true })
+    @Exclude()
     exam: Exam;
 
     @Index()
@@ -53,6 +56,7 @@ export class Question {
     examId: string;
 
     @ManyToMany(() => Exam, (exam) => exam.questions)
+    @Exclude()
     exams: Exam[];
 
     @Index()
@@ -79,6 +83,7 @@ export class Question {
     avgTopperTime: number; // Average time taken by students who got it right
 
     @ManyToMany(() => Model, (model) => model.questions)
+    @Exclude()
     models: Model[];
 
 
