@@ -27,7 +27,7 @@ export default function UploadExamQuestionsModal({ isOpen, onClose, onSuccess, e
 
     useEffect(() => {
         if (isOpen && examId) {
-            api.get(`/exams/${examId}/subjects`)
+            api.get(`/subjects/by-exam/${examId}`)
                 .then(res => setSubjects(res.data || []))
                 .catch(() => setSubjects([]));
         }

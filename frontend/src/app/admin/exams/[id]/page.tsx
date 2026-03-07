@@ -70,7 +70,7 @@ export default function ExamDetailPage() {
 
     const fetchSubjects = async () => {
         try {
-            const res = await api.get(`/exams/${params.id}/subjects`);
+            const res = await api.get(`/subjects/by-exam/${params.id}`);
             setSubjects(res.data || []);
         } catch { }
     };
@@ -79,7 +79,7 @@ export default function ExamDetailPage() {
         if (!newSectionTitle.trim()) return;
         setIsAddingSection(true);
         try {
-            await api.post('/exams/subjects', { title: newSectionTitle.trim(), examId: params.id });
+            await api.post('/subjects', { title: newSectionTitle.trim(), examId: params.id });
             setNewSectionTitle('');
             fetchSubjects();
         } catch (err: any) {
@@ -93,7 +93,7 @@ export default function ExamDetailPage() {
         if (!confirm('Delete this section? Questions linked to it will remain but lose their section tag.')) return;
         setDeletingSectionId(subjectId);
         try {
-            await api.delete(`/exams/subjects/${subjectId}`);
+            await api.delete(`/subjects/${subjectId}`);
             fetchSubjects();
         } catch (err: any) {
             alert(err.response?.data?.message || 'Failed to delete section');

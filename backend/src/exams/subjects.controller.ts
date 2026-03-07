@@ -7,6 +7,7 @@ import { ExamsService } from './exams.service';
 import { CreateSubjectDto } from '@erankup/shared';
 
 @Controller('subjects')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class SubjectsController {
     constructor(
         private readonly examsService: ExamsService,
