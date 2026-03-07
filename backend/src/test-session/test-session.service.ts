@@ -250,6 +250,17 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         // Or client just fetches all questions.
         // Let's just create the session marker. Client fetches questions via /exams/chapters/:id/questions
 
+        // Dynamically calculate the duration based on practice questions (1 minute per question limit=20 by default)
+        let durationSeconds = 60 * 60; // 1 hour basic fallback
+        try {
+            const chapterQuestions = await this.examsService.getPracticeQuestions(userId, chapterId, 20); // Sync with chapter fetch limit
+            if (chapterQuestions && chapterQuestions.length > 0) {
+                durationSeconds = chapterQuestions.length * 60; // 1 min per question
+            }
+        } catch (e) {
+            console.error(`[TestSessionService] Failed to calculate duration for chapter test:`, e);
+        }
+
         const newSession: TestSession = {
             userId,
             testId,
@@ -258,10 +269,12 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             timings: {},
             flags: [],
             status: 'IN_PROGRESS',
+            durationSeconds: durationSeconds,
         };
 
-        // Standard practice duration is 1 hour + buffer
-        await this.redis.set(key, JSON.stringify(newSession), 'EX', 60 * 60 * 2);
+        // Standard practice duration + buffer
+        const redisExpiry = durationSeconds + (60 * 60);
+        await this.redis.set(key, JSON.stringify(newSession), 'EX', redisExpiry);
         return newSession;
     }
 
