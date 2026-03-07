@@ -141,9 +141,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         const SizedBox(height: 8),
         Text('Compare with Topper Average', style: AppTextStyles.caption),
         const SizedBox(height: 24),
-        SizedBox(
-          height: 300,
-          child: RadarChart(
+        if (_masteryData!.length < 3)
+          Container(
+            height: 200,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Text(
+                'Attempt tests in at least 3 topics to unlock benchmarking.',
+                style: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade600),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 300,
+            child: RadarChart(
             RadarChartData(
               radarShape: RadarShape.polygon,
               ticksTextStyle: const TextStyle(color: Colors.transparent),

@@ -139,7 +139,26 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600),
               ),
               const SizedBox(height: 24),
-              _buildRadarChart(),
+              if (_masteryData!.length < 3)
+                Container(
+                  height: 150,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade100),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Text(
+                      'Attempt tests in at least 3 distinct topics to unlock AI benchmarking.',
+                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              else
+                _buildRadarChart(),
               const SizedBox(height: 32),
             ],
 
