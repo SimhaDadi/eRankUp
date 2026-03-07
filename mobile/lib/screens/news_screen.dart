@@ -164,7 +164,7 @@ class _NewsScreenState extends State<NewsScreen> {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      item.summary,
+                                      item.summary.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), ' ').trim(),
                                       style: AppTextStyles.bodySmall.copyWith(
                                         color: isDark ? Colors.white60 : Colors.grey.shade600,
                                       ),
