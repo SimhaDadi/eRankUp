@@ -712,7 +712,7 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     // --- Subject Management ---
-    async createSubject(data: any) {
+    async createSubject(data: CreateSubjectDto & { examId?: string }): Promise<Subject> {
         const subject = this.subjectRepository.create({
             title: data.title || data.name,
             description: data.description,
@@ -729,11 +729,11 @@ export class ExamsService implements OnApplicationBootstrap {
         return saved;
     }
 
-    async findAllSubjects() {
+    async findAllSubjects(): Promise<Subject[]> {
         return this.subjectRepository.find({ relations: ['chapters', 'exam'] });
     }
 
-    async findSubjectsByExam(examId: string) {
+    async findSubjectsByExam(examId: string): Promise<Subject[]> {
         return this.subjectRepository.find({
             where: { exam: { id: examId } },
             relations: ['chapters'],
@@ -741,14 +741,14 @@ export class ExamsService implements OnApplicationBootstrap {
         });
     }
 
-    async findOneSubject(id: string) {
+    async findOneSubject(id: string): Promise<Subject> {
         return this.subjectRepository.findOne({
             where: { id },
             relations: ['exam', 'chapters']
         });
     }
 
-    async updateSubject(id: string, data: any) {
+    async updateSubject(id: string, data: any): Promise<Subject> {
         const updateData: any = {};
         if (data.title || data.name) updateData.title = data.title || data.name;
         if (data.description) updateData.description = data.description;
@@ -760,7 +760,7 @@ export class ExamsService implements OnApplicationBootstrap {
         return this.subjectRepository.findOneBy({ id });
     }
 
-    async deleteSubject(id: string) {
+    async deleteSubject(id: string): Promise<any> {
         const subject = await this.subjectRepository.findOne({
             where: { id },
             relations: ['chapters']
@@ -1778,44 +1778,5 @@ export class ExamsService implements OnApplicationBootstrap {
                 q.explanation = explanations[q.id];
             }
         }
-    }
-
-    // ─── Subject (Section) CRUD ───────────────────────────────────────────────
-
-    async findAllSubjects(): Promise<Subject[]> {
-        return this.subjectRepository.find({ relations: ['exam'] });
-    }
-
-    async findSubjectsByExam(examId: string): Promise<Subject[]> {
-        return this.subjectRepository.find({
-            where: { exam: { id: examId } },
-            order: { title: 'ASC' },
-        });
-    }
-
-    async findOneSubject(id: string): Promise<Subject> {
-        const subject = await this.subjectRepository.findOne({ where: { id } });
-        if (!subject) throw new NotFoundException(`Subject ${id} not found`);
-        return subject;
-    }
-
-    async createSubject(data: CreateSubjectDto & { examId?: string }): Promise<Subject> {
-        const subject = this.subjectRepository.create({
-            title: data.title,
-            description: (data as any).description,
-        });
-        if ((data as any).examId) {
-            subject.exam = { id: (data as any).examId } as any;
-        }
-        return this.subjectRepository.save(subject);
-    }
-
-    async updateSubject(id: string, data: any): Promise<Subject> {
-        await this.subjectRepository.update(id, data);
-        return this.findOneSubject(id);
-    }
-
-    async deleteSubject(id: string): Promise<void> {
-        await this.subjectRepository.delete(id);
     }
 }

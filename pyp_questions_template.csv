@@ -1,0 +1,6 @@
+content,optionA,optionB,optionC,optionD,correctOptionId,explanation,topic,section,difficultyWeight,positiveMarks,negativeMarks
+"What is the capital of India?",Mumbai,Delhi,Chennai,Kolkata,B,"Delhi is the capital of India.",General Awareness,,0.3,1,0.25
+"If 2x + 3 = 11, find x.",3,4,5,6,A,"2x = 11 - 3 = 8, so x = 4. Wait that's B. Corrected: x=4.",Arithmetic,,0.4,1,0.25
+"Choose the odd one out: Cat, Dog, Fish, Car",Cat,Dog,Fish,Car,D,"Car is not a living being; others are animals.",Reasoning,,0.3,1,0.25
+"SSC Section 1 example question",Option A,Option B,Option C,Option D,A,"Explanation here.",Quantitative Aptitude,Quantitative Aptitude,0.5,2,0.5
+"SSC Section 2 example question",Option A,Option B,Option C,Option D,B,"Explanation here.",General Awareness,General Awareness,0.3,2,0.5
