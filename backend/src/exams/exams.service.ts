@@ -1354,7 +1354,7 @@ export class ExamsService implements OnApplicationBootstrap {
 
 
     // --- Question Bank Browser Methods ---
-    async createQuestionsBulk(userId: string, role: UserRole, modelId: string | undefined, questionsData: any[], examId?: string) {
+    async createQuestionsBulk(userId: string, role: UserRole, modelId: string | undefined, questionsData: any[], examId?: string, subjectId?: string) {
         const fs = require('fs');
         const logFile = 'D:\\eRankUp\\bulk_upload_service.log';
         const log = (msg: string) => {
@@ -1377,6 +1377,18 @@ export class ExamsService implements OnApplicationBootstrap {
                 relations: ['chapter', 'chapter.subject']
             });
             if (!model) throw new BadRequestException('Model not found');
+        }
+
+        // --- Section resolution: build a map of section title -> Subject for this exam ---
+        let sectionSubjectMap: Record<string, string> = {}; // title (lower) -> subjectId
+        if (examId) {
+            const subjects = await this.subjectRepository.find({
+                where: { exam: { id: examId } },
+                select: ['id', 'title']
+            });
+            subjects.forEach(s => {
+                sectionSubjectMap[s.title.toLowerCase().trim()] = s.id;
+            });
         }
 
         // 1. De-duplication: Check for existing questions
@@ -1470,6 +1482,18 @@ export class ExamsService implements OnApplicationBootstrap {
                 if (!questionData.exams.some((e: any) => e.id === examId)) {
                     questionData.exams.push({ id: examId });
                 }
+            }
+
+            // === Section/Subject resolution ===
+            // Priority: explicit subjectId > CSV section name (resolved by map) > model's subject
+            const resolvedSubjectId =
+                subjectId ||
+                (data.section ? sectionSubjectMap[data.section.toLowerCase().trim()] : undefined) ||
+                (model?.chapter?.subject?.id);
+
+            if (resolvedSubjectId) {
+                questionData.subjectId = resolvedSubjectId;
+                questionData.subject = { id: resolvedSubjectId };
             }
 
             try {
@@ -1754,5 +1778,44 @@ export class ExamsService implements OnApplicationBootstrap {
                 q.explanation = explanations[q.id];
             }
         }
+    }
+
+    // ─── Subject (Section) CRUD ───────────────────────────────────────────────
+
+    async findAllSubjects(): Promise<Subject[]> {
+        return this.subjectRepository.find({ relations: ['exam'] });
+    }
+
+    async findSubjectsByExam(examId: string): Promise<Subject[]> {
+        return this.subjectRepository.find({
+            where: { exam: { id: examId } },
+            order: { title: 'ASC' },
+        });
+    }
+
+    async findOneSubject(id: string): Promise<Subject> {
+        const subject = await this.subjectRepository.findOne({ where: { id } });
+        if (!subject) throw new NotFoundException(`Subject ${id} not found`);
+        return subject;
+    }
+
+    async createSubject(data: CreateSubjectDto & { examId?: string }): Promise<Subject> {
+        const subject = this.subjectRepository.create({
+            title: data.title,
+            description: (data as any).description,
+        });
+        if ((data as any).examId) {
+            subject.exam = { id: (data as any).examId } as any;
+        }
+        return this.subjectRepository.save(subject);
+    }
+
+    async updateSubject(id: string, data: any): Promise<Subject> {
+        await this.subjectRepository.update(id, data);
+        return this.findOneSubject(id);
+    }
+
+    async deleteSubject(id: string): Promise<void> {
+        await this.subjectRepository.delete(id);
     }
 }

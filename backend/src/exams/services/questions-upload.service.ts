@@ -12,6 +12,7 @@ export interface ParsedQuestion {
     correctOptionId: string | null;
     explanation?: string;
     topic: string;
+    section?: string; // Maps to Subject/Section title for grouping
     difficultyWeight?: number;
     positiveMarks?: number;
     negativeMarks?: number;
@@ -71,6 +72,7 @@ export class QuestionsUploadService {
                         correctOptionId: correctOptionId.toString().toUpperCase(),
                         explanation: row.explanation || '',
                         topic: row.topic || 'General',
+                        section: row.section || '',
                         difficultyWeight: parseFloat(row.difficultyweight || row.difficulty) || 0.5,
                         positiveMarks: parseFloat(row.positivemarks) || 1.0,
                         negativeMarks: parseFloat(row.negativemarks) || 0.25,

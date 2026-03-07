@@ -260,7 +260,7 @@ export class AnalyticsService {
             });
         }
 
-        const topicStats: Record<string, { correct: number; total: number; time: number }> = {};
+        const topicStats: Record<string, { correct: number; total: number; time: number; topperScore?: number }> = {};
 
         attempt.responses.forEach(response => {
             const topic = response.question.topic || 'General';
@@ -284,6 +284,43 @@ export class AnalyticsService {
             if (accuracy >= 80) strengths.push(topic);
             if (accuracy <= 40) weaknesses.push(topic);
         });
+
+        // Calculate Topper Scores per Topic
+        const entityIdField = attempt.model ? 'modelId' : 'examId';
+        const entityId = attempt.model ? attempt.model.id : attempt.exam?.id;
+
+        if (entityId) {
+            const rawTopperStats = await this.responseRepository.createQueryBuilder('response')
+                .innerJoin('response.attempt', 'a')
+                .innerJoin('response.question', 'question')
+                .where(`a.${entityIdField} = :entityId`, { entityId })
+                .select([
+                    "COALESCE(question.topic, 'General') AS topic",
+                    'a.id AS attempt_id',
+                    'COUNT(response.id) AS total',
+                    'SUM(CASE WHEN response.isCorrect = true THEN 1 ELSE 0 END) AS correct'
+                ])
+                .groupBy('question.topic')
+                .addGroupBy('a.id')
+                .getRawMany();
+
+            const maxAccuracies = new Map<string, number>();
+            rawTopperStats.forEach(stat => {
+                const topic = stat.topic;
+                const total = parseInt(stat.total) || 0;
+                const correct = parseInt(stat.correct) || 0;
+                const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+                if (!maxAccuracies.has(topic) || accuracy > (maxAccuracies.get(topic) || 0)) {
+                    maxAccuracies.set(topic, accuracy);
+                }
+            });
+
+            Object.keys(topicStats).forEach(topic => {
+                const userAccuracy = topicStats[topic].total > 0 ? Math.round((topicStats[topic].correct / topicStats[topic].total) * 100) : 0;
+                topicStats[topic].topperScore = maxAccuracies.get(topic) || userAccuracy;
+            });
+        }
 
         return {
             rank: betterCount + 1,

@@ -29,6 +29,10 @@ export class Question {
     @Column({ default: 'General' })
     topic: string;
 
+    @Index()
+    @Column({ nullable: true })
+    subjectId: string;
+
     @ManyToOne(() => Subject, { nullable: true })
     subject: Subject;
 

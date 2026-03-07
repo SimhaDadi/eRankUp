@@ -39,7 +39,9 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                 startTime: exam.startTime ? new Date(exam.startTime).toISOString().slice(0, 16) : '',
                 endTime: exam.endTime ? new Date(exam.endTime).toISOString().slice(0, 16) : '',
                 isPremium: exam.isPremium || false,
-                videoSolutionUrl: exam.videoSolutionUrl || ''
+                videoSolutionUrl: exam.videoSolutionUrl || '',
+                shiftLabel: exam.metadata?.shiftLabel || '',
+                cenNumber: exam.metadata?.cenNumber || '',
             } as any);
         }
     }, [exam]);
@@ -66,7 +68,18 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
 
         setLoading(true);
         try {
-            await api.put(`/exams/${exam.id}`, formData);
+            const payload: any = { ...formData };
+            // Pack PYP metadata fields into metadata object
+            if (formData.type === 'previous_year_paper') {
+                payload.metadata = {
+                    ...(exam.metadata || {}),
+                    shiftLabel: (formData as any).shiftLabel || null,
+                    cenNumber: (formData as any).cenNumber || null,
+                };
+            }
+            delete payload.shiftLabel;
+            delete payload.cenNumber;
+            await api.put(`/exams/${exam.id}`, payload);
             onSuccess();
             onClose();
             setErrors({});
@@ -151,8 +164,85 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                         />
                     </div>
 
-                    {/* Live Exam Schedule */}
-                    {(formData.type === 'live_exam' || (formData as any).startTime) && (
+                    {/* PYP-specific fields */}
+                    {formData.type === 'previous_year_paper' && (
+                        <div className="p-4 bg-amber-50 border-2 border-amber-100 rounded-xl space-y-4">
+                            <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">📄 PYP Exam Details</p>
+                            {/* Exam Date & Shift Timing */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Exam Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={(formData as any).startTime ? (formData as any).startTime.slice(0, 10) : ''}
+                                        onChange={(e) => handleChange('startTime', e.target.value ? e.target.value + 'T00:00' : '')}
+                                        className="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 bg-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Shift Label
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={(formData as any).shiftLabel || ''}
+                                        onChange={(e) => handleChange('shiftLabel', e.target.value)}
+                                        placeholder="e.g. Shift 1, Morning"
+                                        className="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 bg-white placeholder-gray-400"
+                                    />
+                                </div>
+                            </div>
+                            {/* Shift Start/End Time */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Shift Start Time
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={(formData as any).startTime?.slice(11, 16) || ''}
+                                        onChange={(e) => {
+                                            const date = (formData as any).startTime?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+                                            handleChange('startTime', `${date}T${e.target.value}`);
+                                        }}
+                                        className="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 bg-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Shift End Time
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={(formData as any).endTime?.slice(11, 16) || ''}
+                                        onChange={(e) => {
+                                            const date = (formData as any).startTime?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+                                            handleChange('endTime', `${date}T${e.target.value}`);
+                                        }}
+                                        className="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 bg-white"
+                                    />
+                                </div>
+                            </div>
+                            {/* CEN Number */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    CEN / Notification No.
+                                </label>
+                                <input
+                                    type="text"
+                                    value={(formData as any).cenNumber || ''}
+                                    onChange={(e) => handleChange('cenNumber', e.target.value)}
+                                    placeholder="e.g. CEN 05/2024"
+                                    className="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 bg-white placeholder-gray-400"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Live Exam Schedule (non-PYP) */}
+                    {formData.type === 'live_exam' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">

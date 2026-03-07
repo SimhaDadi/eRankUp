@@ -453,7 +453,8 @@ export class ExamsController {
         @Request() req: any,
         @UploadedFile() file: Express.Multer.File,
         @Body('modelId') modelId?: string,
-        @Body('examId') examId?: string
+        @Body('examId') examId?: string,
+        @Body('subjectId') subjectId?: string
     ) {
         if (!file) {
             throw new BadRequestException('File is required');
@@ -470,7 +471,7 @@ export class ExamsController {
             exams: examId ? [{ id: examId }] : []
         }));
 
-        return this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, questionsWithContext, examId);
+        return this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, questionsWithContext, examId, subjectId);
     }
 
     // --- Question Bank Browser Endpoints ---

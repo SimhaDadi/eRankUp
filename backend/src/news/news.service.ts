@@ -51,6 +51,15 @@ export class NewsService implements OnModuleInit {
         return this.newsRepository.findOne({ where: { id } });
     }
 
+    async update(id: string, updateData: Partial<CreateNewsDto>): Promise<NewsItem> {
+        await this.newsRepository.update(id, updateData);
+        return this.findOne(id);
+    }
+
+    async remove(id: string): Promise<void> {
+        await this.newsRepository.delete(id);
+    }
+
     private async seedData() {
         const dummyNews: CreateNewsDto[] = [
             {

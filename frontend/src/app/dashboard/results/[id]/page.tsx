@@ -65,6 +65,16 @@ interface Attempt {
     userAnswers: Record<string, string>;
     questionTimings?: Record<string, number>;
     responses?: QuestionResponse[];
+    sectionResults?: {
+        subjectId: string;
+        subjectTitle: string;
+        attempted: number;
+        correct: number;
+        wrong: number;
+        score: number;
+        maxScore: number;
+        timeSpent: number;
+    }[];
     insights?: {
         rank: number;
         totalParticipants: number;
@@ -100,31 +110,7 @@ interface Attempt {
     };
 }
 
-// Generate simulated question-level benchmarking data
-// In a real scenario, this would come from the backend based on granular tracking
-// Generate aggregated topic-level benchmarking data for this specific test
-const generateTopperStats = (attempt: Attempt) => {
-    // In a real scenario, we would aggregate actual question tags.
-    // Here we simulate topic breakdown based on the attempt data.
-
-    // topics: Algebra, Geometry, Arithmetic, Reasoning
-    const topics = ['Algebra', 'Geometry', 'Arithmetic', 'Reasoning'];
-
-    return topics.map(topic => {
-        // Simulate user score for this topic based on overall score + random variance
-        const variance = Math.floor(Math.random() * 20) - 10; // -10 to +10
-        const yourScore = Math.min(100, Math.max(0, Math.round(attempt.score) + variance));
-
-        // Topper is usually 10-15% ahead, capped at 100
-        const topperScore = Math.min(100, yourScore + Math.floor(Math.random() * 15) + 5);
-
-        return {
-            topic,
-            yourScore,
-            topperScore
-        };
-    });
-};
+// Real benchmarking data is passed from attempt.insights.topicAnalysis
 
 export default function ResultsPage() {
     const params = useParams();
@@ -254,12 +240,6 @@ export default function ResultsPage() {
                     >
                         <Eye className="w-4 h-4 md:w-5 md:h-5" /> Solutions
                     </button>
-                    <button
-                        onClick={() => router.push(`/dashboard/exam-start/${attempt.model?.id || attempt.exam?.id || params.id}`)}
-                        className="bg-white hover:bg-gray-50 text-slate-900 border border-gray-200 font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 text-xs md:text-base"
-                    >
-                        Retake
-                    </button>
                 </div>
             </div>
 
@@ -383,6 +363,60 @@ export default function ResultsPage() {
                             <p className="hidden md:block text-[10px] text-slate-400 font-medium">Unattempted ({attempt.insights?.metrics?.skippedAnswers || 0})</p>
                         </div>
                     </div>
+
+                    {/* Section-wise Performance */}
+                    {attempt.sectionResults && attempt.sectionResults.length > 1 && (
+                        <div className="bg-white border border-gray-200 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-sm">
+                            <div className="flex items-center gap-2 mb-4">
+                                <BarChart2 className="w-5 h-5 text-purple-500" />
+                                <h3 className="text-lg font-bold text-slate-900">Section-wise Performance</h3>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-gray-100">
+                                            <th className="text-left py-2 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Section</th>
+                                            <th className="text-center py-2 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Attempted</th>
+                                            <th className="text-center py-2 px-3 text-xs font-bold text-emerald-500 uppercase tracking-wider">Correct</th>
+                                            <th className="text-center py-2 px-3 text-xs font-bold text-red-400 uppercase tracking-wider">Wrong</th>
+                                            <th className="text-center py-2 px-3 text-xs font-bold text-blue-400 uppercase tracking-wider">Score</th>
+                                            <th className="text-center py-2 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {attempt.sectionResults.map((sec) => {
+                                            const secAccuracy = sec.attempted > 0 ? Math.round((sec.correct / sec.attempted) * 100) : 0;
+                                            const mins = Math.floor(sec.timeSpent / 60);
+                                            const secs = sec.timeSpent % 60;
+                                            return (
+                                                <tr key={sec.subjectId || sec.subjectTitle} className="hover:bg-gray-50/80 transition-colors">
+                                                    <td className="py-3 px-3 font-bold text-slate-800">
+                                                        {sec.subjectTitle}
+                                                        {sec.attempted > 0 && (
+                                                            <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${secAccuracy >= 70 ? 'bg-emerald-50 text-emerald-600' :
+                                                                secAccuracy >= 40 ? 'bg-amber-50 text-amber-600' :
+                                                                    'bg-red-50 text-red-600'
+                                                                }`}>{secAccuracy}%</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-3 text-center text-slate-600 font-medium">{sec.attempted}</td>
+                                                    <td className="py-3 px-3 text-center text-emerald-600 font-bold">{sec.correct}</td>
+                                                    <td className="py-3 px-3 text-center text-red-500 font-bold">{sec.wrong}</td>
+                                                    <td className="py-3 px-3 text-center">
+                                                        <span className="font-black text-slate-900">{sec.score}</span>
+                                                        <span className="text-slate-400 text-xs"> / {sec.maxScore}</span>
+                                                    </td>
+                                                    <td className="py-3 px-3 text-center text-slate-500 text-xs font-medium">
+                                                        {mins > 0 ? `${mins}m ` : ''}{secs}s
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Visual Analysis Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -573,7 +607,13 @@ export default function ResultsPage() {
                             />
                         )}
 
-                        {attempt && <TopperComparison stats={generateTopperStats(attempt)} />}
+                        {attempt?.insights?.topicAnalysis && Object.keys(attempt.insights.topicAnalysis).length > 0 && (
+                            <TopperComparison stats={Object.entries(attempt.insights.topicAnalysis).map(([topic, data]: [string, any]) => ({
+                                topic: topic.length > 15 ? topic.substring(0, 15) + '..' : topic,
+                                yourScore: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+                                topperScore: data.topperScore ?? (data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0)
+                            }))} />
+                        )}
                     </div>
 
                     {attempt?.percentileData && (

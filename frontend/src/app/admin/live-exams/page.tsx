@@ -9,9 +9,11 @@ import {
     CheckCircle,
     BookOpen,
     MoreVertical,
-    FileText
+    FileText,
+    Upload
 } from 'lucide-react';
 import api from '@/lib/api';
+import UploadExamQuestionsModal from '@/components/admin/UploadExamQuestionsModal';
 
 interface Exam {
     id: string;
@@ -33,6 +35,9 @@ export default function LiveExamsPage() {
         startTime: '',
         endTime: ''
     });
+
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [examToUpload, setExamToUpload] = useState<{ id: string; title: string } | null>(null);
 
     useEffect(() => {
         fetchExams();
@@ -58,7 +63,22 @@ export default function LiveExamsPage() {
     };
 
     const handleSchedule = async (e: React.FormEvent) => {
-        // ... (omitted code for brevity, but I will keep it in the real replacement)
+        e.preventDefault();
+        if (!selectedExam) return;
+
+        try {
+            await api.put(`/admin/live-exams/${selectedExam.id}`, {
+                startTime: new Date(schedule.startTime).toISOString(),
+                endTime: new Date(schedule.endTime).toISOString()
+            });
+
+            setIsScheduling(false);
+            fetchExams();
+            alert('Schedule updated successfully!');
+        } catch (error) {
+            console.error('Failed to update schedule', error);
+            alert('Failed to update schedule');
+        }
     };
 
     const handleExportCSV = async (id: string, title: string) => {
@@ -132,6 +152,16 @@ export default function LiveExamsPage() {
                                             title="Export Question Paper (CSV)"
                                         >
                                             <FileText className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setExamToUpload({ id: exam.id, title: exam.title });
+                                                setShowUploadModal(true);
+                                            }}
+                                            className="p-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                                            title="Upload Questions"
+                                        >
+                                            <Upload className="w-4 h-4" />
                                         </button>
                                         <div className={`p-3 rounded-2xl ${status === 'live' ? 'bg-red-500/10 text-red-500 animate-pulse' :
                                             status === 'upcoming' ? 'bg-blue-500/10 text-blue-500' :
@@ -237,6 +267,23 @@ export default function LiveExamsPage() {
                         </form>
                     </motion.div>
                 </div>
+            )}
+
+            {showUploadModal && examToUpload && (
+                <UploadExamQuestionsModal
+                    isOpen={showUploadModal}
+                    onClose={() => {
+                        setShowUploadModal(false);
+                        setExamToUpload(null);
+                    }}
+                    onSuccess={() => {
+                        fetchExams();
+                        setShowUploadModal(false);
+                        setExamToUpload(null);
+                    }}
+                    examId={examToUpload.id}
+                    examTitle={examToUpload.title}
+                />
             )}
         </div>
     );

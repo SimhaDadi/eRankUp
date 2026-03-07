@@ -135,32 +135,7 @@ class _LiveTestsScreenState extends State<LiveTestsScreen> {
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade600,
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: [
-                          BoxShadow(color: Colors.red.withOpacity(0.4), blurRadius: 8)
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.circle, size: 6, color: Colors.white),
-                          const SizedBox(width: 6),
-                          Text(
-                            'LIVE NOW',
-                            style: AppTextStyles.overline.copyWith(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    _buildStatusBadge(startTime, endTime),
                     const Spacer(),
                     Icon(Icons.people, size: 16, color: Colors.white.withOpacity(0.8)),
                     const SizedBox(width: 4),

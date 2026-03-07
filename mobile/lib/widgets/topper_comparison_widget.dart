@@ -2,23 +2,28 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class TopperComparisonWidget extends StatelessWidget {
-  final int userScore;
+  final Map<String, dynamic> topicAnalysis;
   
   const TopperComparisonWidget({
     super.key,
-    required this.userScore,
+    required this.topicAnalysis,
   });
 
-  List<Map<String, dynamic>> _generateTopperStats() {
-    final topics = ['Algebra', 'Geometry', 'Arithmetic', 'Reasoning'];
-    
-    return topics.map((topic) {
-      final variance = (DateTime.now().millisecondsSinceEpoch % 20) - 10;
-      final yourScore = (userScore + variance).clamp(0, 100);
-      final topperScore = (yourScore + 5 + (DateTime.now().millisecondsSinceEpoch % 15)).clamp(0, 100);
+  List<Map<String, dynamic>> _getTopicStats() {
+    if (topicAnalysis.isEmpty) return [];
+
+    return topicAnalysis.entries.map((entry) {
+      final topic = entry.key;
+      final data = entry.value as Map<String, dynamic>;
+      final correct = data['correct'] as int? ?? 0;
+      final total = data['total'] as int? ?? 0;
+      final topperScoreRaw = data['topperScore'] as int?;
+
+      final yourScore = total > 0 ? ((correct / total) * 100).round() : 0;
+      final topperScore = topperScoreRaw ?? yourScore;
       
       return {
-        'topic': topic,
+        'topic': topic.length > 20 ? '${topic.substring(0, 20)}..' : topic,
         'yourScore': yourScore,
         'topperScore': topperScore,
       };
@@ -27,7 +32,7 @@ class TopperComparisonWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stats = _generateTopperStats();
+    final stats = _getTopicStats();
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
