@@ -28,7 +28,14 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
   bool _reAttemptMode = false;
   final Map<String, String> _reAttemptSelections = {}; // questionId → picked optionId
   final Set<String> _showSolutionIds = {}; // questionId → visible explanation
-  final ScrollController _scrollController = ScrollController();
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -91,6 +98,10 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
         
         return true;
       }).toList();
+      _currentPage = 0;
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(0);
+      }
     });
   }
 
@@ -120,15 +131,24 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                 Expanded(
                   child: _filteredResponses.isEmpty
                       ? _buildEmptyState()
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(AppSpacing.screenPadding),
+                      : PageView.builder(
+                          controller: _pageController,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentPage = index;
+                            });
+                          },
                           itemCount: _filteredResponses.length,
                           itemBuilder: (context, index) {
-                            return _buildSolutionCard(index + 1, _filteredResponses[index]);
+                            return SingleChildScrollView(
+                              padding: const EdgeInsets.all(AppSpacing.screenPadding),
+                              child: _buildSolutionCard(index + 1, _filteredResponses[index]),
+                            );
                           },
                         ),
                 ),
+                if (!_isLoading && _filteredResponses.isNotEmpty)
+                  _buildPaginationControls(),
               ],
             ),
       // ── Re-attempt mode bottom bar ──
@@ -1075,13 +1095,13 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                     onTap: () {
                       Navigator.pop(context);
                       HapticService.light();
-                      // Simple implementation: scroll to the specific item
-                      // Card height is ~450-700 depending on content
-                      _scrollController.animateTo(
-                        index * 550.0, // Rough average height
-                        duration: const Duration(milliseconds: 600),
-                        curve: Curves.easeInOutExpo,
-                      );
+                      if (_pageController.hasClients) {
+                        _pageController.animateToPage(
+                          index,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
                     },
                     child: Container(
                       decoration: BoxDecoration(
@@ -1152,6 +1172,71 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationControls() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          TextButton.icon(
+            onPressed: _currentPage > 0
+                ? () {
+                    HapticService.light();
+                    _pageController.previousPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                : null,
+            icon: const Icon(Icons.arrow_back_ios_rounded, size: 14),
+            label: const Text('Prev'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryBlue,
+              disabledForegroundColor: Colors.grey.shade400,
+            ),
+          ),
+          Text(
+            '${_currentPage + 1} / ${_filteredResponses.length}',
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          TextButton(
+            onPressed: _currentPage < _filteredResponses.length - 1
+                ? () {
+                    HapticService.light();
+                    _pageController.nextPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                : null,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryBlue,
+              disabledForegroundColor: Colors.grey.shade400,
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Next'),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_forward_ios_rounded, size: 14),
+              ],
+            ),
           ),
         ],
       ),
