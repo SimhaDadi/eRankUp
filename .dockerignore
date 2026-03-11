@@ -24,3 +24,13 @@ build
 tmp
 .cache
 frontend/.env.local
+# Test & dev-only files
+**/test/
+**/*.test.js
+**/*.spec.ts
+playwright.config.ts
+scripts/
+backend/scripts/
+mobile/test/
+devices.txt
+pyp_questions_template.csv
