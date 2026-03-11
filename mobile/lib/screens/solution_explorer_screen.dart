@@ -277,7 +277,8 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('QUESTION $displayIndex', style: AppTextStyles.overline.copyWith(color: AppColors.primaryBlue)),
-                    _buildStatusBadge(selectedId == null, isCorrect),
+                    if (!_reAttemptMode || _reAttemptSelections[question['id']] != null)
+                      _buildStatusBadge(selectedId == null, isCorrect),
                     Row(
                       children: [
                         _buildActionButton(
@@ -416,10 +417,14 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                           MathRichText(
                             text: opt['text'] ?? '',
                             style: TextStyle(
-                              color: isCorrectOpt
-                                  ? (isDark ? Colors.greenAccent : Colors.green.shade900)
-                                  : ((!_reAttemptMode && isSelected) || (_reAttemptMode && isReAttemptPick && !isCorrectOpt))
-                                      ? (isDark ? Colors.redAccent : Colors.red.shade900)
+                              color: (!_reAttemptMode) 
+                                  ? (isCorrectOpt 
+                                      ? (isDark ? Colors.greenAccent : Colors.green.shade900)
+                                      : (isSelected ? (isDark ? Colors.redAccent : Colors.red.shade900) : theme.textTheme.bodyMedium?.color))
+                                  : (hasReAttempted) 
+                                      ? (isCorrectOpt 
+                                          ? (isDark ? Colors.greenAccent : Colors.green.shade900)
+                                          : (isReAttemptPick ? (isDark ? Colors.redAccent : Colors.red.shade900) : theme.textTheme.bodyMedium?.color))
                                       : theme.textTheme.bodyMedium?.color,
                               fontWeight: ((!_reAttemptMode && (isSelected || isCorrectOpt)) ||
                                           (_reAttemptMode && hasReAttempted && (isCorrectOpt || isReAttemptPick)))

@@ -552,11 +552,6 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
             offset: const Offset(0, 4),
           ),
         ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
           onTap: () {
             if (attempted) {
               Navigator.push(
@@ -664,7 +659,6 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
                             _buildStat(Icons.quiz_rounded, '${exam.totalQuestions ?? 0} Qs', accent, isDark),
                             const SizedBox(width: 8),
                             _buildStat(Icons.timer_rounded, '${exam.duration ?? 0} min', accent, isDark),
-                            const Spacer(),
                             // CTA
                             GestureDetector(
                               onTap: () {
