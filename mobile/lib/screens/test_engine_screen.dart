@@ -498,96 +498,137 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(AppSpacing.xxl),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Q. ${_currentIndex + 1}',
-                          style: AppTextStyles.h3.copyWith(color: AppColors.primaryBlue),
-                        ),
-                        if (isFlagged)
-                          const Chip(
-                            label: Text('REVIEW', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                            backgroundColor: Colors.amber, 
-                            labelPadding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (question.imageUrl != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Builder(
-                            builder: (context) {
-                              // ApiService.baseUrl is static
-                              return Image.network(
-                                '${ApiService.baseUrl}${question.imageUrl}',
-                                fit: BoxFit.contain,
-                                errorBuilder: (c, e, s) => const SizedBox(), // Hide if error
-                              );
-                            }
-                          ),
-                        ),
+                    // Question Card
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF161F3D) : Colors.white,
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        border: Border.all(color: isDark ? const Color(0xFF2B3A67) : Colors.grey.shade200, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
                       ),
-                    MathRichText(
-                      text: question.content,
-                      style: TextStyle(
-                        fontSize: 18, 
-                        fontWeight: FontWeight.w500, 
-                        height: 1.5,
-                        color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Q. ${_currentIndex + 1}',
+                                style: AppTextStyles.h3.copyWith(color: AppColors.primaryLight),
+                              ),
+                              if (isFlagged)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                                    border: Border.all(color: Colors.amber),
+                                  ),
+                                  child: const Text('REVIEW', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.amber)),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          if (question.imageUrl != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Builder(
+                                  builder: (context) {
+                                    return Image.network(
+                                      '${ApiService.baseUrl}${question.imageUrl}',
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (c, e, s) => const SizedBox(), 
+                                    );
+                                  }
+                                ),
+                              ),
+                            ),
+                          MathRichText(
+                            text: question.content,
+                            style: TextStyle(
+                              fontSize: 18, 
+                              fontWeight: FontWeight.w600, 
+                              height: 1.5,
+                              color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.xxl),
+                    
+                    // Options List
                     ...question.options.map((option) {
                       bool isSelected = _userAnswers[question.id] == option.id;
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: 16),
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                           onTap: () => _saveAnswer(question.id, option.id),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.all(16),
+                            curve: Curves.easeOutBack,
+                            padding: const EdgeInsets.all(AppSpacing.lg),
                              decoration: BoxDecoration(
                                color: isSelected 
                                   ? (isDark ? AppColors.primaryBlue.withOpacity(0.15) : AppColors.infoBg)
-                                  : theme.cardTheme.color,
+                                  : (isDark ? const Color(0xFF161F3D) : Colors.white),
                                border: Border.all(
                                  color: isSelected 
-                                    ? AppColors.primaryBlue 
-                                    : (isDark ? const Color(0xFF334155) : Colors.grey.shade200),
-                                 width: isSelected ? 2 : 1,
+                                    ? AppColors.primaryCyan // Neon Cyan Glow
+                                    : (isDark ? const Color(0xFF2B3A67) : Colors.grey.shade200),
+                                 width: isSelected ? 2.5 : 2,
                                ),
                                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                                boxShadow: [
-                                   if (isSelected && !isDark) BoxShadow(color: AppColors.primaryBlue.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))
+                                   if (isSelected) 
+                                      BoxShadow(
+                                        color: AppColors.primaryCyan.withOpacity(0.3), 
+                                        blurRadius: 12, 
+                                        spreadRadius: 2,
+                                        offset: const Offset(0, 4)
+                                      )
                                ]
                              ),
                             child: Row(
                               children: [
-                                Container(
-                                  width: 24,
-                                  height: 24,
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 26,
+                                  height: 26,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: isSelected ? AppColors.primaryBlue : Colors.grey.shade400, width: 2),
-                                    color: isSelected ? AppColors.primaryBlue : Colors.transparent,
+                                    border: Border.all(
+                                      color: isSelected ? AppColors.primaryCyan : Colors.grey.shade400, 
+                                      width: isSelected ? 6 : 2
+                                    ),
+                                    color: Colors.transparent,
                                   ),
-                                  child: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: MathRichText(
                                     text: option.text, 
-                                    style: TextStyle(fontSize: 16, color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary)
+                                    style: TextStyle(
+                                      fontSize: 16, 
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                      color: isSelected 
+                                        ? (isDark ? Colors.white : AppColors.primaryDark) 
+                                        : AppColors.textSecondary
+                                    )
                                   )
                                 ),
                               ],

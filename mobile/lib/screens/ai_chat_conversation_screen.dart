@@ -559,6 +559,7 @@ class _AIChatConversationScreenState extends State<AIChatConversationScreen> {
             const SizedBox(width: 8),
             FloatingActionButton(
               onPressed: _sendMessage,
+              heroTag: null,
               mini: true,
               elevation: 0,
               backgroundColor: AppColors.primaryBlue,

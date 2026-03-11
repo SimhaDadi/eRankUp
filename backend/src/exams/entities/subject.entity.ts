@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { Chapter } from './chapter.entity';
 import { Exam } from './exam.entity';
 
@@ -17,6 +18,7 @@ export class Subject {
     icon: string; // Icon name from lucide/react
 
     @ManyToOne(() => Exam, (exam) => exam.subjects)
+    @Exclude()
     exam: Exam;
 
     @OneToMany(() => Chapter, (chapter) => chapter.subject)

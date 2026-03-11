@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, Index } from 'typeorm';
-import { Type, Expose } from 'class-transformer';
+import { Type, Expose, Exclude } from 'class-transformer';
 import { Attempt } from './attempt.entity';
 import { Question } from './question.entity';
 
@@ -11,6 +11,7 @@ export class Response {
 
     @Index()
     @ManyToOne(() => Attempt, (attempt) => attempt.responses)
+    @Exclude()
     attempt: Attempt;
 
     @Expose()

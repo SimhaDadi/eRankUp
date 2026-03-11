@@ -536,37 +536,35 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
   }
 
   Widget _buildEnhancedExamCard(Exam exam) {
-    final gradientColors = _getGradientColors(exam.title);
-    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = _getAccentColor(exam.title);
+    final attempted = exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: isDark ? const Color(0xFF161F3D) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: gradientColors[0].withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: accent.withOpacity(isDark ? 0.12 : 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          borderRadius: BorderRadius.circular(24),
           onTap: () {
-            if (exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0) {
-                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ResultsScreen(attemptId: exam.attempts!['latestAttemptId']),
-                    ),
-                  );
+            if (attempted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ResultsScreen(attemptId: exam.attempts!['latestAttemptId']),
+                ),
+              );
             } else {
               Navigator.push(
                 context,
@@ -574,16 +572,10 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
                   pageBuilder: (context, animation, secondaryAnimation) =>
                       ExamDetailScreen(exam: exam),
                   transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    const begin = Offset(1.0, 0.0);
-                    const end = Offset.zero;
-                    const curve = Curves.easeInOutCubic;
-                    
-                    var tween = Tween(begin: begin, end: end)
-                        .chain(CurveTween(curve: curve));
-                    var offsetAnimation = animation.drive(tween);
-                    
                     return SlideTransition(
-                      position: offsetAnimation,
+                      position: Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+                          .chain(CurveTween(curve: Curves.easeInOutCubic))
+                          .animate(animation),
                       child: child,
                     );
                   },
@@ -592,213 +584,143 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
               );
             }
           },
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                  // Header
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                        ),
-                        child: Icon(
-                          _getCategoryIcon(exam.title),
-                          color: Colors.white,
-                          size: AppSpacing.iconLg,
-                        ),
-                      ),
-                      const Spacer(),
-                      if (exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.check_circle, color: Colors.green, size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                "ATTEMPTED",
-                                style: TextStyle(
-                                  fontSize: 10, 
-                                  fontWeight: FontWeight.bold, 
-                                  color: Colors.green.shade700
-                                )
-                              )
-                            ],
-                          )
-                        )
-                      else if (exam.isPremium)
-                        const Icon(
-                          Icons.workspace_premium,
-                          color: Colors.amber,
-                          size: 24,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Metadata Badges (Authority / Year)
-                  if (exam.metadata != null && (exam.metadata!['authority'] != null || exam.metadata!['year'] != null))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
-                        children: [
-                          if (exam.metadata!['authority'] != null)
-                            Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.white.withOpacity(0.3), width: 0.5),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.verified, size: 10, color: Colors.amberAccent),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${exam.metadata!['authority']}'.toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          if (exam.metadata!['year'] != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.white.withOpacity(0.3), width: 0.5),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.calendar_today, size: 10, color: Colors.lightBlueAccent),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${exam.metadata!['year']}',
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                
-                // Title
-                Text(
-                  exam.title,
-                  style: AppTextStyles.h3.copyWith(
-                    color: Colors.white,
-                    shadows: [
-                      const Shadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                
-                // Description
-                Text(
-                  exam.description,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: Colors.white70,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                
-                // Stats Row
-                Row(
-                  children: [
-                    _buildStat(Icons.quiz_rounded, '${exam.totalQuestions ?? 0} Qs'),
-                    const SizedBox(width: AppSpacing.md),
-                    _buildStat(Icons.timer_rounded, '${exam.duration ?? 0} min'),
-                    const Spacer(),
-                    // CTA button
-                    GestureDetector(
-                      onTap: () {
-                        if (exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ResultsScreen(attemptId: exam.attempts!['latestAttemptId']),
-                            ),
-                          );
-                        } else {
-                          Navigator.push(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder: (context, animation, secondaryAnimation) =>
-                                  ExamDetailScreen(exam: exam),
-                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                return SlideTransition(
-                                  position: Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
-                                      .chain(CurveTween(curve: Curves.easeInOutCubic))
-                                      .animate(animation),
-                                  child: child,
-                                );
-                              },
-                              transitionDuration: const Duration(milliseconds: 300),
-                            ),
-                          );
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0
-                                  ? 'View Result'
-                                  : 'Start Test',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
-                                color: gradientColors[0],
+                            // Icon box
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: accent.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(_getCategoryIcon(exam.title), color: accent, size: 18),
+                            ),
+                            const SizedBox(width: 10),
+                            // Title
+                            Expanded(
+                              child: Text(
+                                exam.title,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? Colors.white : AppColors.textPrimary,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0
-                                  ? Icons.bar_chart_rounded
-                                  : Icons.play_arrow_rounded,
-                              size: 14,
-                              color: gradientColors[0],
+                            // Attempted badge
+                            if (attempted)
+                              Container(
+                                margin: const EdgeInsets.only(left: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 11),
+                                    const SizedBox(width: 3),
+                                    Text('ATTEMPTED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.green.shade700)),
+                                  ],
+                                ),
+                              )
+                            else if (exam.isPremium)
+                              Container(
+                                margin: const EdgeInsets.only(left: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 11),
+                                    SizedBox(width: 3),
+                                    Text('PRO', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.amber)),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        // Stats + CTA row
+                        Row(
+                          children: [
+                            _buildStat(Icons.quiz_rounded, '${exam.totalQuestions ?? 0} Qs', accent, isDark),
+                            const SizedBox(width: 8),
+                            _buildStat(Icons.timer_rounded, '${exam.duration ?? 0} min', accent, isDark),
+                            const Spacer(),
+                            // CTA
+                            GestureDetector(
+                              onTap: () {
+                                if (attempted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ResultsScreen(attemptId: exam.attempts!['latestAttemptId']),
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    PageRouteBuilder(
+                                      pageBuilder: (context, animation, secondaryAnimation) =>
+                                          ExamDetailScreen(exam: exam),
+                                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                        return SlideTransition(
+                                          position: Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+                                              .chain(CurveTween(curve: Curves.easeInOutCubic))
+                                              .animate(animation),
+                                          child: child,
+                                        );
+                                      },
+                                      transitionDuration: const Duration(milliseconds: 300),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryBlue.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      attempted ? 'View Result' : 'Start Test',
+                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.primaryBlue),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      attempted ? Icons.bar_chart_rounded : Icons.play_arrow_rounded,
+                                      size: 13, color: AppColors.primaryBlue,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -808,23 +730,24 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildStat(IconData icon, String text) {
+  Widget _buildStat(IconData icon, String text, Color accent, bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.primaryBlue.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.white),
-          const SizedBox(width: 6),
+          Icon(icon, size: 12, color: AppColors.primaryBlue),
+          const SizedBox(width: 4),
           Text(
             text,
-            style: AppTextStyles.caption.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white70 : AppColors.textSecondary,
             ),
           ),
         ],
@@ -832,20 +755,23 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
     );
   }
 
-  List<Color> _getGradientColors(String title) {
-    // Vibrant modern gradients
+
+  // Returns a single soft accent color based on the exam title hash
+  Color _getAccentColor(String title) {
     final hash = title.hashCode.abs();
-    final gradients = [
-      [const Color(0xFF4F46E5), const Color(0xFF7C3AED)], // Indigo to Violet
-      [const Color(0xFF2563EB), const Color(0xFF06B6D4)], // Blue to Cyan
-      [const Color(0xFF059669), const Color(0xFF34D399)], // Emerald to Teal
-      [const Color(0xFFDC2626), const Color(0xFFF59E0B)], // Red to Amber
-      [const Color(0xFFDB2777), const Color(0xFFF472B6)], // Pink to Rose
-      [const Color(0xFFea580c), const Color(0xFFfb923c)], // Orange
+    final colors = [
+      const Color(0xFF2563EB), // Blue
+      const Color(0xFF059669), // Emerald
+      const Color(0xFF7C3AED), // Violet
+      const Color(0xFFD97706), // Amber
+      const Color(0xFFDB2777), // Pink
+      const Color(0xFF0891B2), // Cyan
+      const Color(0xFF16A34A), // Green
+      const Color(0xFFDC2626), // Red
     ];
-    
-    return gradients[hash % gradients.length];
+    return colors[hash % colors.length];
   }
+
 
   IconData _getCategoryIcon(String title) {
     final lower = title.toLowerCase();

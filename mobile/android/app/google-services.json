@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1094169812247",
+    "project_id": "erankup-8b44d",
+    "storage_bucket": "erankup-8b44d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1094169812247:android:2dbf3a7459b030ec692b52",
+        "android_client_info": {
+          "package_name": "com.example.erankup_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1094169812247-dcec05qfousrg0kq5kfo0u6dbfh0oua9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.erankup_mobile",
+            "certificate_hash": "8fa6d07accbb1d454987d4c15b5933caf998bcfc"
+          }
+        },
+        {
+          "client_id": "1094169812247-4nd4e2jisikk8ioau6scriv40ab5qgsk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwX-btrnX8YCkZmjv5BdBzMUy2osfEIL0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1094169812247-4nd4e2jisikk8ioau6scriv40ab5qgsk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

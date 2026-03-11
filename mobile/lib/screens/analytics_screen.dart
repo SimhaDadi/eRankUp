@@ -81,48 +81,92 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final rank = _peerData!['rankPrediction'] ?? 'Analyzing...';
     
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF1E293B), Color(0xFF0F172A)]),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppShadows.medium,
+        gradient: AppColors.rankGradient, // Advanced gamified gradient
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+        boxShadow: AppShadows.neonCyan, // Glowing neon shadow
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('GLOBAL STANDING', style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Icon(Icons.public, color: Colors.white70, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                'GLOBAL STANDING', 
+                style: AppTextStyles.overline.copyWith(color: Colors.white70, fontWeight: FontWeight.w900, letterSpacing: 2)
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('$percentile%ile', style: const TextStyle(color: Colors.greenAccent, fontSize: 32, fontWeight: FontWeight.w900)),
-                  Text('Better than $percentile% of students', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)),
+              Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('PREDICTED RANK', style: TextStyle(color: Colors.white54, fontSize: 8)),
-                    const SizedBox(height: 4),
-                    Text(rank, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text(
+                      '$percentile%ile', 
+                      style: const TextStyle(
+                        color: Colors.white, 
+                        fontSize: 36, 
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.5,
+                        shadows: [Shadow(color: AppColors.primaryCyan, blurRadius: 10)]
+                      )
+                    ),
+                    Text('Better than $percentile% of peers', style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
                   ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.25), 
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: Colors.white.withOpacity(0.1))
+                  ),
+                  child: Column(
+                    children: [
+                      const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('PREDICTED RANK', style: TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1), textAlign: TextAlign.center),
+                      ),
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(rank, style: const TextStyle(color: AppColors.primaryHover, fontWeight: FontWeight.w900, fontSize: 18), textAlign: TextAlign.center),
+                      ),
+                    ],
+                  ),
                 ),
               )
             ],
           ),
-          const SizedBox(height: 20),
-          // Simple visual bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percentile / 100,
-              backgroundColor: Colors.white10,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
-              minHeight: 8,
+          const SizedBox(height: 24),
+          // Glowing Neon Bar
+          Container(
+            height: 12,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              color: Colors.black.withOpacity(0.3),
+              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2) )]
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: percentile / 100,
+                backgroundColor: Colors.transparent,
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryCyan), // Neon Cyan Progress
+                minHeight: 12,
+              ),
             ),
           )
         ],
@@ -167,23 +211,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ticksTextStyle: const TextStyle(color: Colors.transparent),
               gridBorderData: BorderSide(color: color.withOpacity(0.1)),
               titlePositionPercentageOffset: 0.2,
-              titleTextStyle: TextStyle(color: color.withOpacity(0.7), fontSize: 10),
+              titleTextStyle: TextStyle(color: color.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold),
               dataSets: [
-                // User
+                // User (Neon Cyan)
                 RadarDataSet(
-                  fillColor: AppColors.primaryBlue.withOpacity(0.4),
-                  borderColor: AppColors.primaryBlue,
-                  entryRadius: 2,
+                  fillColor: AppColors.primaryCyan.withOpacity(0.3),
+                  borderColor: AppColors.primaryCyan,
+                  entryRadius: 3,
                   dataEntries: _masteryData!.map((e) => RadarEntry(value: (e['yourScore'] as num).toDouble())).toList(),
-                  borderWidth: 2,
+                  borderWidth: 2.5,
                 ),
-                // Topper
+                // Topper (Cyber Purple)
                 RadarDataSet(
-                  fillColor: Colors.transparent,
-                  borderColor: Colors.green,
-                  entryRadius: 0,
+                  fillColor: AppColors.primaryPurple.withOpacity(0.1),
+                  borderColor: AppColors.primaryPurple,
+                  entryRadius: 2,
                   dataEntries: _masteryData!.map((e) => RadarEntry(value: (e['topperScore'] as num).toDouble())).toList(),
-                  borderWidth: 1,
+                  borderWidth: 1.5,
                 ),
               ],
               getTitle: (index, angle) {
@@ -233,8 +277,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               gridData: FlGridData(show: true, drawVerticalLine: true, getDrawingHorizontalLine: (_) => FlLine(color: Colors.grey.withOpacity(0.1)), getDrawingVerticalLine: (_) => FlLine(color: Colors.grey.withOpacity(0.1))),
               titlesData: FlTitlesData(
                 show: true,
-                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (val, meta) => Text(val.toInt().toString(), style: const TextStyle(fontSize: 10)))),
-                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (val, meta) => Text('${val.toInt()}s', style: const TextStyle(fontSize: 10)))),
+                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (val, meta) => Text(val.toInt().toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))),
+                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (val, meta) => Text('${val.toInt()}s', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))),
                 rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),

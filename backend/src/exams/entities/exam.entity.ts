@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany, JoinTable, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Expose, Exclude } from 'class-transformer';
 import { Model } from './model.entity';
 import { Subject } from './subject.entity';
 import { Question } from './question.entity';
@@ -81,6 +82,7 @@ export class Exam {
 
     @ManyToMany(() => Model, (model) => model.exams)
     @JoinTable({ name: 'exam_models' })
+    @Exclude()
     models: Model[];
 
     @CreateDateColumn()
@@ -90,4 +92,10 @@ export class Exam {
     updatedAt: Date;
 
     directQuestionCount?: number;
+
+    @Expose()
+    chapters?: any[];
+
+    @Expose()
+    hasPurchased?: boolean;
 }

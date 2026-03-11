@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 import 'results_screen.dart';
 
 class PerformanceScreen extends StatefulWidget {
@@ -94,9 +95,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.0,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 1.35,
               children: [
                 _buildStatCard(
                   'Total Tests',
@@ -208,16 +209,36 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
+    // Gamified colors
+    final List<Color> gradientColors;
+    if (color == Colors.blue) { 
+      gradientColors = [const Color(0xFF3366FF), const Color(0xFF00E5FF)]; 
+    } else if (color == Colors.green) { 
+      gradientColors = [const Color(0xFF00C896), const Color(0xFF00FFC2)]; 
+    } else if (color == Colors.amber) { 
+      gradientColors = [const Color(0xFFFF6B00), const Color(0xFFFFB300)];
+    } else {
+      gradientColors = [const Color(0xFFA200FF), const Color(0xFFFF007F)]; 
+    }
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
-        boxShadow: isDark ? [] : [
-          BoxShadow(
-            color: Colors.grey.shade100,
-            blurRadius: 4,
+        color: isDark ? const Color(0xFF161F3D) : Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(
+          color: isDark ? gradientColors[1].withOpacity(0.4) : Colors.grey.shade200, 
+          width: 2
+        ),
+        boxShadow: [
+          if (isDark) BoxShadow(
+            color: gradientColors[1].withOpacity(0.15),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ) else BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -225,24 +246,26 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: isDark ? color.withOpacity(0.8) : color, size: 32),
-          const SizedBox(height: 12),
+          Icon(icon, color: gradientColors[1], size: 28),
+          const SizedBox(height: 6),
           Text(
             value,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: FontWeight.w900,
-              color: theme.textTheme.bodyLarge?.color,
+              color: isDark ? Colors.white : AppColors.primaryDark,
+              letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 4),
+          const Spacer(),
           Text(
-            label,
+            label.toUpperCase(),
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 12,
-              color: isDark ? Colors.white60 : Colors.grey.shade600,
-              fontWeight: FontWeight.w600,
+              fontSize: 10,
+              color: isDark ? Colors.white70 : Colors.grey.shade600,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
             ),
           ),
         ],
@@ -252,18 +275,20 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
 
   Widget _buildRadarChart() {
     final List<RadarDataSet> dataSets = [
-      // Topper Data
+      // Topper Data (Cyber Purple)
       RadarDataSet(
-        fillColor: Colors.blue.withOpacity(0.2),
-        borderColor: Colors.blue,
-        entryRadius: 3,
+        fillColor: AppColors.primaryPurple.withOpacity(0.1),
+        borderColor: AppColors.primaryPurple,
+        entryRadius: 2,
+        borderWidth: 1.5,
         dataEntries: _masteryData!.map((m) => RadarEntry(value: (m['topperScore'] as num).toDouble())).toList(),
       ),
-      // User Data
+      // User Data (Neon Cyan)
       RadarDataSet(
-        fillColor: Colors.teal.withOpacity(0.4),
-        borderColor: Colors.teal,
+        fillColor: AppColors.primaryCyan.withOpacity(0.35),
+        borderColor: AppColors.primaryCyan,
         entryRadius: 3,
+        borderWidth: 2.5,
         dataEntries: _masteryData!.map((m) => RadarEntry(value: (m['yourScore'] as num).toDouble())).toList(),
       ),
     ];
@@ -365,9 +390,15 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: theme.cardTheme.color,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade100),
+          color: isDark ? const Color(0xFF161F3D) : Colors.white,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: isDark ? AppColors.primaryPurple.withOpacity(0.3) : Colors.grey.shade200, width: 1.5),
+          boxShadow: [
+            if (isDark) BoxShadow(
+              color: AppColors.primaryPurple.withOpacity(0.08),
+              blurRadius: 10, offset: const Offset(0, 4)
+            ) else ...AppShadows.small
+          ],
         ),
         child: Row(
           children: [

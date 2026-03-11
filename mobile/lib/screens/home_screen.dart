@@ -328,38 +328,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          Row(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.notifications_rounded, color: Colors.white, size: 22),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  userName[0].toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.primaryBlue,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
+          // Notification bell only — avatar removed
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.notifications_rounded, color: Colors.white, size: 22),
+            ),
           ),
         ],
       ),
@@ -531,7 +509,7 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 1.55, // Ultra-compact
+            childAspectRatio: 1.8, // Even more compact
             children: [
               _buildStatCard(
                 'Tests Taken',
@@ -614,22 +592,22 @@ class _HomeScreenState extends State<HomeScreen> {
               bottom: -5,
               child: Icon(
                 icon,
-                size: 60,
+                size: 40,
                 color: Colors.white.withOpacity(0.15),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                    Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: Colors.white, size: 14),
+                    child: Icon(icon, color: Colors.white, size: 12),
                   ),
                   const Spacer(),
                   Text(
@@ -639,7 +617,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 1.0,
                       color: Colors.white,
                       letterSpacing: -1.0,
-                      fontSize: 26,
+                      fontSize: 22,
                     ),
                   ),
                   const SizedBox(height: 4),
