@@ -383,7 +383,7 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
                             </label>
                             <input
                                 type="number"
-                                step="0.25"
+                                step="0.01"
                                 min="0"
                                 value={formData.defaultPositiveMarks}
                                 onChange={(e) => handleChange('defaultPositiveMarks', parseFloat(e.target.value))}
@@ -396,7 +396,7 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
                             </label>
                             <input
                                 type="number"
-                                step="0.25"
+                                step="0.01"
                                 min="0"
                                 value={formData.defaultNegativeMarks}
                                 onChange={(e) => handleChange('defaultNegativeMarks', parseFloat(e.target.value))}

@@ -393,7 +393,7 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                             </label>
                             <input
                                 type="number"
-                                step="0.25"
+                                step="0.01"
                                 min="0"
                                 value={formData.defaultPositiveMarks}
                                 onChange={(e) => handleChange('defaultPositiveMarks', parseFloat(e.target.value))}
@@ -406,7 +406,7 @@ export function EditExamModal({ isOpen, onClose, exam, onSuccess }: EditExamModa
                             </label>
                             <input
                                 type="number"
-                                step="0.25"
+                                step="0.01"
                                 min="0"
                                 value={formData.defaultNegativeMarks}
                                 onChange={(e) => handleChange('defaultNegativeMarks', parseFloat(e.target.value))}

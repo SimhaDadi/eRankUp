@@ -277,7 +277,7 @@ export default function EditQuestionModal({ isOpen, onClose, onSuccess, question
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Positive Marks</label>
                                     <input
-                                        type="number" step="0.5"
+                                        type="number" step="0.01"
                                         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
                                         value={questionData.positiveMarks}
                                         onChange={e => setQuestionData({ ...questionData, positiveMarks: parseFloat(e.target.value) })}
@@ -286,7 +286,7 @@ export default function EditQuestionModal({ isOpen, onClose, onSuccess, question
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Negative Marks</label>
                                     <input
-                                        type="number" step="0.25"
+                                        type="number" step="0.01"
                                         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
                                         value={questionData.negativeMarks}
                                         onChange={e => setQuestionData({ ...questionData, negativeMarks: parseFloat(e.target.value) })}
