@@ -3,6 +3,8 @@ import 'package:confetti/confetti.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/engagement_services.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
@@ -46,6 +48,26 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 3));
     _fetchHomeData();
+    _scheduleDefaultReminder();
+  }
+
+  Future<void> _scheduleDefaultReminder() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> savedTimes = prefs.getStringList('reminder_list') ?? ['09:00'];
+    
+    final notificationService = NotificationService();
+    
+    for (int i = 0; i < savedTimes.length; i++) {
+      final parts = savedTimes[i].split(':');
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      
+      await notificationService.scheduleDailyReminder(
+        id: 100 + i,
+        hour: hour, 
+        minute: minute,
+      );
+    }
   }
 
   @override

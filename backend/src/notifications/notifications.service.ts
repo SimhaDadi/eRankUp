@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { NotificationTemplate } from './entities/notification-template.entity';
 import { Notification } from './entities/notification.entity';
 import { User } from '../users/user.entity';
+import { FirebaseService } from './firebase.service';
 
 @Injectable()
 export class NotificationsService {
@@ -14,6 +15,7 @@ export class NotificationsService {
         private notificationRepository: Repository<Notification>,
         @InjectRepository(User)
         private userRepository: Repository<User>,
+        private firebaseService: FirebaseService,
     ) { }
 
     /**
@@ -68,9 +70,23 @@ export class NotificationsService {
             await this.notificationRepository.save(notifications.slice(i, i + chunkSize));
         }
 
+        // Send Push Notifications
+        const usersWithToken = usersToNotify.filter(u => u.fcmToken);
+        for (const user of usersWithToken) {
+            try {
+                await this.firebaseService.sendPushNotification(
+                    user.fcmToken,
+                    data.title,
+                    data.message
+                );
+            } catch (e) {
+                // Non-blocking error
+            }
+        }
+
         return {
             success: true,
-            message: `Notification sent to ${notifications.length} users`,
+            message: `Notification sent to ${notifications.length} users (${usersWithToken.length} via push)`,
             recipientCount: notifications.length,
             timestamp: new Date()
         };

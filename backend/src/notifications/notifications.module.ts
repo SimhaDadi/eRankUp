@@ -6,11 +6,14 @@ import { NotificationTemplate } from './entities/notification-template.entity';
 import { Notification } from './entities/notification.entity';
 import { User } from '../users/user.entity';
 
+import { FirebaseService } from './firebase.service';
+
 @Module({
     imports: [
         TypeOrmModule.forFeature([NotificationTemplate, Notification, User]),
     ],
     controllers: [NotificationsController],
-    providers: [NotificationsService],
+    providers: [NotificationsService, FirebaseService],
+    exports: [NotificationsService, FirebaseService],
 })
 export class NotificationsModule { }

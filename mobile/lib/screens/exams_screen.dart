@@ -21,6 +21,8 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
   
   List<Exam> _allExams = [];
   List<Exam> _filteredExams = [];
+  Map<String, List<Exam>> _groupedExams = {};
+  List<String> _sortedCategories = [];
   bool _isLoading = true;
   String _searchQuery = '';
   
@@ -167,7 +169,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
 
   void _applyFilters() {
     setState(() {
-      _filteredExams = _allExams.where((exam) {
+      final filteredList = _allExams.where((exam) {
         // Search Filter
         if (_searchQuery.isNotEmpty) {
           final query = _searchQuery.toLowerCase();
@@ -181,20 +183,37 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
         if (!exam.isPublished) return false;
 
         // Tab specific filtering (Client Side refinement)
-        // Since we now check type on server, we mostly just handle special cases here
-        
         if (_tabController.index == 5) {
-           // Daily Quizzes
            return exam.category == 'Free Quiz' || exam.category == 'Quiz';
         }
 
         if (_tabController.index == 1) {
-             // Mock Tests - Exclude free quizzes
              if (exam.category == 'Free Quiz' || exam.category == 'Quiz') return false;
         }
 
         return true;
       }).toList();
+
+      _filteredExams = filteredList;
+
+      // Group by Category
+      _groupedExams = {};
+      for (var exam in filteredList) {
+        final cat = exam.category ?? 'General';
+        if (!_groupedExams.containsKey(cat)) {
+          _groupedExams[cat] = [];
+        }
+        _groupedExams[cat]!.add(exam);
+      }
+
+      // Sort categories: "Free Quiz" first, then "Scholarship", then alphabetical
+      _sortedCategories = _groupedExams.keys.toList()..sort((a, b) {
+        if (a == 'Free Quiz') return -1;
+        if (b == 'Free Quiz') return 1;
+        if (a == 'Scholarship') return -1;
+        if (b == 'Scholarship') return 1;
+        return a.compareTo(b);
+      });
     });
   }
 
@@ -351,21 +370,88 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
     return RefreshIndicator(
       onRefresh: () => _fetchExams(refresh: true),
       color: AppColors.primaryBlue,
-      child: ListView.builder(
+      child: CustomScrollView(
         controller: _scrollController,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.screenPadding,
-        ),
-        itemCount: _filteredExams.length + (_isLoadMoreRunning ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == _filteredExams.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          return _buildEnhancedExamCard(_filteredExams[index]);
-        },
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          for (var category in _sortedCategories) ...[
+            SliverToBoxAdapter(
+              child: _buildCategoryHeader(category),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _buildEnhancedExamCard(_groupedExams[category]![index]),
+                  childCount: _groupedExams[category]!.length,
+                ),
+              ),
+            ),
+          ],
+          if (_isLoadMoreRunning)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+          // Extra bottom padding
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryHeader(String category) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    IconData iconData = Icons.bookmark_rounded;
+    Color accentColor = AppColors.primaryBlue;
+
+    if (category == 'Free Quiz') {
+      iconData = Icons.bolt_rounded;
+      accentColor = Colors.emerald;
+    } else if (category == 'Scholarship') {
+      iconData = Icons.emoji_events_rounded;
+      accentColor = Colors.amber.shade700;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.screenPadding, AppSpacing.xl, AppSpacing.screenPadding, AppSpacing.md),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(iconData, size: 16, color: accentColor),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            category.toUpperCase(),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+              color: isDark ? Colors.white70 : AppColors.textPrimary.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    accentColor.withOpacity(0.3),
+                    accentColor.withOpacity(0.0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

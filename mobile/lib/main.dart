@@ -1,19 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_app_screen.dart';
 import 'services/api_service.dart';
 import 'services/theme_provider.dart';
+import 'services/engagement_services.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    print("Firebase initialization error: $e");
+  }
+
+  // Initialize Local & Push Notifications
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+  
   runApp(
     MultiProvider(
       providers: [
         Provider(create: (_) => ApiService()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        Provider.value(value: notificationService),
       ],
       child: const ERankUpApp(),
     ),

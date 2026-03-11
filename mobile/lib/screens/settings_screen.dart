@@ -20,6 +20,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _emailNotifications = true;
   bool _pushNotifications = true;
+  List<TimeOfDay> _reminderTimes = [];
   Map<String, dynamic>? _currentPass;
   Map<String, dynamic>? _user;
   bool _isLoadingPass = true;
@@ -29,6 +30,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _fetchCurrentPass();
     _fetchUser();
+    _loadReminderSettings();
+  }
+
+  Future<void> _loadReminderSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> savedTimes = prefs.getStringList('reminder_list') ?? ['09:00'];
+    
+    setState(() {
+      _reminderTimes = savedTimes.map((t) {
+        final parts = t.split(':');
+        return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+      }).toList();
+    });
+  }
+
+  Future<void> _addReminder(TimeOfDay time) async {
+    if (_reminderTimes.any((t) => t.hour == time.hour && t.minute == time.minute)) return;
+    
+    final newTimes = List<TimeOfDay>.from(_reminderTimes)..add(time);
+    await _saveAndReschedule(newTimes);
+  }
+
+  Future<void> _removeReminder(int index) async {
+    final newTimes = List<TimeOfDay>.from(_reminderTimes)..removeAt(index);
+    await _saveAndReschedule(newTimes);
+  }
+
+  Future<void> _saveAndReschedule(List<TimeOfDay> times) async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> stringList = times.map((t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}').toList();
+    await prefs.setStringList('reminder_list', stringList);
+    
+    final notificationService = NotificationService();
+    // 1. Cancel all old IDs (we use IDs 100+ for multiple reminders to avoid clashes)
+    for (int i = 0; i < 10; i++) {
+        await notificationService.cancelDailyReminder(100 + i);
+    }
+    
+    // 2. Schedule new ones
+    for (int i = 0; i < times.length; i++) {
+      await notificationService.scheduleDailyReminder(
+        id: 100 + i,
+        hour: times[i].hour,
+        minute: times[i].minute,
+      );
+    }
+    
+    setState(() {
+      _reminderTimes = times;
+    });
   }
 
   Future<void> _fetchCurrentPass() async {
@@ -249,6 +300,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       value: _pushNotifications,
                       onChanged: (v) => setState(() => _pushNotifications = v),
                     ),
+                    
+                    const SizedBox(height: AppSpacing.md),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Study Reminders', style: AppTextStyles.h4.copyWith(fontSize: 13)),
+                          if (_reminderTimes.length < 5)
+                            TextButton.icon(
+                              onPressed: () async {
+                                final TimeOfDay? picked = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                );
+                                if (picked != null) {
+                                  _addReminder(picked);
+                                }
+                              }, 
+                              icon: const Icon(Icons.add_rounded, size: 16),
+                              label: const Text('Add'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primaryBlue,
+                                textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    ..._reminderTimes.asMap().entries.map((entry) {
+                      final int idx = entry.key;
+                      final TimeOfDay time = entry.value;
+                      return _tile(
+                        icon: Icons.alarm_rounded,
+                        label: 'Reminder ${idx + 1}',
+                        subtitle: time.format(context),
+                        isDark: isDark,
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                          onPressed: () => _removeReminder(idx),
+                        ),
+                      );
+                    }).toList(),
                   ],
 
                   const SizedBox(height: AppSpacing.xl),

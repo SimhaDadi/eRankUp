@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../services/api_service.dart';
+import '../services/engagement_services.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'exams_screen.dart';
@@ -17,6 +20,17 @@ class MainAppScreen extends StatefulWidget {
 
 class _MainAppScreenState extends State<MainAppScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFCM();
+  }
+
+  void _initializeFCM() {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    FCMService().initialize(apiService);
+  }
   
   final List<Widget> _screens = const [
     HomeScreen(),

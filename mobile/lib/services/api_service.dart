@@ -167,6 +167,16 @@ class ApiService {
     }
   }
 
+  Future<bool> updateFcmToken(String token) async {
+    try {
+      final response = await patch('/users/profile', {'fcmToken': token});
+      return response.statusCode == 200;
+    } catch (e) {
+      print('FCM Token sync error: $e');
+      return false;
+    }
+  }
+
   Future<bool> updateProfile(Map<String, dynamic> data) async {
     try {
       final response = await patch('/users/profile', data);
