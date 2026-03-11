@@ -76,10 +76,32 @@ export class PassesService implements OnModuleInit {
         });
     }
 
+    async findPassesForAdmin(): Promise<Pass[]> {
+        return this.passRepository.find({
+            order: { sortOrder: 'ASC', createdAt: 'DESC' }
+        });
+    }
+
     async findPassById(id: string): Promise<Pass> {
         const pass = await this.passRepository.findOne({ where: { id } });
         if (!pass) throw new NotFoundException('Pass not found');
         return pass;
+    }
+
+    async createPass(data: Partial<Pass>): Promise<Pass> {
+        const pass = this.passRepository.create(data);
+        return this.passRepository.save(pass);
+    }
+
+    async updatePass(id: string, data: Partial<Pass>): Promise<Pass> {
+        const pass = await this.findPassById(id);
+        Object.assign(pass, data);
+        return this.passRepository.save(pass);
+    }
+
+    async deletePass(id: string): Promise<void> {
+        const pass = await this.findPassById(id);
+        await this.passRepository.remove(pass);
     }
 
     // ==================== User Pass Management ====================

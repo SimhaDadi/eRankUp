@@ -55,6 +55,7 @@ const adminNavSections = [
         title: 'MASTER DATA',
         items: [
             { icon: Tag, label: 'Categories', href: '/admin/master-data/categories' },
+            { icon: CreditCard, label: 'Passes & Plans', href: '/admin/passes' },
         ]
     },
     {
