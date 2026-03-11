@@ -206,11 +206,11 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
   Widget _buildFilterBar() {
     final theme = Theme.of(context);
     return Container(
-      height: 60,
+      height: 64,
       color: theme.appBarTheme.backgroundColor,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           _buildFilterChip('All', 'all'),
           _buildFilterChip('Correct', 'correct'),
@@ -275,11 +275,13 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text('QUESTION $displayIndex', style: AppTextStyles.overline.copyWith(color: AppColors.primaryBlue)),
                     if (!_reAttemptMode || _reAttemptSelections[question['id']] != null)
                       _buildStatusBadge(selectedId == null, isCorrect),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         _buildActionButton(
                           icon: _savedQuestionIds.contains(question['id']) 
@@ -311,7 +313,7 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.only(bottom: 16),
                       child: Row(
                         children: [
                           _buildMetricLabel(
@@ -337,13 +339,23 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                   );
                 }),
 
-                  MathRichText(
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  ),
+                  child: MathRichText(
                     text: question['content'] ?? '',
                     style: AppTextStyles.body.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.textTheme.bodyLarge?.color ?? Colors.black87
+                      fontWeight: FontWeight.w600,
+                      color: theme.textTheme.bodyLarge?.color ?? Colors.black87,
+                      height: 1.6,
                     ),
                   ),
+                ),
               ],
             ),
           ),
@@ -401,8 +413,8 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                     }
                   : null,
               child: Container(
-                padding: const EdgeInsets.all(16),
-                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                 decoration: BoxDecoration(
                   color: bgColor,
                   border: Border.all(color: borderColor),
@@ -456,15 +468,18 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                         ],
                       ),
                     ),
-                    if (icon != null) icon,
+                    if (icon != null) Center(child: Padding(padding: const EdgeInsets.only(left: 12), child: icon)),
                     // In re-attempt mode, show teal radio circle before pick
                     if (_reAttemptMode && !hasReAttempted)
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF0D9488), width: 2),
+                      Center(
+                        child: Container(
+                          width: 20,
+                          height: 20,
+                          margin: const EdgeInsets.only(left: 12),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF0D9488), width: 2),
+                          ),
                         ),
                       ),
                   ],
