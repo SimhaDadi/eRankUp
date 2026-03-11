@@ -62,7 +62,7 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
         final data = jsonDecode(response.body);
         setState(() {
           _currentExam = Exam.fromJson(data);
-          _chapters = (data['chapters'] as List)
+          _chapters = (data['chapters'] as List? ?? [])
               .map((c) => Chapter.fromJson(c))
               .toList();
         });
