@@ -6,6 +6,7 @@ import '../models/community_post.dart';
 import '../models/community_comment.dart';
 import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
@@ -333,34 +334,55 @@ class _CommunityScreenState extends State<CommunityScreen> {
           Divider(color: isDark ? const Color(0xFF2B3A67) : Colors.grey.shade100, height: 1),
           const SizedBox(height: AppSpacing.sm),
 
-          // Actions row
-          Row(
-            children: [
-              _buildActionButton(
-                post.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                post.likesCount.toString(),
-                onTap: () => _toggleLike(post),
-                color: post.isLiked ? Colors.pinkAccent : (isDark ? Colors.white38 : AppColors.textSecondary),
-                active: post.isLiked,
-              ),
-              const SizedBox(width: AppSpacing.xl),
-              _buildActionButton(
-                Icons.chat_bubble_outline_rounded,
-                post.commentsCount.toString(),
-                onTap: () => _showCommentsSheet(post),
-                color: isDark ? Colors.white38 : AppColors.textSecondary,
-              ),
-              const Spacer(),
-              Icon(
-                Icons.share_outlined,
-                size: 18,
-                color: isDark ? Colors.white30 : Colors.grey.shade400,
+              Row(
+                children: [
+                  _buildActionButton(
+                    post.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    post.likesCount.toString(),
+                    onTap: () => _toggleLike(post),
+                    color: post.isLiked ? Colors.pinkAccent : (isDark ? Colors.white38 : AppColors.textSecondary),
+                    active: post.isLiked,
+                  ),
+                  const SizedBox(width: AppSpacing.xl),
+                  _buildActionButton(
+                    Icons.chat_bubble_outline_rounded,
+                    post.commentsCount.toString(),
+                    onTap: () => _showCommentsSheet(post),
+                    color: isDark ? Colors.white38 : AppColors.textSecondary,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => _sharePost(post),
+                    icon: Icon(
+                      Icons.share_outlined,
+                      size: 18,
+                      color: isDark ? Colors.white30 : Colors.grey.shade400,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  void _sharePost(CommunityPost post) {
+    try {
+      final String shareText = "Check out this post on eRankUp Community:\n\n"
+          "\"${post.content}\"\n\n"
+          "- Shared via eRankUp App";
+      
+      Share.share(shareText);
+    } catch (e) {
+      debugPrint("Error sharing post: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to share post')),
+      );
+    }
   }
 
   Widget _buildActionButton(IconData icon, String count, {VoidCallback? onTap, Color? color, bool active = false}) {

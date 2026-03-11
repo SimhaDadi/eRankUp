@@ -74,80 +74,10 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
     }
   }
 
-  void _startPayment() async {
-    // Show coupon dialog first
-    String? couponCode = await _showCouponDialog();
-    
-    final apiService = Provider.of<ApiService>(context, listen: false);
-    try {
-      final payload = {'examId': _currentExam.id};
-      if (couponCode != null && couponCode.isNotEmpty) {
-        payload['couponCode'] = couponCode;
-      }
-
-      final response = await apiService.post('/payments/create-order', payload);
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        
-        // Show discount if applied
-        if (data['discountApplied'] != null && data['discountApplied'] > 0) {
-          Fluttertoast.showToast(
-            msg: "🎉 Discount Applied: ₹${data['discountApplied']} off!",
-            backgroundColor: Colors.green,
-          );
-        }
-        
-        var options = {
-          'key': data['keyId'],
-          'amount': data['amount'],
-          'name': 'eRankUp',
-          'order_id': data['orderId'],
-          'description': 'Premium Exam Access',
-          'timeout': 300, // in seconds
-          'prefill': {
-            'contact': '', // Can be added to user profile later
-            'email': data['user']['email']
-          },
-          'theme': {'color': '#2563EB'}
-        };
-        
-        _razorpay.open(options);
-      } else {
-        final error = jsonDecode(response.body);
-        final errorMsg = error['message'] ?? 'Failed to create order';
-        Fluttertoast.showToast(msg: errorMsg, backgroundColor: Colors.red);
-      }
-    } catch (e) {
-      debugPrint('Error: $e');
-      Fluttertoast.showToast(msg: "Error: $e", backgroundColor: Colors.red);
-    }
-  }
-
-  Future<String?> _showCouponDialog() async {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Have a Coupon Code?'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Enter coupon code (optional)',
-            border: OutlineInputBorder(),
-          ),
-          textCapitalization: TextCapitalization.characters,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('Skip'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Apply'),
-          ),
-        ],
-      ),
+  void _goToSubscriptions() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
     );
   }
 
@@ -164,22 +94,36 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
                 if (_currentExam.isPremium && !_currentExam.hasPurchased)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF451A03).withOpacity(0.3) : Colors.amber.withOpacity(0.1),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.primaryCyan, AppColors.primaryCyan.withOpacity(0.8)],
+                      ),
+                    ),
                     child: Column(
                       children: [
-                        Text(
-                          'This is a Premium Exam',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? Colors.amberAccent : const Color(0xFFB45309)),
+                        const Icon(Icons.stars, color: Colors.white, size: 32),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'PREMIUM EXAM',
+                          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Unlock this and 500+ other tests with a single pass.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: _startPayment,
+                          onPressed: _goToSubscriptions,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFFD97706) : Colors.amber,
-                            foregroundColor: Colors.black,
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.primaryCyan,
+                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                           ),
-                          child: Text('Unlock for ₹${_currentExam.price}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text('VIEW ALL PLANS', style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),

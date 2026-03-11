@@ -8,13 +8,15 @@ import Topbar from '../../components/Topbar';
 import ChatSupport from '../../components/ChatSupport';
 import PageTransition from '../../components/PageTransition';
 import DashboardSkeleton from '../../components/DashboardSkeleton';
+import api from '@/lib/api';
+import { Toaster } from 'react-hot-toast';
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const { user, isLoading } = useAuthStore();
+    const { user, isLoading, setActivePass } = useAuthStore();
     const router = useRouter();
     const pathname = usePathname();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -31,6 +33,22 @@ export default function DashboardLayout({
             router.push('/login');
         }
     }, [user, isLoading, router, isMounted]);
+
+    // [NEW] Global fetch for Active Pass
+    useEffect(() => {
+        const fetchPassStatus = async () => {
+            if (user && isMounted) {
+                try {
+                    const res = await api.get('/passes/current');
+                    setActivePass(res.data);
+                } catch (error) {
+                    console.error("Failed to fetch global pass status", error);
+                }
+            }
+        };
+
+        fetchPassStatus();
+    }, [user, isMounted, setActivePass]);
 
     if (!isMounted || isLoading) {
         return (
@@ -78,6 +96,7 @@ export default function DashboardLayout({
                 </main>
                 <ChatSupport />
             </div>
+            <Toaster position="bottom-right" reverseOrder={false} />
         </div>
     );
 }

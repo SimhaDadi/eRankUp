@@ -549,6 +549,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _user;
+  Map<String, dynamic>? _currentPass;
   bool _isLoading = true;
 
   @override
@@ -559,8 +560,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _fetchProfile() async {
     final apiService = Provider.of<ApiService>(context, listen: false);
-    final user = await apiService.getUserProfile();
-    if (mounted) setState(() { _user = user; _isLoading = false; });
+    try {
+      final results = await Future.wait([
+        apiService.getUserProfile(),
+        apiService.get('/passes/current'),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _user = results[0] as Map<String, dynamic>?;
+          if (results[1] is http.Response && (results[1] as http.Response).statusCode == 200 && (results[1] as http.Response).body.isNotEmpty) {
+            _currentPass = jsonDecode((results[1] as http.Response).body);
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -640,14 +657,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(fullName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: _currentPass != null ? Colors.tealAccent.withOpacity(0.2) : Colors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                        border: _currentPass != null ? Border.all(color: Colors.tealAccent.withOpacity(0.5)) : null,
                       ),
-                      child: Text(role, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_currentPass != null) ...[
+                            const Icon(Icons.workspace_premium_rounded, color: Colors.tealAccent, size: 12),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(
+                            _currentPass != null ? 'PREMIUM STUDENT' : role, 
+                            style: TextStyle(
+                              color: _currentPass != null ? Colors.tealAccent : Colors.white70, 
+                              fontSize: 11, 
+                              fontWeight: FontWeight.w900, 
+                              letterSpacing: 0.8
+                            )
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

@@ -5,6 +5,7 @@ import { Check, Shield, Zap, Sparkles, Crown } from 'lucide-react';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
+import { useAuthStore } from '@/store/authStore';
 
 interface Pass {
     id: string;
@@ -22,6 +23,7 @@ export default function PlansPage() {
     const [isTrialAvailable, setIsTrialAvailable] = useState(true);
     const [hasPhone, setHasPhone] = useState(true);
     const [activePassIds, setActivePassIds] = useState<string[]>([]);
+    const { setActivePass } = useAuthStore();
     const router = useRouter();
 
     useEffect(() => {
@@ -78,6 +80,14 @@ export default function PlansPage() {
                             razorpayPaymentId: response.razorpay_payment_id,
                             razorpaySignature: response.razorpay_signature
                         });
+
+                        // [NEW] Refresh active pass in store immediately for global UI reactive update
+                        const passRes = await api.get('/passes/current');
+                        setActivePass(passRes.data);
+                        
+                        // Local state update for current page buttons
+                        setActivePassIds(prev => [...prev, plan.id]);
+
                         alert('Payment Successful! Your Pass is now active.');
                         router.push('/dashboard');
                     } catch (err: any) {

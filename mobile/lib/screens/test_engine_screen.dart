@@ -58,6 +58,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
       });
 
       if (response.statusCode == 201 || response.statusCode == 200) {
+        // ... (existing success logic)
         final data = jsonDecode(response.body);
         setState(() {
           _allQuestions = (data['questions'] as List?)
@@ -66,29 +67,18 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
 
           // Initialize Sections
           _sections = {};
-          for (int i = 0; i < _allQuestions.length; i++) {
-             // Assuming Question model has a 'topic' field, else default to 'General'
-             // Since the model might not strictly match, we'll try to use a property if available
-             // For now, let's look at the raw data if needed, or assume 'topic' exists on Question object
-             // modifying Question model is out of scope unless we see it. 
-             // Let's assume grouping by some logic or default to 'General' if missing.
-             // We'll mimic the Web logic: if no topic, use 'General'.
-             // *Wait*, checking Question definition in previous context...
-             // It wasn't explicitly shown in full detail but `TestPage` used `q.topic`.
-             // I will assume `Question` class has `topic` or I add a safe fallback.
-             final topic = 'General'; // Placeholder if dynamic topic isn't in local model yet.
-             // Ideally we'd map this from backend content. 
-             if (!_sections.containsKey(topic)) _sections[topic] = [];
-             _sections[topic]!.add(i);
+          if (_allQuestions.isNotEmpty) {
+              final rawQs = data['questions'] as List;
+              Map<String, List<int>> tempSections = {};
+              for(int i=0; i<rawQs.length; i++) {
+                  String topic = rawQs[i]['topic'] ?? 'General';
+                  if (!tempSections.containsKey(topic)) tempSections[topic] = [];
+                  tempSections[topic]!.add(i);
+              }
+              _sections = tempSections;
+              _activeSection = _sections.keys.first;
+              _currentIndex = _sections[_activeSection]!.first;
           }
-           // Basic fix: If all topics are same, maybe split by 25?
-           // Actually, let's try to infer or just use "General" for now to avoid breaking if `topic` key is missing in Dart model. 
-           // *better*: If we parsed keys, use them.
-           if (_sections.isEmpty && _allQuestions.isNotEmpty) {
-             _sections['All Questions'] = List.generate(_allQuestions.length, (i) => i);
-           }
-           _activeSection = _sections.keys.first;
-           _currentIndex = _sections[_activeSection]!.first;
 
           // Resume state
           if (data['answers'] != null) {
@@ -98,38 +88,64 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
             _flaggedIds = Set<String>.from(data['flags']);
           }
           
-          // Read duration from backend (check for both seconds and minutes format)
           if (data['durationSeconds'] != null) {
-              _timeLeft = data['durationSeconds']; // Backend usually provides total seconds
+              _timeLeft = data['durationSeconds'];
           } else {
-              _timeLeft = (data['duration'] ?? widget.model.duration) * 60; // Fallback to provided minutes
+              _timeLeft = (data['duration'] ?? widget.model.duration) * 60;
           }
           
           _isLoading = false;
         });
-        
-        // Manual section parsing if 'topic' exists in raw JSON but not in Dart Model
-        // (Just a safe fallback for this iteration)
-        if (_allQuestions.isNotEmpty) {
-             final rawQs = data['questions'] as List;
-             Map<String, List<int>> tempSections = {};
-             for(int i=0; i<rawQs.length; i++) {
-                 String topic = rawQs[i]['topic'] ?? 'General';
-                 if (!tempSections.containsKey(topic)) tempSections[topic] = [];
-                 tempSections[topic]!.add(i);
-             }
-             setState(() {
-                 _sections = tempSections;
-                 _activeSection = _sections.keys.first;
-                 _currentIndex = _sections[_activeSection]!.first;
-             });
-        }
         _startTimer();
         _fetchUser();
+      } else if (response.statusCode == 403) {
+        setState(() => _isLoading = false);
+        _showAccessDeniedDialog();
+      } else {
+        setState(() => _isLoading = false);
+        final err = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(err['message'] ?? 'Failed to start session')),
+        );
       }
     } catch (e) {
       debugPrint('Error: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showAccessDeniedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Premium Access Required'),
+        content: const Text(
+          'This test is premium. Please purchase a Test Series Pass to unlock all premium content including this test.'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Go back to exam detail
+            },
+            child: const Text('BACK'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Back to detail
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (_) => const SubscriptionScreen())
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
+            child: const Text('VIEW PLANS', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _startTimer() {

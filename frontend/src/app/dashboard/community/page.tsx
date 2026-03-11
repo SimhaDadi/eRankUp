@@ -5,7 +5,9 @@ import { motion } from 'framer-motion';
 import { MessageSquare, Heart, Share2, MoreHorizontal, Plus, Search, Filter } from 'lucide-react';
 import api from '@/lib/api';
 import CreatePostModal from './CreatePostModal';
+import CommentModal from './CommentModal';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'react-hot-toast';
 
 interface Post {
     id: string;
@@ -22,6 +24,8 @@ export default function CommunityPage() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+    const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
     const [category, setCategory] = useState('All');
 
     useEffect(() => {
@@ -59,8 +63,32 @@ export default function CommunityPage() {
             await api.post(`/community/posts/${postId}/like`);
         } catch (error) {
             console.error('Like failed');
-            // Revert on failure (omitted for brevity)
+            // Revert on failure
+            setPosts(current => current.map(p => {
+                if (p.id === postId) {
+                    return {
+                        ...p,
+                        isLiked: !p.isLiked,
+                        likesCount: p.isLiked ? p.likesCount - 1 : p.likesCount + 1
+                    };
+                }
+                return p;
+            }));
         }
+    };
+
+    const handleCommentOpen = (postId: string) => {
+        setSelectedPostId(postId);
+        setIsCommentModalOpen(true);
+    };
+
+    const handleShare = (post: Post) => {
+        const shareUrl = `${window.location.origin}/dashboard/community?post=${post.id}`;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            toast.success('Share link copied to clipboard!');
+        }).catch(() => {
+            toast.error('Failed to copy link');
+        });
     };
 
     const categories = ['All', 'General', 'Doubt', 'Strategy', 'Motivation'];
@@ -163,12 +191,18 @@ export default function CommunityPage() {
                                             <Heart className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`} />
                                             {post.likesCount}
                                         </button>
-                                        <button className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-blue-500 transition-colors">
+                                        <button 
+                                            onClick={() => handleCommentOpen(post.id)}
+                                            className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-blue-500 transition-colors"
+                                        >
                                             <MessageSquare className="w-5 h-5" />
                                             {post.commentsCount}
                                         </button>
                                     </div>
-                                    <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                                    <button 
+                                        onClick={() => handleShare(post)}
+                                        className="text-slate-400 hover:text-blue-600 transition-colors p-2 hover:bg-blue-50 rounded-xl"
+                                    >
                                         <Share2 className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -197,6 +231,13 @@ export default function CommunityPage() {
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onPostCreated={fetchPosts}
+            />
+
+            <CommentModal
+                isOpen={isCommentModalOpen}
+                onClose={() => setIsCommentModalOpen(false)}
+                postId={selectedPostId || ''}
+                onCommentAdded={fetchPosts}
             />
         </div>
     );

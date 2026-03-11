@@ -43,11 +43,10 @@ export class ExamsController {
         const limitNum = parseInt(limit as string) || 20;
 
         // Concurrent fetching of base data
-        const [result, attemptStats, activeSessions, purchasedExamIds, activePasses] = await Promise.all([
+        const [result, attemptStats, activeSessions, activePasses] = await Promise.all([
             this.examsService.findAll({ includeUnpublished: isAdmin, type, page: pageNum, limit: limitNum }),
             this.scorerService.getUserExamStats(userId),
             this.testSessionService.getUserActiveSessions(userId),
-            this.paymentsService.getPurchasedExamIds(userId),
             this.passesService.getActivePasses(userId) // [FIX] Fetch once to avoid N+1 queries
         ]);
 
@@ -61,13 +60,12 @@ export class ExamsController {
             meta = result.meta;
         }
 
-        const purchasedSet = new Set(purchasedExamIds);
         await Promise.all(exams.map(async (exam) => {
             if (exam.isPremium) {
-                const hasDirectlyPurchased = purchasedSet.has(exam.id);
-                // [FIX] Pass pre-fetched activePasses
+                // [PASS-ONLY] Individual purchase logic removed. 
+                // Any logic checking hasPurchased will now only reflect Pass Access.
                 const hasPassAccess = await this.passesService.canAccessExam(userId, exam.id, (exam as any).type, activePasses);
-                (exam as any).hasPurchased = hasDirectlyPurchased || hasPassAccess;
+                (exam as any).hasPurchased = hasPassAccess;
             }
 
             // Calculate aggregated stats
@@ -159,10 +157,8 @@ export class ExamsController {
         if (!exam) return exam;
 
         if (exam.isPremium && !isAdmin) {
-            const hasPurchased = await this.paymentsService.hasPurchased(req.user.userId, exam.id);
             const hasPassAccess = await this.passesService.canAccessExam(req.user.userId, exam.id, (exam as any).type);
-
-            (exam as any).hasPurchased = hasPurchased || hasPassAccess;
+            (exam as any).hasPurchased = hasPassAccess;
 
             // GATEKEEPER: If no purchase AND no active pass -> Deny details (or restricted view)
             // For now, we return data but client handles it? 
@@ -188,11 +184,10 @@ export class ExamsController {
         const premiumExam = model.exams?.find(e => e.isPremium);
 
         if (premiumExam && !isAdmin) {
-            const hasPurchased = await this.paymentsService.hasPurchased(req.user.userId, premiumExam.id);
-            const hasPass = await this.passesService.getCurrentPass(req.user.userId);
+            const hasPassAccess = await this.passesService.canAccessExam(req.user.userId, premiumExam.id, premiumExam.type);
 
-            if (!hasPurchased && !hasPass) {
-                throw new ForbiddenException('Access Denied. Premium Pass or Purchase required.');
+            if (!hasPassAccess) {
+                throw new ForbiddenException('Premium Pass required to access this content.');
             }
         }
 

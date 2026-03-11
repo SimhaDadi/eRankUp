@@ -57,6 +57,7 @@ interface SidebarProps {
 
 export default function Sidebar({ customNavSections, title, isCollapsed: controlledCollapsed, onToggle }: SidebarProps) {
     const pathname = usePathname();
+    const { activePass } = useAuthStore();
     const [internalIsCollapsed, setInternalIsCollapsed] = useState(true);
 
     const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalIsCollapsed;
@@ -338,26 +339,30 @@ export default function Sidebar({ customNavSections, title, isCollapsed: control
                         expanded: { opacity: 1, scale: 1, height: "auto", margin: "1rem" },
                         collapsed: { opacity: 1, scale: 1, height: "auto", margin: "0.5rem" }
                     }}
-                    className="mt-auto bg-slate-50 border border-slate-100 rounded-2xl relative overflow-hidden group mb-4 transition-all duration-300"
+                    className={`mt-auto rounded-2xl relative overflow-hidden group mb-4 transition-all duration-300 ${activePass ? 'bg-amber-50 border border-amber-100' : 'bg-slate-50 border border-slate-100'}`}
                 >
                     {isCollapsed ? (
                         <Link
-                            href="/dashboard/plans"
+                            href={activePass ? "/dashboard/settings" : "/dashboard/plans"}
                             onClick={handleNavItemClick}
-                            className="w-14 h-14 mx-auto flex items-center justify-center bg-slate-900 text-white rounded-2xl shadow-lg relative overflow-hidden group/mini"
-                            title="Upgrade to Pro"
+                            className={`w-14 h-14 mx-auto flex items-center justify-center rounded-2xl shadow-lg relative overflow-hidden group/mini ${activePass ? 'bg-amber-500 text-white' : 'bg-slate-900 text-white'}`}
+                            title={activePass ? "Pro Subscription Active" : "Upgrade to Pro"}
                         >
                             <Crown className="w-6 h-6 z-10" />
-                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover/mini:opacity-100 transition-opacity" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover/mini:opacity-100 transition-opacity" />
                         </Link>
                     ) : (
-                        <Link href="/dashboard/plans" onClick={handleNavItemClick} className="p-4 relative z-10 flex items-center justify-between gap-3 min-w-[200px]">
+                        <Link href={activePass ? "/dashboard/settings" : "/dashboard/plans"} onClick={handleNavItemClick} className="p-4 relative z-10 flex items-center justify-between gap-3 min-w-[200px]">
                             <div>
-                                <h4 className="font-black text-sm text-slate-900 leading-none mb-1">Pro Access</h4>
-                                <p className="text-[10px] text-slate-500 font-bold leading-tight uppercase tracking-tight">Unlock premium</p>
+                                <h4 className={`font-black text-sm leading-none mb-1 ${activePass ? 'text-amber-900' : 'text-slate-900'}`}>
+                                    {activePass ? 'Pro Active' : 'Pro Access'}
+                                </h4>
+                                <p className={`text-[10px] font-bold leading-tight uppercase tracking-tight ${activePass ? 'text-amber-600' : 'text-slate-500'}`}>
+                                    {activePass ? 'Status: Premium' : 'Unlock premium'}
+                                </p>
                             </div>
-                            <div className="px-3 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all hover:bg-black">
-                                UPGRADE
+                            <div className={`px-3 py-2 rounded-xl text-[10px] font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all ${activePass ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-slate-900 text-white hover:bg-black'}`}>
+                                {activePass ? 'MANAGE' : 'UPGRADE'}
                             </div>
                         </Link>
                     )}

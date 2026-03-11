@@ -48,11 +48,10 @@ export default function DashboardPage() {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [statsRes, recentRes, examsRes, passRes, gamiRes, revisionRes] = await Promise.all([
+                const [statsRes, recentRes, examsRes, gamiRes, revisionRes] = await Promise.all([
                     api.get('/exams/user/stats'),
                     api.get('/exams/user/recent?limit=5'),
                     api.get('/exams'),
-                    api.get('/passes/current').catch(() => ({ data: null })),
                     api.get('/gamification/profile').catch(() => ({ data: {} })),
                     api.get('/ai-study/revision').catch(() => ({ data: null }))
                 ]);
@@ -79,7 +78,6 @@ export default function DashboardPage() {
                 }
 
                 setRevisionData(revisionRes?.data || null);
-                setActivePass(passRes.data);
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);
             } finally {

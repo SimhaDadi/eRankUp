@@ -39,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _revisionAvailable = false;
   String _revisionMessage = '';
   Map<String, dynamic>? _user;
+  Map<String, dynamic>? _currentPass;
 
   @override
   void initState() {
@@ -68,9 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
         apiService.get('/gamification/profile'),
         apiService.get('/ai-study/revision'),
         apiService.getUserProfile(),
+        apiService.get('/passes/current'),
       ]).timeout(const Duration(seconds: 10));
 
-      debugPrint('HomeScreen: Data fetched. Statuses: ${results.take(5).map((r) => (r as http.Response).statusCode)}');
+      debugPrint('HomeScreen: Data fetched. Statuses: ${results.take(5).map((r) => (r is http.Response ? r.statusCode : 'N/A'))}');
 
       if (mounted) {
         setState(() {
@@ -119,6 +121,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // User Profile (from cache or API result index 5)
           _user = results[5] as Map<String, dynamic>?;
+
+          // [NEW] Current Pass
+          if (results[6] is http.Response && (results[6] as http.Response).statusCode == 200 && (results[6] as http.Response).body.isNotEmpty) {
+            _currentPass = jsonDecode((results[6] as http.Response).body);
+          }
 
           _isLoading = false;
         });
@@ -309,14 +316,51 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                'Hey $userName!',
-                style: AppTextStyles.h1.copyWith(
-                  color: Colors.white,
-                  letterSpacing: -0.5,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Hey $userName!',
+                    style: AppTextStyles.h1.copyWith(
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  if (_currentPass != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.amber,
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.amber.withOpacity(0.5),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 12),
+                          SizedBox(width: 4),
+                          Text(
+                            'PRO',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: 12),
               Text(

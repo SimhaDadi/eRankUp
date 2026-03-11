@@ -7,6 +7,7 @@ import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 export class PaymentsController {
     constructor(private readonly paymentsService: PaymentsService) { }
 
+    /* 
     @UseGuards(JwtAuthGuard, ThrottlerGuard)
     @Throttle({ default: { limit: 10, ttl: 60000 } })
     @Post('create-order')
@@ -15,6 +16,7 @@ export class PaymentsController {
         const user = { ...req.user, id: req.user.userId };
         return this.paymentsService.createOrder(user, examId, couponCode);
     }
+    */
 
     @Post('webhook')
     async handleWebhook(

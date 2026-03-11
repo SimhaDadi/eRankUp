@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useAuthStore } from '../store/authStore';
-import { Bell, Search, ChevronDown, User, Settings, LogOut, Check, XCircle, Menu } from 'lucide-react';
+import { Bell, Search, ChevronDown, User, Settings, LogOut, Check, XCircle, Menu, Crown } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 
@@ -18,7 +18,7 @@ interface Notification {
 }
 
 export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
-    const { user, logout } = useAuthStore();
+    const { user, logout, activePass } = useAuthStore();
     const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -238,8 +238,13 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                             className="flex items-center gap-3 hover:bg-slate-50 p-1 rounded-2xl transition-all border border-transparent hover:border-slate-100 group"
                         >
-                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/25 ring-2 ring-white transform group-hover:scale-105 transition-all">
+                            <div className={`relative w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg ring-2 ring-white transform group-hover:scale-105 transition-all ${activePass ? 'bg-gradient-to-br from-amber-500 to-amber-400 shadow-amber-500/25' : 'bg-gradient-to-br from-blue-600 to-blue-500 shadow-blue-500/25'}`}>
                                 {user?.fullName?.[0]?.toUpperCase() || 'U'}
+                                {activePass && (
+                                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-amber-500 rounded-full border-2 border-white flex items-center justify-center shadow-lg animate-bounce">
+                                        <Crown className="w-2.5 h-2.5 text-white fill-current" />
+                                    </div>
+                                )}
                             </div>
                             <ChevronDown className={`w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-all duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} strokeWidth={3} />
                         </button>

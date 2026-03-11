@@ -131,6 +131,10 @@ export default function ExamDetailsPage() {
         }
     };
 
+    const handleGoToPlans = () => {
+        router.push('/dashboard/plans');
+    };
+
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] bg-[#fbfdff]">
