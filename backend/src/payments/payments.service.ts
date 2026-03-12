@@ -103,10 +103,9 @@ export class PaymentsService implements OnModuleInit {
                 currency: options.currency
             };
         } else {
-            // [FIX] Pass idempotency header to Razorpay
-            rzpOrder = await this.razorpay.orders.create(options, {
-                'X-Razorpay-Idempotency-Key': idempotencyKey
-            });
+            // [FIX] Razorpay SDK does not support headers as 2nd arg for orders.create
+            // Idempotency is already handled by the 'receipt' field in options
+            rzpOrder = await this.razorpay.orders.create(options);
         }
 
         const purchase = this.purchaseRepository.create({
@@ -222,10 +221,9 @@ export class PaymentsService implements OnModuleInit {
                 currency: options.currency
             };
         } else {
-            // [FIX] Pass idempotency header
-            rzpOrder = await this.razorpay.orders.create(options, {
-                'X-Razorpay-Idempotency-Key': idempotencyKey
-            });
+            // [FIX] Razorpay SDK does not support headers as 2nd arg for orders.create
+            // Idempotency is already handled by the 'receipt' field in options
+            rzpOrder = await this.razorpay.orders.create(options);
         }
 
         // Calculate expiry
