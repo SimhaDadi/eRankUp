@@ -125,7 +125,7 @@ export default function UploadModelModal({ isOpen, onClose, onSuccess, modelId, 
                                     <div className="text-center">
                                         <div className="flex gap-4 justify-center mb-4">
                                             <FileText className="w-8 h-8 text-slate-600" />
-                                            <Image icon={ImageIcon} className="w-8 h-8 text-slate-600" />
+                                            <IconWrapper icon={ImageIcon} className="w-8 h-8 text-slate-600" />
                                         </div>
                                         <div className="text-slate-300 font-bold mb-1">Drag file here</div>
                                         <div className="text-xs text-slate-500 mb-4">CSV, PDF, Images (JPG, PNG)</div>
@@ -191,6 +191,6 @@ export default function UploadModelModal({ isOpen, onClose, onSuccess, modelId, 
 }
 
 // Helper component for Icon
-function Image({ icon: Icon, className }: { icon: any, className?: string }) {
+function IconWrapper({ icon: Icon, className }: { icon: any, className?: string }) {
     return <Icon className={className} />;
 }

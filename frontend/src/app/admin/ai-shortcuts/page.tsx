@@ -1,6 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Trash2, Plus, Edit2, Play, AlertCircle, CheckCircle2 } from 'lucide-react';
+import Image from 'next/image';
 import api from '@/lib/api';
 
 interface Shortcut {
@@ -37,16 +38,12 @@ export default function AIShortcutsPage() {
     const [testingFlag, setTestingFlag] = useState(false);
     const [hasTested, setHasTested] = useState(false);
 
-    useEffect(() => {
-        fetchShortcuts();
-    }, []);
-
     const showToast = (title: string, type: 'success' | 'error' = 'success') => {
         setToastMessage({ title, type });
         setTimeout(() => setToastMessage(null), 3000);
     };
 
-    const fetchShortcuts = async () => {
+    const fetchShortcuts = useCallback(async () => {
         try {
             const res = await api.get('/ai/shortcuts');
             setShortcuts(res.data);
@@ -55,7 +52,11 @@ export default function AIShortcutsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchShortcuts();
+    }, [fetchShortcuts]);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -277,7 +278,13 @@ export default function AIShortcutsPage() {
                                     <div className="grid grid-cols-3 gap-2">
                                         {imagePreviews.map((url, idx) => (
                                             <div key={idx} className="relative group aspect-square rounded bg-[#0c111d] border border-slate-800 overflow-hidden">
-                                                <img src={url} alt="preview" className="w-full h-full object-cover" />
+                                                <Image 
+                                                    src={url} 
+                                                    alt="preview" 
+                                                    fill 
+                                                    className="object-cover" 
+                                                    unoptimized
+                                                />
                                                 <button
                                                     onClick={() => removeImage(idx)}
                                                     className="absolute top-1 right-1 p-1 bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"

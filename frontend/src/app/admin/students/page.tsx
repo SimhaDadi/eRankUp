@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -39,11 +39,7 @@ export default function StudentsPage() {
         return () => clearTimeout(timer);
     }, [search]);
 
-    useEffect(() => {
-        fetchStudents();
-    }, [page, debouncedSearch]);
-
-    const fetchStudents = async () => {
+    const fetchStudents = useCallback(async () => {
         setLoading(true);
         try {
             const res = await api.get('/analytics/students', {
@@ -56,7 +52,11 @@ export default function StudentsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, debouncedSearch]);
+
+    useEffect(() => {
+        fetchStudents();
+    }, [fetchStudents]);
 
     return (
         <div className="space-y-8 pb-10">

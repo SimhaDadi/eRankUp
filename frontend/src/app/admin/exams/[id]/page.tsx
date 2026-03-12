@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -68,12 +68,12 @@ export default function ExamDetailPage() {
     const [isAddingSection, setIsAddingSection] = useState(false);
     const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null);
 
-    const fetchSubjects = async () => {
+    const fetchSubjects = useCallback(async () => {
         try {
             const res = await api.get(`/subjects/by-exam/${params.id}`);
             setSubjects(res.data || []);
         } catch { }
-    };
+    }, [params.id]);
 
     const handleAddSection = async () => {
         if (!newSectionTitle.trim()) return;
@@ -109,7 +109,16 @@ export default function ExamDetailPage() {
     const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
     const [selectedChapterId, setSelectedChapterId] = useState<string>('');
 
-    const fetchExamDetails = async () => {
+    const fetchHierarchy = useCallback(async () => {
+        try {
+            const response = await api.get(`/exams/${params.id}/hierarchy`);
+            setHierarchy(response.data.subjects || []);
+        } catch (error) {
+            console.error("Failed to fetch hierarchy", error);
+        }
+    }, [params.id]);
+
+    const fetchExamDetails = useCallback(async () => {
         try {
             const response = await api.get(`/exams/${params.id}`);
             setExam(response.data);
@@ -127,20 +136,11 @@ export default function ExamDetailPage() {
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const fetchHierarchy = async () => {
-        try {
-            const response = await api.get(`/exams/${params.id}/hierarchy`);
-            setHierarchy(response.data.subjects || []);
-        } catch (error) {
-            console.error("Failed to fetch hierarchy", error);
-        }
-    };
+    }, [params.id, fetchHierarchy, fetchSubjects]);
 
     useEffect(() => {
         fetchExamDetails();
-    }, [params.id]);
+    }, [fetchExamDetails]);
 
     const handleRemoveQuestion = async (questionId: string) => {
         if (!exam) return;

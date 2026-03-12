@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, MessageSquare } from 'lucide-react';
 import api from '@/lib/api';
@@ -26,13 +26,7 @@ export default function CommentModal({ isOpen, onClose, postId, onCommentAdded }
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
-        if (isOpen && postId) {
-            fetchComments();
-        }
-    }, [isOpen, postId]);
-
-    const fetchComments = async () => {
+    const fetchComments = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await api.get(`/community/posts/${postId}/comments`);
@@ -42,7 +36,13 @@ export default function CommentModal({ isOpen, onClose, postId, onCommentAdded }
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [postId]);
+
+    useEffect(() => {
+        if (isOpen && postId) {
+            fetchComments();
+        }
+    }, [isOpen, postId, fetchComments]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

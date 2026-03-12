@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { MessageSquare, Heart, Share2, MoreHorizontal, Plus, Search, Filter } from 'lucide-react';
 import api from '@/lib/api';
@@ -28,11 +28,7 @@ export default function CommunityPage() {
     const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
     const [category, setCategory] = useState('All');
 
-    useEffect(() => {
-        fetchPosts();
-    }, [category]);
-
-    const fetchPosts = async () => {
+    const fetchPosts = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await api.get('/community/feed', {
@@ -44,7 +40,11 @@ export default function CommunityPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [category]);
+
+    useEffect(() => {
+        fetchPosts();
+    }, [fetchPosts]);
 
     const handleLike = async (postId: string) => {
         // Optimistic update

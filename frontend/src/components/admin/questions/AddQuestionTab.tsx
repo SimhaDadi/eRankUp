@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, X, CheckCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 import api from '@/lib/api';
 import { Exam, Subject, Chapter } from './types';
 
@@ -213,10 +214,12 @@ export default function AddQuestionTab() {
                         <div className="flex items-center gap-4">
                             {formData.imageUrl ? (
                                 <div className="relative group w-32 h-32 rounded-xl overflow-hidden border border-slate-700">
-                                    <img
+                                    <Image
                                         src={`${process.env.NEXT_PUBLIC_API_URL}${formData.imageUrl}`}
                                         alt="Diagram"
-                                        className="w-full h-full object-cover"
+                                        fill
+                                        unoptimized
+                                        className="object-cover"
                                     />
                                     <button
                                         type="button"

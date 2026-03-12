@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
     Banknote,
@@ -34,11 +34,7 @@ export default function FinancePage() {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [processingRefund, setProcessingRefund] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchData();
-    }, [page, statusFilter]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const [overviewRes, paymentsRes] = await Promise.all([
@@ -54,7 +50,11 @@ export default function FinancePage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, statusFilter]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handleRefund = async (paymentId: string) => {
         if (!confirm('Are you sure you want to refund this payment? This action cannot be undone.')) return;

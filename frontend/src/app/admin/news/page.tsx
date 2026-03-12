@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Trash2, Edit2, X, UploadCloud, Globe, RefreshCcw } from 'lucide-react';
+import Image from 'next/image';
 import api from '@/lib/api';
 
 interface NewsItem {
@@ -35,11 +36,7 @@ export default function AdminNewsPage() {
         tags: '',
     });
 
-    useEffect(() => {
-        fetchNews();
-    }, []);
-
-    const fetchNews = async () => {
+    const fetchNews = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await api.get('/news');
@@ -49,7 +46,11 @@ export default function AdminNewsPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchNews();
+    }, [fetchNews]);
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
@@ -152,7 +153,15 @@ export default function AdminNewsPage() {
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-4">
                                         {item.imageUrl && (
-                                            <img src={item.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover bg-slate-800" />
+                                            <div className="relative w-10 h-10 shrink-0">
+                                                <Image 
+                                                    src={item.imageUrl} 
+                                                    alt={item.title} 
+                                                    fill 
+                                                    className="rounded-lg object-cover bg-slate-800"
+                                                    unoptimized
+                                                />
+                                            </div>
                                         )}
                                         <div>
                                             <div className="font-bold text-white line-clamp-1">{item.title}</div>

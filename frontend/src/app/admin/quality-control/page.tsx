@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
     Flag,
@@ -34,12 +34,7 @@ export default function QualityControlPage() {
     const [selectedFlag, setSelectedFlag] = useState<QuestionFlag | null>(null);
     const [adminNotes, setAdminNotes] = useState('');
 
-    useEffect(() => {
-        fetchData();
-        fetchStats();
-    }, [page, statusFilter]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const res = await api.get('/quality/admin/flags', {
@@ -51,16 +46,21 @@ export default function QualityControlPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, statusFilter]);
 
-    const fetchStats = async () => {
+    const fetchStats = useCallback(async () => {
         try {
             const res = await api.get('/quality/admin/stats');
             setStats(res.data);
         } catch (error) {
             console.error('Failed to fetch stats', error);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+        fetchStats();
+    }, [fetchData, fetchStats]);
 
     const handleStatusUpdate = async (status: 'resolved' | 'dismissed') => {
         if (!selectedFlag) return;

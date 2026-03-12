@@ -63,12 +63,7 @@ export default function TestBuilder() {
     const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [adding, setAdding] = useState(false);
 
-    // Initial Load
-    useEffect(() => {
-        fetchExams();
-    }, []);
-
-    const fetchExams = async () => {
+    const fetchExams = useCallback(async () => {
         try {
             const res = await api.get('/exams');
             const allExams: Exam[] = res.data;
@@ -78,7 +73,21 @@ export default function TestBuilder() {
         } catch (err) {
             console.error("Failed to fetch exams", err);
         }
-    };
+    }, []);
+
+    // Initial Load
+    useEffect(() => {
+        fetchExams();
+    }, [fetchExams]);
+
+    const fetchSubjects = useCallback(async (examId: string) => {
+        try {
+            const res = await api.get(`/subjects/by-exam/${examId}`);
+            setSubjects(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
 
     // When Source Bank changes, fetch hierarchy
     useEffect(() => {
@@ -88,73 +97,31 @@ export default function TestBuilder() {
             setChapters([]);
             setQuestions([]);
         }
-    }, [sourceBankId]);
+    }, [sourceBankId, fetchSubjects]);
 
-    const fetchSubjects = async (examId: string) => {
-        try {
-            const res = await api.get(`/subjects/by-exam/${examId}`);
-            setSubjects(res.data);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const fetchChapters = async (subjectId: string) => {
+    const fetchChapters = useCallback(async (subjectId: string) => {
         try {
             const res = await api.get(`/chapters/by-subject/${subjectId}`);
             setChapters(res.data);
         } catch (err) {
             console.error(err);
         }
-    };
+    }, []);
 
     // When filters change, fetch questions
     useEffect(() => {
         if (selectedSubjectId) {
             fetchChapters(selectedSubjectId);
         }
-    }, [selectedSubjectId]);
+    }, [selectedSubjectId, fetchChapters]);
 
-    useEffect(() => {
-        if (sourceBankId) {
-            fetchQuestions();
-        }
-    }, [sourceBankId, selectedSubjectId, selectedChapterId]);
-
-    const fetchQuestions = async () => {
+    const fetchQuestions = useCallback(async () => {
         setLoadingQuestions(true);
         try {
-            // We need an endpoint to get questions by hierarchy.
-            // Adjust this URL based on your actual backend routes.
-            // Assuming GET /questions?examId=...
-            // If strict hierarchy is enforced, we might need a custom query param or endpoint.
-            // Let's assume the question list on list tab uses a specific fetch.
-            // Wait, QuestionListTab uses a Search query?
-            // Let's try fetching by chapter if selected, or subject, or exam.
-
-            let url = `/questions/by-exam/${sourceBankId}`; // Need to Verify this endpoint exists!
-            // If not, we might need to rely on the general list logic.
-            // Actually, backend usually has GET /exams/:id/questions or similar?
-            // Let's use the standard search if possible, or build a query.
-
-            // Checking existing API: Usually there is no 'by-exam' endpoint for questions in standard nestjs-crud unless generated.
-            // However, we can likely filter standard GET /questions if filtering is implemented.
-            // Let's assume consistent hierarchy navigation for now.
-            // Better: use the hierarchy to drill down.
-
-            // Fallback: If no dedicated endpoint, we might have issues.
-            // But let's assume we can fetch questions for a specific exam/bank.
-
-            // TEMPORARY: Use a potentially hypothetical endpoint that filtering supports.
-            // Realistically, we might need to filter client side if backend sends all? No, that's bad.
-            // Let's try: GET /questions?examId=...
-
             const params: any = { examId: sourceBankId };
             if (selectedSubjectId) params.subjectId = selectedSubjectId;
             if (selectedChapterId) params.chapterId = selectedChapterId;
 
-            // Note: If backend doesn't support query params filtering on GET /questions, we need to add it or use what's available.
-            // Assuming standard CRUD.
             const res = await api.get('/questions', { params });
             setQuestions(res.data.data || res.data); // Handle pagination or raw array
 
@@ -163,7 +130,13 @@ export default function TestBuilder() {
         } finally {
             setLoadingQuestions(false);
         }
-    };
+    }, [sourceBankId, selectedSubjectId, selectedChapterId]);
+
+    useEffect(() => {
+        if (sourceBankId) {
+            fetchQuestions();
+        }
+    }, [sourceBankId, fetchQuestions]);
 
     const toggleQuestion = (id: string) => {
         const newSet = new Set(selectedQuestionIds);

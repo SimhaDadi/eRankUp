@@ -27,7 +27,8 @@ import {
     Zap,
     Newspaper,
     Menu,
-    XCircle
+    XCircle,
+    CreditCard
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 

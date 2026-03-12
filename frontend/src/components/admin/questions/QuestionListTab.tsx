@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Search, FileText, Edit, Trash2, Download } from 'lucide-react';
 import api from '@/lib/api';
@@ -20,43 +21,84 @@ export default function QuestionListTab() {
     const [chapters, setChapters] = useState<any[]>([]);
     const [models, setModels] = useState<any[]>([]);
 
-    // Fetch Exams on mount
-    useEffect(() => {
-        api.get('/exams').then(res => {
+    const fetchExams = useCallback(async () => {
+        try {
+            const res = await api.get('/exams');
             const data = res.data.data || res.data; // Handle pagination wrapper
             setExams(Array.isArray(data) ? data : []);
-        });
+        } catch (err) {
+            console.error("Failed to fetch exams", err);
+        }
+    }, []);
+
+    // Fetch Exams on mount
+    useEffect(() => {
+        fetchExams();
+    }, [fetchExams]);
+
+    const fetchSubjectsForExam = useCallback(async (examId: string) => {
+        try {
+            const res = await api.get(`/exams/${examId}/subjects`);
+            setSubjects(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
+    const fetchAllSubjects = useCallback(async () => {
+        try {
+            const res = await api.get('/exams/subjects/all');
+            const data = Array.isArray(res.data) ? res.data : (res.data.subjects || []);
+            setSubjects(data);
+        } catch (err) {
+            console.error(err);
+        }
     }, []);
 
     // Fetch Subjects - Global or Exam-specific
     useEffect(() => {
         if (filters.examId) {
-            api.get(`/exams/${filters.examId}/subjects`).then(res => setSubjects(res.data));
+            fetchSubjectsForExam(filters.examId);
         } else {
-            api.get('/exams/subjects/all').then(res => {
-                const data = Array.isArray(res.data) ? res.data : (res.data.subjects || []);
-                setSubjects(data);
-            });
+            fetchAllSubjects();
         }
-    }, [filters.examId]);
+    }, [filters.examId, fetchSubjectsForExam, fetchAllSubjects]);
+
+    const fetchChaptersForSubject = useCallback(async (subjectId: string) => {
+        try {
+            const res = await api.get(`/exams/subjects/${subjectId}/chapters`);
+            setChapters(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
 
     // Fetch Chapters when Subject changes
     useEffect(() => {
         if (filters.subjectId) {
-            api.get(`/exams/subjects/${filters.subjectId}/chapters`).then(res => setChapters(res.data));
+            fetchChaptersForSubject(filters.subjectId);
         } else {
             setChapters([]);
         }
-    }, [filters.subjectId]);
+    }, [filters.subjectId, fetchChaptersForSubject]);
+
+    const fetchModelsForChapter = useCallback(async (chapterId: string) => {
+        try {
+            const res = await api.get(`/exams/chapters/${chapterId}/models`);
+            setModels(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
 
     // Fetch Models when Chapter changes
     useEffect(() => {
         if (filters.chapterId) {
-            api.get(`/exams/chapters/${filters.chapterId}/models`).then(res => setModels(res.data));
+            fetchModelsForChapter(filters.chapterId);
         } else {
             setModels([]);
         }
-    }, [filters.chapterId]);
+    }, [filters.chapterId, fetchModelsForChapter]);
 
     const fetchQuestions = useCallback(async () => {
         setLoading(true);
@@ -202,11 +244,13 @@ export default function QuestionListTab() {
                                             className="text-white font-medium mb-2 !prose-sm"
                                         />
                                         {q.imageUrl && (
-                                            <div className="mb-3">
-                                                <img
+                                            <div className="relative mb-3 h-48 w-full border border-slate-800 rounded-lg overflow-hidden">
+                                                <Image
                                                     src={`${process.env.NEXT_PUBLIC_API_URL}${q.imageUrl}`}
                                                     alt="Question Diagram"
-                                                    className="max-h-48 rounded-lg border border-slate-800"
+                                                    fill
+                                                    unoptimized
+                                                    className="object-contain"
                                                 />
                                             </div>
                                         )}

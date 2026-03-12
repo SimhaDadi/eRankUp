@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Layers } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -19,11 +19,7 @@ export default function SectionManager({ examId, onSectionsChange }: SectionMana
     const [isAdding, setIsAdding] = useState(false);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        fetchSubjects();
-    }, [examId]);
-
-    const fetchSubjects = async () => {
+    const fetchSubjects = useCallback(async () => {
         try {
             setIsLoading(true);
             const res = await api.get(`/exams/${examId}/subjects`);
@@ -34,7 +30,11 @@ export default function SectionManager({ examId, onSectionsChange }: SectionMana
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [examId, onSectionsChange]);
+
+    useEffect(() => {
+        fetchSubjects();
+    }, [fetchSubjects]);
 
     const handleAdd = async () => {
         if (!newTitle.trim()) return;

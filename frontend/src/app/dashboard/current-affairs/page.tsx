@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Calendar, Tag, ChevronRight, X, Clock, Globe } from 'lucide-react';
+import Image from 'next/image';
 import api from '@/lib/api';
 import { SafeHtml } from '@/components/SafeHtml';
 
@@ -24,11 +25,7 @@ export default function CurrentAffairsPage() {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
 
-    useEffect(() => {
-        fetchNews();
-    }, [selectedCategory]);
-
-    const fetchNews = async () => {
+    const fetchNews = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await api.get('/news', {
@@ -40,7 +37,11 @@ export default function CurrentAffairsPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [selectedCategory]);
+
+    useEffect(() => {
+        fetchNews();
+    }, [fetchNews]);
 
     const categories = ['All', 'National', 'International', 'Sports', 'Science & Tech', 'Economy'];
 
@@ -95,7 +96,13 @@ export default function CurrentAffairsPage() {
                         >
                             <div className="relative h-48 overflow-hidden bg-slate-100">
                                 {item.imageUrl ? (
-                                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                    <Image 
+                                        src={item.imageUrl} 
+                                        alt={item.title} 
+                                        fill 
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                        unoptimized
+                                    />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-300">
                                         <Globe className="w-12 h-12" />
@@ -146,7 +153,13 @@ export default function CurrentAffairsPage() {
                         >
                             <div className="relative h-64 shrink-0 bg-slate-900">
                                 {selectedNews.imageUrl && (
-                                    <img src={selectedNews.imageUrl} alt={selectedNews.title} className="w-full h-full object-cover opacity-80" />
+                                    <Image 
+                                        src={selectedNews.imageUrl} 
+                                        alt={selectedNews.title} 
+                                        fill 
+                                        className="w-full h-full object-cover opacity-80" 
+                                        unoptimized
+                                    />
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
                                 <button

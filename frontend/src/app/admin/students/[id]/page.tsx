@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import {
     User,
     Mail,
@@ -40,16 +41,7 @@ export default function StudentDetailPage() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
-    useEffect(() => {
-        if (studentId) {
-            console.log('Fetching data for student:', studentId);
-            fetchStudentData();
-        } else {
-            console.error('No student ID found in params');
-        }
-    }, [studentId]);
-
-    const fetchStudentData = async () => {
+    const fetchStudentData = useCallback(async () => {
         try {
             console.log('Initiating API calls...');
             const [detailsRes, attemptsRes, activityRes] = await Promise.all([
@@ -76,7 +68,16 @@ export default function StudentDetailPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [studentId]);
+
+    useEffect(() => {
+        if (studentId) {
+            console.log('Fetching data for student:', studentId);
+            fetchStudentData();
+        } else {
+            console.error('No student ID found in params');
+        }
+    }, [studentId, fetchStudentData]);
 
     const toggleStatus = async () => {
         if (!profile) return;
@@ -145,7 +146,14 @@ export default function StudentDetailPage() {
                         <div className="flex flex-col md:flex-row gap-8 items-start">
                             <div className="w-24 h-24 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center overflow-hidden">
                                 {profile.profilePicture ? (
-                                    <img src={profile.profilePicture} alt={profile.fullName} className="w-full h-full object-cover" />
+                                    <Image 
+                                        src={profile.profilePicture} 
+                                        alt={profile.fullName} 
+                                        width={96} 
+                                        height={96} 
+                                        className="w-full h-full object-cover" 
+                                        unoptimized
+                                    />
                                 ) : (
                                     <User className="w-10 h-10 text-slate-500" />
                                 )}

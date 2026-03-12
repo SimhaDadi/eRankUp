@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Loader2, Plus, Library, Zap, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
@@ -29,29 +29,30 @@ export function CreateExamModal({ isOpen, onClose, onSuccess, defaultCategory }:
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [categories, setCategories] = useState<any[]>([]);
 
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const res = await api.get('/categories/admin');
-                setCategories(res.data);
-                // If no defaultCategory and we have categories, set first one as default
-                if (!defaultCategory && res.data.length > 0 && !formData.category) {
-                    setFormData(prev => ({ ...prev, category: res.data[0].name }));
-                } else if (!defaultCategory && !formData.category) {
-                    // Fallback default
-                    setFormData(prev => ({ ...prev, category: 'SSC' }));
-                }
-            } catch (error) {
-                console.error('Failed to fetch categories', error);
-                // Fallback if API fails
-                setCategories([
-                    { id: 'ssc', name: 'SSC' },
-                    { id: 'banking', name: 'Banking' }
-                ]);
+    const fetchCategories = useCallback(async () => {
+        try {
+            const res = await api.get('/categories/admin');
+            setCategories(res.data);
+            // If no defaultCategory and we have categories, set first one as default
+            if (!defaultCategory && res.data.length > 0 && !formData.category) {
+                setFormData(prev => ({ ...prev, category: res.data[0].name }));
+            } else if (!defaultCategory && !formData.category) {
+                // Fallback default
+                setFormData(prev => ({ ...prev, category: 'SSC' }));
             }
-        };
+        } catch (error) {
+            console.error('Failed to fetch categories', error);
+            // Fallback if API fails
+            setCategories([
+                { id: 'ssc', name: 'SSC' },
+                { id: 'banking', name: 'Banking' }
+            ]);
+        }
+    }, [defaultCategory, formData.category]);
+
+    useEffect(() => {
         fetchCategories();
-    }, [defaultCategory]);
+    }, [fetchCategories]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

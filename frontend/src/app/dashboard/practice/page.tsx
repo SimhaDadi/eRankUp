@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Book,
@@ -52,52 +52,52 @@ export default function PracticePage() {
     const searchParams = useSearchParams();
     const searchQuery = searchParams.get('search') || '';
 
-    useEffect(() => {
-        const fetchHierarchy = async () => {
-            try {
-                // Fetch chapter-wise test exams instead of raw hierarchy
-                const response = await api.get('/exams?type=chapter_wise_test');
-                const exams = Array.isArray(response.data) ? response.data : response.data?.data || [];
+    const fetchHierarchy = useCallback(async () => {
+        try {
+            // Fetch chapter-wise test exams instead of raw hierarchy
+            const response = await api.get('/exams?type=chapter_wise_test');
+            const exams = Array.isArray(response.data) ? response.data : response.data?.data || [];
 
-                // Group exams by subject (category) and chapter
-                const subjectsMap = new Map<string, Subject>();
+            // Group exams by subject (category) and chapter
+            const subjectsMap = new Map<string, Subject>();
 
-                exams.forEach((exam: any) => {
-                    const subjectName = exam.category || 'General';
-                    const chapterName = exam.metadata?.chapterName || exam.title;
+            exams.forEach((exam: any) => {
+                const subjectName = exam.category || 'General';
+                const chapterName = exam.metadata?.chapterName || exam.title;
 
-                    if (!subjectsMap.has(subjectName)) {
-                        subjectsMap.set(subjectName, {
-                            id: subjectName,
-                            title: subjectName,
-                            name: subjectName,
-                            chapters: []
-                        });
-                    }
-
-                    const subject = subjectsMap.get(subjectName)!;
-
-                    // Add exam as a chapter
-                    subject.chapters.push({
-                        id: exam.id,
-                        title: chapterName,
-                        name: chapterName,
-                        description: exam.description,
-                        modelCount: 1, // Each exam is one test
-                        attempts: exam.attempts // Map attempts data from API
+                if (!subjectsMap.has(subjectName)) {
+                    subjectsMap.set(subjectName, {
+                        id: subjectName,
+                        title: subjectName,
+                        name: subjectName,
+                        chapters: []
                     });
+                }
+
+                const subject = subjectsMap.get(subjectName)!;
+
+                // Add exam as a chapter
+                subject.chapters.push({
+                    id: exam.id,
+                    title: chapterName,
+                    name: chapterName,
+                    description: exam.description,
+                    modelCount: 1, // Each exam is one test
+                    attempts: exam.attempts // Map attempts data from API
                 });
+            });
 
-                setHierarchy(Array.from(subjectsMap.values()));
-            } catch (error) {
-                console.error("Failed to fetch chapter-wise tests", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchHierarchy();
+            setHierarchy(Array.from(subjectsMap.values()));
+        } catch (error) {
+            console.error("Failed to fetch chapter-wise tests", error);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchHierarchy();
+    }, [fetchHierarchy]);
 
     const filteredHierarchy = hierarchy.filter(subject => {
         const subjectTitle = subject.title || subject.name || '';
