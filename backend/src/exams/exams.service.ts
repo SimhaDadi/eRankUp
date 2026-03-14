@@ -1338,7 +1338,8 @@ export class ExamsService implements OnApplicationBootstrap {
     // --- Question Bank Browser Methods ---
     async createQuestionsBulk(userId: string, role: UserRole, modelId: string | undefined, questionsData: any[], examId?: string, subjectId?: string) {
         const fs = require('fs');
-        const logFile = 'D:\\eRankUp\\bulk_upload_service.log';
+        const path = require('path');
+        const logFile = path.join(process.cwd(), 'bulk_upload_service.log');
         const log = (msg: string) => {
             const timestampedMsg = `${new Date().toISOString()} ${msg}`;
             console.log(timestampedMsg);
@@ -1389,11 +1390,16 @@ export class ExamsService implements OnApplicationBootstrap {
         // Filter out duplicates and capture them
         const newQuestionsData: any[] = [];
         const existingRows: any[] = [];
+        const seenInBatch = new Set<string>();
 
         questionsData.forEach(data => {
-            if (existingContentSet.has((data.content || data.questionText || '').trim())) {
+            const normalizedContent = (data.content || data.questionText || '').trim();
+            if (existingContentSet.has(normalizedContent)) {
                 existingRows.push({ ...data, error: 'Question already exists in database' });
+            } else if (seenInBatch.has(normalizedContent)) {
+                existingRows.push({ ...data, error: 'Duplicate question found within the same CSV file' });
             } else {
+                seenInBatch.add(normalizedContent);
                 newQuestionsData.push(data);
             }
         });
