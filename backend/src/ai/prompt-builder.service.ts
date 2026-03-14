@@ -73,7 +73,7 @@ export class PromptBuilderService {
             step1Desc = config.steps.step1.description;
             step2Desc = config.steps.step2.description;
         }
-        // CASE 2: General Awareness / GS (History, Geo, Polity, etc)
+        // CASE 2: General Awareness / GS / Current Affairs
         else if (
             (subjectLower.includes('general') &&
                 !PROMPTS_CONFIG.subjects.generalStudies.excludeKeywords.some(k => subjectLower.includes(k))
@@ -87,7 +87,16 @@ export class PromptBuilderService {
             step1Desc = config.steps.step1.description;
             step2Desc = config.steps.step2.description;
         }
-        // CASE 3: Quant / Reasoning (Default)
+        // CASE 3: Science
+        else if (PROMPTS_CONFIG.subjects.science.keywords.some(k => subjectLower.includes(k))) {
+            const config = (PROMPTS_CONFIG.subjects as any).science;
+            personaInstructions = config.persona;
+            step1Title = config.steps.step1.title;
+            step2Title = config.steps.step2.title;
+            step1Desc = config.steps.step1.description;
+            step2Desc = config.steps.step2.description;
+        }
+        // CASE 4: Quant / Reasoning (Default)
         else {
             // Pass the topic and content to get specific constraints
             personaInstructions = this.getQuantPersonaInstructions(question.topic, question.content);
@@ -348,6 +357,8 @@ Tutor:`;
             subjectConfig = PROMPTS_CONFIG.subjects.english as any;
         } else if (PROMPTS_CONFIG.subjects.generalStudies.keywords.some(k => subjectText.includes(k))) {
             subjectConfig = PROMPTS_CONFIG.subjects.generalStudies as any;
+        } else if ((PROMPTS_CONFIG.subjects as any).science.keywords.some((k: string) => subjectText.includes(k))) {
+            subjectConfig = (PROMPTS_CONFIG.subjects as any).science as any;
         }
 
         // DYNAMIC OVERRIDE: Check Content for Direction keywords

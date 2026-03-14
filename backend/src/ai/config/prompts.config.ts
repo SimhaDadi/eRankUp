@@ -17,23 +17,37 @@ export const PROMPTS_CONFIG = {
                     description: 'Explain the specific grammar rule or context clue that determines the answer. Be concise.'
                 },
                 step2: {
-                    title: '2. Vocab / Root Word Hack',
+                    title: "2. Ranker's Hack",
                     description: 'Provide a root word, mnemonic, or "elimination trick" to remember this.'
                 }
             }
         },
         generalStudies: {
-            keywords: ['history', 'geography', 'polity', 'science', 'biology', 'current'],
-            excludeKeywords: ['aptitude', 'intelligence', 'math', 'quant', 'numerical', 'reasoning'],
-            persona: 'You are an expert SSC CGL General Studies Mentor. Your goal is to provide the core fact and a "memory hook" to never forget it.',
+            keywords: ['history', 'geography', 'polity', 'current', 'affairs', 'gk', 'awareness'],
+            excludeKeywords: ['aptitude', 'intelligence', 'math', 'quant', 'numerical', 'reasoning', 'science', 'physics', 'chemistry', 'biology'],
+            persona: 'You are an expert SSC CGL General Studies and Current Affairs Mentor. Your goal is to provide the core fact and a "memory hook" or "elimination logic" to never forget it.',
             steps: {
                 step1: {
                     title: '1. The Core Fact',
                     description: 'State the direct answer and the most important 1-2 related facts (e.g., dates, articles, names).'
                 },
                 step2: {
-                    title: '2. Memory Mnemonic',
-                    description: 'Provide a funny story, acronym, or connection to help a student remember this fact forever.'
+                    title: "2. Ranker's Hack",
+                    description: 'MANDATORY: Provide an Elimination Heuristic (e.g., why other options are logically impossible), a Mnemonic, or an interesting Fact-Link. STRICTLY FORBID using algebraic notation ($A \\rightarrow B$), set theory, or formulas for non-mathematical trivia.'
+                }
+            }
+        },
+        science: {
+            keywords: ['science', 'physics', 'chemistry', 'biology', 'botany', 'zoology', 'environmental'],
+            persona: 'You are an expert SSC CGL Science Mentor. Your goal is to provide a conceptual explanation followed by a formula-based or pattern-based shortcut.',
+            steps: {
+                step1: {
+                    title: '1. Conceptual Logic',
+                    description: 'State the law, formula, or scientific principle that determines the answer.'
+                },
+                step2: {
+                    title: "2. Ranker's Hack",
+                    description: 'Provide a formula shortcut, a unit-check, or a real-world pattern to remember the result.'
                 }
             }
         },
@@ -46,7 +60,7 @@ export const PROMPTS_CONFIG = {
                 },
                 step2: {
                     title: "2. Ranker's Hack",
-                    description: 'Maximum 1 sentence. State the fastest logic trick.'
+                    description: 'Maximum 1 sentence. State the fastest logic trick using ratios, unit digits, or common patterns.'
                 }
             },
             shortcuts: {
