@@ -13,6 +13,7 @@ export default function QuestionListTab() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDifficulty, setSelectedDifficulty] = useState('all');
     const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+    const [totalCount, setTotalCount] = useState<number>(0);
 
     // Hierarchical Filters
     const [filters, setFilters] = useState({ examId: '', subjectId: '', chapterId: '', modelId: '' });
@@ -114,6 +115,7 @@ export default function QuestionListTab() {
             const response = await api.get('/exams/questions/global', { params });
             // Handle both array (legacy) and paginated object responses
             const data = response.data.questions || response.data;
+            setTotalCount(response.data.total || (Array.isArray(data) ? data.length : 0));
             setQuestions(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Failed to load questions", error);
@@ -222,6 +224,17 @@ export default function QuestionListTab() {
                     >
                         <Download className="w-5 h-5" />
                     </button>
+                </div>
+            </div>
+
+            <div className="flex items-center justify-between mb-2 px-2">
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                        <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">
+                            Total Questions: {loading ? '...' : totalCount}
+                        </span>
+                    </div>
                 </div>
             </div>
 
