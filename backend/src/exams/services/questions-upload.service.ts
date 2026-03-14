@@ -23,20 +23,31 @@ export interface ParsedQuestion {
 
 @Injectable()
 export class QuestionsUploadService {
+    private log(msg: string) {
+        const logFile = path.join(process.cwd(), 'bulk_upload_service.log');
+        const timestampedMsg = `${new Date().toISOString()} ${msg}`;
+        console.log(timestampedMsg);
+        try {
+            fs.appendFileSync(logFile, timestampedMsg + '\n');
+        } catch (e) {
+            console.error('Failed to write to service log:', e.message);
+        }
+    }
+
     constructor(
         private readonly aiService: AIService,
     ) { }
 
     async parseExamsFile(buffer: Buffer, mimetype: string): Promise<{ questions: ParsedQuestion[], failedRows: any[] }> {
-        console.log(`[QuestionsUploadService] Processing file: ${mimetype}, Size: ${buffer.length} bytes`);
+        this.log(`[QuestionsUploadService] Processing file: ${mimetype}, Size: ${buffer.length} bytes`);
         if (mimetype === 'text/csv' || mimetype === 'application/vnd.ms-excel') {
             return this.parseCsv(buffer);
         } else if (mimetype === 'application/pdf' || mimetype.startsWith('image/')) {
-            console.log(`[QuestionsUploadService] Routing to AI Parser for ${mimetype}`);
+            this.log(`[QuestionsUploadService] Routing to AI Parser for ${mimetype}`);
             const questions = await this.parseDocumentWithAI(buffer, mimetype);
             return { questions, failedRows: [] }; // AI parser already handles its own skipping/logging
         } else {
-            console.warn(`[QuestionsUploadService] Unsupported file type: ${mimetype}`);
+            this.log(`[QuestionsUploadService] Unsupported file type: ${mimetype}`);
             throw new BadRequestException('Unsupported file type. Only CSV, PDF, and Images are supported.');
         }
     }
@@ -85,11 +96,11 @@ export class QuestionsUploadService {
                     });
                 })
                 .on('end', () => {
-                    console.log(`[QuestionsUploadService] CSV Parsing finished. Total Raw Rows: ${rawRowCount}, Valid Questions: ${questions.length}, Failed Rows: ${failedRows.length}`);
+                    this.log(`[QuestionsUploadService] CSV Parsing finished. Total Raw Rows: ${rawRowCount}, Valid Questions: ${questions.length}, Failed Rows: ${failedRows.length}`);
                     resolve({ questions, failedRows });
                 })
                 .on('error', (error) => {
-                    console.error('[QuestionsUploadService] CSV Parsing Error:', error.message);
+                    this.log(`[QuestionsUploadService] CSV Parsing Error: ${error.message}`);
                     reject(error);
                 });
         });

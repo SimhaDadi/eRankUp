@@ -278,8 +278,6 @@ export default function LiveExamsPage() {
                     }}
                     onSuccess={() => {
                         fetchExams();
-                        setShowUploadModal(false);
-                        setExamToUpload(null);
                     }}
                     examId={examToUpload.id}
                     examTitle={examToUpload.title}

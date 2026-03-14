@@ -439,7 +439,6 @@ export default function ExamDetailPage() {
                 onClose={() => setShowUploadModal(false)}
                 onSuccess={() => {
                     fetchExamDetails();
-                    setShowUploadModal(false);
                 }}
                 examId={exam.id}
                 examTitle={exam.title}
