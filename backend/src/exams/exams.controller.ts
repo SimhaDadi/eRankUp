@@ -226,6 +226,7 @@ export class ExamsController {
     ) {
         if (!file) throw new BadRequestException('No file uploaded');
 
+        console.log(`[ExamsController] Bulk Upload to Model: ${modelId}, File Size: ${file.size} bytes, Mimetype: ${file.mimetype}`);
         const { questions: parsedQuestions, failedRows } = await this.uploadService.parseExamsFile(file.buffer, file.mimetype);
 
         const questionsData = parsedQuestions.map(q => ({
@@ -462,6 +463,7 @@ export class ExamsController {
             throw new BadRequestException('Either Model ID or Exam ID is required');
         }
 
+        console.log(`[ExamsController] Upload Questions: Exam: ${examId}, Model: ${modelId}, File Size: ${file.size} bytes`);
         const { questions: parsedQuestions, failedRows } = await this.uploadService.parseExamsFile(file.buffer, file.mimetype);
 
         // Inject exams into questions if provided

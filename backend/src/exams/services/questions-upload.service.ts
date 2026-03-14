@@ -42,7 +42,7 @@ export class QuestionsUploadService {
     }
 
     private async parseCsv(buffer: Buffer): Promise<{ questions: ParsedQuestion[], failedRows: any[] }> {
-        const stream = Readable.from(buffer.toString());
+        const stream = Readable.from(buffer);
         const questions: ParsedQuestion[] = [];
         const failedRows: any[] = [];
         let rawRowCount = 0;
