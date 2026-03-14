@@ -1386,12 +1386,19 @@ export class ExamsService implements OnApplicationBootstrap {
 
         const existingContentSet = new Set(existingQuestions.map(q => q.content.trim()));
 
-        // Filter out duplicates
-        const newQuestionsData = questionsData.filter(data =>
-            !existingContentSet.has((data.content || data.questionText || '').trim())
-        );
+        // Filter out duplicates and capture them
+        const newQuestionsData: any[] = [];
+        const existingRows: any[] = [];
 
-        log(`[ExamsService] Bulk Upload: Found ${existingQuestions.length} existing, Creating ${newQuestionsData.length} new.`);
+        questionsData.forEach(data => {
+            if (existingContentSet.has((data.content || data.questionText || '').trim())) {
+                existingRows.push({ ...data, error: 'Question already exists in database' });
+            } else {
+                newQuestionsData.push(data);
+            }
+        });
+
+        log(`[ExamsService] Bulk Upload: Found ${existingRows.length} existing, Creating ${newQuestionsData.length} new.`);
 
         // [FIX] Image Repair: ALWAYS update existing questions with new images
         // This runs regardless of whether there are new questions or not
@@ -1415,7 +1422,11 @@ export class ExamsService implements OnApplicationBootstrap {
         if (newQuestionsData.length === 0) {
             // All questions already exist, return them (possibly with repaired images)
             log('[ExamsService] All questions already exist. Returning existing questions.');
-            return existingQuestions;
+            return {
+                createdCount: 0,
+                existingRows: existingRows,
+                total: existingRows.length
+            };
         }
 
         // 2. Extract content for batch embedding (only for NEW questions)
@@ -1488,7 +1499,11 @@ export class ExamsService implements OnApplicationBootstrap {
 
         if (questions.length === 0) {
             log('[ExamsService] No valid questions to save after filtering and validation.');
-            return existingQuestions;
+            return {
+                createdCount: 0,
+                existingRows: existingRows,
+                total: existingRows.length
+            };
         }
 
         let savedQuestions: Question[] = [];
@@ -1527,7 +1542,11 @@ export class ExamsService implements OnApplicationBootstrap {
             });
         }
 
-        return finalResult;
+        return {
+            createdCount: savedQuestions.length,
+            existingRows: existingRows,
+            total: savedQuestions.length + existingRows.length
+        };
     }
 
     async getQuestionBankModels() {

@@ -226,7 +226,7 @@ export class ExamsController {
     ) {
         if (!file) throw new BadRequestException('No file uploaded');
 
-        const parsedQuestions = await this.uploadService.parseExamsFile(file.buffer, file.mimetype);
+        const { questions: parsedQuestions, failedRows } = await this.uploadService.parseExamsFile(file.buffer, file.mimetype);
 
         const questionsData = parsedQuestions.map(q => ({
             content: q.content,
@@ -242,8 +242,12 @@ export class ExamsController {
 
         const result = await this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, questionsData);
         return {
-            uploaded: result.length,
-            message: `Successfully uploaded ${result.length} questions`
+            uploaded: result.createdCount,
+            duplicates: result.existingRows.length,
+            malformed: failedRows.length,
+            failedData: [...failedRows, ...result.existingRows],
+            total: parsedQuestions.length + failedRows.length,
+            message: `Processed ${parsedQuestions.length + failedRows.length} questions: ${result.createdCount} created, ${result.existingRows.length} existing, ${failedRows.length} malformed.`
         };
     }
 
@@ -458,7 +462,7 @@ export class ExamsController {
             throw new BadRequestException('Either Model ID or Exam ID is required');
         }
 
-        const parsedQuestions = await this.uploadService.parseExamsFile(file.buffer, file.mimetype);
+        const { questions: parsedQuestions, failedRows } = await this.uploadService.parseExamsFile(file.buffer, file.mimetype);
 
         // Inject exams into questions if provided
         const questionsWithContext = parsedQuestions.map(q => ({
@@ -466,7 +470,15 @@ export class ExamsController {
             exams: examId ? [{ id: examId }] : []
         }));
 
-        return this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, questionsWithContext, examId, subjectId);
+        const result = await this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, questionsWithContext, examId, subjectId);
+        return {
+            uploaded: result.createdCount,
+            duplicates: result.existingRows.length,
+            malformed: failedRows.length,
+            failedData: [...failedRows, ...result.existingRows],
+            total: parsedQuestions.length + failedRows.length,
+            message: `Processed ${parsedQuestions.length + failedRows.length} questions: ${result.createdCount} created, ${result.existingRows.length} existing, ${failedRows.length} malformed.`
+        };
     }
 
     // --- Question Bank Browser Endpoints ---
@@ -508,8 +520,14 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles(UserRole.ADMIN)
     @Post('models/:id/questions/bulk')
-    createQuestionsBulk(@Request() req: any, @Param('id') modelId: string, @Body() dto: BulkCreateQuestionsDto) {
-        return this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, dto.questions);
+    async createQuestionsBulk(@Request() req: any, @Param('id') modelId: string, @Body() dto: BulkCreateQuestionsDto) {
+        const result = await this.examsService.createQuestionsBulk(req.user.userId, req.user.role, modelId, dto.questions);
+        return {
+            uploaded: result.createdCount,
+            duplicates: result.existingRows.length,
+            total: result.total,
+            message: `Successfully processed ${result.total} questions.`
+        };
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)

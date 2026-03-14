@@ -20,7 +20,14 @@ export default function UploadExamQuestionsModal({ isOpen, onClose, onSuccess, e
     const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
-    const [uploadResult, setUploadResult] = useState<{ uploaded: number; message: string } | null>(null);
+    const [uploadResult, setUploadResult] = useState<{ 
+        uploaded: number; 
+        duplicates?: number; 
+        malformed?: number; 
+        total?: number;
+        failedData?: any[];
+        message: string; 
+    } | null>(null);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [selectedSubjectId, setSelectedSubjectId] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,16 +72,54 @@ export default function UploadExamQuestionsModal({ isOpen, onClose, onSuccess, e
             });
 
             setUploadResult(response.data);
-            setTimeout(() => {
-                onSuccess();
-                onClose();
-            }, 2000);
+            
+            // If there are failures, don't auto-close the modal immediately
+            if (!response.data.failedData || response.data.failedData.length === 0) {
+                setTimeout(() => {
+                    onSuccess();
+                    onClose();
+                }, 2000);
+            } else {
+                onSuccess(); // Refresh the list in the background
+            }
         } catch (err: any) {
             console.error("Import failed", err);
             setError(err.response?.data?.message || err.message || "Failed to process file.");
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const downloadFailedQuestions = () => {
+        if (!uploadResult?.failedData || uploadResult.failedData.length === 0) return;
+
+        // Collect all possible headers from failedData
+        const headersSet = new Set<string>();
+        uploadResult.failedData.forEach(row => {
+            Object.keys(row).forEach(key => headersSet.add(key));
+        });
+        const headers = Array.from(headersSet);
+
+        // Convert data to CSV rows
+        const rows = uploadResult.failedData.map(row => 
+            headers.map(header => {
+                const val = row[header];
+                if (val === undefined || val === null) return '';
+                const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+                return `"${str.replace(/"/g, '""')}"`;
+            }).join(',')
+        );
+
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        const safeTitle = examTitle.replace(/\s+/g, '-').toLowerCase();
+        link.setAttribute("download", `failed-questions-${safeTitle}-${Date.now()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const downloadTemplate = () => {
@@ -204,9 +249,37 @@ export default function UploadExamQuestionsModal({ isOpen, onClose, onSuccess, e
                             )}
 
                             {uploadResult && (
-                                <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3">
-                                    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-black text-xs font-bold">✓</div>
-                                    <span className="text-sm text-emerald-200">{uploadResult.message}</span>
+                                <div className="space-y-3">
+                                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-black text-xs font-bold">✓</div>
+                                            <span className="text-sm font-bold text-emerald-200">{uploadResult.message}</span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800 text-center">
+                                                <div className="text-emerald-400 text-lg font-bold">{uploadResult.uploaded}</div>
+                                                <div className="text-[10px] text-slate-500 uppercase font-bold">Created</div>
+                                            </div>
+                                            <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800 text-center">
+                                                <div className="text-amber-400 text-lg font-bold">{uploadResult.duplicates || 0}</div>
+                                                <div className="text-[10px] text-slate-500 uppercase font-bold">Duplicates</div>
+                                            </div>
+                                            <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800 text-center">
+                                                <div className="text-rose-400 text-lg font-bold">{uploadResult.malformed || 0}</div>
+                                                <div className="text-[10px] text-slate-500 uppercase font-bold">Malformed</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {uploadResult.failedData && uploadResult.failedData.length > 0 && (
+                                        <button 
+                                            onClick={downloadFailedQuestions}
+                                            className="w-full p-3 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 rounded-xl flex items-center justify-center gap-2 text-amber-400 text-sm font-bold transition-all"
+                                        >
+                                            <Download className="w-4 h-4" /> Download Failed/Duplicate Questions CSV
+                                        </button>
+                                    )}
                                 </div>
                             )}
 
