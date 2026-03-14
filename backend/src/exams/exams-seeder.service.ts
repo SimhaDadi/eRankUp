@@ -6,6 +6,8 @@ import { Subject } from './entities/subject.entity';
 import { Chapter } from './entities/chapter.entity';
 import { Model } from './entities/model.entity';
 import { Question } from './entities/question.entity';
+import { User, UserRole } from '../users/user.entity';
+import { Attempt } from './entities/attempt.entity';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -25,6 +27,10 @@ export class ExamsSeederService implements OnApplicationBootstrap {
         private modelRepository: Repository<Model>,
         @InjectRepository(Question)
         private questionRepository: Repository<Question>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
+        @InjectRepository(Attempt)
+        private attemptRepository: Repository<Attempt>,
     ) {
         this.redis = new Redis({
             host: this.configService.get('REDIS_HOST', 'localhost'),
@@ -46,6 +52,7 @@ export class ExamsSeederService implements OnApplicationBootstrap {
 
         await this.seedRRBNTPC2024();
         await this.seedSSC2024Refinement();
+        await this.seedStudentUsers();
         await this.seedManualTestingData();
     }
 
@@ -66,6 +73,62 @@ export class ExamsSeederService implements OnApplicationBootstrap {
         // Quizzes
         await this.seedQuiz('Daily Quiz 1', 'Current Affairs');
         await this.seedQuiz('Daily Quiz 2', 'Science Quiz');
+
+        // Seed some attempts for analytics
+        await this.seedStudentAttempts();
+    }
+
+    public async seedStudentUsers() {
+        console.log('Seeding Student Users...');
+        const students = [
+            { email: 'student1@example.com', fullName: 'Alice Johnson', role: UserRole.STUDENT, password: 'password123' },
+            { email: 'student2@example.com', fullName: 'Bob Smith', role: UserRole.STUDENT, password: 'password123' },
+            { email: 'student3@example.com', fullName: 'Charlie Davis', role: UserRole.STUDENT, password: 'password123' },
+        ];
+
+        for (const s of students) {
+            const exists = await this.userRepository.findOneBy({ email: s.email });
+            if (!exists) {
+                await this.userRepository.save(this.userRepository.create(s));
+                console.log(`Created student: ${s.email}`);
+            }
+        }
+    }
+
+    public async seedStudentAttempts() {
+        console.log('Seeding Student Attempts...');
+        const students = await this.userRepository.find({ where: { role: UserRole.STUDENT } });
+        const exams = await this.examsRepository.find({ take: 5 });
+
+        if (students.length === 0 || exams.length === 0) {
+            console.warn('Cannot seed attempts: No students or exams found.');
+            return;
+        }
+
+        const attempts = [];
+        for (const student of students) {
+            for (const exam of exams) {
+                // Randomly seed some attempts
+                if (Math.random() > 0.5) {
+                    attempts.push({
+                        user: student,
+                        exam: exam,
+                        examId: exam.id,
+                        score: Math.floor(Math.random() * 100),
+                        totalQuestions: 10,
+                        correctAnswers: Math.floor(Math.random() * 10),
+                        timeTaken: Math.floor(Math.random() * 3600),
+                        accuracy: Math.floor(Math.random() * 100),
+                        createdAt: new Date(Date.now() - Math.floor(Math.random() * 86400000)) // within last 24h
+                    });
+                }
+            }
+        }
+
+        if (attempts.length > 0) {
+            await this.attemptRepository.save(this.attemptRepository.create(attempts));
+            console.log(`Seeded ${attempts.length} attempts.`);
+        }
     }
 
     private async createDummyQuestions(model: Model, exam: Exam, subject: Subject, chapter: Chapter, count: number, prefix: string) {

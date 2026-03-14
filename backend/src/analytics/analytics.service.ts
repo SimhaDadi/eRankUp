@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual } from 'typeorm';
+import { Repository, Between, MoreThanOrEqual, Not } from 'typeorm';
 import { CacheService } from '../common/cache.service';
 import { User, UserRole } from '../users/user.entity';
-import { Exam } from '../exams/entities/exam.entity';
+import { Exam, ExamType } from '../exams/entities/exam.entity';
 import { Attempt } from '../exams/entities/attempt.entity';
 import { Purchase } from '../exams/entities/purchase.entity';
 import { UserPass } from '../passes/entities/user-pass.entity';
@@ -29,7 +29,7 @@ export class AnalyticsService {
     ) { }
 
     async getOverviewStats() {
-        const cacheKey = 'analytics:overview';
+        const cacheKey = 'analytics:overview:stats:v2'; // Bumped version
         const cached = await this.cacheService.get<any>(cacheKey);
         if (cached) return cached;
 
@@ -39,36 +39,42 @@ export class AnalyticsService {
         const endOfDay = new Date();
         endOfDay.setHours(23, 59, 59, 999);
 
-        // 1. Active Students
-        const activeStudents = await this.userRepository.count({
-            where: { role: UserRole.STUDENT }
-        });
+        const [activeStudents, totalExams, submissionsToday, totalPurchasesResult, totalPassesResult] = await Promise.all([
+            // 1. Active Students
+            this.userRepository.count({ where: { role: UserRole.STUDENT } }),
 
-        // 2. Total Exams
-        const totalExams = await this.examRepository.count();
+            // 2. Total Exams (excluding QUESTION_BANK type)
+            this.examRepository.count({
+                where: {
+                    type: Not(ExamType.QUESTION_BANK)
+                    // [PROD-FIX] Count both draft and published exams for Admin Overview
+                }
+            }),
 
-        // 3. Submissions Today
-        const submissionsToday = await this.attemptRepository.count({
-            where: {
-                createdAt: Between(startOfDay, endOfDay)
-            }
-        });
+            // 3. Submissions Today
+            this.attemptRepository.count({
+                where: {
+                    createdAt: Between(startOfDay, endOfDay)
+                }
+            }),
 
-        // 4. Revenue (Total Completed Purchases + Passes)
-        const totalPurchasesResult = await this.purchaseRepository
-            .createQueryBuilder('purchase')
-            .select('SUM(purchase.amount)', 'total')
-            .where("purchase.status = 'COMPLETED'")
-            .getRawOne();
+            // 4. Revenue (Total Completed Purchases)
+            this.purchaseRepository
+                .createQueryBuilder('purchase')
+                .select('SUM(purchase.amount)', 'total')
+                .where("purchase.status = 'COMPLETED'")
+                .getRawOne(),
+
+            // 5. Revenue (Total Completed Passes)
+            this.userPassRepository
+                .createQueryBuilder('userPass')
+                .select('SUM(userPass.amount)', 'total')
+                .where("userPass.paymentStatus = 'COMPLETED'")
+                .getRawOne()
+        ]);
+
         const purchaseRevenue = parseFloat(totalPurchasesResult.total) || 0;
-
-        const totalPassesResult = await this.userPassRepository
-            .createQueryBuilder('userPass')
-            .select('SUM(userPass.amount)', 'total')
-            .where("userPass.paymentStatus = 'COMPLETED'")
-            .getRawOne();
         const passRevenue = parseFloat(totalPassesResult.total) || 0;
-
         const totalRevenue = purchaseRevenue + passRevenue;
 
         // Calculate growth (mocked for now, but could be real comparison with last month)

@@ -239,11 +239,12 @@ export class SystemHealthService {
     private async checkDatabaseHealth(): Promise<HealthMetric> {
         try {
             const start = Date.now();
+            await this.metricRepo.query('SELECT 1');
             const responseTime = Date.now() - start;
 
             return {
                 service: 'PostgreSQL',
-                status: responseTime < 100 ? 'healthy' : 'degraded',
+                status: responseTime < 500 ? 'healthy' : 'degraded',
                 responseTime,
                 lastChecked: new Date(),
                 details: { connected: true }

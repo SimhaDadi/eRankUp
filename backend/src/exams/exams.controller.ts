@@ -36,7 +36,7 @@ export class ExamsController {
     @UseGuards(AuthGuard('jwt'))
     @Get()
     async findAll(@Request() req: any, @Query('type') type?: string, @Query('page') page?: string, @Query('limit') limit?: string) {
-        const isAdmin = req.user.role === 'admin';
+        const isAdmin = req.user.role?.toLowerCase() === 'admin' || req.user.role === UserRole.ADMIN;
         const userId = req.user.userId;
 
         const pageNum = parseInt(page as string) || 1;
