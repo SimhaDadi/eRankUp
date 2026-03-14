@@ -45,6 +45,7 @@ export class QuestionsUploadService {
         const stream = Readable.from(buffer.toString());
         const questions: ParsedQuestion[] = [];
         const failedRows: any[] = [];
+        let rawRowCount = 0;
 
         return new Promise((resolve, reject) => {
             stream
@@ -53,6 +54,7 @@ export class QuestionsUploadService {
                     mapHeaders: ({ header }) => header.trim().toLowerCase()
                 }))
                 .on('data', (row) => {
+                    rawRowCount++;
                     const content = row.content || row.questiontext || row.question_text;
                     const optionA = row.optiona || row.option1;
                     const correctOptionId = row.correctoptionid || row.correctoption || row.correctanswer || row.correct_option_id;
@@ -82,8 +84,14 @@ export class QuestionsUploadService {
                         imageUrl: row.imageurl || row.image_url || row.image
                     });
                 })
-                .on('end', () => resolve({ questions, failedRows }))
-                .on('error', (error) => reject(error));
+                .on('end', () => {
+                    console.log(`[QuestionsUploadService] CSV Parsing finished. Total Raw Rows: ${rawRowCount}, Valid Questions: ${questions.length}, Failed Rows: ${failedRows.length}`);
+                    resolve({ questions, failedRows });
+                })
+                .on('error', (error) => {
+                    console.error('[QuestionsUploadService] CSV Parsing Error:', error.message);
+                    reject(error);
+                });
         });
     }
 

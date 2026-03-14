@@ -1454,7 +1454,8 @@ export class ExamsService implements OnApplicationBootstrap {
 
             // Critical Validation: Skip if content is missing
             if (!content) {
-                console.warn(`[ExamsService] Skipping question ${i} due to missing content.`);
+                log(`[ExamsService] Skipping question ${i} due to missing content.`);
+                existingRows.push({ ...data, error: 'Mandatory field "content" is empty after normalization' });
                 continue;
             }
 
@@ -1499,7 +1500,8 @@ export class ExamsService implements OnApplicationBootstrap {
                 const question = this.questionRepository.create(questionData);
                 questions.push(question as unknown as Question);
             } catch (err) {
-                console.error(`[ExamsService] Failed to create question entity for item ${i}:`, err.message);
+                log(`[ExamsService] Failed to create question entity for item ${i}: ${err.message}`);
+                existingRows.push({ ...data, error: `Database entity creation failed: ${err.message}` });
             }
         }
 
@@ -1548,6 +1550,7 @@ export class ExamsService implements OnApplicationBootstrap {
             });
         }
 
+        log(`[ExamsService] Bulk Upload Finished. Created: ${savedQuestions.length}, Skipped/Duplicates: ${existingRows.length}, Total Processed: ${savedQuestions.length + existingRows.length}`);
         return {
             createdCount: savedQuestions.length,
             existingRows: existingRows,
