@@ -22,21 +22,37 @@ export class CacheService implements OnModuleInit {
     }
 
     async set(key: string, value: any, ttlInSeconds: number = 3600): Promise<void> {
-        await this.redis.set(key, JSON.stringify(value), 'EX', ttlInSeconds);
+        try {
+            await this.redis.set(key, JSON.stringify(value), 'EX', ttlInSeconds);
+        } catch (error) {
+            console.error(`[CacheService] Failed to set key ${key}:`, error.message);
+        }
     }
 
     async del(key: string): Promise<void> {
-        await this.redis.del(key);
+        try {
+            await this.redis.del(key);
+        } catch (error) {
+            console.error(`[CacheService] Failed to delete key ${key}:`, error.message);
+        }
     }
 
     async invalidatePattern(pattern: string): Promise<void> {
-        const keys = await this.redis.keys(pattern);
-        if (keys.length > 0) {
-            await this.redis.del(...keys);
+        try {
+            const keys = await this.redis.keys(pattern);
+            if (keys.length > 0) {
+                await this.redis.del(...keys);
+            }
+        } catch (error) {
+            console.error(`[CacheService] Failed to invalidate pattern ${pattern}:`, error.message);
         }
     }
 
     async flush(): Promise<void> {
-        await this.redis.flushall();
+        try {
+            await this.redis.flushall();
+        } catch (error) {
+            console.error(`[CacheService] Failed to flush cache:`, error.message);
+        }
     }
 }

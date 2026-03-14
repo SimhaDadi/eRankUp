@@ -9,14 +9,13 @@ import { Question } from './entities/question.entity';
 import { User, UserRole } from '../users/user.entity';
 import { Attempt } from './entities/attempt.entity';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import { CacheService } from '../common/cache.service';
 
 @Injectable()
 export class ExamsSeederService implements OnApplicationBootstrap {
-    private redis: Redis;
-
     constructor(
         private configService: ConfigService,
+        private cacheService: CacheService,
         @InjectRepository(Exam)
         private examsRepository: Repository<Exam>,
         @InjectRepository(Subject)
@@ -31,12 +30,7 @@ export class ExamsSeederService implements OnApplicationBootstrap {
         private userRepository: Repository<User>,
         @InjectRepository(Attempt)
         private attemptRepository: Repository<Attempt>,
-    ) {
-        this.redis = new Redis({
-            host: this.configService.get('REDIS_HOST', 'localhost'),
-            port: this.configService.get('REDIS_PORT', 6379),
-        });
-    }
+    ) { }
 
     async onApplicationBootstrap() {
         if (this.configService.get('SKIP_SEEDING') === 'true') {
@@ -44,16 +38,21 @@ export class ExamsSeederService implements OnApplicationBootstrap {
             return;
         }
 
-        const count = await this.examsRepository.count();
-        if (count === 0) {
-            console.log('Seeding Global Content Bank...');
-            await this.seedInitialContent();
-        }
+        try {
+            const count = await this.examsRepository.count();
+            if (count === 0) {
+                console.log('Seeding Global Content Bank...');
+                await this.seedInitialContent();
+            }
 
-        await this.seedRRBNTPC2024();
-        await this.seedSSC2024Refinement();
-        await this.seedStudentUsers();
-        await this.seedManualTestingData();
+            await this.seedRRBNTPC2024();
+            await this.seedSSC2024Refinement();
+            await this.seedStudentUsers();
+            await this.seedManualTestingData();
+        } catch (error) {
+            console.error('Error during automatic seeding:', error);
+            // Don't re-throw to allow application to start even if seeding fails
+        }
     }
 
     public async seedManualTestingData() {
@@ -336,9 +335,9 @@ export class ExamsSeederService implements OnApplicationBootstrap {
     }
 
     private async invalidateCache(examId?: string) {
-        await this.redis.del('exams:all');
+        await this.cacheService.del('exams:all');
         if (examId) {
-            await this.redis.del(`exam:${examId}`);
+            await this.cacheService.del(`exam:${examId}`);
         }
     }
 

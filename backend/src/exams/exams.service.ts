@@ -1118,19 +1118,24 @@ export class ExamsService implements OnApplicationBootstrap {
     }
 
     async onApplicationBootstrap() {
-        // Run heavy maintenance tasks in background to avoid blocking server start
-        this.runBackgroundMaintenance().catch(err =>
-            console.error('[BOOTSTRAP] Background maintenance failed:', err)
-        );
+        try {
+            // Run heavy maintenance tasks in background to avoid blocking server start
+            this.runBackgroundMaintenance().catch(err =>
+                console.error('[BOOTSTRAP] Background maintenance failed:', err)
+            );
 
-        await this.invalidateCache();
+            await this.invalidateCache();
+        } catch (error) {
+            console.error('[BOOTSTRAP] Fatal error in ExamsService bootstrap:', error);
+            // Don't re-throw to allow application to start
+        }
     }
 
     private async runBackgroundMaintenance() {
-        // 1. Sync Model Question Counts (Self-Healing)
-        console.log('[BOOTSTRAP] Starting background model question count sync...');
-
         try {
+            // 1. Sync Model Question Counts (Self-Healing)
+            console.log('[BOOTSTRAP] Starting background model question count sync...');
+
             const counts = await this.modelRepository.createQueryBuilder('model')
                 .leftJoin('model.questions', 'question')
                 .select('model.id', 'modelId')
@@ -1144,12 +1149,8 @@ export class ExamsService implements OnApplicationBootstrap {
                 }
                 console.log(`[BOOTSTRAP] Updated question counts for ${counts.length} models.`);
             }
-        } catch (error) {
-            console.error('[BOOTSTRAP] Failed to sync model counts:', error);
-        }
 
-        // 2. Repair orphaned questions
-        try {
+            // 2. Repair orphaned questions
             const orphanedQuestions = await this.questionRepository
                 .createQueryBuilder('question')
                 .leftJoinAndSelect('question.models', 'models')
@@ -1189,7 +1190,7 @@ export class ExamsService implements OnApplicationBootstrap {
                 console.log('[REPAIR] No orphaned questions found.');
             }
         } catch (error) {
-            console.error('[REPAIR] Failed to repair orphaned questions:', error);
+            console.error('[BOOTSTRAP] Maintenance task failed:', error);
         }
     }
 
