@@ -8,6 +8,8 @@ import '../models/chapter.dart';
 import '../models/exam.dart';
 import 'exam_start_screen.dart';
 import 'test_engine_screen.dart';
+import 'subscription_screen.dart';
+import '../theme/app_theme.dart';
 
 class ExamDetailScreen extends StatefulWidget {
   final Exam exam;
@@ -77,7 +79,7 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
   void _goToSubscriptions() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+      MaterialPageRoute(builder: (_) => SubscriptionScreen()),
     );
   }
 
@@ -129,54 +131,111 @@ class _ExamDetailScreenState extends State<ExamDetailScreen> {
                     ),
                   ),
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _chapters.length,
-                    itemBuilder: (context, index) {
-                      final chapter = _chapters[index];
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: Text(
-                              chapter.title,
-                              style: TextStyle(
-                                fontSize: 16, 
-                                fontWeight: FontWeight.bold, 
-                                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF60A5FA) : Colors.blue.shade700
+                  child: _chapters.isEmpty && !_isLoading
+                    ? Center(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.assignment_turned_in, color: AppColors.primaryBlue, size: 40),
                               ),
-                            ),
-                          ),
-                          ...chapter.models.map((model) => Card(
-                                margin: const EdgeInsets.only(bottom: 8),
-                            color: canAccess ? null : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155).withOpacity(0.5) : Colors.grey.withOpacity(0.1)),
-                            child: ListTile(
-                              title: Text(model.title, style: TextStyle(color: canAccess ? null : (Theme.of(context).brightness == Brightness.dark ? Colors.white24 : Colors.grey))),
-                              subtitle: Text('${model.totalQuestions} Questions'),
-                              trailing: !canAccess 
-                                ? Icon(Icons.lock, color: Theme.of(context).brightness == Brightness.dark ? Colors.white24 : Colors.grey)
-                                : (model.isLive 
-                                    ? const Icon(Icons.play_arrow, color: Colors.green)
-                                    : Icon(Icons.lock_clock, color: Theme.of(context).brightness == Brightness.dark ? Colors.amberAccent : Colors.amber)),
-                                  onTap: (canAccess && model.isLive) ? () {
+                              const SizedBox(height: 20),
+                              const Text(
+                                'Full Length Test',
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '${_currentExam.totalQuestions ?? 0} Questions • ${_currentExam.duration ?? 0} Minutes',
+                                style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+                              ),
+                              const SizedBox(height: 32),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: canAccess ? () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) => ExamStartScreen(
-                                          model: model,
+                                          model: TestModel.fromExam(_currentExam),
                                           parentMetadata: _currentExam.metadata,
                                         ),
                                       ),
                                     );
-                                  } : null,
+                                  } : _goToSubscriptions,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryBlue,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    elevation: 0,
+                                  ),
+                                  child: Text(
+                                    canAccess ? 'START FULL TEST' : 'UNLOCK TEST SERIES',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
+                                  ),
                                 ),
-                              )),
-                          const SizedBox(height: 16),
-                        ],
-                      );
-                    },
-                  ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _chapters.length,
+                        itemBuilder: (context, index) {
+                          final chapter = _chapters[index];
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: Text(
+                                  chapter.title,
+                                  style: TextStyle(
+                                    fontSize: 16, 
+                                    fontWeight: FontWeight.bold, 
+                                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF60A5FA) : Colors.blue.shade700
+                                  ),
+                                ),
+                              ),
+                              ...chapter.models.map((model) => Card(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                color: canAccess ? null : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155).withValues(alpha: 0.5) : Colors.grey.withValues(alpha: 0.1)),
+                                child: ListTile(
+                                  title: Text(model.title, style: TextStyle(color: canAccess ? null : (Theme.of(context).brightness == Brightness.dark ? Colors.white24 : Colors.grey))),
+                                  subtitle: Text('${model.totalQuestions} Questions'),
+                                  trailing: !canAccess 
+                                    ? Icon(Icons.lock, color: Theme.of(context).brightness == Brightness.dark ? Colors.white24 : Colors.grey)
+                                    : (model.isLive 
+                                        ? const Icon(Icons.play_arrow, color: Colors.green)
+                                        : Icon(Icons.lock_clock, color: Theme.of(context).brightness == Brightness.dark ? Colors.amberAccent : Colors.amber)),
+                                      onTap: (canAccess && model.isLive) ? () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => ExamStartScreen(
+                                              model: model,
+                                              parentMetadata: _currentExam.metadata,
+                                            ),
+                                          ),
+                                        );
+                                      } : null,
+                                    ),
+                                  )),
+                              const SizedBox(height: 16),
+                            ],
+                          );
+                        },
+                      ),
                 ),
               ],
             ),

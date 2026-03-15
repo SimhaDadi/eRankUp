@@ -31,6 +31,10 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
   bool _hasMore = true;
   bool _isLoadMoreRunning = false;
   String _currentType = 'all';
+  
+  // Category Filtering
+  String _selectedCategory = 'All';
+  List<String> _categoryOptions = ['All'];
 
   @override
   void initState() {
@@ -70,6 +74,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
             _currentType = newType;
             _searchController.clear();
             _searchQuery = '';
+            _selectedCategory = 'All'; // Reset category filter on tab change
         });
         _fetchExams(refresh: true);
     }
@@ -169,7 +174,8 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
 
   void _applyFilters() {
     setState(() {
-      final filteredList = _allExams.where((exam) {
+      // Tab specific filtering (Client Side refinement)
+      final preFilteredList = _allExams.where((exam) {
         // Search Filter
         if (_searchQuery.isNotEmpty) {
           final query = _searchQuery.toLowerCase();
@@ -182,7 +188,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
         // Strict filtering: Only show published exams
         if (!exam.isPublished) return false;
 
-        // Tab specific filtering (Client Side refinement)
+        // Tab specific refinement
         if (_tabController.index == 5) {
            return exam.category == 'Free Quiz' || exam.category == 'Quiz';
         }
@@ -194,11 +200,26 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
         return true;
       }).toList();
 
-      _filteredExams = filteredList;
+      // Extract unique categories for filter chips based on tab results
+      final cats = preFilteredList
+          .map((e) => e.category ?? 'General')
+          .toSet()
+          .where((cat) => cat.isNotEmpty)
+          .toList();
+      cats.sort();
+      _categoryOptions = ['All', ...cats];
+
+      // Secondary Category Filter
+      final finalList = preFilteredList.where((exam) {
+        if (_selectedCategory == 'All') return true;
+        return (exam.category ?? 'General') == _selectedCategory;
+      }).toList();
+
+      _filteredExams = finalList;
 
       // Group by Category
       _groupedExams = {};
-      for (var exam in filteredList) {
+      for (var exam in finalList) {
         final cat = exam.category ?? 'General';
         if (!_groupedExams.containsKey(cat)) {
           _groupedExams[cat] = [];
@@ -215,6 +236,64 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
         return a.compareTo(b);
       });
     });
+  }
+
+  Widget _buildCategoryFilter() {
+    if (_categoryOptions.length <= 2 && _selectedCategory == 'All') {
+      return const SizedBox.shrink();
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      height: 45,
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+        itemCount: _categoryOptions.length,
+        itemBuilder: (context, index) {
+          final category = _categoryOptions[index];
+          final isSelected = _selectedCategory == category;
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(
+                category,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : (isDark ? Colors.white70 : AppColors.textPrimary),
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() {
+                    _selectedCategory = category;
+                    _applyFilters();
+                  });
+                }
+              },
+              selectedColor: AppColors.primaryBlue,
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                side: BorderSide(
+                  color: isSelected 
+                      ? AppColors.primaryBlue 
+                      : (isDark ? const Color(0xFF334155) : Colors.grey.shade200),
+                ),
+              ),
+              elevation: isSelected ? 4 : 0,
+              pressElevation: 2,
+              visualDensity: VisualDensity.compact,
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _onSearchChanged(String query) {
@@ -318,6 +397,8 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
               ),
             ),
             
+            _buildCategoryFilter(),
+
             const SizedBox(height: AppSpacing.sm),
 
             // Results Count
@@ -409,7 +490,7 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
 
     if (category == 'Free Quiz') {
       iconData = Icons.bolt_rounded;
-      accentColor = Colors.emerald;
+      accentColor = Colors.teal;
     } else if (category == 'Scholarship') {
       iconData = Icons.emoji_events_rounded;
       accentColor = Colors.amber.shade700;
@@ -626,184 +707,157 @@ class _ExamsScreenState extends State<ExamsScreen> with SingleTickerProviderStat
     final accent = _getAccentColor(exam.title);
     final attempted = exam.attempts != null && (exam.attempts!['count'] ?? 0) > 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF161F3D) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withOpacity(isDark ? 0.12 : 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-          onTap: () {
-            if (attempted) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ResultsScreen(attemptId: exam.attempts!['latestAttemptId']),
-                ),
-              );
-            } else {
-              Navigator.push(
-                context,
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      ExamDetailScreen(exam: exam),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    return SlideTransition(
-                      position: Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
-                          .chain(CurveTween(curve: Curves.easeInOutCubic))
-                          .animate(animation),
-                      child: child,
-                    );
-                  },
-                  transitionDuration: const Duration(milliseconds: 300),
-                ),
-              );
-            }
-          },
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Content
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            // Icon box
+    return GestureDetector(
+      onTap: () {
+        if (attempted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ResultsScreen(attemptId: exam.attempts!['latestAttemptId']),
+            ),
+          );
+        } else {
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  ExamDetailScreen(exam: exam),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return SlideTransition(
+                  position: Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+                      .chain(CurveTween(curve: Curves.easeInOutCubic))
+                      .animate(animation),
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
+          );
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF161F3D) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withOpacity(isDark ? 0.12 : 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          // Icon box
+                          Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: accent.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(_getCategoryIcon(exam.title), color: accent, size: 18),
+                          ),
+                          const SizedBox(width: 10),
+                          // Title
+                          Expanded(
+                            child: Text(
+                              exam.title,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? Colors.white : AppColors.textPrimary,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          // Attempted badge
+                          if (attempted)
                             Container(
-                              padding: const EdgeInsets.all(7),
+                              margin: const EdgeInsets.only(left: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                               decoration: BoxDecoration(
-                                color: accent.withOpacity(0.12),
+                                color: Colors.green.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(_getCategoryIcon(exam.title), color: accent, size: 18),
-                            ),
-                            const SizedBox(width: 10),
-                            // Title
-                            Expanded(
-                              child: Text(
-                                exam.title,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : AppColors.textPrimary,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 11),
+                                  const SizedBox(width: 3),
+                                  Text('ATTEMPTED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.green.shade700)),
+                                ],
+                              ),
+                            )
+                          else if (exam.isPremium)
+                            Container(
+                              margin: const EdgeInsets.only(left: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 11),
+                                  SizedBox(width: 3),
+                                  Text('PRO', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.amber)),
+                                ],
                               ),
                             ),
-                            // Attempted badge
-                            if (attempted)
-                              Container(
-                                margin: const EdgeInsets.only(left: 6),
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 11),
-                                    const SizedBox(width: 3),
-                                    Text('ATTEMPTED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.green.shade700)),
-                                  ],
-                                ),
-                              )
-                            else if (exam.isPremium)
-                              Container(
-                                margin: const EdgeInsets.only(left: 6),
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 11),
-                                    SizedBox(width: 3),
-                                    Text('PRO', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.amber)),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        // Stats + CTA row
-                        Row(
-                          children: [
-                            _buildStat(Icons.quiz_rounded, '${exam.totalQuestions ?? 0} Qs', accent, isDark),
-                            const SizedBox(width: 8),
-                            _buildStat(Icons.timer_rounded, '${exam.duration ?? 0} min', accent, isDark),
-                            // CTA
-                            GestureDetector(
-                              onTap: () {
-                                if (attempted) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => ResultsScreen(attemptId: exam.attempts!['latestAttemptId']),
-                                    ),
-                                  );
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    PageRouteBuilder(
-                                      pageBuilder: (context, animation, secondaryAnimation) =>
-                                          ExamDetailScreen(exam: exam),
-                                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                        return SlideTransition(
-                                          position: Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
-                                              .chain(CurveTween(curve: Curves.easeInOutCubic))
-                                              .animate(animation),
-                                          child: child,
-                                        );
-                                      },
-                                      transitionDuration: const Duration(milliseconds: 300),
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryBlue.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      attempted ? 'View Result' : 'Start Test',
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.primaryBlue),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      attempted ? Icons.bar_chart_rounded : Icons.play_arrow_rounded,
-                                      size: 13, color: AppColors.primaryBlue,
-                                    ),
-                                  ],
-                                ),
-                              ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      // Stats + CTA row
+                      Row(
+                        children: [
+                          _buildStat(Icons.quiz_rounded, '${exam.totalQuestions ?? 0} Qs', accent, isDark),
+                          const SizedBox(width: 8),
+                          _buildStat(Icons.timer_rounded, '${exam.duration ?? 0} min', accent, isDark),
+                          const Spacer(),
+                          // CTA Button
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryBlue.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  attempted ? 'View Result' : 'Start Test',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.primaryBlue),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  attempted ? Icons.bar_chart_rounded : Icons.play_arrow_rounded,
+                                  size: 13, color: AppColors.primaryBlue,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

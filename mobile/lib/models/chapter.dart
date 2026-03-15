@@ -1,3 +1,5 @@
+import 'exam.dart';
+
 class Chapter {
   final String id;
   final String title;
@@ -81,6 +83,21 @@ class TestModel {
       customInstructions: json['customInstructions'],
       warningTimeMinutes: json['warningTimeMinutes'] ?? 5,
       metadata: json['metadata'],
+    );
+  }
+
+  /// Creates a virtual TestModel from an Exam object for "direct" exams
+  factory TestModel.fromExam(Exam exam) {
+    return TestModel(
+      id: exam.id,
+      title: exam.title,
+      totalQuestions: exam.totalQuestions ?? 0,
+      duration: exam.duration ?? 60,
+      difficulty: 'medium', // Default for exams
+      metadata: exam.metadata,
+      // Default marking scheme if not specified in metadata
+      positiveMarks: 1.0,
+      negativeMarks: 0.0,
     );
   }
 

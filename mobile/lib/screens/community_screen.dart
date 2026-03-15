@@ -365,9 +365,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
+        );
   }
 
   void _sharePost(CommunityPost post) {

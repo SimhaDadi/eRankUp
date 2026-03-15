@@ -299,7 +299,12 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                   children: [
                     Text('QUESTION $displayIndex', style: AppTextStyles.overline.copyWith(color: AppColors.primaryBlue)),
                     if (!_reAttemptMode || _reAttemptSelections[question['id']] != null)
-                      _buildStatusBadge(selectedId == null, isCorrect),
+                      _buildStatusBadge(
+                        selectedId == null, 
+                        isCorrect, 
+                        isReAttempt: _reAttemptMode,
+                        reAttemptCorrect: _reAttemptSelections[question['id']] == correctId,
+                      ),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -464,27 +469,6 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
                                   : FontWeight.normal,
                             ),
                           ),
-                          // Original answer badge in re-attempt mode
-                          if (_reAttemptMode && isSelected && selectedId != null) ...[  
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade50,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.amber.shade300),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.history_rounded, size: 10, color: Colors.amber.shade800),
-                                  const SizedBox(width: 4),
-                                  Text('Your original answer',
-                                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.amber.shade800)),
-                                ],
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -816,7 +800,11 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
     );
   }
 
-  Widget _buildStatusBadge(bool skipped, bool correct) {
+  Widget _buildStatusBadge(bool skipped, bool correct, {bool isReAttempt = false, bool reAttemptCorrect = false}) {
+    if (isReAttempt) {
+      if (reAttemptCorrect) return _badge('CORRECT', Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green);
+      return _badge('INCORRECT', Theme.of(context).brightness == Brightness.dark ? Colors.redAccent : Colors.red);
+    }
     if (skipped) return _badge('SKIPPED', Colors.grey);
     if (correct) return _badge('CORRECT', Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green);
     return _badge('INCORRECT', Theme.of(context).brightness == Brightness.dark ? Colors.redAccent : Colors.red);
@@ -1210,7 +1198,7 @@ class _SolutionExplorerScreenState extends State<SolutionExplorerScreen> {
           ),
           Text(
             '${_currentPage + 1} / ${_filteredResponses.length}',
-            style: AppTextStyles.bodyMedium.copyWith(
+            style: AppTextStyles.body.copyWith(
               fontWeight: FontWeight.bold,
               color: AppColors.textSecondary,
             ),

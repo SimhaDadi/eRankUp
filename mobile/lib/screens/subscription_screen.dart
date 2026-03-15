@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../services/api_service.dart';
 import '../models/pass.dart';
 import '../theme/app_theme.dart';
-import '../widgets/common_widgets.dart';
-import 'settings_screen.dart';
+import 'edit_profile_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -22,6 +22,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool _isLoading = true;
   bool _isTrialAvailable = true;
   bool _hasPhone = true;
+  Map<String, dynamic>? _user;
 
   @override
   void initState() {
@@ -48,19 +49,25 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         apiService.get('/passes'),
         apiService.get('/passes/current'),
         apiService.get('/passes/eligibility'),
+        apiService.getUserProfile(),
       ]);
 
       if (mounted) {
         setState(() {
-          if (results[0].statusCode == 200) {
-            final List<dynamic> data = jsonDecode(results[0].body);
+          final passesRes = results[0] as http.Response;
+          final currentPassRes = results[1] as http.Response;
+          final eligibilityRes = results[2] as http.Response;
+          _user = results[3] as Map<String, dynamic>?;
+
+          if (passesRes.statusCode == 200) {
+            final List<dynamic> data = jsonDecode(passesRes.body);
             _passes = data.map((e) => Pass.fromJson(e)).toList();
           }
-          if (results[1].statusCode == 200 && results[1].body.isNotEmpty) {
-            _activePass = jsonDecode(results[1].body);
+          if (currentPassRes.statusCode == 200 && currentPassRes.body.isNotEmpty) {
+            _activePass = jsonDecode(currentPassRes.body);
           }
-          if (results[2].statusCode == 200) {
-            final eligibility = jsonDecode(results[2].body);
+          if (eligibilityRes.statusCode == 200) {
+            final eligibility = jsonDecode(eligibilityRes.body);
             _isTrialAvailable = eligibility['isTrialAvailable'] ?? true;
             _hasPhone = eligibility['hasPhone'] ?? true;
           }
@@ -282,7 +289,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (_) => EditProfileScreen(user: _user ?? {}))
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryCyan,

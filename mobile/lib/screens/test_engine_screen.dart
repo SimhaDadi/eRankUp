@@ -8,6 +8,7 @@ import '../services/haptic_service.dart';
 import '../models/chapter.dart';
 import '../models/question.dart';
 import 'results_screen.dart';
+import 'subscription_screen.dart';
 import '../widgets/math_rich_text.dart';
 import '../theme/app_theme.dart';
 
@@ -137,7 +138,7 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
               Navigator.pop(context); // Back to detail
               Navigator.push(
                 context, 
-                MaterialPageRoute(builder: (_) => const SubscriptionScreen())
+                MaterialPageRoute(builder: (_) => SubscriptionScreen())
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
