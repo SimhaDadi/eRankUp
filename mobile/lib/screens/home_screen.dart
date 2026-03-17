@@ -1300,125 +1300,142 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
   Future<void> _showGoalPicker() async {
-    final currentTarget = (_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100;
-    
+    // Capture apiService from HomeScreen's own context BEFORE opening the sheet.
+    // This avoids using the BottomSheet builder's inner context after it is
+    // deactivated by Navigator.pop(), which caused the API call to fail silently.
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    final initialTarget = (_stats?['dailyQuestionTarget'] as num?)?.toInt() ?? 100;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
       ),
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return Container(
-          padding: const EdgeInsets.all(AppSpacing.xxl),
-          child: SingleChildScrollView(
-            child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Set Daily Goal', style: AppTextStyles.h2),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'How many questions do you want to practice every day?',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.bodySmall,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              Column(
-                children: [
-                  {'v': 25, 'l': 'Casual', 'd': 'Light preparation'},
-                  {'v': 50, 'l': 'Regular', 'd': 'Steady progress'},
-                  {'v': 100, 'l': 'Serious', 'd': 'Standard path'},
-                  {'v': 200, 'l': 'Intense', 'd': 'Pushing limits'},
-                  {'v': 500, 'l': 'Beast Mode', 'd': 'Elite preparation'},
-                ].map((item) {
-                  final t = item['v'] as int;
-                  final label = item['l'] as String;
-                  final desc = item['d'] as String;
-                  final isSelected = currentTarget == t;
-                  
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: InkWell(
-                      onTap: () async {
-                        Navigator.pop(context);
-                        final apiService = Provider.of<ApiService>(context, listen: false);
-                        try {
-                          await apiService.post('/gamification/daily-target', {'target': t});
-                          await _fetchHomeData();
-                        } catch (e) {
-                          debugPrint('Error updating target: $e');
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primaryBlue.withOpacity(0.1) : Colors.transparent,
-                          border: Border.all(
-                            color: isSelected ? AppColors.primaryBlue : AppColors.divider,
-                            width: isSelected ? 2 : 1,
-                          ),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            // Track which option the user tapped inside the sheet for instant UI feedback.
+            int selectedTarget = initialTarget;
+            final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
+
+            return Container(
+              padding: const EdgeInsets.all(AppSpacing.xxl),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Set Daily Goal', style: AppTextStyles.h2),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'How many questions do you want to practice every day?',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodySmall,
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    Column(
+                      children: [
+                        {'v': 25, 'l': 'Casual', 'd': 'Light preparation'},
+                        {'v': 50, 'l': 'Regular', 'd': 'Steady progress'},
+                        {'v': 100, 'l': 'Serious', 'd': 'Standard path'},
+                        {'v': 200, 'l': 'Intense', 'd': 'Pushing limits'},
+                        {'v': 500, 'l': 'Beast Mode', 'd': 'Elite preparation'},
+                      ].map((item) {
+                        final t = item['v'] as int;
+                        final label = item['l'] as String;
+                        final desc = item['d'] as String;
+                        final isSelected = selectedTarget == t;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                          child: InkWell(
+                            onTap: () async {
+                              // Update in-sheet UI immediately so the user sees the change.
+                              setSheetState(() => selectedTarget = t);
+
+                              // Close the sheet, then call API using the pre-captured
+                              // apiService (HomeScreen context — still alive).
+                              Navigator.pop(sheetContext);
+
+                              try {
+                                await apiService.post('/gamification/daily-target', {'target': t});
+                                // Only refresh home data if the HomeScreen is still mounted.
+                                if (mounted) await _fetchHomeData();
+                              } catch (e) {
+                                debugPrint('Error updating daily target: $e');
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
                               decoration: BoxDecoration(
-                                color: isSelected 
-                                  ? AppColors.primaryBlue 
-                                  : (isDark ? const Color(0xFF1E293B) : AppColors.cardBackground),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  t.toString(),
-                                  style: AppTextStyles.buttonSmall.copyWith(
-                                    color: isSelected 
-                                      ? Colors.white 
-                                      : (isDark ? Colors.white : AppColors.textPrimary),
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                color: isSelected ? AppColors.primaryBlue.withOpacity(0.1) : Colors.transparent,
+                                border: Border.all(
+                                  color: isSelected ? AppColors.primaryBlue : AppColors.divider,
+                                  width: isSelected ? 2 : 1,
                                 ),
+                                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                               ),
-                            ),
-                            const SizedBox(width: AppSpacing.lg),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              child: Row(
                                 children: [
-                                  Text(
-                                    label,
-                                    style: AppTextStyles.bodyLarge.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: isSelected 
-                                        ? AppColors.primaryLight 
-                                        : (isDark ? Colors.white : AppColors.textPrimary),
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? AppColors.primaryBlue
+                                          : (isDark ? const Color(0xFF1E293B) : AppColors.cardBackground),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        t.toString(),
+                                        style: AppTextStyles.buttonSmall.copyWith(
+                                          color: isSelected
+                                              ? Colors.white
+                                              : (isDark ? Colors.white : AppColors.textPrimary),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  Text(
-                                    desc,
-                                    style: AppTextStyles.caption.copyWith(
-                                      color: AppColors.textSecondary,
+                                  const SizedBox(width: AppSpacing.lg),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          label,
+                                          style: AppTextStyles.bodyLarge.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: isSelected
+                                                ? AppColors.primaryLight
+                                                : (isDark ? Colors.white : AppColors.textPrimary),
+                                          ),
+                                        ),
+                                        Text(
+                                          desc,
+                                          style: AppTextStyles.caption.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
+                                  if (isSelected)
+                                    const Icon(Icons.check_circle, color: AppColors.primaryBlue),
                                 ],
                               ),
                             ),
-                            if (isSelected)
-                              const Icon(Icons.check_circle, color: AppColors.primaryBlue),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                  );
-                }).toList(),
+                    const SizedBox(height: AppSpacing.xxl),
+                  ],
+                ),
               ),
-              const SizedBox(height: AppSpacing.xxl),
-            ],
-            ),
-          ),
+            );
+          },
         );
       },
     );

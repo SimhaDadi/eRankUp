@@ -10,6 +10,7 @@ import 'reported_questions_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../services/engagement_services.dart';
+import 'saved_questions_screen.dart';
 import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -381,6 +382,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const ReportedQuestionsScreen()),
+                    ),
+                  ),
+                  _tile(
+                    icon: Icons.bookmark_rounded,
+                    label: 'Saved Questions',
+                    subtitle: 'Review your bookmarked questions',
+                    isDark: isDark,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SavedQuestionsScreen()),
                     ),
                   ),
                   _tile(

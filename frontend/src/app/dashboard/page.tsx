@@ -421,12 +421,21 @@ export default function DashboardPage() {
                                                                 <button
                                                                     key={t.v}
                                                                     onClick={async () => {
+                                                                        const previousTarget = stats?.dailyQuestionTarget;
+                                                                        
+                                                                        // Optimistic UI update for immediate feedback
+                                                                        setStats(prev => prev ? { ...prev, dailyQuestionTarget: t.v } : null);
+                                                                        setShowIntensityMenu(false);
+                                                                        
                                                                         try {
                                                                             await api.post('/gamification/daily-target', { target: t.v });
-                                                                            setStats(prev => prev ? { ...prev, dailyQuestionTarget: t.v } : null);
-                                                                            setShowIntensityMenu(false);
+                                                                            // Optionally, we could re-fetch data here if needed
                                                                         } catch (e) {
-                                                                            console.error(e);
+                                                                            console.error("Failed to update daily target:", e);
+                                                                            // Revert on failure
+                                                                            if (previousTarget) {
+                                                                                setStats(prev => prev ? { ...prev, dailyQuestionTarget: previousTarget } : null);
+                                                                            }
                                                                         }
                                                                     }}
                                                                     className={`w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all duration-300 ${(stats?.dailyQuestionTarget || 100) === t.v
