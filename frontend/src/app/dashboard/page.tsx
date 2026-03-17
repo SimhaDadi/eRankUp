@@ -61,7 +61,7 @@ export default function DashboardPage() {
                     totalXp: gamiRes.data.totalXp,
                     level: gamiRes.data.level,
                     badges: gamiRes.data.badges,
-                    dailyQuestionTarget: gamiRes.data.dailyQuestionTarget || 100
+                    dailyQuestionTarget: gamiRes.data.dailyQuestionTarget || statsRes.data.dailyQuestionTarget || 100
                 };
 
                 setStats(combinedStats);

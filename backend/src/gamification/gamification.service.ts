@@ -298,6 +298,7 @@ export class GamificationService {
         }
 
         const profile = await this.getOrCreateProfile(userId);
+        console.log(`[GamificationService] Updating daily target for user ${userId} to ${target}`);
         profile.dailyQuestionTarget = target;
         return await this.gamificationRepo.save(profile);
     }

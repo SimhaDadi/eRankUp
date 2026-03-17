@@ -43,7 +43,7 @@ export class UserGamification {
     @Column({ type: 'int', default: 0 })
     correctAnswers: number;
 
-    @Column({ type: 'int', default: 100 })
+    @Column({ name: 'dailyQuestionTarget', type: 'int', default: 100 })
     dailyQuestionTarget: number;
 
     @CreateDateColumn()
