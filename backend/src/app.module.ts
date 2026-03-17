@@ -58,12 +58,11 @@ import { ServeStaticModule } from '@nestjs/serve-static';
             useFactory: (config: ConfigService) => {
                 const dbConfig = {
                     type: 'postgres' as const,
-                    host: config.get<string>('DB_HOST', 'localhost'),
-                    port: config.get<number>('DB_PORT', 5432),
-                    username: config.get<string>('DB_USER', 'admin'),
-                    password: config.get<string>('DB_PASSWORD', 'password'),
-                    database: config.get<string>('DB_NAME', 'erankup_db'),
-                    // entities: [__dirname + '/**/*.entity{.ts,.js}'],
+                    host: process.env.DB_HOST || config.get<string>('DB_HOST', 'localhost'),
+                    port: parseInt(process.env.DB_PORT || config.get<string>('DB_PORT', '5432')),
+                    username: process.env.DB_USER || config.get<string>('DB_USER', 'admin'),
+                    password: process.env.DB_PASSWORD || config.get<string>('DB_PASSWORD', 'password'),
+                    database: process.env.DB_NAME || config.get<string>('DB_NAME', 'erankup_db'),
                     autoLoadEntities: true,
                     synchronize: config.get<string | boolean>('DB_SYNCHRONIZE') === true || config.get<string | boolean>('DB_SYNCHRONIZE') === 'true',
                     ssl: false,
@@ -74,7 +73,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
                         connectionTimeoutMillis: 2000,
                     },
                 };
-                console.log('DB Config:', { ...dbConfig, password: '***' });
+                console.log(`[DATABASE] Connecting to ${dbConfig.host}:${dbConfig.port}/${dbConfig.database} as ${dbConfig.username}`);
                 return dbConfig;
             },
         }),
