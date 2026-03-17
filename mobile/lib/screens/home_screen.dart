@@ -1350,19 +1350,34 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.only(bottom: AppSpacing.md),
                           child: InkWell(
                             onTap: () async {
-                              // Update in-sheet UI immediately so the user sees the change.
-                              setSheetState(() => selectedTarget = t);
-
                               // Close the sheet, then call API using the pre-captured
                               // apiService (HomeScreen context — still alive).
                               Navigator.pop(sheetContext);
 
+                              // Store previous target and pessimistically handle rollback
+                              final previousTarget = _stats?['dailyQuestionTarget'];
+                              
+                              // Optimistically update main HomeScreen UI
+                              setState(() {
+                                if (_stats == null) {
+                                  _stats = {'dailyQuestionTarget': t};
+                                } else {
+                                  _stats!['dailyQuestionTarget'] = t;
+                                }
+                              });
+
                               try {
                                 await apiService.post('/gamification/daily-target', {'target': t});
-                                // Only refresh home data if the HomeScreen is still mounted.
-                                if (mounted) await _fetchHomeData();
+                                // Background refresh is now optional since UI is updated
+                                // if (mounted) await _fetchHomeData();
                               } catch (e) {
                                 debugPrint('Error updating daily target: $e');
+                                // Revert optimistic update on error
+                                if (mounted && previousTarget != null) {
+                                  setState(() {
+                                    _stats?['dailyQuestionTarget'] = previousTarget;
+                                  });
+                                }
                               }
                             },
                             child: Container(

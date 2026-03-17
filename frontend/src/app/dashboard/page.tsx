@@ -424,7 +424,7 @@ export default function DashboardPage() {
                                                                         const previousTarget = stats?.dailyQuestionTarget;
                                                                         
                                                                         // Optimistic UI update for immediate feedback
-                                                                        setStats(prev => prev ? { ...prev, dailyQuestionTarget: t.v } : null);
+                                                                        setStats(prev => ({ ...(prev || {} as Stats), dailyQuestionTarget: t.v }));
                                                                         setShowIntensityMenu(false);
                                                                         
                                                                         try {
@@ -434,7 +434,7 @@ export default function DashboardPage() {
                                                                             console.error("Failed to update daily target:", e);
                                                                             // Revert on failure
                                                                             if (previousTarget) {
-                                                                                setStats(prev => prev ? { ...prev, dailyQuestionTarget: previousTarget } : null);
+                                                                                setStats(prev => ({ ...(prev || {} as Stats), dailyQuestionTarget: previousTarget }));
                                                                             }
                                                                         }
                                                                     }}
