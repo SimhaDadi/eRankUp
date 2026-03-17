@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _stats!['currentStreak'] = gamiStats['currentStreak'];
               // also merge topic performance for Subject Mastery
               _stats!['topicPerformance'] = gamiStats['topicPerformance'];
-              _stats!['dailyQuestionTarget'] = gamiStats['dailyQuestionTarget'];
+              _stats!['dailyQuestionTarget'] = gamiStats['dailyQuestionTarget'] ?? _stats!['dailyQuestionTarget'];
             }
           }
           
