@@ -46,7 +46,8 @@ services:
     container_name: erankup-backend
     restart: unless-stopped
     env_file:
-      - backend/.env
+    env_file:
+      - .env
     environment:
       - DB_HOST=postgres
       - REDIS_HOST=redis
