@@ -47,6 +47,29 @@ export default function ExamStartPage() {
                         allowReview: true,
                         allowSkip: true
                     });
+                } else if (params.id?.toString() === 'smart-revision') {
+                    // Smart Revision Mode
+                    const res = await api.get('/ai-study/revision');
+                    const revisionData = res.data;
+                    
+                    if (!revisionData.available) {
+                        throw new Error(revisionData.message || "No questions available for revision yet.");
+                    }
+
+                    setModel({
+                        id: 'smart-revision',
+                        title: 'Smart AI Revision',
+                        totalQuestions: revisionData.questions?.length || 0,
+                        duration: (revisionData.questions?.length || 10) * 1.5, // 1.5 mins per question
+                        totalMarks: revisionData.questions?.length || 0,
+                        positiveMarks: 1,
+                        negativeMarks: 0.25,
+                        difficulty: 'Personalized',
+                        allowCalculator: true,
+                        allowReview: true,
+                        allowSkip: true,
+                        customInstructions: "This session is tailored based on your recent mistakes. Focus on understanding the concepts behind these questions."
+                    });
                 } else if (params.id?.toString().startsWith('chapter-')) {
                     const chapterId = params.id.toString().replace('chapter-', '');
                     const res = await api.get(`/exams/chapters/${chapterId}/questions`);

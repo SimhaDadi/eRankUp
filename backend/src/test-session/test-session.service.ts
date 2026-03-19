@@ -406,14 +406,19 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
             let modelTitle = 'Adaptive AI Practice';
             console.log(`[TestSession] Checking model for ${testId}`);
 
-            if (!testId.startsWith('adaptive')) {
+            if (testId === 'smart-revision') {
+                modelTitle = 'Smart AI Revision';
+            } else if (!testId.startsWith('adaptive')) {
                 const cleanId = testId.startsWith('chapter-') ? testId.replace('chapter-', '') : testId;
-                const model = await this.modelRepository.findOne({
+                const model = isUUID(cleanId) ? await this.modelRepository.findOne({
                     where: { id: cleanId }
-                });
+                }) : null;
+                
                 if (model) {
                     modelTitle = model.title;
                     console.log(`[TestSession] Model identified: ${modelTitle}`);
+                } else if (testId.startsWith('chapter-')) {
+                    modelTitle = 'Chapter Practice';
                 }
             }
 

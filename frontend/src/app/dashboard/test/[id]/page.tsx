@@ -532,20 +532,21 @@ export default function TestPage() {
         };
     }, [isStarted, isSubmitting, isPaused]);
 
-    // Auto-start test on mount
-    useEffect(() => {
-        if (!isLoading && questions.length > 0 && !isStarted) {
-            const startTest = async () => {
-                try {
-                    await document.documentElement.requestFullscreen();
-                } catch (err) {
-                    console.error("Fullscreen denied:", err);
-                }
-                setIsStarted(true);
-            };
-            startTest();
+    // Start test manually via user gesture
+    const startAssessment = async () => {
+        try {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+            }
+            setIsStarted(true);
+            setIsPaused(false);
+        } catch (err) {
+            console.error("Fullscreen denied:", err);
+            // Even if fullscreen fails, we allow starting but the security check will pause it
+            // unless we handle it gracefully. For now, let's just set isStarted.
+            setIsStarted(true);
         }
-    }, [isLoading, questions.length, isStarted]);
+    };
 
     const reEnterFullscreen = async () => {
         handleResume();
@@ -924,6 +925,41 @@ export default function TestPage() {
                             >
                                 <Play className="w-4 h-4 fill-current" />
                                 Resume Assessment
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* START ASSESSMENT OVERLAY */}
+            <AnimatePresence>
+                {!isStarted && !isLoading && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[110] bg-slate-900/90 backdrop-blur-xl flex items-center justify-center p-4"
+                    >
+                        <div className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-2xl max-w-lg w-full text-center space-y-8 border border-white/20">
+                            <div className="w-24 h-24 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto shadow-inner">
+                                <Shield className="w-10 h-10 text-blue-500" />
+                            </div>
+
+                            <div className="space-y-3">
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                                    Ready to Begin?
+                                </h2>
+                                <p className="text-slate-500 font-medium leading-relaxed">
+                                    Your assessment is loaded and ready. To maintain test integrity, the session will start in full-screen mode.
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={startAssessment}
+                                className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow-xl shadow-blue-600/20 uppercase tracking-[0.2em] text-xs transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
+                            >
+                                <Play className="w-4 h-4 fill-current" />
+                                Start Assessment
                             </button>
                         </div>
                     </motion.div>
