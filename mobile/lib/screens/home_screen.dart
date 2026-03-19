@@ -16,6 +16,7 @@ import 'analytics_screen.dart';
 import 'current_affairs_screen.dart';
 import 'doubts_screen.dart';
 import 'exam_detail_screen.dart';
+import 'exam_start_screen.dart';
 import 'live_tests_screen.dart';
 import 'leaderboard_screen.dart';
 import 'performance_screen.dart';
@@ -42,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   bool _revisionAvailable = false;
   String _revisionMessage = '';
+  int _revisionCount = 0;
   Map<String, dynamic>? _user;
   Map<String, dynamic>? _currentPass;
 
@@ -141,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
              final revData = jsonDecode((results[4] as http.Response).body);
              _revisionAvailable = revData['available'] ?? false;
              _revisionMessage = revData['message'] ?? '';
+             _revisionCount = revData['count'] ?? 0;
           }
 
           // User Profile (from cache or API result index 5)
@@ -1288,14 +1291,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 final smartRevisionModel = TestModel(
                   id: 'smart-revision',
                   title: 'Smart AI Revision',
-                  totalQuestions: 0, // Will be fetched from session
-                  duration: 15, // Default 15 mins for revision
+                  totalQuestions: _revisionCount,
+                  duration: 15,
+                  customInstructions: 'Focus on your previous mistakes. This test is personalized to help you improve your weak areas based on your recent activity.',
                 );
                 
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => TestEngineScreen(model: smartRevisionModel),
+                    builder: (_) => ExamStartScreen(model: smartRevisionModel),
                   ),
                 );
               },
