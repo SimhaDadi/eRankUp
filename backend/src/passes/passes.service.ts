@@ -178,6 +178,11 @@ export class PassesService implements OnModuleInit {
             throw new NotFoundException('User pass not found');
         }
 
+        if (userPass.paymentStatus === 'COMPLETED') {
+            this.logger.log(`[CompletePayment] UserPass ${userPass.id} already COMPLETED. Skipping.`);
+            return userPass;
+        }
+
         this.logger.log(`[CompletePayment] UserPass found: ${userPass.id}. Updating to COMPLETED.`);
         userPass.paymentStatus = 'COMPLETED';
         userPass.status = 'ACTIVE'; // [FIX] Activate pass on payment completion

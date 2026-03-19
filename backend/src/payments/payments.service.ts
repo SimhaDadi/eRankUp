@@ -1,6 +1,6 @@
-import { Injectable, OnModuleInit, BadRequestException } from '@nestjs/common';
+import { Injectable, OnModuleInit, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, MoreThan, LessThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import Razorpay = require('razorpay');
 import * as crypto from 'crypto';
@@ -11,9 +11,12 @@ import { MarketingService } from '../marketing/marketing.service';
 import { Pass } from '../passes/entities/pass.entity';
 import { UserPass } from '../passes/entities/user-pass.entity';
 import { PassesService } from '../passes/passes.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { Coupon } from '../marketing/entities/coupon.entity';
 
 @Injectable()
 export class PaymentsService implements OnModuleInit {
+    private readonly logger = new Logger(PaymentsService.name);
     private razorpay: any;
 
     constructor(
@@ -28,6 +31,8 @@ export class PaymentsService implements OnModuleInit {
         private passRepository: Repository<Pass>,
         private marketingService: MarketingService,
         private passesService: PassesService,
+        @InjectRepository(Coupon)
+        private couponRepository: Repository<Coupon>,
     ) { }
 
     onModuleInit() {
@@ -286,6 +291,16 @@ export class PaymentsService implements OnModuleInit {
             const paymentId = payload.payload?.payment?.entity?.id;
 
             if (orderId) {
+                // [FIX] Idempotency: Check if already processed
+                const existingPurchase = await this.purchaseRepository.findOneBy({ razorpayOrderId: orderId });
+                const existingPass = await this.userPassRepository.findOneBy({ razorpayOrderId: orderId });
+
+                if ((existingPurchase && existingPurchase.status === 'COMPLETED') ||
+                    (existingPass && existingPass.paymentStatus === 'COMPLETED')) {
+                    this.logger.log(`[Webhook] Order ${orderId} already processed. Skipping.`);
+                    return { success: true, alreadyProcessed: true };
+                }
+
                 const paymentMethod = payload.payload?.payment?.entity?.method;
 
                 // Robustness: Use transaction to ensure both updates succeed or fail together
@@ -332,9 +347,140 @@ export class PaymentsService implements OnModuleInit {
                             );
                         }
                     }
+
+                    // [FIX] Atomic Coupon Usage Increment
+                    const couponCode = existingPurchase?.couponCode || existingPass?.couponCode;
+                    if (couponCode) {
+                        await transactionalEntityManager.increment(Coupon, { code: couponCode }, 'usedCount', 1);
+                        this.logger.log(`[Webhook] Incremented usage for coupon: ${couponCode}`);
+                    }
                 });
             }
         }
+    }
+
+    /**
+     * [NEW] Payment Reconciliation Cron
+     * Runs every 30 minutes to synchronize 'PENDING' payments that were successful on Razorpay
+     * but missed by the webhook or client-side redirect.
+     */
+    @Cron(CronExpression.EVERY_30_MINUTES)
+    async reconcilePayments() {
+        this.logger.log('[Cron] Starting Payment Reconciliation...');
+
+        // Find PENDING purchases older than 15 minutes (to avoid racing with active checkouts)
+        const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+
+        const pendingPurchases = await this.purchaseRepository.find({
+            where: { status: 'PENDING', createdAt: LessThan(fifteenMinutesAgo) }
+        });
+
+        const pendingPasses = await this.userPassRepository.find({
+            where: { paymentStatus: 'PENDING', purchaseDate: LessThan(fifteenMinutesAgo) }
+        });
+
+        const allPendingOrderIds = new Set([
+            ...pendingPurchases.map(p => p.razorpayOrderId),
+            ...pendingPasses.map(p => p.razorpayOrderId)
+        ].filter(id => !!id && !id.startsWith('order_mock')));
+
+        let reconciledCount = 0;
+
+        for (const orderId of allPendingOrderIds) {
+            try {
+                const rzpOrder = await this.razorpay.orders.fetch(orderId);
+                const rzpPayments = await this.razorpay.orders.fetchPayments(orderId);
+
+                // Check if any payment for this order is captured
+                const successfulPayment = rzpPayments.items?.find((p: any) => p.status === 'captured');
+
+                if (successfulPayment) {
+                    this.logger.log(`[Reconcile] Found successful payment for order ${orderId}. Reconciling...`);
+
+                    // Construct a mock-like payload for handleWebhook (or call internal logic)
+                    const mockRawBody = Buffer.from(JSON.stringify({
+                        event: 'payment.captured',
+                        payload: {
+                            payment: {
+                                entity: {
+                                    id: successfulPayment.id,
+                                    order_id: orderId,
+                                    method: successfulPayment.method
+                                }
+                            }
+                        }
+                    }));
+
+                    // We bypass signature check as this is an internal reliable fetch
+                    // But to be safe and reuse logic, we can just call a specialized method or handle it here
+                    // Let's reuse handleWebhook by passing a "bypass" flag or similar? 
+                    // Better: extract the core logic to a separate method `processSuccessfulPayment`
+                    await this.processSuccessfulOrder(orderId, successfulPayment.id, successfulPayment.method);
+                    reconciledCount++;
+                }
+            } catch (error) {
+                this.logger.error(`[Reconcile] Failed for order ${orderId}: ${error.message}`);
+            }
+        }
+
+        if (reconciledCount > 0) {
+            this.logger.log(`[Cron] Completed Reconciliation. Fixed ${reconciledCount} orders.`);
+        }
+    }
+
+    /**
+     * Core logic to mark an order as successful
+     * Extracted from handleWebhook for reuse in Reconciliation
+     */
+    async processSuccessfulOrder(orderId: string, paymentId: string, paymentMethod: string) {
+        await this.purchaseRepository.manager.transaction(async transactionalEntityManager => {
+            // Update Purchase
+            const purchaseUpdate = await transactionalEntityManager.update(Purchase,
+                { razorpayOrderId: orderId },
+                {
+                    status: 'COMPLETED',
+                    razorpayPaymentId: paymentId,
+                    paymentMethod: paymentMethod
+                }
+            );
+
+            // Update UserPass
+            const passUpdate = await transactionalEntityManager.update(UserPass,
+                { razorpayOrderId: orderId },
+                {
+                    paymentStatus: 'COMPLETED',
+                    status: 'ACTIVE',
+                    razorpayPaymentId: paymentId,
+                    paymentMethod: paymentMethod
+                }
+            );
+
+            // Fetch info for side effects
+            const purchase = await transactionalEntityManager.findOne(Purchase, {
+                where: { razorpayOrderId: orderId },
+                relations: ['user']
+            });
+            const userPass = await transactionalEntityManager.findOne(UserPass, {
+                where: { razorpayOrderId: orderId },
+                relations: ['user']
+            });
+
+            // Update User Preferred Payment Method
+            const userId = purchase?.user?.id || userPass?.userId;
+            if (userId && paymentMethod) {
+                await transactionalEntityManager.update(User,
+                    { id: userId },
+                    { preferredPaymentMethod: paymentMethod }
+                );
+            }
+
+            // [FIX] Atomic Coupon Usage Increment
+            const couponCode = purchase?.couponCode || userPass?.couponCode;
+            if (couponCode) {
+                await transactionalEntityManager.increment(Coupon, { code: couponCode }, 'usedCount', 1);
+                this.logger.log(`[Reconcile] Incremented usage for coupon: ${couponCode}`);
+            }
+        });
     }
 
     async hasPurchased(userId: string, examId: string): Promise<boolean> {
