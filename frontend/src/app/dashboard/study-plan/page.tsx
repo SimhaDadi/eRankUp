@@ -66,7 +66,7 @@ export default function StudyPlanPage() {
             const res = await api.post('/adaptive/start-session', { questionIds });
             const { sessionId } = res.data;
             // Redirect to instructions instead of direct test
-            router.push(`/dashboard/exam-start/${sessionId}`);
+            router.push(`/dashboard/assessment-start/${sessionId}`);
         } catch (error) {
             console.error("Failed to start adaptive practice", error);
             alert("Failed to initialize session. Please try again.");

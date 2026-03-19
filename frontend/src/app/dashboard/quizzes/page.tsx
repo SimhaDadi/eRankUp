@@ -197,7 +197,7 @@ export default function FreeQuizzesPage() {
                                             </div>
                                         ) : (
                                             <Link
-                                                href={quiz.models && quiz.models.length > 0 ? `/dashboard/exam-start/${quiz.models[0].id}` : `/dashboard/exams/${quiz.id}`}
+                                                href={quiz.models && quiz.models.length > 0 ? `/dashboard/assessment-start/${quiz.models[0].id}` : `/dashboard/exams/${quiz.id}`}
                                                 className="w-full py-5 bg-slate-900 hover:bg-amber-500 text-white font-black rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-900/10 group-hover:shadow-amber-500/20 text-[10px] uppercase tracking-[0.2em]"
                                             >
                                                 <Zap className="w-4 h-4 fill-current" /> Start Sprint

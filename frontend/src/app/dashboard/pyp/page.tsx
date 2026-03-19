@@ -220,7 +220,7 @@ export default function PreviousYearPapersPage() {
                                             </div>
                                         ) : (
                                             <Link
-                                                href={`/dashboard/exam-start/${exam.id}`}
+                                                href={`/dashboard/assessment-start/${exam.id}`}
                                                 className="w-full btn-ultra-primary justify-center text-xs tracking-[0.15em] group-hover:shadow-blue-900/20"
                                             >
                                                 <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" /> Attempt Now

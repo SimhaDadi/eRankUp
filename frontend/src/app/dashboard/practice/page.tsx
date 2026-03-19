@@ -126,7 +126,7 @@ export default function PracticePage() {
 
     const startChapterPractice = async (examId: string) => {
         // Redirect to exam start page (examId is now the actual exam ID, not chapter ID)
-        router.push(`/dashboard/exam-start/${examId}`);
+        router.push(`/dashboard/assessment-start/${examId}`);
     };
 
     // Removed direct return here to use AnimatePresence below

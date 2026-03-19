@@ -180,7 +180,7 @@ export default function DashboardPage() {
         try {
             // [FIX] Redirect to instruction page instead of directly to the test
             // This ensures the user goes through ExamStartPage and provides a user gesture (START click)
-            router.push('/dashboard/exam-start/smart-revision');
+            router.push('/dashboard/assessment-start/smart-revision');
         } catch (error) {
             console.error("Failed to start revision session", error);
             alert("Failed to start revision session. Please try again later.");

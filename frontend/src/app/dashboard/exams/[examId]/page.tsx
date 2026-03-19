@@ -275,7 +275,7 @@ export default function ExamDetailsPage() {
                                             <h3 className="text-lg font-black text-slate-700 tracking-tight leading-none">Access Granted</h3>
 
                                             <Link
-                                                href={`/dashboard/exam-start/${exam.id}`}
+                                                href={`/dashboard/assessment-start/${exam.id}`}
                                                 className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-[10px]"
                                             >
                                                 Start Now
@@ -320,7 +320,7 @@ export default function ExamDetailsPage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {chapter.models?.map((model, mIdx) => (
-                                        <Link key={model.id} href={(!exam.isPremium || !!exam.hasPurchased) ? `/dashboard/exam-start/${model.id}` : '#'}>
+                                        <Link key={model.id} href={(!exam.isPremium || !!exam.hasPurchased) ? `/dashboard/assessment-start/${model.id}` : '#'}>
                                             <TestUnit model={model} isUnlocked={!exam.isPremium || !!exam.hasPurchased} index={mIdx} />
                                         </Link>
                                     ))}
@@ -362,7 +362,7 @@ export default function ExamDetailsPage() {
                                         )}
                                         {attempts.length === 0 && (
                                             <Link
-                                                href={`/dashboard/exam-start/${exam.id}`}
+                                                href={`/dashboard/assessment-start/${exam.id}`}
                                                 className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 font-black uppercase tracking-[0.2em] text-xs rounded-xl shadow-lg transition-all hover:shadow-xl hover:-translate-y-1 flex items-center gap-3"
                                             >
                                                 Start Practice

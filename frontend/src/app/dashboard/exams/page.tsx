@@ -304,7 +304,7 @@ function ExamCard({ exam, index, itemVariants }: { exam: Exam, index: number, it
                             }
 
                             if (totalModelsFound === 1 && singleModelId && (!exam.isPremium || exam.hasPurchased)) {
-                                targetUrl = `/dashboard/exam-start/${singleModelId}`;
+                                targetUrl = `/dashboard/assessment-start/${singleModelId}`;
                             }
                         }
 
