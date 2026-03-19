@@ -22,7 +22,7 @@ export default function DashboardLayout({
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isMounted, setIsMounted] = useState(false);
 
-    const isTestMode = pathname?.startsWith('/dashboard/test/');
+    const isTestMode = pathname?.startsWith('/dashboard/test/') || pathname?.startsWith('/dashboard/assessment-start/');
 
     useEffect(() => {
         setIsMounted(true);

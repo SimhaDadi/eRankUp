@@ -32,10 +32,10 @@ export default function ExamStartPage() {
     useEffect(() => {
         const fetchModel = async () => {
             try {
-                if (params.id?.toString().startsWith('adaptive-')) {
+                if (params.examId?.toString().startsWith('adaptive-')) {
                     // Adaptive sessions show a simplified instruction view
                     setModel({
-                        id: params.id as string,
+                        id: params.examId as string,
                         title: 'Adaptive AI Practice',
                         totalQuestions: 20, // Default for adaptive
                         duration: 30,
@@ -47,7 +47,7 @@ export default function ExamStartPage() {
                         allowReview: true,
                         allowSkip: true
                     });
-                } else if (params.id?.toString() === 'smart-revision') {
+                } else if (params.examId?.toString() === 'smart-revision') {
                     // Smart Revision Mode
                     const res = await api.get('/ai-study/revision');
                     const revisionData = res.data;
@@ -70,12 +70,12 @@ export default function ExamStartPage() {
                         allowSkip: true,
                         customInstructions: "This session is tailored based on your recent mistakes. Focus on understanding the concepts behind these questions."
                     });
-                } else if (params.id?.toString().startsWith('chapter-')) {
-                    const chapterId = params.id.toString().replace('chapter-', '');
+                } else if (params.examId?.toString().startsWith('chapter-')) {
+                    const chapterId = params.examId.toString().replace('chapter-', '');
                     const res = await api.get(`/exams/chapters/${chapterId}/questions`);
                     const questions = res.data;
                     setModel({
-                        id: params.id as string,
+                        id: params.examId as string,
                         title: 'Chapter Practice',
                         totalQuestions: questions.length,
                         duration: questions.length * 2, // 2 mins per question
@@ -88,7 +88,7 @@ export default function ExamStartPage() {
                         allowSkip: true
                     });
                 } else {
-                    const response = await api.get(`/exams/models/${params.id}`);
+                    const response = await api.get(`/exams/models/${params.examId}`);
                     setModel(response.data);
                 }
             } catch (err: any) {
@@ -100,14 +100,14 @@ export default function ExamStartPage() {
             }
         };
 
-        if (params.id) {
+        if (params.examId) {
             fetchModel();
         }
-    }, [params.id]);
+    }, [params.examId]);
 
     const handleStartExam = () => {
         if (!agreedToInstructions) return;
-        router.push(`/dashboard/test/${params.id}`);
+        router.push(`/dashboard/test/${params.examId}`);
     };
 
     const getDifficultyColor = (difficulty: string) => {

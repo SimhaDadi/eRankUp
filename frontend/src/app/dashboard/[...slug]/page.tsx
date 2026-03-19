@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Construction, ArrowLeft, Search, Sparkles, Rocket, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
@@ -8,6 +9,17 @@ import Image from 'next/image';
 
 export default function ComingSoonPage() {
     const pathname = usePathname();
+    const router = useRouter();
+
+    // [TECH LEAD FIX] Redirect Guard: If this catch-all captures an active route segment
+    // due to Next.js specificity glitches, manually push back to the correct page.
+    useEffect(() => {
+        if (pathname?.includes('/assessment-start/')) {
+            // Force a slight delay to allow router to stabilize or just push
+            router.replace(pathname);
+        }
+    }, [pathname, router]);
+
     const featureName = pathname?.split('/').pop()?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Advanced Feature';
 
     return (
