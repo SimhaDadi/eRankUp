@@ -117,6 +117,38 @@ export default function TestPage() {
                     }
                     setIsLoading(false);
                     return;
+                } else if (params.id?.toString() === 'smart-revision') {
+                    // --- Smart Revision Mode ---
+                    try {
+                        const sessionRes = await api.get(`/test-session/smart-revision`);
+                        const session = sessionRes.data;
+
+                        if (session && session.questions && session.questions.length > 0) {
+                            setQuestions(session.questions);
+                            setModelTitle('Smart AI Revision');
+
+                            if (session.answers) setAnswers(session.answers);
+                            if (session.timings) setQuestionTimeLog(session.timings);
+                            if (session.flags) setFlags(session.flags);
+
+                            const visitedSet = new Set<string>();
+                            if (session.answers) Object.keys(session.answers).forEach(k => visitedSet.add(k));
+                            if (session.timings) Object.keys(session.timings).forEach(k => visitedSet.add(k));
+                            setVisited(Array.from(visitedSet));
+
+                            if (session.startTime) {
+                                const now = Date.now();
+                                const elapsedSeconds = Math.floor((now - session.startTime) / 1000);
+                                const durationSeconds = session.durationSeconds || (session.questions.length * 60);
+                                const remaining = Math.max(0, durationSeconds - elapsedSeconds);
+                                setTimeLeft(remaining);
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Failed to load smart revision session", err);
+                    }
+                    setIsLoading(false);
+                    return;
                 } else if (params.id?.toString().startsWith('chapter-')) {
                     // --- Chapter Wise Practice Mode ---
                     const chapterId = params.id.toString().replace('chapter-', '');

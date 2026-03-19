@@ -9,6 +9,7 @@ import { UsersModule } from '../users/users.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { Model } from '../exams/entities/model.entity';
 import { PassesModule } from '../passes/passes.module';
+import { AIStudyModule } from '../ai-study/ai-study.module';
 
 @Module({
     imports: [
@@ -18,6 +19,7 @@ import { PassesModule } from '../passes/passes.module';
         UsersModule,
         PaymentsModule,
         PassesModule,
+        AIStudyModule,
         ClientsModule.registerAsync([
             {
                 name: 'KAFKA_SERVICE',

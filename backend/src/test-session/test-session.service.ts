@@ -7,6 +7,7 @@ import Redis from 'ioredis';
 import { ScorerService } from '../exams/scorer.service';
 import { UsersService } from '../users/users.service';
 import { ExamsService } from '../exams/exams.service';
+import { RevisionService } from '../ai-study/revision.service';
 import { Model } from '../exams/entities/model.entity';
 
 export interface TestSession {
@@ -35,6 +36,7 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         private readonly scorerService: ScorerService,
         private readonly usersService: UsersService,
         private readonly examsService: ExamsService,
+        private readonly revisionService: RevisionService,
     ) {
         // Initializing Redis connection
         this.redis = new Redis({
@@ -273,6 +275,38 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
         };
 
         // Standard practice duration + buffer
+        const redisExpiry = durationSeconds + (60 * 60);
+        await this.redis.set(key, JSON.stringify(newSession), 'EX', redisExpiry);
+        return newSession;
+    }
+
+    async startRevisionSession(userId: string): Promise<TestSession> {
+        const testId = 'smart-revision';
+        const key = this.getSessionKey(userId, testId);
+
+        // Always start fresh for now to ensure latest mistakes are picked up
+        // Or if session exists and not completed, we could resume. 
+        // But for "Smart Revision", fresh is often better.
+        const mistakes = await this.revisionService.getRecentMistakes(userId);
+        if (mistakes.length === 0) {
+            throw new NotFoundException('No recent mistakes found for revision.');
+        }
+
+        const questions = mistakes.map(m => m.question);
+        const durationSeconds = Math.max(questions.length * 60, 600); // at least 10 mins
+
+        const newSession: TestSession = {
+            userId,
+            testId,
+            startTime: Date.now(),
+            answers: {},
+            timings: {},
+            flags: [],
+            status: 'IN_PROGRESS',
+            questions,
+            durationSeconds
+        };
+
         const redisExpiry = durationSeconds + (60 * 60);
         await this.redis.set(key, JSON.stringify(newSession), 'EX', redisExpiry);
         return newSession;

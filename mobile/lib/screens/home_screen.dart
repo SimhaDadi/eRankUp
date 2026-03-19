@@ -24,6 +24,8 @@ import 'study_plan_screen.dart';
 import '../widgets/daily_goal_widget.dart';
 import '../widgets/premium_card.dart';
 import 'practice_mode_screen.dart';
+import 'test_engine_screen.dart';
+import '../models/chapter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1282,10 +1284,20 @@ class _HomeScreenState extends State<HomeScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                // Navigate to Revision Test (Placeholder)
-                 ScaffoldMessenger.of(context).showSnackBar(
-                   const SnackBar(content: Text('Starting Smart Revision Session...')),
-                 );
+                // Navigate to Revision Test
+                final smartRevisionModel = TestModel(
+                  id: 'smart-revision',
+                  title: 'Smart AI Revision',
+                  totalQuestions: 0, // Will be fetched from session
+                  duration: 15, // Default 15 mins for revision
+                );
+                
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TestEngineScreen(model: smartRevisionModel),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,

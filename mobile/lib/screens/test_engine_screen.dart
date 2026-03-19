@@ -54,8 +54,12 @@ class _TestEngineScreenState extends State<TestEngineScreen> {
   Future<void> _startSession() async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
-      final response = await apiService.post('/test-session/start', {
-        'testId': widget.model.id,
+      final String path = widget.model.id == 'smart-revision' 
+          ? '/test-session/start/revision' 
+          : '/test-session/start';
+          
+      final response = await apiService.post(path, {
+        if (widget.model.id != 'smart-revision') 'testId': widget.model.id,
       });
 
       if (response.statusCode == 201 || response.statusCode == 200) {

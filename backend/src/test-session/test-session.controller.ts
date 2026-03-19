@@ -22,6 +22,12 @@ export class TestSessionController {
     }
 
     @UseGuards(AuthGuard('jwt'), PremiumGuard)
+    @Post('start/revision')
+    async startRevisionSession(@Request() req: any) {
+        return this.sessionService.startRevisionSession(req.user.userId);
+    }
+
+    @UseGuards(AuthGuard('jwt'), PremiumGuard)
     @Get(':testId')
     async getSession(@Request() req: any, @Param('testId') testId: string) {
         console.log(`[TestSessionController] getSession called for ${testId}, User: ${req.user.userId}`);

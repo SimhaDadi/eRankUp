@@ -9,5 +9,6 @@ import { Question } from '../exams/entities/question.entity';
     imports: [TypeOrmModule.forFeature([Response, Question])],
     controllers: [AIStudyController],
     providers: [RevisionService],
+    exports: [RevisionService],
 })
 export class AIStudyModule { }

@@ -24,7 +24,7 @@ import {
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import ActivePassBadge from '@/components/ActivePassBadge';
 import DashboardSkeleton from '@/components/DashboardSkeleton';
 // import AiDoubtSolver from '@/components/AiDoubtSolver';
@@ -175,6 +175,17 @@ export default function DashboardPage() {
         return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
     };
 
+    const router = useRouter();
+    const handleStartRevision = async () => {
+        try {
+            await api.post('/test-session/start/revision');
+            router.push('/dashboard/test/smart-revision');
+        } catch (error) {
+            console.error("Failed to start revision session", error);
+            alert("Failed to start revision session. Please try again later.");
+        }
+    };
+
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -238,7 +249,10 @@ export default function DashboardPage() {
                                             {revisionData.message}
                                         </p>
                                     </div>
-                                    <button className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-3 group">
+                                    <button
+                                        onClick={handleStartRevision}
+                                        className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-3 group"
+                                    >
                                         <Zap className="w-5 h-5 fill-indigo-600 group-hover:animate-pulse" />
                                         Start Revision
                                     </button>
