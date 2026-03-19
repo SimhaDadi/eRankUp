@@ -36,6 +36,9 @@ export class TestSessionController {
         if (!session) {
             console.log(`[TestSessionController] Session not found in Redis. Attempting to start new session...`);
             try {
+                if (testId === 'smart-revision') {
+                    return await this.sessionService.startRevisionSession(req.user.userId);
+                }
                 return await this.sessionService.startSession(req.user.userId, testId);
             } catch (e) {
                 console.error(`[TestSessionController] startSession failed:`, e);

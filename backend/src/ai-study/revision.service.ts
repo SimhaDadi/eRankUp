@@ -21,15 +21,16 @@ export class RevisionService {
         // We join Attempt to filter by userId
         const attempts = await this.responseRepo.manager.createQueryBuilder(Attempt, 'attempt')
             .select('attempt.id')
-            .where('attempt.userId = :userId', { userId })
+            .where('attempt.user = :userId', { userId }) // Use relation for better compatibility
             .andWhere('attempt.createdAt > :checkDate', { checkDate })
             .getMany();
 
+        console.log(`[RevisionService] Found ${attempts.length} attempts for user ${userId} since ${checkDate}`);
         if (attempts.length === 0) return [];
 
         const attemptIds = attempts.map(a => a.id);
 
-        return this.responseRepo.find({
+        const results = await this.responseRepo.find({
             where: {
                 attempt: { id: In(attemptIds) },
                 isCorrect: false
@@ -38,6 +39,9 @@ export class RevisionService {
             order: { answeredAt: 'DESC' },
             take: 20 // Limit to top 20 recent mistakes
         });
+
+        console.log(`[RevisionService] Returning ${results.length} specific mistakes for user ${userId}`);
+        return results;
     }
 
     async generateRevisionPayload(userId: string) {
