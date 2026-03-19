@@ -14,7 +14,7 @@ export class RevisionService {
         private questionRepo: Repository<Question>,
     ) { }
 
-    async getRecentMistakes(userId: string, days: number = 7) {
+    async getRecentMistakes(userId: string, days: number = 90) {
         const checkDate = new Date();
         checkDate.setDate(checkDate.getDate() - days);
 
