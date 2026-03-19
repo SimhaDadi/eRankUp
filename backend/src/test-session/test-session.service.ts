@@ -9,6 +9,7 @@ import { UsersService } from '../users/users.service';
 import { ExamsService } from '../exams/exams.service';
 import { RevisionService } from '../ai-study/revision.service';
 import { Model } from '../exams/entities/model.entity';
+import { isUUID } from '../common/utils';
 
 export interface TestSession {
     userId: string;
