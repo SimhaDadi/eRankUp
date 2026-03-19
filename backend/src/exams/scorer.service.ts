@@ -605,10 +605,13 @@ export class ScorerService implements OnModuleInit {
                 accuracy: 0,
                 streak: 0,
                 dailyQuestions: 0,
+                dailyQuestionTarget: 100, // Default for new users
                 topicPerformance: [],
                 topTopicRecommendation: 'Start your first test!'
             };
         }
+
+        const dailyQuestionTarget = stats.dailyQuestionTarget || 100;
 
         const accuracy = stats.totalQuestionsAttempted > 0
             ? Math.round((stats.totalCorrect / stats.totalQuestionsAttempted) * 100)
@@ -694,6 +697,7 @@ export class ScorerService implements OnModuleInit {
             accuracy,
             streak: stats.currentStreak,
             dailyQuestions,
+            dailyQuestionTarget,
             topicPerformance,
             topTopicRecommendation
         };

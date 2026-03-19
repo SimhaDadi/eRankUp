@@ -61,7 +61,7 @@ export default function DashboardPage() {
                     totalXp: gamiRes.data.totalXp,
                     level: gamiRes.data.level,
                     badges: gamiRes.data.badges,
-                    dailyQuestionTarget: gamiRes.data.dailyQuestionTarget || statsRes.data.dailyQuestionTarget || 100
+                    dailyQuestionTarget: gamiRes.data.dailyQuestionTarget || statsRes.data.dailyQuestionTarget || 25
                 };
 
                 setStats(combinedStats);
@@ -137,7 +137,7 @@ export default function DashboardPage() {
         };
     };
 
-    const modeConfig = useMemo(() => getModeConfig(stats?.dailyQuestionTarget || 100), [stats?.dailyQuestionTarget]);
+    const modeConfig = useMemo(() => getModeConfig(stats?.dailyQuestionTarget || 25), [stats?.dailyQuestionTarget]);
 
     const handleShareProgress = async () => {
         if (!cardRef.current) return;

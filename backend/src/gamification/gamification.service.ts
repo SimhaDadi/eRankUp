@@ -5,6 +5,7 @@ import { UserGamification, Badge } from './entities/user-gamification.entity';
 import { DailyChallenge } from './entities/daily-challenge.entity';
 import { UserChallengeProgress } from './entities/user-challenge-progress.entity';
 import { BADGES, LEVEL_THRESHOLDS, XP_REWARDS, BadgeDefinition } from './config/badges.config';
+import { CacheService } from '../common/cache.service';
 
 export interface LevelUpResult {
     leveledUp: boolean;
@@ -35,6 +36,7 @@ export class GamificationService {
         private challengeRepo: Repository<DailyChallenge>,
         @InjectRepository(UserChallengeProgress)
         private progressRepo: Repository<UserChallengeProgress>,
+        private cacheService: CacheService,
     ) { }
 
     async getOrCreateProfile(userId: string): Promise<UserGamification> {
@@ -300,6 +302,21 @@ export class GamificationService {
         const profile = await this.getOrCreateProfile(userId);
         console.log(`[GamificationService] Updating daily target for user ${userId} to ${target}`);
         profile.dailyQuestionTarget = target;
+        
+        // Sync with UserStats for redundancy
+        try {
+            await this.gamificationRepo.query(
+                `UPDATE "user_stats" SET "dailyQuestionTarget" = $1 WHERE "userId" = $2`,
+                [target, userId]
+            );
+            // Invalidate ScorerService cache
+            const cacheKey = `stats:user:${userId}`;
+            await this.cacheService.del(cacheKey);
+            console.log(`[GamificationService] Invalidated user stats cache for ${userId}`);
+        } catch (e) {
+            console.error(`[GamificationService] Failed to sync daily target to user_stats: ${e.message}`);
+        }
+
         return await this.gamificationRepo.save(profile);
     }
 }

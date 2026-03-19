@@ -34,6 +34,9 @@ export class UserStats {
     @Column('simple-json', { default: '{}' })
     topicPerformance: Record<string, { correct: number; total: number }>;
 
+    @Column({ name: 'dailyQuestionTarget', type: 'int', default: 100 })
+    dailyQuestionTarget: number;
+
     @UpdateDateColumn()
     updatedAt: Date;
 }
