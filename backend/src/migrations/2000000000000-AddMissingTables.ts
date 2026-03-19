@@ -4,7 +4,7 @@ export class AddMissingTables2000000000000 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         // Create news_items table
         await queryRunner.query(`
-            CREATE TABLE "news_items" (
+            CREATE TABLE IF NOT EXISTS "news_items" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "title" character varying NOT NULL,
                 "summary" text NOT NULL,
@@ -21,7 +21,7 @@ export class AddMissingTables2000000000000 implements MigrationInterface {
 
         // Create category table
         await queryRunner.query(`
-            CREATE TABLE "category" (
+            CREATE TABLE IF NOT EXISTS "category" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "name" character varying NOT NULL,
                 "slug" character varying NOT NULL,
@@ -37,7 +37,7 @@ export class AddMissingTables2000000000000 implements MigrationInterface {
 
         // Create community_posts table
         await queryRunner.query(`
-            CREATE TABLE "community_posts" (
+            CREATE TABLE IF NOT EXISTS "community_posts" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "content" text NOT NULL,
                 "imageUrl" character varying,
@@ -53,7 +53,7 @@ export class AddMissingTables2000000000000 implements MigrationInterface {
 
         // Create community_comments table
         await queryRunner.query(`
-            CREATE TABLE "community_comments" (
+            CREATE TABLE IF NOT EXISTS "community_comments" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "content" text NOT NULL,
                 "userId" uuid NOT NULL,
@@ -67,7 +67,7 @@ export class AddMissingTables2000000000000 implements MigrationInterface {
 
         // Create community_likes table
         await queryRunner.query(`
-            CREATE TABLE "community_likes" (
+            CREATE TABLE IF NOT EXISTS "community_likes" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "userId" uuid NOT NULL,
                 "postId" uuid NOT NULL,

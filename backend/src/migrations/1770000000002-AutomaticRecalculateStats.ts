@@ -35,9 +35,9 @@ export class AutomaticRecalculateStats1770000000002 implements MigrationInterfac
             UPDATE "user_stats" s
             SET "topicPerformance" = subquery.perf
             FROM (
-                SELECT a."userId", 
+                SELECT t."userId", 
                        jsonb_object_agg(
-                           COALESCE(q.topic, 'General'), 
+                           COALESCE(t.topic, 'General'), 
                            json_build_object(
                                'correct', t.correct_count, 
                                'total', t.total_count
@@ -53,8 +53,7 @@ export class AutomaticRecalculateStats1770000000002 implements MigrationInterfac
                     WHERE a."userId" IS NOT NULL
                     GROUP BY a."userId", q.topic
                 ) t
-                JOIN "attempt" a ON a."userId" = t."userId"
-                GROUP BY a."userId"
+                GROUP BY t."userId"
             ) as subquery
             WHERE s."userId" = subquery."userId"
         `);
