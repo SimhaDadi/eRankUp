@@ -68,7 +68,7 @@ export default function DashboardLayout({
     if (isTestMode) {
         return (
             <div className="min-h-screen bg-white">
-                <main className="h-screen overflow-hidden">
+                <main className="h-screen overflow-y-auto">
                     {children}
                 </main>
             </div>
