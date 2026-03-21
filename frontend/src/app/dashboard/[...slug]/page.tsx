@@ -14,11 +14,13 @@ export default function ComingSoonPage() {
     // [TECH LEAD FIX] Redirect Guard: If this catch-all captures an active route segment
     // due to Next.js specificity glitches, manually push back to the correct page.
     useEffect(() => {
-        if (pathname?.includes('/assessment-start/')) {
-            // Force a slight delay to allow router to stabilize or just push
-            router.replace(pathname);
+        const isAssessmentRoute = pathname?.includes('/assessment-start/') || pathname?.includes('/test/');
+        if (isAssessmentRoute) {
+            console.log(`[Redirect Guard] Trapped in catch-all for ${pathname}. Forcing hard redirect.`);
+            // Use window.location as a fallback to bypass router specificity issues
+            window.location.href = pathname;
         }
-    }, [pathname, router]);
+    }, [pathname]);
 
     const featureName = pathname?.split('/').pop()?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Advanced Feature';
 
