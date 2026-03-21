@@ -21,7 +21,7 @@ export class RevisionService {
         // We join Attempt to filter by userId
         const attempts = await this.responseRepo.manager.createQueryBuilder(Attempt, 'attempt')
             .select('attempt.id')
-            .where('attempt.user = :userId', { userId }) // Use relation for better compatibility
+            .where('attempt.userId = :userId', { userId }) // Use userId column directly
             .andWhere('attempt.createdAt > :checkDate', { checkDate })
             .getMany();
 
@@ -40,8 +40,21 @@ export class RevisionService {
             take: 20 // Limit to top 20 recent mistakes
         });
 
-        console.log(`[RevisionService] Returning ${results.length} specific mistakes for user ${userId}`);
-        return results;
+        console.log(`[RevisionService] Found ${results.length} raw mistakes for user ${userId}`);
+
+        // Deduplicate by question ID to avoid showing same question multiple times
+        const uniqueMistakes: Response[] = [];
+        const seenIds = new Set<string>();
+
+        for (const res of results) {
+            if (res.question && !seenIds.has(res.question.id)) {
+                seenIds.add(res.question.id);
+                uniqueMistakes.push(res);
+            }
+        }
+
+        console.log(`[RevisionService] Returning ${uniqueMistakes.length} unique mistakes for user ${userId}`);
+        return uniqueMistakes;
     }
 
     async generateRevisionPayload(userId: string) {
@@ -56,6 +69,7 @@ export class RevisionService {
 
         return {
             available: true,
+            count: mistakes.length, // For backward compatibility with mobile
             questionCount: mistakes.length,
             message: `We found ${mistakes.length} questions you struggled with recently.`,
             questions: mistakes.map(m => m.question),

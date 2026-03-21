@@ -143,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
              final revData = jsonDecode((results[4] as http.Response).body);
              _revisionAvailable = revData['available'] ?? false;
              _revisionMessage = revData['message'] ?? '';
-             _revisionCount = revData['count'] ?? 0;
+             _revisionCount = revData['questionCount'] ?? revData['count'] ?? 0;
           }
 
           // User Profile (from cache or API result index 5)
