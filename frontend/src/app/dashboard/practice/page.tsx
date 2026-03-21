@@ -122,7 +122,7 @@ export default function PracticePage() {
                 setExpandedSubject(firstMatchingSubject.id);
             }
         }
-    }, [searchQuery, hierarchy]);
+    }, [searchQuery, hierarchy, expandedSubject]);
 
     const startChapterPractice = async (examId: string) => {
         // Redirect to exam start page (examId is now the actual exam ID, not chapter ID)

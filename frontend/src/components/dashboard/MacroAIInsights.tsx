@@ -12,18 +12,16 @@ interface MacroAIInsightsProps {
 export default function MacroAIInsights({ stats, trendData }: MacroAIInsightsProps) {
     const [showPlan, setShowPlan] = useState(false);
 
-    if (!stats || trendData.length < 2) return null;
-
     // --- Heuristic Analysis Logic ---
-    const recentScores = trendData.slice(-3).map(d => d.score);
-    const avgRecent = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
-    const previousAvg = trendData.slice(0, -3).reduce((a: number, b: any) => a + b.score, 0) / Math.max(1, trendData.length - 3);
+    const recentScores = trendData ? trendData.slice(-3).map(d => d.score) : [];
+    const avgRecent = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : 0;
+    const previousAvg = trendData && trendData.length > 3 ? trendData.slice(0, -3).reduce((a: number, b: any) => a + b.score, 0) / Math.max(1, trendData.length - 3) : 0;
 
     const isImproving = avgRecent > previousAvg;
     const trendDiff = Math.round(avgRecent - previousAvg);
 
-    const accuracy = stats.accuracy || 0;
-    const avgTimePerTest = stats.totalTimeTaken / (stats.totalAttempts || 1); // in seconds
+    const accuracy = stats?.accuracy || 0;
+    const avgTimePerTest = (stats?.totalTimeTaken || 0) / (stats?.totalAttempts || 1); // in seconds
     // FIX: threshold raised to 3600s (60 mins) — a realistic exam duration
     const isFast = avgTimePerTest < 3600;
 
