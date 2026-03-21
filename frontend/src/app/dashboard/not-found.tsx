@@ -1,26 +1,13 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Construction, ArrowLeft, Search, Sparkles, Rocket, Shield, Zap } from 'lucide-react';
+import { ArrowLeft, Sparkles, Rocket, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default function ComingSoonPage() {
+export default function NotFound() {
     const pathname = usePathname();
-    const router = useRouter();
-
-    // [TECH LEAD FIX] Redirect Guard: If this catch-all captures an active route segment
-    // due to Next.js specificity glitches, manually push back to the correct page.
-    useEffect(() => {
-        const isAssessmentRoute = pathname?.includes('/assessment-start/') || pathname?.includes('/test/');
-        if (isAssessmentRoute) {
-            console.log(`[Redirect Guard] Trapped in catch-all for ${pathname}. Forcing hard redirect.`);
-            // Use window.location as a fallback to bypass router specificity issues
-            window.location.href = pathname;
-        }
-    }, [pathname]);
 
     const featureName = pathname?.split('/').pop()?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Advanced Feature';
 
