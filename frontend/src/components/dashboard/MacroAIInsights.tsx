@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, TrendingUp, TrendingDown, Target, Zap, ArrowRight, X, CheckCircle2, BookOpen, Clock, BarChart2, Brain, Trophy } from 'lucide-react';
 
@@ -23,38 +23,46 @@ export default function MacroAIInsights({ stats, trendData }: MacroAIInsightsPro
     const trendDiff = Math.round(avgRecent - previousAvg);
 
     const accuracy = stats.accuracy || 0;
-    const avgTimePerTest = stats.totalTimeTaken / (stats.totalAttempts || 1);
-    const isFast = avgTimePerTest < 1800;
+    const avgTimePerTest = stats.totalTimeTaken / (stats.totalAttempts || 1); // in seconds
+    // FIX: threshold raised to 3600s (60 mins) — a realistic exam duration
+    const isFast = avgTimePerTest < 3600;
 
     let strategyTitle = "";
     let strategyDesc = "";
     let focusArea = "";
+    // CTA route adapts to the user's profile
+    let ctaRoute = "/dashboard/practice";
 
     if (accuracy > 85 && isFast) {
         strategyTitle = "Elite Performance Mode";
         strategyDesc = "You are operating at peak efficiency. Your speed and accuracy are balanced ideally.";
         focusArea = "Maintain consistency & attempt harder mock tests.";
+        ctaRoute = "/dashboard/pyp"; // Elite → previous year papers
     } else if (accuracy > 85 && !isFast) {
         strategyTitle = "Precision Master";
         strategyDesc = "Your accuracy is excellent, but you are taking too long. You know the concepts well.";
         focusArea = "Focus on time-boxed drills to improve speed.";
+        ctaRoute = "/dashboard/practice"; // Precision → chapter-wise practice with timer
     } else if (accuracy < 60 && isFast) {
         strategyTitle = "Speed Demon (Risky)";
         strategyDesc = "You are rushing through questions. Speed is good, but not at the cost of mistakes.";
         focusArea = "Slow down. Review concepts before attempting tests.";
+        ctaRoute = "/dashboard/practice"; // Speed Demon → concept-level chapter practice
     } else {
         strategyTitle = "Foundational Building";
         strategyDesc = "Your scores are fluctuating. This often happens when learning new concepts.";
         focusArea = "Focus on topic-wise practice rather than full mocks.";
+        ctaRoute = "/dashboard/practice"; // Foundational → chapter-wise drills
     }
 
-    // --- Personal Plan Generation ---
-    const generatePlan = () => {
-        const plan = [];
+    // --- Personal Plan Generation (memoised) ---
+    // FIX: useMemo prevents unnecessary recomputation on every render
+    const plan = useMemo(() => {
+        const result = [];
 
-        // Week 1 focus
+        // Week 1–2: depends on primary weakness
         if (accuracy < 60) {
-            plan.push({
+            result.push({
                 week: "Week 1–2",
                 icon: BookOpen,
                 color: "from-violet-500 to-purple-600",
@@ -66,7 +74,7 @@ export default function MacroAIInsights({ stats, trendData }: MacroAIInsightsPro
                 ]
             });
         } else if (!isFast) {
-            plan.push({
+            result.push({
                 week: "Week 1–2",
                 icon: Clock,
                 color: "from-amber-500 to-orange-500",
@@ -78,7 +86,7 @@ export default function MacroAIInsights({ stats, trendData }: MacroAIInsightsPro
                 ]
             });
         } else {
-            plan.push({
+            result.push({
                 week: "Week 1–2",
                 icon: Trophy,
                 color: "from-emerald-500 to-teal-500",
@@ -91,9 +99,9 @@ export default function MacroAIInsights({ stats, trendData }: MacroAIInsightsPro
             });
         }
 
-        // Week 3 focus
-        plan.push({
-            week: "Week 3",
+        // FIX: Week label changed from "Week 3" to "Week 2–3" — removes confusing label gap
+        result.push({
+            week: "Week 2–3",
             icon: BarChart2,
             color: "from-blue-500 to-indigo-600",
             title: isImproving ? "Maintain Momentum" : "Break the Plateau",
@@ -110,8 +118,7 @@ export default function MacroAIInsights({ stats, trendData }: MacroAIInsightsPro
                 ]
         });
 
-        // Week 4
-        plan.push({
+        result.push({
             week: "Week 4",
             icon: Brain,
             color: "from-rose-500 to-pink-600",
@@ -123,10 +130,8 @@ export default function MacroAIInsights({ stats, trendData }: MacroAIInsightsPro
             ]
         });
 
-        return plan;
-    };
-
-    const plan = generatePlan();
+        return result;
+    }, [accuracy, isFast, isImproving]);
 
     return (
         <>
@@ -273,17 +278,19 @@ export default function MacroAIInsights({ stats, trendData }: MacroAIInsightsPro
                                         </motion.div>
                                     ))}
 
-                                    {/* CTA Footer */}
+                                    {/* CTA Footer — route adapts to profile */}
                                     <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 flex items-center gap-4">
                                         <div className="p-2.5 bg-indigo-600 rounded-xl">
                                             <Brain className="w-5 h-5 text-white" />
                                         </div>
                                         <div className="flex-1">
-                                            <p className="text-sm font-black text-slate-800">Start with Chapter Wise Tests</p>
+                                            <p className="text-sm font-black text-slate-800">
+                                                {ctaRoute === '/dashboard/pyp' ? 'Try Previous Year Papers' : 'Start with Chapter Wise Tests'}
+                                            </p>
                                             <p className="text-xs text-slate-500 font-medium mt-0.5">Your quickest path to score improvement based on current data</p>
                                         </div>
                                         <a
-                                            href="/dashboard/practice"
+                                            href={ctaRoute}
                                             className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-500/20 whitespace-nowrap"
                                         >
                                             Start Now →

@@ -16,6 +16,8 @@ class AnalyticsScreen extends StatefulWidget {
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _peerData;
+  Map<String, dynamic>? _statsData;  // FIX: separate field for /exams/user/stats
+  List<dynamic>? _trendData;         // FIX: for score-trend isImproving calculation
   List<dynamic>? _masteryData;
   List<dynamic>? _matrixData;
 
@@ -28,10 +30,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Future<void> _fetchData() async {
     final api = Provider.of<ApiService>(context, listen: false);
     try {
+      // FIX: added /exams/user/stats and /exams/performance/trend for correct data
       final results = await Future.wait([
         api.get('/analytics/user/peer'),
         api.get('/analytics/mastery'),
         api.get('/analytics/user/matrix'),
+        api.get('/exams/user/stats'),
+        api.get('/exams/performance/trend?limit=15'),
       ]);
 
       if (mounted) {
@@ -39,6 +44,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           _peerData = jsonDecode(results[0].body);
           _masteryData = jsonDecode(results[1].body);
           _matrixData = jsonDecode(results[2].body);
+          _statsData = jsonDecode(results[3].body);     // FIX: real accuracy + attempts
+          _trendData = jsonDecode(results[4].body);     // FIX: for isImproving calc
           _isLoading = false;
         });
       }
@@ -50,13 +57,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   // --- Heuristic Study Plan Logic (mirrors web MacroAIInsights) ---
   Map<String, dynamic> _buildPersonalPlan() {
-    final accuracy = (_peerData?['avgAccuracy'] as num?)?.toDouble() ?? 0;
-    final totalAttempts = (_peerData?['totalAttempts'] as num?)?.toInt() ?? 0;
+    // FIX: accuracy and totalAttempts from correct endpoint /exams/user/stats
+    final accuracy = (_statsData?['accuracy'] as num?)?.toDouble() ?? 0;
+    final totalAttempts = (_statsData?['totalAttempts'] as num?)?.toInt() ?? 0;
     final percentile = (_peerData?['percentile'] as num?)?.toInt() ?? 0;
 
-    // Determine profile
+    // FIX: isImproving now uses score-trend comparison (same logic as web)
+    // Falls back to percentile if trend data unavailable
+    bool isImproving;
+    if (_trendData != null && _trendData!.length >= 4) {
+      final recent = _trendData!.take(3).map((d) => (d['score'] as num).toDouble()).toList();
+      final prior = _trendData!.skip(3).map((d) => (d['score'] as num).toDouble()).toList();
+      final avgRecent = recent.reduce((a, b) => a + b) / recent.length;
+      final avgPrior = prior.isEmpty ? avgRecent : prior.reduce((a, b) => a + b) / prior.length;
+      isImproving = avgRecent > avgPrior;
+    } else {
+      isImproving = percentile > 50; // fallback
+    }
+
     final bool isHighAccuracy = accuracy > 70;
-    final bool isImproving = percentile > 50;
 
     String profileTitle;
     String profileDesc;
@@ -116,9 +135,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       };
     }
 
-    // Week 3
+    // FIX: Week label changed from "Week 3" to "Week 2–3" — removes confusing gap
     final week3 = {
-      'week': 'Week 3',
+      'week': 'Week 2–3',
       'title': isImproving ? 'Maintain Momentum' : 'Break the Plateau',
       'color': const Color(0xFF3B82F6),
       'icon': Icons.bar_chart_rounded,
