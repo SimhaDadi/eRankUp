@@ -21,7 +21,8 @@ export class RevisionService {
         // We join Attempt to filter by userId
         const attempts = await this.responseRepo.manager.createQueryBuilder(Attempt, 'attempt')
             .select('attempt.id')
-            .where('attempt.userId = :userId', { userId }) // Use userId column directly
+            .innerJoin('attempt.user', 'user')
+            .where('user.id = :userId', { userId })
             .andWhere('attempt.createdAt > :checkDate', { checkDate })
             .getMany();
 
