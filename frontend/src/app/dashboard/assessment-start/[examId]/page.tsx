@@ -105,8 +105,20 @@ export default function ExamStartPage() {
         }
     }, [params.examId]);
 
-    const handleStartExam = () => {
+    const handleStartExam = async () => {
         if (!agreedToInstructions) return;
+
+        if (params.examId?.toString() === 'smart-revision') {
+            try {
+                // Pre-start the revision session so the test runner always finds it
+                await api.post('/test-session/start/revision');
+            } catch (err: any) {
+                const msg = err.response?.data?.message || 'Failed to start revision session.';
+                setError(msg);
+                return;
+            }
+        }
+
         router.push(`/dashboard/test/${params.examId}`);
     };
 
