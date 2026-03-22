@@ -469,8 +469,10 @@ export class TestSessionService implements OnModuleInit, OnModuleDestroy {
                 console.error('[TestSession] Kafka sync error:', kafkaErr);
             }
 
+            const { questions, ...sessionWithoutQuestions } = session;
+
             return {
-                ...session,
+                ...sessionWithoutQuestions,
                 attemptId: attempt.id,
                 score: attempt.score,
                 correctAnswers: attempt.correctAnswers,
