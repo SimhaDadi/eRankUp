@@ -90,12 +90,18 @@ export default function AdminLayout({
     const router = useRouter();
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const [mounted, setMounted] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const handleLogout = () => {
         logout();
         router.push('/login');
     };
+
+    // Set mounted state
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Click outside handler
     useEffect(() => {
@@ -111,12 +117,12 @@ export default function AdminLayout({
     }, []);
 
     useEffect(() => {
-        if (!isLoading && (!user || user.role !== 'admin')) {
+        if (mounted && !isLoading && (!user || user.role !== 'admin')) {
             router.push('/dashboard');
         }
-    }, [user, isLoading, router]);
+    }, [user, isLoading, router, mounted]);
 
-    if (isLoading) {
+    if (!mounted || isLoading) {
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
