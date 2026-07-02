@@ -7,6 +7,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useRouter } from 'next/navigation';
 import { isValidEmail } from '@/utils/validators';
+import { Toaster, toast } from 'react-hot-toast';
 
 export default function Signup() {
     const [formData, setFormData] = useState({
@@ -41,7 +42,12 @@ export default function Signup() {
         try {
             const { confirmPassword, ...dataToSend } = formData;
             await signup(dataToSend);
-            router.push('/login');
+            toast.success("Account created successfully! Redirecting to login...", {
+                duration: 3000,
+            });
+            setTimeout(() => {
+                router.push('/login');
+            }, 1500);
         } catch (err) {
             // Error handled in store
         }
@@ -198,6 +204,7 @@ export default function Signup() {
                     </Link>
                 </div>
             </motion.div>
+            <Toaster position="top-center" reverseOrder={false} />
         </div>
     );
 }
