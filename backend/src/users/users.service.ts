@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
@@ -12,6 +12,10 @@ export class UsersService {
 
     async findOneByEmail(email: string): Promise<User | null> {
         return this.usersRepository.findOne({ where: { email } });
+    }
+
+    async findOneByPhone(phone: string): Promise<User | null> {
+        return this.usersRepository.findOne({ where: { phone } });
     }
 
     async findOneById(id: string): Promise<User | null> {
@@ -38,6 +42,12 @@ export class UsersService {
     }
 
     async updateProfile(id: string, updateData: Partial<User>): Promise<User | null> {
+        if (updateData.phone) {
+            const existing = await this.findOneByPhone(updateData.phone);
+            if (existing && existing.id !== id) {
+                throw new ConflictException('Phone number already in use');
+            }
+        }
         await this.usersRepository.update(id, updateData);
         return this.usersRepository.findOne({ where: { id } });
     }

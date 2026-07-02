@@ -54,7 +54,7 @@ export class User {
     @Column({ nullable: true })
     profilePicture: string;
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, unique: true })
     phone: string;
 
     @Column({ nullable: true })

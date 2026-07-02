@@ -27,9 +27,19 @@ export class AuthService {
             throw new ConflictException('Email already in use');
         }
 
+        if (registerDto.phoneNumber) {
+            const existingPhoneUser = await this.usersService.findOneByPhone(registerDto.phoneNumber);
+            if (existingPhoneUser) {
+                throw new ConflictException('Phone number already in use');
+            }
+        }
+
         const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+        
+        const { phoneNumber, ...userData } = registerDto;
         const user = await this.usersService.create({
-            ...registerDto,
+            ...userData,
+            phone: phoneNumber, // Map DTO phoneNumber to entity phone
             password: hashedPassword,
             role: 'student' as any // Force student role on public signup
         });

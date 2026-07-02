@@ -13,6 +13,7 @@ export default function Signup() {
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
+        phoneNumber: '',
         password: '',
         confirmPassword: ''
     });
@@ -36,6 +37,11 @@ export default function Signup() {
 
         if (!isValidEmail(formData.email)) {
             setEmailError("Please enter a valid email address");
+            return;
+        }
+
+        if (formData.phoneNumber && !/^\+?[0-9]{10,15}$/.test(formData.phoneNumber)) {
+            alert("Please enter a valid phone number (minimum 10 digits)");
             return;
         }
 
@@ -99,6 +105,21 @@ export default function Signup() {
                             placeholder="you@example.com"
                         />
                         {emailError && <p className="text-red-500 text-xs mt-1 font-medium ml-1">{emailError}</p>}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                            Phone Number
+                        </label>
+                        <input
+                            name="phoneNumber"
+                            type="tel"
+                            required
+                            value={formData.phoneNumber}
+                            onChange={handleChange}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00bfa5]/20 focus:border-[#00bfa5] outline-none text-slate-900 placeholder:text-slate-400 transition-all font-medium"
+                            placeholder="e.g. 9876543210"
+                        />
                     </div>
 
                     <div>
