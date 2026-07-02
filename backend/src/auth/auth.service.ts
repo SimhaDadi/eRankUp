@@ -30,7 +30,7 @@ export class AuthService {
         if (registerDto.phoneNumber) {
             const existingPhoneUser = await this.usersService.findOneByPhone(registerDto.phoneNumber);
             if (existingPhoneUser) {
-                throw new ConflictException('Phone number already in use');
+                throw new ConflictException('This mobile number is already registered');
             }
         }
 

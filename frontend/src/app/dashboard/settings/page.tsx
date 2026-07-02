@@ -95,9 +95,10 @@ export default function SettingsPage() {
                 setShowSuccess(true);
                 setTimeout(() => setShowSuccess(false), 3000);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to update profile", error);
-            alert('Failed to update profile.');
+            const apiMessage = error.response?.data?.message;
+            alert(apiMessage || 'Failed to update profile.');
         } finally {
             setIsSaving(false);
         }

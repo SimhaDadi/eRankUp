@@ -45,7 +45,7 @@ export class UsersService {
         if (updateData.phone) {
             const existing = await this.findOneByPhone(updateData.phone);
             if (existing && existing.id !== id) {
-                throw new ConflictException('Phone number already in use');
+                throw new ConflictException('This mobile number is already registered');
             }
         }
         await this.usersRepository.update(id, updateData);

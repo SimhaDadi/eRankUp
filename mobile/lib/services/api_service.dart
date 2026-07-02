@@ -201,10 +201,16 @@ class ApiService {
         }
         return true;
       }
-      return false;
+      try {
+        final errorObj = jsonDecode(response.body);
+        if (errorObj['message'] != null) {
+          throw Exception(errorObj['message']);
+        }
+      } catch (_) {}
+      throw Exception('Server returned status code ${response.statusCode}');
     } catch (e) {
       print('Update Profile Error: $e');
-      return false;
+      rethrow;
     }
   }
 
