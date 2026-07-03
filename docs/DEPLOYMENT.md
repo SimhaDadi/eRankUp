@@ -15,6 +15,7 @@ This guide covers the complete deployment process for the eRankUp application on
 7. [Managing Services](#managing-services)
 8. [Database Operations](#database-operations)
 9. [Troubleshooting](#troubleshooting)
+10. [SSL Certificate Renewal](#ssl-certificate-renewal)
 
 ---
 
@@ -492,6 +493,38 @@ docker-compose -f docker-compose.prod.yml restart backend
 
 ---
 
+## SSL Certificate Renewal
+
+The SSL certificates for `erankup.in` and `www.erankup.in` are managed via Let's Encrypt Certbot running inside a Docker container.
+
+### 1. Manual Renewal Process
+
+If you ever need to manually force check and renew the certificates, connect to the server, navigate to `/opt/erankup`, and run:
+
+```bash
+# Force check and renew certificates (uses the saved webroot configuration)
+docker-compose -f docker-compose.prod.yml run --rm certbot renew
+
+# Reload Nginx to read the newly generated certificate files
+docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
+```
+
+### 2. Auto-Renewal Configuration
+
+Certbot is configured to check for renewal every 12 hours in the background. To automate reloading Nginx after a successful renewal, set up a weekly cron job on the host server:
+
+1. Open the cron editor:
+   ```bash
+   crontab -e
+   ```
+2. Add the following line at the bottom of the file (reloads Nginx every Sunday at 00:00 UTC):
+   ```cron
+   0 0 * * 0 docker exec erankup-nginx nginx -s reload > /dev/null 2>&1
+   ```
+3. Save and exit.
+
+---
+
 ## Server Details
 
 | Item | Value |
@@ -504,4 +537,4 @@ docker-compose -f docker-compose.prod.yml restart backend
 
 ---
 
-*Last Updated: February 2026*
+*Last Updated: July 2026*
